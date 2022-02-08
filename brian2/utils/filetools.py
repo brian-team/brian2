@@ -1,6 +1,6 @@
-'''
+"""
 File system tools
-'''
+"""
 
 
 import os
@@ -10,10 +10,10 @@ __all__ = ['ensure_directory', 'ensure_directory_of_file', 'in_directory',
 
 
 def ensure_directory_of_file(f):
-    '''
+    """
     Ensures that a directory exists for filename to go in (creates if
     necessary), and returns the directory path.
-    '''
+    """
     d = os.path.dirname(f)
     if not os.path.exists(d):
         os.makedirs(d)
@@ -21,16 +21,16 @@ def ensure_directory_of_file(f):
 
 
 def ensure_directory(d):
-    '''
+    """
     Ensures that a given directory exists (creates it if necessary)
-    '''
+    """
     if not os.path.exists(d):
         os.makedirs(d)
     return d
 
 
 class in_directory(object):
-    '''
+    """
     Safely temporarily work in a subdirectory
     
     Usage::
@@ -40,7 +40,7 @@ class in_directory(object):
             
     Guarantees that the code in the with block will be executed in directory,
     and that after the block is completed we return to the original directory.
-    '''
+    """
     def __init__(self, new_dir):
         self.orig_dir = os.getcwd()
         self.new_dir = new_dir
@@ -51,9 +51,9 @@ class in_directory(object):
 
 
 def copy_directory(source, target):
-    '''
+    """
     Copies directory source to target.
-    '''
+    """
     relnames = []
     sourcebase = os.path.normpath(source)+os.path.sep
     for root, dirnames, filenames in os.walk(source):

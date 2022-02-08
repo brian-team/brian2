@@ -7,6 +7,11 @@ from sphinx.cmd.build import main as sphinx_main
 import sys
 
 os.environ['BRIAN2_DOCS_QUICK_REBUILD'] = '1'
+# Some code (e.g. the definition of preferences) might need to know that Brian
+# is used to build the documentation. The READTHEDOCS variable is set
+# on the readthedocs.io server automatically, so we reuse it here to signal
+# a documentation build
+os.environ['READTHEDOCS'] = 'True'
 
 os.chdir('../../../docs_sphinx')
 if os.path.exists('../docs'):

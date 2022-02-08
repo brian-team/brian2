@@ -11,14 +11,14 @@ def _cname(obj):
 
 
 def handle_range(*args, **kwds):
-    '''
+    """
     Checks the arguments/keywords for the range iterator
 
     Should have 1-3 positional arguments.
 
     Returns a dict with keys low, high, step. Default values are
     low=0, step=1.
-    '''
+    """
     if len(args) == 0 or len(args) > 3:
         raise SyntaxError("Range iterator takes 1-3 positional arguments.")
     if len(kwds):
@@ -37,7 +37,7 @@ def handle_range(*args, **kwds):
 
 
 def handle_sample(*args, **kwds):
-    '''
+    """
     Checks the arguments/keywords for the sample iterator
 
     Should have 1-3 positional arguments and 1 keyword argument (either p or
@@ -47,7 +47,7 @@ def handle_sample(*args, **kwds):
     values are ``low=0``, ``step=1`. Sample size will be either ``'random'`` or
     ``'fixed'``. In the first case, ``p`` will have a value and size will be
     ``None`` (and vice versa for the second case).
-    '''
+    """
     if len(args) == 0 or len(args) > 3:
         raise SyntaxError("Sample iterator takes 1-3 positional arguments.")
     if len(kwds) != 1 or ('p' not in kwds and 'size' not in kwds):
@@ -81,16 +81,16 @@ iterator_function_handlers = {
 
 
 def parse_synapse_generator(expr):
-    '''
+    """
     Returns a parsed form of a synapse generator expression.
 
     The general form is:
 
-    ``element for iteration_variable in iterator_func(...)``
+    ``element for inner_variable in iterator_func(...)``
 
     or
 
-    ``element for iteration_variable in iterator_func(...) if if_expression``
+    ``element for inner_variable in iterator_func(...) if if_expression``
 
     Returns a dictionary with keys:
 
@@ -98,7 +98,7 @@ def parse_synapse_generator(expr):
         The original expression as a string.
     ``element``
         As above, a string expression.
-    ``iteration_variable``
+    ``inner_variable``
         A variable name, as above.
     ``iterator_func``
         String. Either ``range`` or ``sample``.
@@ -107,28 +107,25 @@ def parse_synapse_generator(expr):
     ``iterator_kwds``
         Dictionary of key/value pairs representing the keywords. See
         `handle_range` and `handle_sample`.
-    '''
+    """
     nr = NodeRenderer()
     parse_error = ("Error parsing expression '%s'. Expression must have "
                    "generator syntax, for example 'k for k in range(i-10, "
                    "i+10)'." % expr)
     try:
-        node = ast.parse('[%s]' % expr, mode='eval').body
+        node = ast.parse(f'[{expr}]', mode='eval').body
     except Exception as e:
-        raise SyntaxError(parse_error + " Error encountered was %s" % e)
+        raise SyntaxError(f"{parse_error} Error encountered was {e}")
     if _cname(node) != 'ListComp':
-        raise SyntaxError(parse_error + " Expression is not a generator "
-                                        "expression.")
+        raise SyntaxError(f"{parse_error} Expression is not a generator expression.")
     element = node.elt
     if len(node.generators) != 1:
-        raise SyntaxError(parse_error + " Generator expression must involve "
-                                        "only one iterator.")
+        raise SyntaxError(f"{parse_error} Generator expression must involve only one iterator.")
     generator = node.generators[0]
     target = generator.target
     if _cname(target) != 'Name':
-        raise SyntaxError(parse_error + " Generator must iterate over a single "
-                                        "variable (not tuple, etc.).")
-    iteration_variable = target.id
+        raise SyntaxError(f"{parse_error} Generator must iterate over a single variable (not tuple, etc.).")
+    inner_variable = target.id
     iterator = generator.iter
     if _cname(iterator) != 'Call' or _cname(iterator.func) !=  'Name':
         raise SyntaxError(parse_error + " Iterator expression must be one of "
@@ -141,7 +138,7 @@ def parse_synapse_generator(expr):
                           str(list(iterator_function_handlers)))
     if (getattr(iterator, 'starargs', None) is not None or
                 getattr(iterator, 'kwargs', None) is not None):
-        raise SyntaxError(parse_error + " Star arguments not supported.")
+        raise SyntaxError(f"{parse_error} Star arguments not supported.")
     args = []
     for argnode in iterator.args:
         args.append(nr.render_node(argnode))
@@ -152,18 +149,17 @@ def parse_synapse_generator(expr):
         iterator_handler = iterator_function_handlers[iterator_funcname]
         iterator_kwds = iterator_handler(*args, **keywords)
     except SyntaxError as exc:
-        raise SyntaxError(parse_error + " " + exc.msg)
+        raise SyntaxError(f"{parse_error} {exc.msg}")
     if len(generator.ifs) == 0:
         condition = ast.parse('True', mode='eval').body
     elif len(generator.ifs) > 1:
-        raise SyntaxError(parse_error + " Generator must have at most one if "
-                                        "statement.")
+        raise SyntaxError(f"{parse_error} Generator must have at most one if statement.")
     else:
         condition = generator.ifs[0]
     parsed = {
         'original_expression': expr,
         'element': nr.render_node(element),
-        'iteration_variable': iteration_variable,
+        'inner_variable': inner_variable,
         'iterator_func': iterator_funcname,
         'iterator_kwds': iterator_kwds,
         'if_expression': nr.render_node(condition),

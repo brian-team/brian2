@@ -83,7 +83,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
               'sphinx.ext.viewcode',
               'brian2.sphinxext.briandoc',
               'sphinx.ext.autosummary',
-              'sphinx.ext.extlinks']
+              'sphinx.ext.extlinks',
+              'sphinx_tabs.tabs']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -147,6 +148,7 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['brian2.']
 
+sphinx_tabs_disable_tab_closing = True
 
 # -- Options for HTML output ---------------------------------------------------
 
@@ -237,6 +239,7 @@ htmlhelp_basename = 'Brian2doc'
 suppress_warnings = ['image.nonlocal_uri']
 
 # -- Options for LaTeX output --------------------------------------------------
+latex_engine = 'xelatex'
 
 latex_elements = {
 # The paper size ('letterpaper' or 'a4paper').

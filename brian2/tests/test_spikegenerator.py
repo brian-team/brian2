@@ -1,8 +1,8 @@
 
 
-'''
+"""
 Tests for `SpikeGeneratorGroup`
-'''
+"""
 import os
 import tempfile
 
@@ -12,15 +12,15 @@ from numpy.testing import assert_equal, assert_array_equal
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_and_delete
-from brian2.tests.utils import assert_allclose
+from brian2.tests.utils import assert_allclose, exc_isinstance
 from brian2.utils.logger import catch_logs
 
 
 @pytest.mark.standalone_compatible
 def test_spikegenerator_connected():
-    '''
+    """
     Test that `SpikeGeneratorGroup` connects properly.
-    '''
+    """
     G = NeuronGroup(10, 'v:1')
     mon = StateMonitor(G, 'v', record=True, when='end')
     indices = np.array([3, 2, 1, 1, 4, 5])
@@ -44,9 +44,9 @@ def test_spikegenerator_connected():
 
 @pytest.mark.standalone_compatible
 def test_spikegenerator_basic():
-    '''
+    """
     Basic test for `SpikeGeneratorGroup`.
-    '''
+    """
     indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices, times)
@@ -57,9 +57,9 @@ def test_spikegenerator_basic():
 
 @pytest.mark.standalone_compatible
 def test_spikegenerator_basic_sorted():
-    '''
+    """
     Basic test for `SpikeGeneratorGroup` with already sorted spike events.
-    '''
+    """
     indices = np.array([3, 1, 2, 3, 1, 2, 1, 2, 3])
     times   = np.array([1, 2, 2, 2, 3, 3, 4, 4, 4]) * ms
     SG = SpikeGeneratorGroup(5, indices, times)
@@ -70,9 +70,9 @@ def test_spikegenerator_basic_sorted():
 
 @pytest.mark.standalone_compatible
 def test_spikegenerator_basic_sorted_with_sorted():
-    '''
+    """
     Basic test for `SpikeGeneratorGroup` with already sorted spike events.
-    '''
+    """
     indices = np.array([3, 1, 2, 3, 1, 2, 1, 2, 3])
     times   = np.array([1, 2, 2, 2, 3, 3, 4, 4, 4]) * ms
     SG = SpikeGeneratorGroup(5, indices, times, sorted=True)
@@ -83,9 +83,9 @@ def test_spikegenerator_basic_sorted_with_sorted():
 
 @pytest.mark.standalone_compatible
 def test_spikegenerator_period():
-    '''
+    """
     Basic test for `SpikeGeneratorGroup`.
-    '''
+    """
     indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices, times, period=5*ms)
@@ -100,9 +100,9 @@ def test_spikegenerator_period():
 
 @pytest.mark.codegen_independent
 def test_spikegenerator_extreme_period():
-    '''
+    """
     Basic test for `SpikeGeneratorGroup`.
-    '''
+    """
     indices = np.array([0, 1, 2])
     times   = np.array([0, 1, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices, times, period=1e6*second)
@@ -131,13 +131,13 @@ def test_spikegenerator_period_rounding():
     net = Network(s)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(ValueError)
+    assert exc_isinstance(exc, ValueError)
 
 
 def test_spikegenerator_period_repeat():
-    '''
+    """
     Basic test for `SpikeGeneratorGroup`.
-    '''
+    """
     indices = np.zeros(10)
     times   = arange(0, 1, 0.1) * ms
 
@@ -189,9 +189,9 @@ def test_spikegenerator_change_spikes():
 @pytest.mark.standalone_compatible
 @pytest.mark.multiple_runs
 def test_spikegenerator_change_period():
-    '''
+    """
     Basic test for `SpikeGeneratorGroup`.
-    '''
+    """
     indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices1, times1, period=5*ms)
@@ -230,10 +230,10 @@ def test_spikegenerator_incorrect_values():
 
 @pytest.mark.codegen_independent
 def test_spikegenerator_incorrect_period():
-    '''
+    """
     Test that you cannot provide incorrect period arguments or combine
     inconsistent period and dt arguments.
-    '''
+    """
     # Period is negative
     with pytest.raises(ValueError):
         SpikeGeneratorGroup(1, [], []*second, period=-1*ms)
@@ -246,19 +246,19 @@ def test_spikegenerator_incorrect_period():
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, NotImplementedError)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=0.101 * ms, dt=0.1 * ms)
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, NotImplementedError)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=3.333 * ms, dt=0.1 * ms)
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, NotImplementedError)
 
     # This should not raise an error (see #1041)
     SG = SpikeGeneratorGroup(1, [], []*ms, period=150*ms, dt=0.1*ms)
@@ -270,7 +270,7 @@ def test_spikegenerator_incorrect_period():
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(ValueError)
+    assert exc_isinstance(exc, ValueError)
 
 
 def test_spikegenerator_rounding():
@@ -315,7 +315,7 @@ def test_spikegenerator_rounding_long():
     spikes = SpikeMonitor(SG)
     mon = StateMonitor(target, 'count', record=0, when='end')
     run(N*dt, report='text')
-    assert spikes.count[0] == N, 'expected %d spikes, got %d' % (N, spikes.count[0])
+    assert spikes.count[0] == N, f'expected {int(N)} spikes, got {int(spikes.count[0])}'
     assert all(np.diff(mon[0].count[:]) == 1)
 
 
@@ -353,7 +353,8 @@ def test_spikegenerator_multiple_spikes_per_bin():
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    print(exc.value.__cause__)
+    assert exc_isinstance(exc, ValueError)
 
     # More complicated scenario where dt changes between runs
     defaultclock.dt = 0.1*ms
@@ -363,7 +364,7 @@ def test_spikegenerator_multiple_spikes_per_bin():
     defaultclock.dt = 0.2*ms  # Now the two spikes fall into the same bin
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, ValueError)
 
 
 @pytest.mark.standalone_compatible

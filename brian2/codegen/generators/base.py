@@ -1,7 +1,7 @@
-'''
+"""
 Base class for generating code in different programming languages, gives the
 methods which should be overridden to implement a new language.
-'''
+"""
 
 from brian2.core.variables import ArrayVariable
 from brian2.core.functions import Function
@@ -18,13 +18,13 @@ logger = get_logger(__name__)
 
 
 class CodeGenerator(object):
-    '''
+    """
     Base class for all languages.
     
     See definition of methods below.
     
     TODO: more details here
-    '''
+    """
 
     # Subclasses should override this
     class_name = ''
@@ -67,7 +67,7 @@ class CodeGenerator(object):
 
     @staticmethod
     def get_array_name(var, access_data=True):
-        '''
+        """
         Get a globally unique name for a `ArrayVariable`.
 
         Parameters
@@ -82,39 +82,39 @@ class CodeGenerator(object):
         -------
         name : str
             A uniqe name for `var`.
-        '''
+        """
         # We have to do the import here to avoid circular import dependencies.
         from brian2.devices.device import get_device
         device = get_device()
         return device.get_array_name(var, access_data=access_data)
 
     def translate_expression(self, expr):
-        '''
+        """
         Translate the given expression string into a string in the target
         language, returns a string.
-        '''
+        """
         raise NotImplementedError
 
     def translate_statement(self, statement):
-        '''
+        """
         Translate a single line `Statement` into the target language, returns
         a string.
-        '''
+        """
         raise NotImplementedError
 
     def determine_keywords(self):
-        '''
+        """
         A dictionary of values that is made available to the templated. This is
         used for example by the `CPPCodeGenerator` to set up all the supporting
         code
-        '''
+        """
         raise NotImplementedError
 
     def translate_one_statement_sequence(self, statements, scalar=False):
         raise NotImplementedError
 
     def translate_statement_sequence(self, scalar_statements, vector_statements):
-        '''
+        """
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
    
@@ -123,7 +123,7 @@ class CodeGenerator(object):
         loop, ``vector_code`` is a list of the lines of code in the inner
         loop, and ``kwds`` is a dictionary of values that is made available to
         the template.
-        '''
+        """
         scalar_code = {}
         vector_code = {}
         for name, block in scalar_statements.items():
@@ -136,11 +136,11 @@ class CodeGenerator(object):
         return scalar_code, vector_code, kwds
 
     def array_read_write(self, statements):
-        '''
+        """
         Helper function, gives the set of ArrayVariables that are read from and
         written to in the series of statements. Returns the pair read, write
         of sets of variable names.
-        '''
+        """
         variables = self.variables
         variable_indices = self.variable_indices
         read = set()
@@ -153,16 +153,14 @@ class CodeGenerator(object):
             read = read.union(ids)
             if stmt.scalar or variable_indices[stmt.var] == '0':
                 if stmt.op != ':=' and not self.allows_scalar_write:
-                    raise SyntaxError(('Writing to scalar variable %s '
-                                       'not allowed in this context.' % stmt.var))
+                    raise SyntaxError(f'Writing to scalar variable {stmt.var} not allowed in this context.')
                 for name in ids:
                     if (name in variables and isinstance(variables[name], ArrayVariable)
                                           and not (variables[name].scalar or
                                                            variable_indices[name] == '0')):
-                        raise SyntaxError(('Cannot write to scalar variable %s '
-                                           'with an expression referring to '
-                                           'vector variable %s') %
-                                          (stmt.var, name))
+                        raise SyntaxError(f"Cannot write to scalar variable "
+                                          f"'{stmt.var}' with an expression "
+                                          f"referring to vector variable '{name}'")
             write.add(stmt.var)
         read = set(varname for varname, var in list(variables.items())
                    if isinstance(var, ArrayVariable) and varname in read)
@@ -183,10 +181,10 @@ class CodeGenerator(object):
         return read, write, indices
 
     def get_conditional_write_vars(self):
-        '''
+        """
         Helper function, returns a dict of mappings ``(varname, condition_var_name)`` indicating that
         when ``varname`` is written to, it should only be when ``condition_var_name`` is ``True``.
-        '''
+        """
         conditional_write_vars = {}
         for varname, var in list(self.variables.items()):
             if getattr(var, 'conditional_write', None) is not None:
@@ -197,10 +195,10 @@ class CodeGenerator(object):
         return conditional_write_vars
 
     def arrays_helper(self, statements):
-        '''
+        """
         Combines the two helper functions `array_read_write` and `get_conditional_write_vars`, and updates the
         ``read`` set.
-        '''
+        """
         read, write, indices = self.array_read_write(statements)
         conditional_write_vars = self.get_conditional_write_vars()
         read |= set(var for var in write
@@ -210,10 +208,10 @@ class CodeGenerator(object):
         return read, write, indices, conditional_write_vars
 
     def has_repeated_indices(self, statements):
-        '''
+        """
         Whether any of the statements potentially uses repeated indices (e.g.
         pre- or postsynaptic indices).
-        '''
+        """
         variables = self.variables
         variable_indices = self.variable_indices
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
@@ -226,9 +224,9 @@ class CodeGenerator(object):
         return not all_unique
 
     def translate(self, code, dtype):
-        '''
+        """
         Translates an abstract code block into the target language.
-        '''
+        """
         scalar_statements = {}
         vector_statements = {}
         for ac_name, ac_code in code.items():
@@ -249,10 +247,10 @@ class CodeGenerator(object):
             except OrderDependenceError:
                 # If the abstract code is only one line, display it in full
                 if len(vs) <= 1:
-                    error_msg = 'Abstract code: "%s"\n' % vs[0]
+                    error_msg = f"Abstract code: '{vs[0]}'\n"
                 else:
-                    error_msg = ('%d lines of abstract code, first line is: '
-                                 '"%s"\n') % (len(vs), vs[0])
+                    error_msg = (f"{len(vs)} lines of abstract code, first line is: "
+                                 f"'{vs[0]}'\n")
                 logger.warn(('Came across an abstract code block that may not be '
                              'well-defined: the outcome may depend on the '
                              'order of execution. You can ignore this warning if '

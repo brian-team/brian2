@@ -1,4 +1,4 @@
-'''
+"""
 Synaptic model with continuous interaction
 ------------------------------------------
 
@@ -25,7 +25,7 @@ References:
 
 -  Introduction to modeling neural dynamics, Börgers, chapter 20
 - `Discussion in Brian forum <https://brian.discourse.group/t/how-to-implement-a-conductance-base-synapse/77/2>`_
-'''
+"""
 from brian2 import *
 
 I_e = 1.5*uA

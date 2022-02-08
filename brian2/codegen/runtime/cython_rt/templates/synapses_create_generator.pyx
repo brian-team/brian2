@@ -54,24 +54,30 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     cdef size_t _jump
     {% endif %}
     {% endif %}
+
+    {# For a connect call j='k+i for k in range(0, N_post, 2) if k+i < N_post'
+    "j" is called the "result index" (and "_post_idx" the "result index array", etc.)
+    "i" is called the "outer index" (and "_pre_idx" the "outer index array", etc.)
+    "k" is called the inner variable #}
+
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code['setup_iterator']|autoindent}}
-    {{scalar_code['create_j']|autoindent}}
+    {{scalar_code['generator_expr']|autoindent}}
     {{scalar_code['create_cond']|autoindent}}
-    {{scalar_code['update_post']|autoindent}}
+    {{scalar_code['update']|autoindent}}
 
-    for _i in range(N_pre):
-        _raw_pre_idx = _i + _source_offset
+    for _{{outer_index}} in range({{outer_index_size}}):
+        _raw{{outer_index_array}} = _{{outer_index}} + {{outer_index_offset}}
 
-        {% if not postsynaptic_condition %}
+        {% if not result_index_condition %}
         {{vector_code['create_cond']|autoindent}}
         if not _cond:
             continue
         {% endif %}
         {{vector_code['setup_iterator']|autoindent}}
         {% if iterator_func=='range' %}
-        for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
+        for {{inner_variable}} in range(_iter_low, _iter_high, _iter_step):
         {% elif iterator_func=='sample' %}
         {% if iterator_kwds['sample_size'] == 'fixed' %}
         # Note that the following code is written in a slightly convoluted way,
@@ -90,17 +96,17 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
             {% if skip_if_invalid %}
             _iter_size = _n_total
             {% else %}
-            raise IndexError('Requested sample size %d is bigger than the '
-                             'population size %d.' % (_iter_size, _n_total))
+            raise IndexError(f"Requested sample size {_iter_size} is bigger than the "
+                             f"population size {_n_total}.")
             {% endif %}
         elif _iter_size < 0:
             {% if skip_if_invalid %}
             continue
             {% else %}
-            raise IndexError('Requested sample size %d is negative.' % _iter_size)
+            raise IndexError(f"Requested sample size {_iter_size} is negative.")
             {% endif %}
         if _selection_algo:
-            {{iteration_variable}} = _iter_low - _iter_step
+            {{inner_variable}} = _iter_low - _iter_step
         else:
             # For the tracking algorithm, we have to first create all values
             # to make sure they will be iterated in sorted order
@@ -115,7 +121,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
 
         while _n_selected < _iter_size:
             if _selection_algo:
-                {{iteration_variable}} += _iter_step
+                {{inner_variable}} += _iter_step
                 # Selection sampling technique
                 # See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2,
                 # Seminumerical Algorithms
@@ -124,7 +130,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                 if (_n_total - _n_dealt_with) * _U >= _iter_size - _n_selected:
                     continue
             else:
-                {{iteration_variable}} = _iter_low + _deref(_selected_it)*_iter_step
+                {{inner_variable}} = _iter_low + _deref(_selected_it)*_iter_step
                 _preinc(_selected_it)
             _n_selected += 1
 
@@ -141,13 +147,13 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         else:
             _log1p = 1.0 # will be ignored
         _pconst = 1.0/_log1p
-        {{iteration_variable}} = _iter_low-_iter_step
-        while _iter_sign*({{iteration_variable}} + _iter_step) < _iter_sign*_iter_high:
-            {{iteration_variable}} += _iter_step
+        {{inner_variable}} = _iter_low-_iter_step
+        while _iter_sign*({{inner_variable}} + _iter_step) < _iter_sign*_iter_high:
+            {{inner_variable}} += _iter_step
             if _jump_algo:
                 _jump = <int>(log(_rand(_vectorisation_idx))*_pconst)*_iter_step
-                {{iteration_variable}} += _jump
-                if _iter_sign*{{iteration_variable}} >= _iter_sign*_iter_high:
+                {{inner_variable}} += _jump
+                if _iter_sign*{{inner_variable}} >= _iter_sign*_iter_high:
                     break
             else:
                 if _rand(_vectorisation_idx)>=_iter_p:
@@ -155,35 +161,37 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% endif %}
         {% endif %}
 
-            {{vector_code['create_j']|autoindent}}
-            _raw_post_idx = _j + _target_offset
+            {{vector_code['generator_expr']|autoindent}}
+            _raw{{result_index_array}} = _{{result_index}} + {{result_index_offset}}
 
-            {% if postsynaptic_condition %}
-            {% if postsynaptic_variable_used %}
+            {% if result_index_condition %}
+            {% if result_index_used %}
             {# The condition could index outside of array range #}
-            if _j<0 or _j>=N_post:
+            if _{{result_index}}<0 or _{{result_index}}>={{result_index_size}}:
                 {% if skip_if_invalid %}
                 continue
                 {% else %}
-                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
+                # Note that with Jinja using a lot of curly braces, it is a better
+                # solution to use the outdated % syntax instead of f-strings here.
+                raise IndexError("index {{result_index}}=%d outside allowed range from 0 to %d" % (_{{result_index}}, {{result_index_size}}-1))
                 {% endif %}
             {% endif %}
             {{vector_code['create_cond']|autoindent}}
             {% endif %}
-            {% if if_expression!='True' and postsynaptic_condition %}
+            {% if if_expression!='True' and result_index_condition %}
             if not _cond:
                 continue
             {% endif %}
-            {% if not postsynaptic_variable_used %}
+            {% if not result_index_used %}
             {# Otherwise, we already checked before #}
-            if _j<0 or _j>=N_post:
+            if _{{result_index}}<0 or _{{result_index}}>={{result_index_size}}:
                 {% if skip_if_invalid %}
                 continue
                 {% else %}
-                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
+                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_{{result_index}}, {{result_index_size}}-1))
                 {% endif %}
             {% endif %}
-            {{vector_code['update_post']|autoindent}}
+            {{vector_code['update']|autoindent}}
 
             for _repetition in range(_n):
                 _prebuf_ptr[_curbuf] = _pre_idx

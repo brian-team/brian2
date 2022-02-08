@@ -78,7 +78,7 @@ def to_start_stop_or_index(item, group, level=0):
 
 
 class Subgroup(Group, SpikeSource):
-    '''
+    """
     Subgroup of any `Group`
     
     Parameters
@@ -94,15 +94,15 @@ class Subgroup(Group, SpikeSource):
         as ``start`` and ``stop``.
     name : str, optional
         A unique name for the group, or use ``source.name+'_subgroup_0'``, etc.
-    '''
+    """
     def __init__(self, source, start=None, stop=None, indices=None, name=None):
         if start is stop is indices is None:
             raise TypeError('Need to specify either start and stop or indices.')
         if start != stop and (start is None or stop is None):
             raise TypeError('start and stop have to be specified together.')
         if indices is not None and (start is not None):
-            raise TypeError('Cannot specify both sub_indices and start and '
-                            'stop.')
+            raise TypeError('Cannot specify both indices and start and '
+                             'stop.')
         if start is not None:
             self.contiguous = True
         else:
@@ -112,10 +112,14 @@ class Subgroup(Group, SpikeSource):
             max_index = np.max(indices)
             if max_index >= len(source):
                 raise IndexError('Index {} cannot be >= the size of the group '
-                                 '({})'.format(max_index, len(source)))
+                                '({})'.format(max_index, len(source)))
             if len(indices) != len(np.unique(indices)):
-                raise IndexError('sub_indices cannot contain repeated values.')
+                raise IndexError('indices cannot contain repeated values.')
 
+        # A Subgroup should never be constructed from another Subgroup
+        # Instead, use Subgroup(source.source,
+        #                       start + source.start, stop + source.start)
+        assert not isinstance(source, Subgroup)
         self.source = weakproxy_with_fallback(source)
 
         # Store a reference to the source's equations (if any)
@@ -124,7 +128,7 @@ class Subgroup(Group, SpikeSource):
             self.equations = weakproxy_with_fallback(self.source.equations)
 
         if name is None:
-            name = source.name + '_subgroup*'
+            name = f"{source.name}_subgroup*"
         # We want to update the spikes attribute after it has been updated
         # by the parent, we do this in slot 'thresholds' with an order
         # one higher than the parent order to ensure it takes place after the
@@ -160,7 +164,7 @@ class Subgroup(Group, SpikeSource):
             self.variables.add_reference('i', source)
         else:
             # We need an array to invert the indexing, i.e. an array where you
-            # can use the sub_indices and get back 0, 1, 2, ...
+            # can use the indices and get back 0, 1, 2, ...
             inv_idx = np.zeros(np.max(indices) + 1)
             inv_idx[indices] = np.arange(len(indices))
             self.variables.add_array('i', size=len(inv_idx),
@@ -194,9 +198,8 @@ class Subgroup(Group, SpikeSource):
             elif value == '_idx':
                 continue  # nothing to do, already uses _sub_idx correctly
             else:
-                raise ValueError(('Do not know how to deal with variable %s '
-                                  'using index %s in a subgroup') % (key,
-                                                                      value))
+                raise ValueError(f"Do not know how to deal with variable '{key}' "
+                                 f"using index '{value}' in a subgroup.")
 
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class

@@ -1,43 +1,201 @@
 Release notes
 =============
 
-Brian 2.4.2
-------------
-This is another bugfix release which fixes a number of bugs and updates our
-release infrastructure.
+Brian 2.5.0.3
+-------------
+Another patch-level release that fixes incorrectly built Python wheels (the binary package
+used to install packages with ``pip``). The wheels where mistakenly built against the most
+recent version of ``numpy`` (1.22), which made them incompatible with earlier versions of
+``numpy``. This release also fixes a few minor mistakes in the string representation of
+monitors, contributed by Felix Benjamin Kern.
+
+Brian 2.5.0.2
+-------------
+A new patch-level release that fixes a missing ``#include`` in the synapse generation code for C++ standalone code. This
+does not matter for most compilers (in particular, it does not matter for the gcc, clang, and Visual Studio compilers
+that we use for testing on Linux, OS X, and Windows), but it can matter for projects like Brian2GeNN that build on top
+of Brian2 and use Nvidia's ``nvcc`` compiler. The release also fixes a minor string-formatting error (:issue:`1377`),
+which led to quantities that were displayed without their units.
+
+Brian 2.5.0.1
+-------------
+A new build to provide binary
+`wheels <https://packaging.python.org/guides/distributing-packages-using-setuptools/#wheels>`_
+for Python 3.10.
+
+.. _brian2.5:
+Brian 2.5
+---------
+This new major release contains a large number of bug fixes and improvements, as well as
+important new features for synapse generation: the :ref:`generator_syntax` can now
+create synapses "in both directions", and also supports random samples of fixed size.
+In addition, several contributors have helped to improve the documentation, in
+particular by adding several new :doc:`../examples/index`. We have also updated our test
+infrastructure and removed workarounds and warnings related to older, now unsupported,
+versions of Python. Our policy for supported Python and numpy versions now follows the
+`NEP 29 policy <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_ adopted by
+most packages in the scientific Python ecosystem. This and other policies related to
+compatibility have been documented in :doc:`compatibility`. As always, we recommend all
+users of Brian 2 to upgrade.
+
+New features
+~~~~~~~~~~~~
+* :ref:`generator_syntax` has become more powerful: it is now possible to express
+  pre-synaptic indices as a function of post-synaptic indices – previously, only the
+  other direction was supported (:issue:`1294`).
+* Synapse generation can now make use of fixed-size random sampling (:issue:`1280`).
+  Together with the more powerful generator syntax, this finally makes it possible to
+  have networks where each cell receives a fixed number of random inputs:
+  ``syn.connect(i='k for k in sample(N_pre, size=number_of_inputs)')``.
 
 Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-* Fix incorrect integration of synaptic equations if they use a ``dt`` from
-  the connected neuron. Thanks to Jan Marker for reporting and fixing the
-  issue (:issue:`1248`).
-* Fix an issue with multiple runs in standalone mode (:issue:`1237`). Thanks
-  to Maurizio De Pittà for reporting the issue.
-* Uncaught error messages will now point to the Discourse forum instead of the
-  deprecated mailing list (:issue:`1242`). Thanks to Felix Kern for contributing
-  this fix.
+* Fair default build flags on several architectures (:issue:`1277`). Thanks to Étienne
+  Mollier for contributing this feature.
+* Better C++ compiler detection on UNIX systems, e.g. with Anaconda installations
+  (:issue:`1304`). Thanks to Jan Marker for this contribution.
+* Fixed LaTeX output for newer sympy versions (:issue:`1299`). Thanks to Sebastian
+  Schmitt for reporting this issue. The problem and its fix is described in detail
+  in this `blog post <https://briansimulator.org/posts/2021/bug-hunt-episode-1-broken-latex-output-for-equations/>`_.
+* Fixed string representation for units (:issue:`1291`). Recreating a unit from
+  its string representation gave wrong results in some corner cases.
+* Fix an error during the determination of appropriate C++ compiler flags on Windows
+  with Python 3.9 (:issue:`1286`), and fix the detection of a C99-compatible compiler
+  on Windows (:issue:`1257`). Thanks to Kyle Johnsen for reporting the errors
+  and providing both fixes.
+* More robust usage of external constants in C++ standalone code, avoiding clashes
+  when the user defines constants with common names like ``x`` (:issue:`1279`). Thanks
+  to user ``@wxie2013`` for making us aware of this issue.
+* Raise an error if summed variables refer to event-based variables (:issue:`1274`) and
+  a general rework of the dependency checks (:issue:`1328`). Thanks to Rohith Varma
+  Buddaraju for fixing this issue.
+* Fix an error for deactivated spike-emitting objects (e.g. `NeuronGroup`,
+  `PoissonGroup`). They continued to emit spikes despite ``active=False`` if they had
+  spiked in the last time step of a previous run (:issue:`1319`). Thanks to forum user
+  Shencong for making us aware of the issue.
+* Avoid warnings about deprecated numpy aliases (:issue:`1273`).
+* Avoid a warning about an "ignored attribute shape" in some interactive Python
+  consoles (:issue:`1372`).
+* Check units for summed variables (:issue:`1361`). Thanks to Jan-Hendrik Schleimer for
+  reporting this issue.
+* Do not raise an error if synapses use restore instead of Synapses.connect
+  (:issue:`1359`). Thanks to forum user SIbanez for reporting this issue.
+* Fix indexing for sections in SpatialNeuron (:issue:`1358`). Thanks to Sebastian
+  Schmitt for reporting this issue
+* Better error messages for missing threshold definition (:issue:`1363`).
+* Raise a useful error for ``namespace`` entries that start with an underscore instead
+  of failing during compilation if the name clashes with built-in functions
+  (:issue:`1362`). Thanks to Denis Alevi for reporting this issue.
+* Consistently use include/library directory preferences (:issue:`1353`). The
+  preferences can now be used to override the list of include/library directories,
+  replacing the inconsistent behavior where they were either prepended (C++ standalone
+  mode) or appended (Cython runtime mode) to the default list. Thanks to Denis Alevi for
+  opening the discussion on this issue.
+* Remove a warning about the difference between Python 2 and Python 3 semantics related
+  to division (:issue:`1351`).
+* Do not generate spurious ``-.o`` files when checking compiler compatibility
+  (:issue:`1348`). For more details, see this
+  `blog post <https://briansimulator.org/posts/2021/bug-hunt-episode-2-a-strange-file-appears/>`_.
+* Make `~.BrianGlobalPreferences.reset_to_defaults` work again, which was inadvertently
+  broken in the Python 2 → 3 transition (:issue:`1342`). Thanks to Denis Alevi for
+  reporting and fixing this issue.
+* The commands to run and compile the code in C++ standalone mode can now be changed via
+  a preference (:issue:`1338`).  This can be useful to run/compile on clusters where
+  jobs have to submitted with special commands. Thanks to Denis Alevi for contributing
+  this feature.
+
+Backward-incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* The ``default_preferences`` file that was part of the Brian installation has been
+  removed, since it could lead to  problems when working with development versions of
+  Brian, and was overwritten with each update (:issue:`1354`). Users can still use a
+  system-wide or per-directory preference file (see :doc:`../advanced/preferences`).
+* The preferences `codegen.cpp.include_dirs`, `codegen.cpp.library_dirs`, and
+  `codegen.cpp.runtime_library_dirs` now all replace the respective default values.
+  Previously they where prepended (C++ standalone mode) or appended (Cython runtime
+  mode). Users relying on a combination of the default values and their manually set
+  values need to include the default value (e.g.
+  ``os.path.join(sys.prefix, 'include')``) manually.
 
 Infrastructure and documentation improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-* Tagging a release will now automatically upload the release to PyPI via a
-  GitHub Action.
+* Tagging a release will now automatically upload the release to PyPI via a GitHub
+  Action. Versions are automatically determined with
+  `versioneer <https://github.com/python-versioneer/python-versioneer>`_ (:issue:`1267`)
+  and include more detailed information when using a development version of Brian. See
+  :ref:`which_version` for more details.
+* The test suite has been moved to GitHub Actions for all operating systems
+  (:issue:`1298`). Thanks to Rohith Varma Buddaraju for working on this.
+* New :doc:`../examples/frompapers.Jansen_Rit_1995_single_column` (:issue:`1347`),
+  contributed by Ruben Tikidji-Hamburyan.
+* New :doc:`../examples/synapses.spike_based_homeostasis` (:issue:`1331`), contributed
+  by Sebastian Schmitt.
+* New :doc:`../examples/advanced.COBAHH_approximated` (:issue:`1309`), contributed by
+  Sebastian Schmitt.
+* Several new examples covering several Brian usage pattern, e.g. a
+  :doc:`minimal C++ standalone script <../examples/standalone.simple_case>`, or
+  demonstrations of running multiple simulations in parallel with
+  :doc:`Cython <../examples/multiprocessing.01_using_cython>` or
+  :doc:`C++ standalone <../examples/multiprocessing.02_using_standalone>`, contributed
+  by A. Ziaeemehr.
+* Corrected units in :doc:`../examples/frompapers.Kremer_et_al_2011_barrel_cortex`
+  (:issue:`1355`). Thanks to Adam Willats for contributing this fix.
+* Most of Brian's code base should now use a consistent string formatting style
+  (:issue:`1364`), documented in the :doc:`../developer/guidelines/style`.
+* Test reports will now show the project directory path for C++ standalone projects
+  (:issue:`1336`). Thanks to Denis Alevi for contributing this feature.
+* Fix the documentation for C++ compiler references (:issue:`1323`, :issue:`1321`).
+  Thanks to Denis Alevi for fixing these issues.
+* Examples are now listed in a deterministic order in the documentation (:issue:`1312`),
+  and their title is now correctly formatted in the restructured text source
+  (:issue:`1311`). Thanks to Felix C. Stegermann for contributing these fixes.
+* Document how to plot model functions (e.g. time constants) in complex neuron models
+  (:issue:`1308`). Contributed by Sebastian Schmitt.
 
 Contributions
 ~~~~~~~~~~~~~
+
 Github code, documentation, and issue contributions (ordered by the number of
 contributions):
+
 * Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
 * Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
-* `@ramapati166 <https://github.com/ramapati166>`_
-* Yann Zerlaut (`@yzerlaut <https://github.com/yzerlaut>`_)
-* Maurizio De Pittà (`@mdepitta <https://github.com/mdepitta>`_)
-* Sebastian Schmitt (`@schmitts <https://github.com/schmitts>`_)
-* Felix Benjamin Kern (`@kernfel <https://github.com/kernfel>`_)
-* Eugen Skrebenkov (`@shcecter <https://github.com/shcecter>`_)
-* Simo (`@sivanni <https://github.com/sivanni>`_)
+* Rohith Varma Buddaraju (`@rohithvarma3000 <https://github.com/rohithvarma3000>`_)
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* Dingkun.Liu (`@DingkunLiu <https://github.com/DingkunLiu>`_)
 * Ruben Tikidji-Hamburyan (`@rat-h <https://github.com/rat-h>`_)
+* Sebastian Schmitt (`@schmitts <https://github.com/schmitts>`_)
+* `@ramapati166 <https://github.com/ramapati166>`_
 * Jan Marker (`@jangmarker <https://github.com/jangmarker>`_)
-* `@IrisHydi <https://github.com/IrisHydi>`_
+* Kyle Johnsen (`@kjohnsen <https://github.com/kjohnsen>`_)
+* Abolfazl Ziaeemehr (`@Ziaeemehr <https://github.com/Ziaeemehr>`_)
+* Felix Benjamin Kern (`@kernfel <https://github.com/kernfel>`_)
+* Yann Zerlaut (`@yzerlaut <https://github.com/yzerlaut>`_)
+* Adam (`@Adam-Antios <https://github.com/Adam-Antios>`_)
+* `@ShanqMa <https://github.com/ShanqMa>`_
+* Ljubica Cimeša (`@LjubicaCimesa <https://github.com/LjubicaCimesa>`_)
+* `@adididi <https://github.com/adididi>`_
+* VigneswaranC (`@Vigneswaran-Chandrasekaran <https://github.com/Vigneswaran-Chandrasekaran>`_)
+* Nunna Lakshmi Saranya (`@18sarru <https://github.com/18sarru>`_)
+* Friedemann Zenke (`@fzenke <https://github.com/fzenke>`_)
+* `@Alexis-Melot <https://github.com/Alexis-Melot>`_
+* Adam Willats (`@awillats <https://github.com/awillats>`_)
+* Felix C. Stegerman (`@obfusk <https://github.com/obfusk>`_)
+* Eugen Skrebenkov (`@shcecter <https://github.com/shcecter>`_)
+* Maurizio DE PITTA (`@mdepitta <https://github.com/mdepitta>`_)
+* Simo (`@sivanni <https://github.com/sivanni>`_)
+* Peter Quitta (`@peschn <https://github.com/peschn>`_)
+* Étienne Mollier (`@emollier <https://github.com/emollier>`_)
+* chaddy (`@chaddy1004 <https://github.com/chaddy1004>`_)
+* `@DePasquale99 <https://github.com/DePasquale99>`_
+* `@albertalbesa <https://github.com/albertalbesa>`_
+* Christian Behrens (`@chbehrens <https://github.com/chbehrens>`_)
+
+Other contributions outside of github (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* forum user `Shencong <https://brian.discourse.group/u/shencong/>`_
+* forum user `SIbanez <https://brian.discourse.group/u/sibanez/>`_
 
 Brian 2.4.1
 -----------
@@ -166,6 +324,7 @@ anyone we forgot...):
 
 
 .. _brian2.3:
+
 Brian 2.3
 ---------
 This release contains the usual mix of bug fixes and new features (see below), but

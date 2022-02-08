@@ -1,11 +1,11 @@
-'''
+"""
 This example shows how to run several, independent simulations in standalone
 mode. Note that this is not the optimal approach if running the same model with
 minor differences (as in this example).
 
 The example come from Tutorial part 3.
 For a discussion see this `post on the Brian forum <https://brian.discourse.group/t/multiple-run-in-standalone-mode/131>`_.
-'''
+"""
 
 import numpy as np
 import pylab as plt
@@ -51,9 +51,9 @@ if __name__ == "__main__":
         M = simulate(tau_i)
         output_rates[ii] = M.num_spikes / b2.second
 
-    print("Done in {}".format(time()-start_time))
+    print(f"Done in {time() - start_time}")
 
     plt.plot(tau_range/b2.ms, output_rates)
-    plt.xlabel(r'$\tau$ (ms)')
-    plt.ylabel('Firing rate (sp/s)')
+    plt.xlabel(r"$\tau$ (ms)")
+    plt.ylabel("Firing rate (sp/s)")
     plt.show()

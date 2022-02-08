@@ -16,9 +16,9 @@ def test_cpp_standalone():
     set_device('cpp_standalone', build_on_run=False)
     ##### Define the model
     tau = 1*ms
-    eqs = '''
+    eqs = """
     dV/dt = (-40*mV-V)/tau : volt (unless refractory)
-    '''
+    """
     threshold = 'V>-50*mV'
     reset = 'V=-60*mV'
     refractory = 5*ms
@@ -63,10 +63,10 @@ def test_multiple_connects():
 @pytest.mark.standalone_only
 def test_storing_loading():
     set_device('cpp_standalone', build_on_run=False)
-    G = NeuronGroup(10, '''v : volt
+    G = NeuronGroup(10, """v : volt
                            x : 1
                            n : integer
-                           b : boolean''')
+                           b : boolean""")
     v = np.arange(10)*volt
     x = np.arange(10, 20)
     n = np.arange(20, 30)
@@ -75,10 +75,10 @@ def test_storing_loading():
     G.x = x
     G.n = n
     G.b = b
-    S = Synapses(G, G, '''v_syn : volt
+    S = Synapses(G, G, """v_syn : volt
                           x_syn : 1
                           n_syn : integer
-                          b_syn : boolean''')
+                          b_syn : boolean""")
     S.connect(j='i')
     S.v_syn = v
     S.x_syn = x
@@ -127,10 +127,10 @@ def test_openmp_consistency():
                                        replace=False)*ms
     v_init       = Vr + numpy.random.rand(n_cells) * (Vt - Vr)
 
-    eqs  = Equations('''
+    eqs  = Equations("""
     dv/dt = (g-(v-El))/taum : volt
     dg/dt = -g/taus         : volt
-    ''')
+    """)
 
     results = {}
 
@@ -150,14 +150,14 @@ def test_openmp_consistency():
         P.v  = v_init
         P.g  = 0 * mV
         S    = Synapses(P, P, 
-                            model = '''dApre/dt=-Apre/taupre    : 1 (event-driven)    
+                            model = """dApre/dt=-Apre/taupre    : 1 (event-driven)    
                                        dApost/dt=-Apost/taupost : 1 (event-driven)
-                                       w                        : 1''', 
-                            pre = '''g     += w*mV
+                                       w                        : 1""", 
+                            pre = """g     += w*mV
                                      Apre  += dApre
-                                     w      = w + Apost''',
-                            post = '''Apost += dApost
-                                      w      = w + Apre''')
+                                     w      = w + Apost""",
+                            post = """Apost += dApost
+                                      w      = w + Apre""")
         S.connect()
         
         S.w       = fac*connectivity.flatten()
@@ -264,11 +264,11 @@ def test_time_after_run():
 def test_array_cache():
     # Check that variables are only accessible from Python when they should be
     set_device('cpp_standalone', build_on_run=False)
-    G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : 1
+    G = NeuronGroup(10, """dv/dt = -v / (10*ms) : 1
                            w : 1
                            x : 1
                            y : 1
-                           z : 1 (shared)''',
+                           z : 1 (shared)""",
                     threshold='v>1')
     S = Synapses(G, G, 'weight: 1', on_pre='w += weight')
     S.connect(p=0.2)
@@ -374,6 +374,59 @@ def test_changing_profile_arg():
     op3.active = False
     op4.active = False
     run(1000*defaultclock.dt, profile=True)
+    op1.active = True
+    op2.active = True
+    op3.active = True
+    op4.active = True
+    run(1000*defaultclock.dt, profile=False)
+    op1.active = False
+    op2.active = True
+    op3.active = True
+    op4.active = False
+    run(1000*defaultclock.dt, profile=True)
+    device.build(directory=None, with_output=False)
+    profiling_dict = dict(magic_network.profiling_info)
+    # Note that for now, C++ standalone creates a new CodeObject for every run,
+    # which is most of the time unnecessary (this is partly due to the way we
+    # handle constants: they are included as literals in the code but they can
+    # change between runs). Therefore, the profiling info is potentially
+    # difficult to interpret
+    assert len(profiling_dict) == 4  # 2 during first run, 2 during last run
+    # The two code objects that were executed during the first run
+    assert ('op1_codeobject' in profiling_dict and
+            profiling_dict['op1_codeobject'] > 0*second)
+    assert ('op2_codeobject' in profiling_dict and
+            profiling_dict['op2_codeobject'] > 0*second)
+    # Four code objects were executed during the second run, but no profiling
+    # information was saved
+    for name in ['op1_codeobject_1', 'op2_codeobject_1', 'op3_codeobject',
+                 'op4_codeobject']:
+        assert name not in profiling_dict
+    # Two code objects were exectued during the third run
+    assert ('op2_codeobject_2' in profiling_dict and
+            profiling_dict['op2_codeobject_2'] > 0*second)
+    assert ('op3_codeobject_1' in profiling_dict and
+            profiling_dict['op3_codeobject_1'] > 0*second)
+
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_profile_via_set_device_arg():
+    set_device('cpp_standalone', build_on_run=False, profile=True)
+    G = NeuronGroup(10000, 'v : 1')
+    op1 = G.run_regularly('v = exp(-v)', name='op1')
+    op2 = G.run_regularly('v = exp(-v)', name='op2')
+    op3 = G.run_regularly('v = exp(-v)', name='op3')
+    op4 = G.run_regularly('v = exp(-v)', name='op4')
+    # Op 1 is active only during the first profiled run
+    # Op 2 is active during both profiled runs
+    # Op 3 is active only during the second profiled run
+    # Op 4 is never active (only during the unprofiled run)
+    op1.active = True
+    op2.active = True
+    op3.active = False
+    op4.active = False
+    run(1000*defaultclock.dt)  # Should use profile=True via set_device
     op1.active = True
     op2.active = True
     op3.active = True
@@ -518,6 +571,7 @@ if __name__=='__main__':
              test_array_cache,
              test_run_with_debug,
              test_changing_profile_arg,
+             test_profile_via_set_device_arg,
              test_delete_code_data,
              test_delete_directory,
              test_multiple_standalone_runs

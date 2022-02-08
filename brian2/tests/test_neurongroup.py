@@ -24,13 +24,14 @@ from brian2.units.fundamentalunits import (DimensionMismatchError,
 from brian2.units.stdunits import ms, mV, Hz
 from brian2.units.unitsafefunctions import linspace
 from brian2.utils.logger import catch_logs
+from brian2.tests.utils import exc_isinstance
 
 
 @pytest.mark.codegen_independent
 def test_creation():
-    '''
+    """
     A basic test that creating a NeuronGroup works.
-    '''
+    """
     G = NeuronGroup(42, model='dv/dt = -v/(10*ms) : 1', reset='v=0',
                     threshold='v>1')
     assert len(G) == 42
@@ -56,17 +57,17 @@ def test_creation():
 
 @pytest.mark.codegen_independent
 def test_integer_variables_and_mod():
-    '''
+    """
     Test that integer operations and variable definitions work.
-    '''
+    """
     n = 10
-    eqs = '''
+    eqs = """
     dv/dt = (a+b+j+k)/second : 1
     j = i%n : integer
     k = i//n : integer
     a = v%(i+1) : 1
     b = v%(2*v) : 1
-    '''
+    """
     G = NeuronGroup(100, eqs)
     G.v = np.random.rand(len(G))
     run(1*ms)
@@ -76,9 +77,9 @@ def test_integer_variables_and_mod():
 
 @pytest.mark.codegen_independent
 def test_variables():
-    '''
+    """
     Test the correct creation of the variables dictionary.
-    '''
+    """
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1')
     assert all((x in G.variables) for x in ['v', 't', 'dt', 't_in_timesteps'])
     assert 'not_refractory' not in G.variables and 'lastspike' not in G.variables
@@ -93,8 +94,8 @@ def test_variables():
 @pytest.mark.codegen_independent
 def test_variableview_calculations():
     # Check that you can directly calculate with "variable views"
-    G = NeuronGroup(10, '''x : 1
-                           y : volt''')
+    G = NeuronGroup(10, """x : 1
+                           y : volt""")
     G.x = np.arange(10)
     G.y = np.arange(10)[::-1]*mV
     assert_allclose(G.x * G.y, np.arange(10)*np.arange(10)[::-1]*mV)
@@ -141,8 +142,8 @@ def test_variableview_calculations():
 @pytest.mark.codegen_independent
 def test_variableview_inplace_calculations():
     # Check that you can directly do in-place calculation with "variable views"
-    G = NeuronGroup(10, '''x : 1
-                           y : volt''')
+    G = NeuronGroup(10, """x : 1
+                           y : volt""")
     x_vals = np.arange(10)
     y_vals = np.arange(10)[::-1] * mV
     G.x[:] = x_vals
@@ -233,33 +234,33 @@ def test_variableview_inplace_calculations():
 
 @pytest.mark.standalone_compatible
 def test_stochastic_variable():
-    '''
+    """
     Test that a NeuronGroup with a stochastic variable can be simulated. Only
     makes sure no error occurs.
-    '''
+    """
     tau = 10 * ms
     G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1')
     run(defaultclock.dt)
 
 @pytest.mark.standalone_compatible
 def test_stochastic_variable_multiplicative():
-    '''
+    """
     Test that a NeuronGroup with multiplicative noise can be simulated. Only
     makes sure no error occurs.
-    '''
+    """
     mu = 0.5/second # drift
     sigma = 0.1/second #diffusion
     G = NeuronGroup(1, 'dX/dt = (mu - 0.5*second*sigma**2)*X + X*sigma*xi*second**.5: 1')
     run(defaultclock.dt)
 
 def test_scalar_variable():
-    '''
+    """
     Test the correct handling of scalar variables
-    '''
+    """
     tau = 10*ms
-    G = NeuronGroup(10, '''E_L : volt (shared)
+    G = NeuronGroup(10, """E_L : volt (shared)
                            s2 : 1 (shared)
-                           dv/dt = (E_L - v) / tau : volt''')
+                           dv/dt = (E_L - v) / tau : volt""")
     # Setting should work in these ways
     G.E_L = -70*mV
     assert_allclose(G.E_L[:], -70*mV)
@@ -274,12 +275,12 @@ def test_scalar_variable():
 
 @pytest.mark.standalone_compatible
 def test_referred_scalar_variable():
-    '''
+    """
     Test the correct handling of referred scalar variables in subexpressions
-    '''
-    G = NeuronGroup(10, '''out = sin(2*pi*t*freq) + x: 1
+    """
+    G = NeuronGroup(10, """out = sin(2*pi*t*freq) + x: 1
                            x : 1
-                           freq : Hz (shared)''')
+                           freq : Hz (shared)""")
     G.freq = 1*Hz
     G.x = np.arange(10)
     G2 = NeuronGroup(10, '')
@@ -289,9 +290,9 @@ def test_referred_scalar_variable():
 
 @pytest.mark.standalone_compatible
 def test_linked_variable_correct():
-    '''
+    """
     Test correct uses of linked variables.
-    '''
+    """
     tau = 10*ms
     G1 = NeuronGroup(10, 'dv/dt = -v / tau : volt')
     G1.v = linspace(0*mV, 20*mV, 10)
@@ -309,14 +310,14 @@ def test_linked_variable_correct():
 
 @pytest.mark.codegen_independent
 def test_linked_variable_incorrect():
-    '''
+    """
     Test incorrect uses of linked variables.
-    '''
-    G1 = NeuronGroup(10, '''x : volt
-                            y : 1''')
-    G2 = NeuronGroup(20, '''x: volt''')
-    G3 = NeuronGroup(10, '''l : volt (linked)
-                            not_linked : volt''')
+    """
+    G1 = NeuronGroup(10, """x : volt
+                            y : 1""")
+    G2 = NeuronGroup(20, """x: volt""")
+    G3 = NeuronGroup(10, """l : volt (linked)
+                            not_linked : volt""")
 
     # incorrect unit
     with pytest.raises(DimensionMismatchError):
@@ -335,12 +336,12 @@ def test_linked_variable_incorrect():
 
 @pytest.mark.standalone_compatible
 def test_linked_variable_scalar():
-    '''
+    """
     Test linked variable from a size 1 group.
-    '''
+    """
     G1 = NeuronGroup(1, 'dx/dt = -x / (10*ms) : 1')
-    G2 = NeuronGroup(10, '''dy/dt = (-y + x) / (20*ms) : 1
-                            x : 1 (linked)''')
+    G2 = NeuronGroup(10, """dy/dt = (-y + x) / (20*ms) : 1
+                            x : 1 (linked)""")
     G1.x = 1
     G2.y = np.linspace(0, 1, 10)
     G2.x = linked_var(G1.x)
@@ -363,11 +364,11 @@ def test_linked_variable_scalar():
 
 @pytest.mark.codegen_independent
 def test_linked_variable_indexed():
-    '''
+    """
     Test linking a variable with an index specified as an array
-    '''
-    G = NeuronGroup(10, '''x : 1
-                           y : 1 (linked)''')
+    """
+    G = NeuronGroup(10, """x : 1
+                           y : 1 (linked)""")
 
     G.x = np.arange(10)*0.1
     G.y = linked_var(G.x, index=np.arange(10)[::-1])
@@ -376,9 +377,9 @@ def test_linked_variable_indexed():
 
 @pytest.mark.codegen_independent
 def test_linked_variable_repeat():
-    '''
+    """
     Test a "repeat"-like connection between two groups of different size
-    '''
+    """
     G1 = NeuronGroup(5, 'w : 1')
     G2 = NeuronGroup(10, 'v : 1 (linked)')
     G2.v = linked_var(G1.w, index=np.arange(5).repeat(2))
@@ -387,9 +388,9 @@ def test_linked_variable_repeat():
 
 @pytest.mark.codegen_independent
 def test_linked_double_linked1():
-    '''
+    """
     Linked to a linked variable, without indices
-    '''
+    """
     G1 = NeuronGroup(10, 'x : 1')
     G2 = NeuronGroup(10, 'y : 1 (linked)')
     G2.y = linked_var(G1.x)
@@ -401,9 +402,9 @@ def test_linked_double_linked1():
 
 @pytest.mark.codegen_independent
 def test_linked_double_linked2():
-    '''
+    """
     Linked to a linked variable, first without indices, second with indices
-    '''
+    """
 
     G1 = NeuronGroup(5, 'x : 1')
     G2 = NeuronGroup(5, 'y : 1 (linked)')
@@ -416,9 +417,9 @@ def test_linked_double_linked2():
 
 @pytest.mark.codegen_independent
 def test_linked_double_linked3():
-    '''
+    """
     Linked to a linked variable, first with indices, second without indices
-    '''
+    """
     G1 = NeuronGroup(5, 'x : 1')
     G2 = NeuronGroup(10, 'y : 1 (linked)')
     G2.y = linked_var(G1.x, index=np.arange(5).repeat(2))
@@ -430,9 +431,9 @@ def test_linked_double_linked3():
 
 @pytest.mark.codegen_independent
 def test_linked_double_linked4():
-    '''
+    """
     Linked to a linked variable, both use indices
-    '''
+    """
     G1 = NeuronGroup(5, 'x : 1')
     G2 = NeuronGroup(10, 'y : 1 (linked)')
     G2.y = linked_var(G1.x, index=np.arange(5).repeat(2))
@@ -444,9 +445,9 @@ def test_linked_double_linked4():
 
 @pytest.mark.codegen_independent
 def test_linked_triple_linked():
-    '''
+    """
     Link to a linked variable that links to a linked variable, all use indices
-    '''
+    """
     G1 = NeuronGroup(2, 'a : 1')
 
     G2 = NeuronGroup(4, 'b : 1 (linked)')
@@ -463,9 +464,9 @@ def test_linked_triple_linked():
 
 @pytest.mark.codegen_independent
 def test_linked_subgroup():
-    '''
+    """
     Test linking a variable from a subgroup
-    '''
+    """
     G1 = NeuronGroup(10, 'x : 1')
     G1.x = np.arange(10) * 0.1
     G2 = G1[3:8]
@@ -476,9 +477,9 @@ def test_linked_subgroup():
 
 @pytest.mark.codegen_independent
 def test_linked_subgroup2():
-    '''
+    """
     Test linking a variable from a subgroup with indexing
-    '''
+    """
     G1 = NeuronGroup(10, 'x : 1')
     G1.x = np.arange(10) * 0.1
     G2 = G1[3:8]
@@ -489,14 +490,14 @@ def test_linked_subgroup2():
 
 @pytest.mark.standalone_compatible
 def test_linked_subexpression():
-    '''
+    """
     Test a subexpression referring to a linked variable.
-    '''
+    """
     G = NeuronGroup(2, 'dv/dt = 100*Hz : 1',
                     threshold='v>1', reset='v=0')
     G.v = [0, .5]
-    G2 = NeuronGroup(10, '''I = clip(x, 0, inf) : 1
-                            x : 1 (linked) ''')
+    G2 = NeuronGroup(10, """I = clip(x, 0, inf) : 1
+                            x : 1 (linked) """)
 
     G2.x = linked_var(G.v, index=np.array([0, 1]).repeat(5))
     mon = StateMonitor(G2, 'I', record=True)
@@ -509,14 +510,14 @@ def test_linked_subexpression():
 
 @pytest.mark.standalone_compatible
 def test_linked_subexpression_2():
-    '''
+    """
     Test a linked variable referring to a subexpression without indices
-    '''
-    G = NeuronGroup(2, '''dv/dt = 100*Hz : 1
-                          I = clip(v, 0, inf) : 1''',
+    """
+    G = NeuronGroup(2, """dv/dt = 100*Hz : 1
+                          I = clip(v, 0, inf) : 1""",
                     threshold='v>1', reset='v=0')
     G.v = [0, .5]
-    G2 = NeuronGroup(2, '''I_l : 1 (linked) ''')
+    G2 = NeuronGroup(2, """I_l : 1 (linked) """)
 
     G2.I_l = linked_var(G.I)
     mon1 = StateMonitor(G, 'I', record=True)
@@ -528,14 +529,14 @@ def test_linked_subexpression_2():
 
 @pytest.mark.standalone_compatible
 def test_linked_subexpression_3():
-    '''
+    """
     Test a linked variable referring to a subexpression with indices
-    '''
-    G = NeuronGroup(2, '''dv/dt = 100*Hz : 1
-                          I = clip(v, 0, inf) : 1''',
+    """
+    G = NeuronGroup(2, """dv/dt = 100*Hz : 1
+                          I = clip(v, 0, inf) : 1""",
                     threshold='v>1', reset='v=0')
     G.v = [0, .5]
-    G2 = NeuronGroup(10, '''I_l : 1 (linked) ''')
+    G2 = NeuronGroup(10, """I_l : 1 (linked) """)
 
     G2.I_l = linked_var(G.I, index=np.array([0, 1]).repeat(5))
     mon1 = StateMonitor(G, 'I', record=True)
@@ -549,14 +550,14 @@ def test_linked_subexpression_3():
 
 
 def test_linked_subexpression_synapse():
-    '''
+    """
     Test a complicated setup (not unlikely when using brian hears)
-    '''
+    """
     G = NeuronGroup(2, 'dv/dt = 100*Hz : 1',
                     threshold='v>1', reset='v=0')
     G.v = [0, .5]
-    G2 = NeuronGroup(10, '''I = clip(x, 0, inf) : 1
-                            x : 1 (linked) ''')
+    G2 = NeuronGroup(10, """I = clip(x, 0, inf) : 1
+                            x : 1 (linked) """)
 
     # This will not be able to include references to `I` as `I_pre` etc., since
     # the indirect indexing would have to change depending on the synapses
@@ -573,11 +574,11 @@ def test_linked_subexpression_synapse():
 
 @pytest.mark.codegen_independent
 def test_linked_variable_indexed_incorrect():
-    '''
+    """
     Test errors when providing incorrect index arrays
-    '''
-    G = NeuronGroup(10, '''x : 1
-                           y : 1 (linked)''')
+    """
+    G = NeuronGroup(10, """x : 1
+                           y : 1 (linked)""")
 
     G.x = np.arange(10)*0.1
     with pytest.raises(TypeError):
@@ -593,9 +594,9 @@ def test_linked_variable_indexed_incorrect():
 
 @pytest.mark.codegen_independent
 def test_linked_synapses():
-    '''
+    """
     Test linking to a synaptic variable (should raise an error).
-    '''
+    """
     G = NeuronGroup(10, '')
     S = Synapses(G, G, 'w:1')
     S.connect()
@@ -606,8 +607,8 @@ def test_linked_synapses():
 @pytest.mark.standalone_compatible
 def test_linked_var_in_reset():
     G1 = NeuronGroup(3, 'x:1')
-    G2 = NeuronGroup(3, '''x_linked : 1 (linked)
-                           y:1''',
+    G2 = NeuronGroup(3, """x_linked : 1 (linked)
+                           y:1""",
                      threshold='y>1', reset='y=0; x_linked += 1')
     G2.x_linked = linked_var(G1, 'x')
     G2.y = [0, 1.1, 0]
@@ -619,8 +620,8 @@ def test_linked_var_in_reset():
 @pytest.mark.standalone_compatible
 def test_linked_var_in_reset_size_1():
     G1 = NeuronGroup(1, 'x:1')
-    G2 = NeuronGroup(1, '''x_linked : 1 (linked)
-                           y:1''',
+    G2 = NeuronGroup(1, """x_linked : 1 (linked)
+                           y:1""",
                      threshold='y>1', reset='y=0; x_linked += 1')
     G2.x_linked = linked_var(G1, 'x')
     G2.y = 1.1
@@ -634,8 +635,8 @@ def test_linked_var_in_reset_incorrect():
     # Raise an error if a scalar variable (linked variable from a group of size
     # 1 is set in a reset statement of a group with size > 1)
     G1 = NeuronGroup(1, 'x:1')
-    G2 = NeuronGroup(2, '''x_linked : 1 (linked)
-                           y:1''',
+    G2 = NeuronGroup(2, """x_linked : 1 (linked)
+                           y:1""",
                      threshold='y>1', reset='y=0; x_linked += 1')
     G2.x_linked = linked_var(G1, 'x')
     G2.y = 1.1
@@ -644,13 +645,13 @@ def test_linked_var_in_reset_incorrect():
     # (as for any other shared variable)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(SyntaxError)
+    assert exc_isinstance(exc, SyntaxError)
 
 @pytest.mark.codegen_independent
 def test_incomplete_namespace():
-    '''
+    """
     Test that the namespace does not have to be complete at creation time.
-    '''
+    """
     # This uses tau which is not defined yet (explicit namespace)
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', namespace={})
     G.namespace['tau'] = 10*ms
@@ -671,34 +672,34 @@ def test_namespace_errors():
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(1*ms)
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError)
 
     # reset uses unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='False', reset='v = v_r')
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(1*ms)
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError)
 
     # threshold uses unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='v > v_th')
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(1*ms)
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError)
 
 
 @pytest.mark.codegen_independent
 def test_namespace_warnings():
-    G = NeuronGroup(1, '''x : 1
-                          y : 1''',
+    G = NeuronGroup(1, """x : 1
+                          y : 1""",
                     # unique names to get warnings every time:
-                    name='neurongroup_'+str(uuid.uuid4()).replace('-', '_'))
+                    name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}")
     # conflicting variable in namespace
     y = 5
     with catch_logs() as l:
         G.x = 'y'
-        assert len(l) == 1, 'got %s as warnings' % str(l)
+        assert len(l) == 1, f'got {str(l)} as warnings'
         assert l[0][1].endswith('.resolution_conflict')
 
     del y
@@ -708,7 +709,7 @@ def test_namespace_warnings():
     N = 3
     with catch_logs() as l:
         G.x = 'i // N'
-        assert len(l) == 2, 'got %s as warnings' % str(l)
+        assert len(l) == 2, f'got {str(l)} as warnings'
         assert l[0][1].endswith('.resolution_conflict')
         assert l[1][1].endswith('.resolution_conflict')
 
@@ -716,27 +717,27 @@ def test_namespace_warnings():
     del N
     # conflicting variables in equations
     y = 5*Hz
-    G = NeuronGroup(1, '''y : Hz
-                          dx/dt = y : 1''',
+    G = NeuronGroup(1, """y : Hz
+                          dx/dt = y : 1""",
                     # unique names to get warnings every time:
-                    name='neurongroup_'+str(uuid.uuid4()).replace('-', '_'))
+                    name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}")
 
     net = Network(G)
     with catch_logs() as l:
         net.run(0*ms)
-        assert len(l) == 1, 'got %s as warnings' % str(l)
+        assert len(l) == 1, f'got {str(l)} as warnings'
         assert l[0][1].endswith('.resolution_conflict')
     del y
 
     i = 5
     # i is referring to the neuron number:
-    G = NeuronGroup(1, '''dx/dt = i*Hz : 1''',
+    G = NeuronGroup(1, """dx/dt = i*Hz : 1""",
                     # unique names to get warnings every time:
-                    name='neurongroup_'+str(uuid.uuid4()).replace('-', '_'))
+                    name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}")
     net = Network(G)
     with catch_logs() as l:
         net.run(0*ms)
-        assert len(l) == 1, 'got %s as warnings' % str(l)
+        assert len(l) == 1, f'got {str(l)} as warnings'
         assert l[0][1].endswith('.resolution_conflict')
     del i
 
@@ -745,19 +746,19 @@ def test_namespace_warnings():
     N = 3
     i = 5
     dt = 1*ms
-    G = NeuronGroup(1, '''dx/dt = x/(10*ms) : 1''',
+    G = NeuronGroup(1, """dx/dt = x/(10*ms) : 1""",
                     # unique names to get warnings every time:
-                    name='neurongroup_'+str(uuid.uuid4()).replace('-', '_'))
+                    name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}")
     net = Network(G)
     with catch_logs() as l:
         net.run(0*ms)
-        assert len(l) == 0, 'got %s as warnings' % str(l)
+        assert len(l) == 0, f'got {str(l)} as warnings'
 
 @pytest.mark.standalone_compatible
 def test_threshold_reset():
-    '''
+    """
     Test that threshold and reset work in the expected way.
-    '''
+    """
     # Membrane potential does not change by itself
     G = NeuronGroup(3, 'dv/dt = 0 / second : 1',
                     threshold='v > 1', reset='v=0.5')
@@ -781,14 +782,14 @@ def test_threshold_reset():
 
 @pytest.mark.codegen_independent
 def test_unit_errors_threshold_reset():
-    '''
+    """
     Test that unit errors in thresholds and resets are detected.
-    '''
+    """
     # Unit error in threshold
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1', threshold='v > -20*mV')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
     # Unit error in reset
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
@@ -796,53 +797,53 @@ def test_unit_errors_threshold_reset():
                         reset='v = -65*mV')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
     # More complicated unit reset with an intermediate variable
     # This should pass
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                 threshold='False',
-                reset='''temp_var = -65
-                         v = temp_var''')
+                reset="""temp_var = -65
+                         v = temp_var""")
     run(0*ms)
     # throw in an empty line (should still pass)
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                 threshold='False',
-                reset='''temp_var = -65
+                reset="""temp_var = -65
 
-                         v = temp_var''')
+                         v = temp_var""")
     run(0*ms)
     # This should fail
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                         threshold='False',
-                        reset='''temp_var = -65*mV
-                                 v = temp_var''')
+                        reset="""temp_var = -65*mV
+                                 v = temp_var""")
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
     # Resets with an in-place modification
     # This should work
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                         threshold='False',
-                        reset='''v /= 2''')
+                        reset="""v /= 2""")
     run(0*ms)
 
     # This should fail
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                         threshold='False',
-                        reset='''v -= 60*mV''')
+                        reset="""v -= 60*mV""")
     with pytest.raises(BrianObjectException) as ecx:
         Network(group).run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
 
 @pytest.mark.codegen_independent
 def test_syntax_errors():
-    '''
+    """
     Test that syntax errors are already caught at initialization time.
     For equations this is already tested in test_equations
-    '''
+    """
     
     # We do not specify the exact type of exception here: Python throws a
     # SyntaxError while C++ results in a ValueError
@@ -861,8 +862,8 @@ def test_syntax_errors():
 
 @pytest.mark.codegen_independent
 def test_custom_events():
-    G = NeuronGroup(2, '''event_time1 : second
-                          event_time2 : second''',
+    G = NeuronGroup(2, """event_time1 : second
+                          event_time2 : second""",
                     events={'event1': 't>=i*ms and t<i*ms+dt',
                             'event2': 't>=(i+1)*ms and t<(i+1)*ms+dt'})
     G.run_on_event('event1', 'event_time1 = t')
@@ -875,15 +876,15 @@ def test_custom_events():
 def test_custom_events_schedule():
     # In the same time step: event2 will be checked and its code executed
     # before event1 is checked and its code executed
-    G = NeuronGroup(2, '''x : 1
-                          event_time : second''',
+    G = NeuronGroup(2, """x : 1
+                          event_time : second""",
                     events={'event1': 'x>0',
                             'event2': 't>=(i+1)*ms and t<(i+1)*ms+dt'})
     G.set_event_schedule('event1', when='after_resets')
     G.run_on_event('event2', 'x = 1', when='resets')
     G.run_on_event('event1',
-                   '''event_time = t
-                      x = 0''', when='after_resets', order=1)
+                   """event_time = t
+                      x = 0""", when='after_resets', order=1)
     net = Network(G)
     net.run(2.1*ms)
     assert_allclose(G.event_time[:], [1, 2]*ms)
@@ -901,7 +902,7 @@ def test_incorrect_custom_event_definition():
     G = NeuronGroup(1, '', events={'my_event': 10*mV})
     with pytest.raises(BrianObjectException) as exc:
         Network(G).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
     # schedule for a non-existing event
     G = NeuronGroup(1, '', threshold='False', events={'my_event': 'True'})
     with pytest.raises(ValueError):
@@ -912,9 +913,9 @@ def test_incorrect_custom_event_definition():
 
 
 def test_state_variables():
-    '''
+    """
     Test the setting and accessing of state variables.
-    '''
+    """
     G = NeuronGroup(10, 'v : volt')
 
     # The variable N should be always present
@@ -1043,8 +1044,8 @@ def test_state_variable_access():
 
 
 def test_state_variable_access_strings():
-    G = NeuronGroup(10, '''v : volt
-                           dv_ref/dt = -v_ref/(10*ms) : 1 (unless refractory)''',
+    G = NeuronGroup(10, """v : volt
+                           dv_ref/dt = -v_ref/(10*ms) : 1 (unless refractory)""",
                     threshold='v_ref>1', reset='v_ref=1', refractory=1*ms)
     G.v = np.arange(10) * volt
     # Indexing with strings
@@ -1064,7 +1065,7 @@ def test_state_variable_set_strings():
     # Instead of overwriting the same variable over and over, we have one
     # variable for each assignment so that we can test everything in the end
     # for standalone.
-    G = NeuronGroup(10, '''v1  : volt
+    G = NeuronGroup(10, """v1  : volt
                            v2  : volt
                            v3  : volt
                            v4  : volt
@@ -1079,7 +1080,7 @@ def test_state_variable_set_strings():
                            v9c : volt
                            v10 : volt
                            v11 : volt
-                           dv_ref/dt = -v_ref/(10*ms) : 1 (unless refractory)''',
+                           dv_ref/dt = -v_ref/(10*ms) : 1 (unless refractory)""",
                     threshold='v_ref>1', reset='v_ref=1', refractory=1 * ms)
     # Setting with strings
     # --------------------
@@ -1192,10 +1193,10 @@ def test_unknown_state_variables():
 
 @pytest.mark.codegen_independent
 def test_subexpression():
-    G = NeuronGroup(10, '''dv/dt = freq : 1
+    G = NeuronGroup(10, """dv/dt = freq : 1
                            freq : Hz
                            array : 1
-                           expr = 2*freq + array*Hz : Hz''')
+                           expr = 2*freq + array*Hz : Hz""")
     G.freq = '10*i*Hz'
     G.array = 5
     assert_allclose(G.expr[:], 2*10*np.arange(10)*Hz + 5*Hz)
@@ -1203,8 +1204,8 @@ def test_subexpression():
 @pytest.mark.codegen_independent
 def test_subexpression_with_constant():
         g = 2
-        G = NeuronGroup(1, '''x : 1
-                              I = x*g : 1''')
+        G = NeuronGroup(1, """x : 1
+                              I = x*g : 1""")
         G.x = 1
         assert_allclose(G.I[:], np.array([2]))
         # Subexpressions that refer to external variables are tricky, see github
@@ -1251,10 +1252,10 @@ def test_subexpression_with_constant():
 
 @pytest.mark.codegen_independent
 def test_scalar_parameter_access():
-    G = NeuronGroup(10, '''dv/dt = freq : 1
+    G = NeuronGroup(10, """dv/dt = freq : 1
                            freq : Hz (shared)
                            number : 1 (shared)
-                           array : 1''')
+                           array : 1""")
 
     # Try setting a scalar variable
     G.freq = 100*Hz
@@ -1291,35 +1292,35 @@ def test_scalar_parameter_access():
 
 @pytest.mark.codegen_independent
 def test_scalar_subexpression():
-    G = NeuronGroup(10, '''dv/dt = freq : 1
+    G = NeuronGroup(10, """dv/dt = freq : 1
                            freq : Hz (shared)
                            number : 1 (shared)
                            array : 1
-                           sub = freq + number*Hz : Hz (shared)''')
+                           sub = freq + number*Hz : Hz (shared)""")
     G.freq = 100*Hz
     G.number = 50
     assert G.sub[:] == 150*Hz
 
     with pytest.raises(SyntaxError):
-        NeuronGroup(10, '''dv/dt = freq : 1
+        NeuronGroup(10, """dv/dt = freq : 1
                            freq : Hz (shared)
                            array : 1
-                           sub = freq + array*Hz : Hz (shared)''')
+                           sub = freq + array*Hz : Hz (shared)""")
 
     # A scalar subexpresion cannot refer to implicitly vectorized functions
-    group = NeuronGroup(10, '''x : 1
-                               sub = rand() : 1 (shared)''')
+    group = NeuronGroup(10, """x : 1
+                               sub = rand() : 1 (shared)""")
     group.run_regularly('x = sub')
     net = Network(group)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(SyntaxError)
+    assert exc_isinstance(exc, SyntaxError)
 
 
 @pytest.mark.standalone_compatible
 def test_sim_with_scalar_variable():
-    G = NeuronGroup(10, '''tau : second (shared)
-                           dv/dt = -v/tau : 1''', method='exact')
+    G = NeuronGroup(10, """tau : second (shared)
+                           dv/dt = -v/tau : 1""", method='exact')
     G.tau = 10*ms
     G.v = '1.0*i/N'
     run(1*ms)
@@ -1328,8 +1329,8 @@ def test_sim_with_scalar_variable():
 
 @pytest.mark.standalone_compatible
 def test_sim_with_scalar_subexpression():
-    G = NeuronGroup(10, '''tau = 10*ms : second (shared)
-                           dv/dt = -v/tau : 1''', method='exact')
+    G = NeuronGroup(10, """tau = 10*ms : second (shared)
+                           dv/dt = -v/tau : 1""", method='exact')
     G.v = '1.0*i/N'
     run(1*ms)
     assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
@@ -1337,13 +1338,13 @@ def test_sim_with_scalar_subexpression():
 
 @pytest.mark.standalone_compatible
 def test_constant_variable_subexpression():
-    G = NeuronGroup(10, '''dv1/dt = -v1**2 / (10*ms) : 1
+    G = NeuronGroup(10, """dv1/dt = -v1**2 / (10*ms) : 1
                            dv2/dt = -v_const**2 / (10*ms) : 1
                            dv3/dt = -v_var**2 / (10*ms) : 1
                            dv4/dt = -v_noflag**2 / (10*ms) : 1
                            v_const = v2 : 1 (constant over dt)
                            v_var = v3 : 1
-                           v_noflag = v4 : 1''',
+                           v_noflag = v4 : 1""",
                     method='rk2')
     G.v1 = '1.0*i/N'
     G.v2 = '1.0*i/N'
@@ -1362,10 +1363,10 @@ def test_constant_variable_subexpression():
 
 @pytest.mark.codegen_independent
 def test_constant_subexpression_order():
-    G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : 1
+    G = NeuronGroup(10, """dv/dt = -v / (10*ms) : 1
                            s1 = v : 1 (constant over dt)
                            s2 = 2*s3 : 1 (constant over dt)
-                           s3 = 1 + s1 : 1 (constant over dt)''')
+                           s3 = 1 + s1 : 1 (constant over dt)""")
     run(0*ms)
     code_lines = G.subexpression_updater.abstract_code.split('\n')
     assert code_lines[0].startswith('s1')
@@ -1375,41 +1376,44 @@ def test_constant_subexpression_order():
 
 @pytest.mark.codegen_independent
 def test_subexpression_checks():
-    group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
+    group = NeuronGroup(1, """dv/dt = -v / (10*ms) : volt
                               y = rand() : 1 (constant over dt)
-                              z = 17*v**2 : volt**2''')
+                              z = 17*v**2 : volt**2""")
     # This should all be fine
     net = Network(group)
     net.run(0*ms)
 
     # The following should raise an error
-    group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
+    group = NeuronGroup(1, """dv/dt = -v / (10*ms) : volt
                               y = rand() : 1
-                              z = 17*v**2 : volt**2''')
+                              z = 17*v**2 : volt**2""")
     net = Network(group)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0 * ms)
-        assert exc.errisinstance(SyntaxError)
+    assert exc_isinstance(exc, SyntaxError)
 
 
 @pytest.mark.codegen_independent
 def test_repr():
-    G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
+    G = NeuronGroup(10, """dv/dt = -(v + Inp) / tau : volt
                            Inp = sin(2*pi*freq*t) : volt
-                           freq : Hz''')
+                           freq : Hz""")
 
     # Test that string/LaTeX representations do not raise errors
     for func in [str, repr, sympy.latex]:
         assert len(func(G))
+        assert 'textbackslash' not in func(G)  # for LaTeX, see #1296
         assert len(func(G.equations))
+        assert 'textbackslash' not in func(G.equations)
         for eq in G.equations.values():
             assert len(func(eq))
 
+
 @pytest.mark.codegen_independent
 def test_ipython_html():
-    G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
+    G = NeuronGroup(10, """dv/dt = -(v + Inp) / tau : volt
                            Inp = sin(2*pi*freq*t) : volt
-                           freq : Hz''')
+                           freq : Hz""")
 
     # Test that HTML representation in IPython does not raise errors
     assert len(G._repr_html_())
@@ -1437,13 +1441,13 @@ def test_indices():
 
 @pytest.mark.codegen_independent
 def test_get_dtype():
-    '''
+    """
     Check the utility function get_dtype
-    '''
-    eqs = Equations('''dv/dt = -v / (10*ms) : volt
+    """
+    eqs = Equations("""dv/dt = -v / (10*ms) : volt
                        x : 1
                        b : boolean
-                       n : integer''')
+                       n : integer""")
 
     # Test standard dtypes
     assert get_dtype(eqs['v']) == prefs['core.default_float_dtype']
@@ -1482,16 +1486,16 @@ def test_get_dtype():
 
 
 def test_aliasing_in_statements():
-    '''
+    """
     Test an issue around variables aliasing other variables (#259)
-    '''
+    """
     if prefs.codegen.target != 'numpy':
         pytest.skip('numpy-only test')
 
-    runner_code = '''x_1 = x_0
-                     x_0 = -1'''
-    g = NeuronGroup(1, model='''x_0 : 1
-                                x_1 : 1 ''')
+    runner_code = """x_1 = x_0
+                     x_0 = -1"""
+    g = NeuronGroup(1, model="""x_0 : 1
+                                x_1 : 1 """)
     g.run_regularly(runner_code)
     net = Network(g)
     net.run(defaultclock.dt)
@@ -1501,10 +1505,10 @@ def test_aliasing_in_statements():
 
 @pytest.mark.codegen_independent
 def test_get_states():
-    G = NeuronGroup(10, '''v : volt
+    G = NeuronGroup(10, """v : volt
                            x : 1
                            subexpr = x + v/volt : 1
-                           subexpr2 = x*volt + v : volt''')
+                           subexpr2 = x*volt + v : volt""")
     G.v = 'i*volt'
     G.x = '10*i'
     states_units = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=True)
@@ -1530,10 +1534,10 @@ def test_get_states():
 
 @pytest.mark.codegen_independent
 def test_set_states():
-    G = NeuronGroup(10, '''v : volt
+    G = NeuronGroup(10, """v : volt
                            x : 1
                            subexpr = x + v/volt : 1
-                           subexpr2 = x*volt + v : volt''')
+                           subexpr2 = x*volt + v : volt""")
     G.v = 'i*volt'
     G.x = '10*i'
     with pytest.raises(ValueError):
@@ -1561,10 +1565,10 @@ def test_get_states_pandas():
         import pandas as pd
     except ImportError:
         pytest.skip('Cannot test export to Pandas data frame, Pandas is not installed.')
-    G = NeuronGroup(10, '''v : volt
+    G = NeuronGroup(10, """v : volt
                            x : 1
                            subexpr = x + v/volt : 1
-                           subexpr2 = x*volt + v : volt''')
+                           subexpr2 = x*volt + v : volt""")
     G.v = 'i*volt'
     G.x = '10*i'
     with pytest.raises(NotImplementedError):
@@ -1589,10 +1593,10 @@ def test_set_states_pandas():
         import pandas as pd
     except ImportError:
         pytest.skip('Cannot test export to Pandas data frame, Pandas is not installed.')
-    G = NeuronGroup(10, '''v : volt
+    G = NeuronGroup(10, """v : volt
                            x : 1
                            subexpr = x + v/volt : 1
-                           subexpr2 = x*volt + v : volt''')
+                           subexpr2 = x*volt + v : volt""")
     G.v = 'i*volt'
     G.x = '10*i'
     df = pd.DataFrame(np.arange(2, 11), columns=['v'])
@@ -1627,8 +1631,8 @@ def test_random_vector_values():
 
 @pytest.mark.standalone_compatible
 def test_random_values_random_seed():
-    G = NeuronGroup(100, '''v1 : 1
-                            v2 : 1''')
+    G = NeuronGroup(100, """v1 : 1
+                            v2 : 1""")
     seed()
     G.v1 = 'rand() + randn()'
     seed()
@@ -1641,8 +1645,8 @@ def test_random_values_random_seed():
 
 @pytest.mark.standalone_compatible
 def test_random_values_fixed_seed():
-    G = NeuronGroup(100, '''v1 : 1
-                            v2 : 1''')
+    G = NeuronGroup(100, """v1 : 1
+                            v2 : 1""")
     seed(12345678)
     G.v1 = 'rand() + randn()'
     seed(12345678)
@@ -1701,9 +1705,9 @@ def test_no_code():
 
 @pytest.mark.standalone_compatible
 def test_run_regularly_scheduling():
-    G = NeuronGroup(1, '''v1 : 1
+    G = NeuronGroup(1, """v1 : 1
                           v2 : 1
-                          v3 : 1''')
+                          v3 : 1""")
     G.run_regularly('v1 += 1')
     G.run_regularly('v2 = v1', when='end')
     G.run_regularly('v3 = v1', when='before_start')
@@ -1717,9 +1721,9 @@ def test_run_regularly_scheduling():
 def test_run_regularly_scheduling_2():
     # This form is relevant for Brian2GeNN, where we are not allowed to change
     # the "when" attribute, but can change the order.
-    G = NeuronGroup(1, '''v1 : 1
+    G = NeuronGroup(1, """v1 : 1
                           v2 : 1
-                          v3 : 1''')
+                          v3 : 1""")
     # The order should be:
     # 0: 'v3 = v1'
     # 1: monitor 1 (v1)
@@ -1760,19 +1764,19 @@ def test_run_regularly_dt():
 def test_run_regularly_shared():
     # Check that shared variables are handled correctly in run_regularly
     # operations. See brian-team/brian2genn#113
-    model = Equations('''individual_var: 1
+    model = Equations("""individual_var: 1
                          shared_var: 1 (shared)
                          individual_var_i: integer
                          shared_var_i: integer (shared)
                          individual_var_b: boolean
-                         shared_var_b: boolean (shared)''')
+                         shared_var_b: boolean (shared)""")
     G = NeuronGroup(10, model)
-    G.run_regularly('''shared_var = 1.0
+    G.run_regularly("""shared_var = 1.0
                        shared_var_i = 2
                        shared_var_b = True
                        individual_var = 1.0
                        individual_var_i = 2
-                       individual_var_b = True''',
+                       individual_var_b = True""",
                     dt=defaultclock.dt)
     run(defaultclock.dt)
     assert_equal(G.shared_var[:], 1.0)
@@ -1786,12 +1790,12 @@ def test_run_regularly_shared():
 @pytest.mark.standalone_compatible
 def test_semantics_floor_division():
     # See github issues #815 and #661
-    G = NeuronGroup(11, '''a : integer
+    G = NeuronGroup(11, """a : integer
                            b : integer
                            x : 1
                            y : 1
                            fvalue : 1
-                           ivalue : integer''',
+                           ivalue : integer""",
                     dtype={'a': np.int32, 'b': np.int64,
                            'x': float, 'y': float})
     int_values = np.arange(-5, 6)
@@ -1799,12 +1803,12 @@ def test_semantics_floor_division():
     G.ivalue = int_values
     G.fvalue = float_values
     with catch_logs() as l:
-        G.run_regularly('''
+        G.run_regularly("""
         a = ivalue//3
         b = ivalue//3
         x = fvalue//3
         y = fvalue//3
-        ''')
+        """)
         run(defaultclock.dt)
     assert len(l) == 0
     assert_equal(G.a[:], int_values // 3)
@@ -1816,12 +1820,12 @@ def test_semantics_floor_division():
 @pytest.mark.standalone_compatible
 def test_semantics_floating_point_division():
     # See github issues #815 and #661
-    G = NeuronGroup(11, '''x1 : 1
+    G = NeuronGroup(11, """x1 : 1
                            x2 : 1
                            y1 : 1
                            y2 : 1
                            fvalue : 1
-                           ivalue : integer''',
+                           ivalue : integer""",
                     dtype={'a': np.int32, 'b': np.int64,
                            'x': float, 'y': float})
     int_values = np.arange(-5, 6)
@@ -1829,18 +1833,14 @@ def test_semantics_floating_point_division():
     G.ivalue = int_values
     G.fvalue = float_values
     with catch_logs() as l:
-        G.run_regularly('''
+        G.run_regularly("""
         x1 = ivalue/3
         x2 = fvalue/3
         y1 = ivalue/3
         y2 = fvalue/3
-        ''')
+        """)
         run(defaultclock.dt)
-    # Some devices (e.g. Brian2GeNN) might not raise a warning
-    assert (len(l) == 0 or
-            (len(l) == 1 and
-             l[0][1].endswith('floating_point_division') and
-             'ivalue / 3' in l[0][2]))
+
     assert_allclose(G.x1[:], int_values / 3)
     assert_allclose(G.y1[:], int_values / 3)
     assert_allclose(G.x2[:], float_values / 3)
@@ -1850,12 +1850,12 @@ def test_semantics_floating_point_division():
 @pytest.mark.standalone_compatible
 def test_semantics_mod():
     # See github issues #815 and #661
-    G = NeuronGroup(11, '''a : integer
+    G = NeuronGroup(11, """a : integer
                            b : integer
                            x : 1
                            y : 1
                            fvalue : 1
-                           ivalue : integer''',
+                           ivalue : integer""",
                     dtype={'a': np.int32, 'b': np.int64,
                            'x': float, 'y': float})
     int_values = np.arange(-5, 6)
@@ -1863,12 +1863,12 @@ def test_semantics_mod():
     G.ivalue = int_values
     G.fvalue = float_values
     with catch_logs() as l:
-        G.run_regularly('''
+        G.run_regularly("""
         a = ivalue % 3
         b = ivalue % 3
         x = fvalue % 3
         y = fvalue % 3
-        ''')
+        """)
         run(defaultclock.dt)
     assert len(l) == 0
     assert_equal(G.a[:], int_values % 3)

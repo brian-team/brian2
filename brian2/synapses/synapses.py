@@ -1,6 +1,6 @@
-'''
+"""
 Module providing the `Synapses` class and related helper classes/functions.
-'''
+"""
 from collections import defaultdict
 from collections.abc import Sequence, MutableMapping, Mapping
 import functools
@@ -48,10 +48,10 @@ logger = get_logger(__name__)
 
 
 class StateUpdater(CodeRunner):
-    '''
+    """
     The `CodeRunner` that updates the state variables of a `Synapses`
     at every timestep.
-    '''
+    """
     def __init__(self, group, method, clock, order, method_options=None):
         self.method_choice = method
         self.method_options = method_options
@@ -94,20 +94,19 @@ class StateUpdater(CodeRunner):
 
 
 class SummedVariableUpdater(CodeRunner):
-    '''
+    """
     The `CodeRunner` that updates a value in the target group with the
     sum over values in the `Synapses` object.
-    '''
+    """
     def __init__(self, expression, target_varname, synapses, target,
                  target_size_name, index_var):
         # Handling sumped variables using the standard mechanisms is not
         # possible, we therefore also directly give the names of the arrays
         # to the template.
 
-        code = '''
+        code = f"""
         _synaptic_var = {expression}
-        '''.format(expression=expression,
-                   target_varname=target_varname)
+        """
         self.target_varname = target_varname
         self.expression = expression
         self.target_var = synapses.variables[target_varname]
@@ -131,9 +130,25 @@ class SummedVariableUpdater(CodeRunner):
                             name=synapses.name + '_summed_variable_' + target_varname,
                             template_kwds=template_kwds)
 
+    def before_run(self, run_namespace):
+        variables = self.group.resolve_all(self.expression.identifiers,
+                                           run_namespace)
+        rhs_unit = parse_expression_dimensions(self.expression.code, variables)
+        fail_for_dimension_mismatch(self.target_var,
+                                    # Using a quantity instead of dimensions
+                                    # here makes fail_for_dimension_mismatch
+                                    # state the dimensions as part of the error
+                                    # message
+                                    Quantity(1, dim=rhs_unit),
+                                    f"The target variable "
+                                    f"'{self.target_varname}' does not have "
+                                    f"the same dimensions as the right-hand "
+                                    f"side expression '{self.expression}'.")
+        super(SummedVariableUpdater, self).before_run(run_namespace)
+
 
 class SynapticPathway(CodeRunner, Group):
-    '''
+    """
     The `CodeRunner` that applies the pre/post statement(s) to the state
     variables of synapses where the pre-/postsynaptic group spiked in this
     time step.
@@ -152,7 +167,7 @@ class SynapticPathway(CodeRunner, Group):
     delay : `Quantity`, optional
         A scalar delay (same delay for all synapses) for this pathway. If
         not given, delays are expected to vary between synapses.
-    '''
+    """
     def __init__(self, synapses, code, prepost, objname=None,
                  delay=None, event='spike'):
         self.code = code
@@ -171,8 +186,8 @@ class SynapticPathway(CodeRunner, Group):
             self.synapse_targets = synapses.variables['_synaptic_pre']
             order = 1
         else:
-            raise ValueError('prepost argument has to be either "pre" or '
-                             '"post"')
+            raise ValueError("prepost argument has to be either 'pre' or "
+                             "'post'")
         self.synapses = weakref.proxy(synapses)
         # Allow to use the same indexing of the delay variable  as in the parent
         # Synapses object (e.g. 2d indexing with pre- and post-synaptic indices)
@@ -194,7 +209,7 @@ class SynapticPathway(CodeRunner, Group):
 
         self.spikes_start = self.source.start
         self.spikes_stop = self.source.stop
-        self.eventspace_name = '_{}space'.format(event)
+        self.eventspace_name = f'_{event}space'
         self.eventspace = None  # will be set in before_run
         # Setting the Synapses object instead of "self" as an owner makes
         # indexing conflicts disappear (e.g. with synapses connecting subgroups)
@@ -221,17 +236,16 @@ class SynapticPathway(CodeRunner, Group):
             synapses.register_variable(self.variables['delay'])
         else:
             if not isinstance(delay, Quantity):
-                raise TypeError(('Cannot set the delay for pathway "%s": '
-                                 'expected a quantity, got %s instead.') % (objname,
-                                                                            type(delay)))
+                raise TypeError(f"Cannot set the delay for pathway '{objname}': "
+                                f"expected a quantity, got {type(delay)} instead.")
             if delay.size != 1:
-                raise TypeError(('Cannot set the delay for pathway "%s": '
-                                 'expected a scalar quantity, got a '
-                                 'quantity with shape %s instead.') % str(delay.shape))
-            fail_for_dimension_mismatch(delay, second, ('Delay has to be '
-                                                        'specified in units '
-                                                        'of seconds but got '
-                                                        '{value}'),
+                raise TypeError(f"Cannot set the delay for pathway '{objname}': "
+                                f"expected a scalar quantity, got a "
+                                f"quantity with shape {delay.shape!s} instead.")
+            fail_for_dimension_mismatch(delay, second, ("Delay has to be "
+                                                        "specified in units "
+                                                        "of seconds but got "
+                                                        "{value}"),
                                         value=delay)
             # We use a "dynamic" array of constant size here because it makes
             # the generated code easier, we don't need to deal with a different
@@ -282,27 +296,14 @@ class SynapticPathway(CodeRunner, Group):
     def update_abstract_code(self, run_namespace=None, level=0):
         if self.synapses.event_driven is not None:
             event_driven_eqs = self.synapses.event_driven
-            clock_driven_eqs = self.synapses.equations
             try:
                 event_driven_update = linear(event_driven_eqs,
                                              self.group.variables)
             except UnsupportedEquationsException:
-                # Check whether equations are independent
-                for var, expr in event_driven_eqs.diff_eq_expressions:
-                    for identifier in expr.identifiers:
-                        if identifier == var:
-                            continue
-                        if (identifier in event_driven_eqs.diff_eq_names or
-                                identifier in clock_driven_eqs):
-                            err = ("Cannot solve the differential equation for "
-                                   "'{}' as event-driven, it depends on "
-                                   "another variable '{}'. Use (clock-driven) "
-                                   "instead.".format(var,
-                                                                    identifier))
-                            raise UnsupportedEquationsException(err)
-                # All equations are independent, go ahead
-                event_driven_update = independent(self.synapses.event_driven,
-                                                  self.group.variables)
+                err = ("Cannot solve the differential equations as "
+                       "event-driven. Use (clock-driven) instead.")
+                raise UnsupportedEquationsException(err)
+
             # TODO: Any way to do this more elegantly?
             event_driven_update = re.sub(r'\bdt\b', '(t - lastupdate)',
                                          event_driven_update)
@@ -327,7 +328,7 @@ class SynapticPathway(CodeRunner, Group):
             # Strictly speaking this is only true for the standalone mode at the
             # moment, since in runtime, all the template does is to call
             # SynapticPathway.push_spike
-            eventspace_name = '_{}space'.format(self.event)
+            eventspace_name = f'_{self.event}space'
             template_kwds = {'eventspace_variable': self.source.variables[eventspace_name]}
             needed_variables = [eventspace_name]
             self._pushspikes_codeobj = create_runner_codeobj(self,
@@ -344,7 +345,8 @@ class SynapticPathway(CodeRunner, Group):
 
     def initialise_queue(self):
         self.eventspace = self.source.variables[self.eventspace_name].get_value()
-        if not self.synapses._connect_called:
+        n_synapses = len(self.synapses)
+        if n_synapses == 0 and not self.synapses._connect_called:
             raise TypeError(("Synapses object '%s' does not do anything, since "
                              "it has not created synapses with 'connect'. "
                              "Set its active attribute to False if you "
@@ -357,19 +359,16 @@ class SynapticPathway(CodeRunner, Group):
 
         if len({self.source.clock.dt_, self.synapses.clock.dt_,
                 self.target.clock.dt_}) > 1:
-            logger.warn(("Note that the synaptic pathway '{pathway}' will run on the "
-                         "clock of the group '{source}' using a dt of {dt}. Either "
-                         "the Synapses object '{synapses}' or the target '{target}' "
-                         "(or both) are using a different dt. This might lead to "
-                         "unexpected results. In particular, all delays will be rounded to "
-                         "multiples of {dt}. If in doubt, try to ensure that "
-                         "'{source}', '{synapses}', and '{target}' use the "
-                         "same dt.").format(pathway=self.name,
-                                            source=self.source.name,
-                                            target=self.target.name,
-                                            dt=self.source.clock.dt,
-                                            synapses=self.synapses.name),
-                        'synapses_dt_mismatch', once=True)
+            logger.warn(f"Note that the synaptic pathway '{self.name}' will run on the "
+                        f"clock of the group '{self.source.name}' using a dt of "
+                        f"{self.source.clock.dt}. Either the Synapses object "
+                        f"'{self.synapses.name}' or the target '{self.target.name}' "
+                        f"(or both) are using a different dt. This might lead to "
+                        f"unexpected results. In particular, all delays will be "
+                        f"rounded to multiples of {self.source.clock.dt}. If in "
+                        f"doubt, try to ensure that '{self.source.name}', "
+                        f"'{self.synapses.name}', and '{self.target.name}' use the "
+                        f"same dt.", 'synapses_dt_mismatch', once=True)
 
     def _full_state(self):
         state = super(SynapticPathway, self)._full_state()
@@ -401,10 +400,10 @@ class SynapticPathway(CodeRunner, Group):
 
 
 def slice_to_test(x):
-    '''
+    """
     Returns a testing function corresponding to whether an index is in slice x.
     x can also be an int.
-    '''
+    """
     try:
         x = int(x)
         return lambda y: (y == x)
@@ -442,7 +441,7 @@ def slice_to_test(x):
                     # Start, step and stop
                     return lambda y: (y >= start) & ((y-start)%step == 0) & (y < stop)
     else:
-        raise TypeError('Expected int or slice, got {} instead'.format(type(x)))
+        raise TypeError(f"Expected int or slice, got {type(x)} instead")
 
 
 def find_synapses(index, synaptic_neuron):
@@ -466,7 +465,7 @@ def find_synapses(index, synaptic_neuron):
 
 
 class SynapticSubgroup(object):
-    '''
+    """
     A simple subgroup of `Synapses` that can be used for indexing.
 
     Parameters
@@ -476,7 +475,7 @@ class SynapticSubgroup(object):
     synaptic_pre : `DynamicArrayVariable`
         References to all pre-synaptic indices. Only used to throw an error
         when new synapses where added after creating this object.
-    '''
+    """
     def __init__(self, synapses, indices):
         self.synapses = weakproxy_with_fallback(synapses)
         self._stored_indices = indices
@@ -485,19 +484,18 @@ class SynapticSubgroup(object):
 
     def _indices(self, index_var='_idx'):
         if index_var != '_idx':
-            raise AssertionError('Did not expect index %s here.' % index_var)
+            raise AssertionError(f"Did not expect index {index_var} here.")
         if len(self._synaptic_pre.get_value()) != self._source_N:
-            raise RuntimeError(('Synapses have been added/removed since this '
-                                'synaptic subgroup has been created'))
+            raise RuntimeError("Synapses have been added/removed since this "
+                               "synaptic subgroup has been created")
         return self._stored_indices
 
     def __len__(self):
         return len(self._stored_indices)
 
     def __repr__(self):
-        return '<%s, storing %d indices of %s>' % (self.__class__.__name__,
-                                                   len(self._stored_indices),
-                                                   self.synapses.name)
+        return (f"<{self.__class__.__name__}, storing {len(self._stored_indices):d} "
+                f"indices of {self.synapses.name}>")
 
 
 class SynapticIndexing(object):
@@ -514,11 +512,11 @@ class SynapticIndexing(object):
             self.synapse_number = None
 
     def __call__(self, index=None, index_var='_idx'):
-        '''
+        """
         Returns synaptic indices for `index`, which can be a tuple of indices
         (including arrays and slices), a single index or a string.
 
-        '''
+        """
         if index is None or (isinstance(index, str) and index == 'True'):
             index = slice(None)
 
@@ -537,7 +535,7 @@ class SynapticIndexing(object):
             if len(index) == 2:  # two indices (pre- and postsynaptic cell)
                 index = (index[0], index[1], slice(None))
             elif len(index) > 3:
-                raise IndexError('Need 1, 2 or 3 indices, got %d.' % len(index))
+                raise IndexError(f"Need 1, 2 or 3 indices, got {len(index)}.")
 
             I, J, K = index
             # Convert to absolute indices (e.g. for subgroups)
@@ -567,15 +565,15 @@ class SynapticIndexing(object):
                 final_indices = matching_synapses
             else:
                 if self.synapse_number is None:
-                    raise IndexError('To index by the third dimension you need '
-                                     'to switch on the calculation of the '
-                                     '"multisynaptic_index" when you create '
-                                     'the Synapses object.')
+                    raise IndexError("To index by the third dimension you need "
+                                     "to switch on the calculation of the "
+                                     "'multisynaptic_index' when you create "
+                                     "the Synapses object.")
                 if isinstance(K, (numbers.Integral, slice)):
                     test_k = slice_to_test(K)
                 else:
-                    raise NotImplementedError(('Indexing synapses with arrays not'
-                                               'implemented yet'))
+                    raise NotImplementedError("Indexing synapses with arrays not"
+                                              "implemented yet")
 
                 # We want to access the raw arrays here, not go through the Variable
                 synapse_numbers = self.synapse_number.get_value()[matching_synapses]
@@ -583,7 +581,7 @@ class SynapticIndexing(object):
                                                np.flatnonzero(test_k(synapse_numbers)),
                                                assume_unique=True)
         else:
-            raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
+            raise IndexError(f"Unsupported index type {type(index)}")
 
         if index_var not in ('_idx', '0'):
             return index_var.get_value()[final_indices.astype(np.int32)]
@@ -592,7 +590,7 @@ class SynapticIndexing(object):
 
 
 class Synapses(Group):
-    '''
+    """
     Class representing synaptic connections.
 
     Creating a new `Synapses` object does by default not create any synapses,
@@ -673,7 +671,7 @@ class Synapses(Group):
     name : str, optional
         The name for this object. If none is given, a unique name of the form
         ``synapses``, ``synapses_1``, etc. will be automatically chosen.
-    '''
+    """
     add_to_magic_network = True
 
     def __init__(self, source, target=None, model=None, on_pre=None,
@@ -687,8 +685,8 @@ class Synapses(Group):
                  method_options=None,
                  name='synapses*'):
         if connect is not None:
-            raise TypeError('The connect keyword argument is no longer '
-                            'supported, call the connect method instead.')
+            raise TypeError("The connect keyword argument is no longer "
+                            "supported, call the connect method instead.")
 
         if pre is not None:
             if on_pre is not None:
@@ -709,7 +707,7 @@ class Synapses(Group):
             on_post = post
 
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
-                       name=name)
+                       namespace=namespace, name=name)
 
         if dtype is None:
             dtype = {}
@@ -737,8 +735,8 @@ class Synapses(Group):
         if isinstance(model, str):
             model = Equations(model)
         if not isinstance(model, Equations):
-            raise TypeError(('model has to be a string or an Equations '
-                             'object, is "%s" instead.') % type(model))
+            raise TypeError(f"model has to be a string or an Equations "
+                            f"object, is '{type(model)}' instead.")
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'clock-driven'],
@@ -753,15 +751,15 @@ class Synapses(Group):
 
         for name in ['i', 'j', 'delay']:
             if name in model.names:
-                raise SyntaxError('"%s" is a reserved name that cannot be '
-                                  'used as a variable name.' % name)
+                raise SyntaxError(f"'{name}' is a reserved name that cannot be "
+                                  f"used as a variable name.")
 
         # Add the "multisynaptic index", if desired
         self.multisynaptic_index = multisynaptic_index
         if multisynaptic_index is not None:
             if not isinstance(multisynaptic_index, str):
-                raise TypeError('multisynaptic_index argument has to be a string')
-            model = model + Equations('{} : integer'.format(multisynaptic_index))
+                raise TypeError("multisynaptic_index argument has to be a string")
+            model = model + Equations(f'{multisynaptic_index} : integer')
 
         # Separate subexpressions depending whether they are considered to be
         # constant over a time step or not
@@ -779,26 +777,43 @@ class Synapses(Group):
             else:
                 if (single_equation.type == DIFFERENTIAL_EQUATION and
                             'clock-driven' not in single_equation.flags):
-                    logger.info(('The synaptic equation for the variable {var} '
-                                 'does not specify whether it should be '
-                                 'integrated at every timestep ("clock-driven") '
-                                 'or only at spiking events ("event-driven"). '
-                                 'It will be integrated at every timestep '
-                                 'which can slow down your simulation '
-                                 'unnecessarily if you only need the values of '
-                                 'this variable whenever a spike occurs. '
-                                 'Specify the equation as clock-driven '
-                                 'explicitly to avoid this '
-                                 'warning.').format(var=single_equation.varname),
-                                'clock_driven',
-                                once=True)
+                    logger.info(
+                        f"The synaptic equation for the variable "
+                        f"{single_equation.varname} does not specify whether it "
+                        f"should be integrated at every timestep ('clock-driven') "
+                        f"or only at spiking events ('event-driven'). It will be "
+                        f"integrated at every timestep which can slow down your "
+                        f"simulation unnecessarily if you only need the values of "
+                        f"this variable whenever a spike occurs. Specify the equation "
+                        f"as clock-driven explicitly to avoid this warning.",
+                        f'clock_driven', once=True)
                 continuous.append(single_equation)
-        
-        # Checking whether a summed variable or a clock-driven equation is referring to an event-driven variable
-        for eq in event_driven:
-            Synapses._recur_check_event_summed_clock(eq.varname, model)
+                if single_equation.type != DIFFERENTIAL_EQUATION:
+                    # General subexpressions (not summed variables) or
+                    # parameters, might be referred from event-driven equations
+                    # as well.
+                    # Note that the code generation step will ignore them if
+                    # nothing refers to them, so we don't have to filter here.
+                    event_driven.append(single_equation)
+        # Get the dependencies of all equations
+        dependencies = model.dependencies
+        # Check whether there are dependencies between summed
+        # variables/clocked-driven equations and event-driven variables
+        for eq_name, deps in dependencies.items():
+            eq = model[eq_name]
+            if not (eq.type == DIFFERENTIAL_EQUATION or 'summed' in eq.flags):
+                continue
+            if eq in continuous:
+                Synapses.verify_dependencies(eq, "clock-driven", deps,
+                                             event_driven, 'event-driven')
+            elif 'summed' in eq.flags:
+                Synapses.verify_dependencies(eq, "summed", deps,
+                                             event_driven, 'event-driven')
+            elif eq in event_driven:
+                Synapses.verify_dependencies(eq, "event-driven", deps,
+                                             continuous, 'clock-driven')
 
-        if len(event_driven):
+        if any(eq.type == DIFFERENTIAL_EQUATION for eq in event_driven):
             self.event_driven = Equations(event_driven)
             # Add the lastupdate variable, needed for event-driven updates
             model += Equations('lastupdate : second')
@@ -807,11 +822,6 @@ class Synapses(Group):
 
         self._create_variables(model, user_dtype=dtype)
         self.equations = Equations(continuous)
-
-        if namespace is None:
-            namespace = {}
-        #: The group-specific namespace
-        self.namespace = namespace
 
         #: Set of `Variable` objects that should be resized when the
         #: number of synapses changes
@@ -833,8 +843,8 @@ class Synapses(Group):
         if isinstance(delay, Quantity):
             delay = {'pre': delay}
         elif not isinstance(delay, Mapping):
-            raise TypeError('Delay argument has to be a quantity or a '
-                            'dictionary, is type %s instead.' % type(delay))
+            raise TypeError(f"Delay argument has to be a quantity or a "
+                            f"dictionary, is type {type(delay)} instead.")
 
         #: List of names of all updaters, e.g. ['pre', 'post']
         self._synaptic_updaters = []
@@ -859,9 +869,9 @@ class Synapses(Group):
             elif isinstance(argument, Mapping):
                 for key, value in argument.items():
                     if not isinstance(key, str):
-                        err_msg = ('Keys for the "on_{}" argument'
-                                   'have to be strings, got '
-                                   '{} instead.').format(prepost, type(key))
+                        err_msg = (f"Keys for the 'on_{prepost}' argument"
+                                   f"have to be strings, got "
+                                   f"{type(key)} instead.")
                         raise TypeError(err_msg)
                     pathway_delay = delay.get(key, None)
                     self._add_updater(value, prepost, objname=key,
@@ -870,8 +880,8 @@ class Synapses(Group):
         # Check whether any delays were specified for pathways that don't exist
         for pathway in delay:
             if not pathway in self._synaptic_updaters:
-                raise ValueError(('Cannot set the delay for pathway '
-                                  '"%s": unknown pathway.') % pathway)
+                raise ValueError(f"Cannot set the delay for pathway "
+                                 f"'{pathway}': unknown pathway.")
 
         #: Performs numerical integration step
         self.state_updater = None
@@ -901,12 +911,12 @@ class Synapses(Group):
         for single_equation in summed_updates:
             varname = single_equation.varname
             if not (varname.endswith('_pre') or varname.endswith('_post')):
-                raise ValueError(('The summed variable "%s" does not end '
-                                  'in "_pre" or "_post".') % varname)
+                raise ValueError(f"The summed variable '{varname}' does not end "
+                                 f"in '_pre' or '_post'.")
             if not varname in self.variables:
-                raise ValueError(('The summed variable "%s" does not refer'
-                                  'to any known variable in the '
-                                  'target group.') % varname)
+                raise ValueError(f"The summed variable '{varname}' does not refer"
+                                 f"to any known variable in the "
+                                 f"target group.")
             if varname.endswith('_pre'):
                 summed_target = self.source
                 summed_target_size_name = 'N_pre'
@@ -920,10 +930,9 @@ class Synapses(Group):
 
             target_eq = getattr(summed_target, 'equations', {}).get(orig_varname, None)
             if target_eq is None or target_eq.type != PARAMETER:
-                raise ValueError(('The summed variable "%s" needs a '
-                                  'corresponding parameter "%s" in the '
-                                  'target group.') % (varname,
-                                                      orig_varname))
+                raise ValueError(f"The summed variable '{varname}' needs a "
+                                 f"corresponding parameter '{orig_varname}' in the "
+                                 f"target group.")
 
             fail_for_dimension_mismatch(self.variables['_summed_'+varname].dim,
                                         self.variables[varname].dim,
@@ -931,9 +940,8 @@ class Synapses(Group):
                                          'the same units in Synapses '
                                          'and the target group'))
             if self.variables[varname] in summed_targets:
-                raise ValueError(('The target variable "%s" is already '
-                                  'updated by another summed '
-                                  'variable') % orig_varname)
+                raise ValueError(f"The target variable '{orig_varname}' is already "
+                                 f"updated by another summed variable")
             summed_targets.add(self.variables[varname])
             updater = SummedVariableUpdater(single_equation.expr,
                                             varname, self, summed_target,
@@ -944,68 +952,53 @@ class Synapses(Group):
 
         # Activate name attribute access
         self._enable_group_attributes()
-    
+
     @staticmethod
-    def _recur_check_event_summed_clock(var, eqs, orig_var=None, intermediate_vars=None):
+    def verify_dependencies(eq, eq_type, deps,
+                            should_not_depend_on, should_not_depend_on_name):
         """
-            Recursive function used to identify whether a summed variable
-            or a clock driven equation is referring to an event-driven variable
-            and raise an EquationError.
+        Helper function to verify that event-driven equations do not depend
+        on clock-driven equations and the other way round.
 
-            Parameters
-            ----------
-            var : str
-                variable that is required for checking
-            eqs : `Equations`
-                Equations object in which we need to check
-            orig_var : str, optional
-                Carries the name of the original event-driven variable
-            intermediate_vars : list, optional
-                Carries the names of all the intermediate variables that have
-                referred to the event-driven variable.
+        Parameters
+        ----------
+        eq : `SingleEquation`
+            The equation to verify
+        eq_type : str
+            The type of the equation (for the error message)
+        deps : list
+            A list of dependencies
+        should_not_depend_on : list
+            A list of equations to verify against the dependencies
+        should_not_depend_on_name : str
+            The name of the list of equations (for the error message)
 
-            Raises
-            ------
-            EquationError
-                If a clock-driven or summed variable refers to an event-driven
-                variable.
-"""
-        if orig_var is None:
-            orig_var = var
-        if intermediate_vars is None:
-            intermediate_vars = []
-        via_str = ""
-        if intermediate_vars:
-            via_str = "(via " + ", ".join(f"'{v}'"
-                                          for v in intermediate_vars) + ")"
-        for eq in eqs.values():
-            if var in eq.identifiers and eq.varname != var:
-                if 'summed' in eq.flags:
-                    raise EquationError(f"The summed variable '{eq.varname}' "
-                                        f"should not refer an event-driven "
-                                        f" variable '{orig_var}' {via_str}")
-                elif (eq.type == DIFFERENTIAL_EQUATION
-                      and 'event-driven' not in eq.flags):
-                    raise EquationError(f"The clock-driven equation for "
-                                        f"variable '{eq.varname}' should not "
-                                        f"refer to a event-driven variable "
-                                        f"'{orig_var}' {via_str}")
-                else:
-                    temp_inter_vars = intermediate_vars.copy()
-                    if (orig_var != eq.varname
-                            and eq.varname not in intermediate_vars):
-                        temp_inter_vars.append(eq.varname)
-                    Synapses._recur_check_event_summed_clock(eq.varname,
-                                                             eqs,
-                                                             orig_var=orig_var,
-                                                             intermediate_vars=temp_inter_vars)
+        Raises
+        ------
+        `EquationError`
+            If the given equation depends on something in the other set of
+            equations.
+        """
+        for dep in deps:
+            if (dep.equation in should_not_depend_on and
+                    (dep.equation.type == DIFFERENTIAL_EQUATION
+                     or 'summed' in dep.equation.flags)):
+                via_str = ''
+                if dep.via:
+                    via_str = " (via " + ", ".join(f"'{v}'"
+                                                   for v in
+                                                   dep.via) + ")"
+                raise EquationError(f"The {eq_type} '{eq.varname}' should "
+                                    f"not depend on the "
+                                    f"{should_not_depend_on_name} variable "
+                                    f"'{dep.equation.varname}'{via_str}.")
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
-                              doc='The number of outgoing synapses for each neuron in the '
-                                  'pre-synaptic group.')
+                              doc="The number of outgoing synapses for each neuron in the "
+                                  "pre-synaptic group.")
     N_incoming_post = property(fget=lambda self: self.variables['N_incoming'].get_value(),
-                               doc='The number of incoming synapses for each neuron in the '
-                                   'post-synaptic group.')
+                               doc="The number of incoming synapses for each neuron in the "
+                                   "post-synaptic group.")
 
     def __getitem__(self, item):
         indices = self.indices[item]
@@ -1036,16 +1029,16 @@ class Synapses(Group):
 
     delay = property(functools.partial(_get_delay, with_unit=True),
                      functools.partial(_set_delay, with_unit=True),
-                     doc='The presynaptic delay (if a pre-synaptic pathway '
-                         'exists).')
+                     doc="The presynaptic delay (if a pre-synaptic pathway "
+                         "exists).")
     delay_ = property(functools.partial(_get_delay, with_unit=False),
                       functools.partial(_set_delay, with_unit=False),
-                      doc='The presynaptic delay without unit information (if a'
-                          'pre-synaptic pathway exists).')
+                      doc="The presynaptic delay without unit information (if a"
+                          "pre-synaptic pathway exists).")
 
     def _add_updater(self, code, prepost, objname=None, delay=None,
                      event='spike'):
-        '''
+        """
         Add a new target updater. Users should call `add_pre` or `add_post`
         instead.
 
@@ -1068,30 +1061,33 @@ class Synapses(Group):
             The final name for the object. Equals `objname` if it was explicitly
             given (and did not end in a wildcard character).
 
-        '''
+        """
         if prepost == 'pre':
             spike_group, group_name = self.source, 'Source'
         elif prepost == 'post':
             spike_group, group_name = self.target, 'Target'
         else:
-            raise AssertionError(('"prepost" argument has to be "pre" or '
-                                  '"post", is "%s".') % prepost)
+            raise AssertionError(f"'prepost' argument has to be 'pre' or "
+                                 f"'post', is '{prepost}'.")
         if event not in spike_group.events:
-            raise ValueError(("%s group does not define an event "
-                              "'%s'.") % (group_name, event))
+            if event == 'spike':
+                threshold_text = " Did you forget to set a 'threshold'?"
+            else:
+                threshold_text = ''
+            raise ValueError(f"{group_name} group '{spike_group.name}' does not define "
+                             f"an event '{event}'.{threshold_text}")
 
         if not isinstance(spike_group, SpikeSource) or not hasattr(spike_group, 'clock'):
-            raise TypeError(('%s has to be a SpikeSource with spikes and'
-                             ' clock attribute. Is type %r instead')
-                            % (group_name, type(spike_group)))
+            raise TypeError(f"'{group_name}' has to be a SpikeSource with spikes and"
+                            f" clock attribute. Is type {type(spike_group)!r} instead.")
 
         updater = SynapticPathway(self, code, prepost, objname,
                                   delay=delay, event=event)
         objname = updater.objname
         if hasattr(self, objname):
-            raise ValueError(('Cannot add updater with name "{name}", synapses '
-                              'object already has an attribute with this '
-                              'name.').format(name=objname))
+            raise ValueError(f"Cannot add updater with name '{objname}', synapses "
+                             f"object already has an attribute with this "
+                             f"name.")
 
         setattr(self, objname, updater)
         self._synaptic_updaters.append(objname)
@@ -1100,10 +1096,10 @@ class Synapses(Group):
         return objname
 
     def _create_variables(self, equations, user_dtype=None):
-        '''
+        """
         Create the variables dictionary for this `Synapses`, containing
         entries for the equation variables and some standard entries.
-        '''
+        """
         self.variables = Variables(self)
 
         # Standard variables always present
@@ -1212,7 +1208,7 @@ class Synapses(Group):
                                                  scalar='shared' in eq.flags,
                                                  dtype=dtype)
             else:
-                raise AssertionError('Unknown type of equation: ' + eq.eq_type)
+                raise AssertionError(f"Unknown type of equation: {eq.eq_type}")
 
         # Stochastic variables
         for xi in equations.stochastic_variables:
@@ -1225,12 +1221,12 @@ class Synapses(Group):
             # Synapses object)
             if (name in equations.names and name != 'lastupdate' and
                     'summed' not in equations[name].flags):
-                error_msg = ('The pre-synaptic variable {name} has the same '
-                             'name as a synaptic variable, rename the synaptic '
-                             'variable ').format(name=name)
+                error_msg = (f"The pre-synaptic variable {name} has the same "
+                             f"name as a synaptic variable, rename the synaptic "
+                             f"variable.")
                 if name+'_syn' not in self.variables:
-                    error_msg += ("(for example to '{name}_syn') ".format(name=name))
-                error_msg += 'to avoid confusion'
+                    error_msg += f"(for example to '{name}_syn') "
+                error_msg += "to avoid confusion"
                 raise ValueError(error_msg)
             if name.startswith('_'):
                 continue  # Do not add internal variables
@@ -1240,24 +1236,22 @@ class Synapses(Group):
                 self.variables.add_reference(name + '_pre', self.source, name,
                                              index=index)
             except TypeError:
-                logger.diagnostic(('Cannot include a reference to {var} in '
-                                   '{synapses}, {var} uses a non-standard '
-                                   'indexing in the pre-synaptic group '
-                                   '{source}.').format(var=name,
-                                                       synapses=self.name,
-                                                       source=self.source.name))
+                logger.diagnostic(f"Cannot include a reference to '{name}' in "
+                                  f"'{self.name}', '{name}' uses a non-standard "
+                                  f"indexing in the pre-synaptic group "
+                                  f"'{self.source.name}'.")
         for name in getattr(self.target, 'variables', {}):
             # Raise an error if a variable name is also used for a synaptic
             # variable (we ignore 'lastupdate' to allow connections to another
             # Synapses object)
             if (name in equations.names and name != 'lastupdate' and
                     'summed' not in equations[name].flags):
-                error_msg = ("The post-synaptic variable '{name}' has the same "
-                             "name as a synaptic variable, rename the synaptic "
-                             "variable ").format(name=name)
+                error_msg = (f"The post-synaptic variable '{name}' has the same "
+                             f"name as a synaptic variable, rename the synaptic "
+                             f"variable.")
                 if name+'_syn' not in self.variables:
-                    error_msg += ("(for example to '{name}_syn') ".format(name=name))
-                error_msg += 'to avoid confusion'
+                    error_msg += f"(for example to '{name}_syn') "
+                error_msg += "to avoid confusion"
                 raise ValueError(error_msg)
             if name.startswith('_'):
                 continue  # Do not add internal variables
@@ -1273,12 +1267,10 @@ class Synapses(Group):
                     self.variables.add_reference(name, self.target, name,
                                                  index=index)
             except TypeError:
-                logger.diagnostic(('Cannot include a reference to {var} in '
-                                   '{synapses}, {var} uses a non-standard '
-                                   'indexing in the post-synaptic group '
-                                   '{target}.').format(var=name,
-                                                       synapses=self.name,
-                                                       target=self.target.name))
+                logger.diagnostic(f"Cannot include a reference to '{name}' in "
+                                  f"'{self.name}', '{name}' uses a non-standard "
+                                  f"indexing in the post-synaptic group "
+                                  f"'{self.target.name}'.")
 
         # Check scalar subexpressions
         for eq in equations.values():
@@ -1287,9 +1279,9 @@ class Synapses(Group):
                 for identifier in var.identifiers:
                     if identifier in self.variables:
                         if not self.variables[identifier].scalar:
-                            raise SyntaxError(('Shared subexpression %s refers '
-                                               'to non-shared variable %s.')
-                                              % (eq.varname, identifier))
+                            raise SyntaxError(f"Shared subexpression '{eq.varname}' "
+                                              f"refers to non-shared variable "
+                                              f"'{identifier}'.")
 
     def before_run(self, run_namespace):
         self.equations.check_units(self, run_namespace=run_namespace)
@@ -1302,7 +1294,7 @@ class Synapses(Group):
     def connect(self, condition=None, i=None, j=None, p=1., n=1,
                 skip_if_invalid=False,
                 namespace=None, level=0):
-        '''
+        """
         Add synapses.
 
         See :doc:`/user/synapses` for details.
@@ -1314,9 +1306,10 @@ class Synapses(Group):
             The expression can depend on indices ``i`` and ``j`` and on
             pre- and post-synaptic variables. Can be combined with
             arguments ``n``, and ``p`` but not ``i`` or ``j``.
-        i : int, ndarray of int, optional
-            The presynaptic neuron indices (in the form of an index or an array
-            of indices). Must be combined with ``j`` argument.
+        i : int, ndarray of int, str, optional
+            The presynaptic neuron indices  It can be an index or array of
+            indices if combined with the ``j`` argument, or it can be a string
+            generator expression.
         j : int, ndarray of int, str, optional
             The postsynaptic neuron indices. It can be an index or array of
             indices if combined with the ``i`` argument, or it can be a string
@@ -1355,22 +1348,135 @@ class Synapses(Group):
         >>> S.connect(j='i+(-1)**k for k in range(2) if i>0 and i<N_pre-1') # connect neuron i to its neighbours if it has both neighbours
         >>> S.connect(j='k for k in sample(N_post, p=i*1.0/(N_pre-1))') # neuron i connects to j with probability i/(N-1)
         >>> S.connect(j='k for k in sample(N_post, size=i//2)') # Each neuron connects to i//2 other neurons (chosen randomly)
-        '''
+        """
         # check types
+        self._verify_connect_argument_types(condition, i, j, n, p)
+
+        self._connect_called = True
+
+        # Get namespace information
+        if namespace is None:
+            namespace = get_local_namespace(level=level + 2)
+
+        try:  # wrap everything to catch IndexError
+            # which connection case are we in?
+            # 1: Connection condition
+            if condition is None and i is None and j is None:
+                condition = True
+            if condition is not None:
+                if i is not None or j is not None:
+                    raise ValueError("Cannot combine condition with i or j "
+                                     "arguments")
+                if condition is False or condition == 'False':
+                    # Nothing to do
+                    return
+                j = self._condition_to_generator_expression(condition, p, namespace)
+                self._add_synapses_generator(j, n, skip_if_invalid=skip_if_invalid,
+                                             namespace=namespace, level=level + 2,
+                                             over_presynaptic=True)
+            # 2: connection indices
+            elif (i is not None and j is not None) and not (isinstance(i, str) or isinstance(j, str)):
+                if skip_if_invalid:
+                    raise ValueError("Can only use skip_if_invalid with string "
+                                     "syntax")
+                i, j, n = self._verify_connect_array_arguments(i, j, n)
+                self._add_synapses_from_arrays(i, j, n, p, namespace=namespace)
+            # 3: Generator expression over post-synaptic cells (i='...')
+            elif isinstance(i, str):
+                i = self._finalize_generator_expression(i, j, p, 'i', 'j')
+                self._add_synapses_generator(i, n, skip_if_invalid=skip_if_invalid,
+                                             namespace=namespace, level=level + 2,
+                                             over_presynaptic=False)
+            # 4: Generator expression over pre-synaptic cells (i='...')
+            elif isinstance(j, str):
+                j = self._finalize_generator_expression(j, i, p, 'j', 'i')
+                self._add_synapses_generator(j, n, skip_if_invalid=skip_if_invalid,
+                                             namespace=namespace, level=level + 2,
+                                             over_presynaptic=True)
+            else:
+                raise ValueError("Must specify at least one of condition, i or "
+                                 "j arguments")
+        except IndexError as e:
+            raise IndexError("Tried to create synapse indices outside valid "
+                             "range. Original error message: " + str(e))
+
+    # Helper functions for Synapses.connect ↑
+    def _verify_connect_array_arguments(self, i, j, n):
+        if hasattr(i, '_indices'):
+            i = i._indices()
+        i = np.asarray(i)
+        if not np.issubdtype(i.dtype, np.signedinteger):
+            raise TypeError(f"Presynaptic indices have to be given as "
+                            f"integers, are type {i.dtype} "
+                            f"instead.")
+        if hasattr(j, '_indices'):
+            j = j._indices()
+        j = np.asarray(j)
+        if not np.issubdtype(j.dtype, np.signedinteger):
+            raise TypeError("Presynaptic indices can only be combined "
+                            "with postsynaptic integer indices))")
+        if isinstance(n, str):
+            raise TypeError("Indices cannot be combined with a string"
+                            "expression for n. Either use an "
+                            "array/scalar for n, or a string "
+                            "expression for the connections")
+        i, j, n = np.broadcast_arrays(i, j, n)
+        if i.ndim > 1:
+            raise ValueError("Can only use 1-dimensional indices")
+        return i, j, n
+
+    def _condition_to_generator_expression(self, condition, p, namespace):
+        if condition is True:
+            condition = 'True'
+        # Check that the condition is a boolean expresion
+        identifiers = get_identifiers(condition)
+        variables = self.resolve_all(identifiers, namespace)
+        if not is_boolean_expression(condition, variables):
+            raise TypeError(f"Condition '{condition}' is not a "
+                            f'boolean condition')
+        # Check the units (mostly to check for unit consistency within the condition)
+        dims = parse_expression_dimensions(condition, variables)
+        if dims is not DIMENSIONLESS:
+            # We should not get here normally
+            raise TypeError(f"Condition '{condition}' is not a "
+                            f'boolean condition')
+        condition = word_substitute(condition, {'j': '_k'})
+        if not isinstance(p, str) and p == 1:
+            j = (f'_k for _k in range(N_post) '
+                 f'if {condition}')
+        else:
+            j = None
+            if isinstance(p, str):
+                identifiers = get_identifiers(p)
+                variables = self.resolve_all(identifiers, namespace)
+                dim = parse_expression_dimensions(p, variables)
+                if dim is not DIMENSIONLESS:
+                    raise DimensionMismatchError(
+                        "Expression for p should be dimensionless.")
+                p_dep = self._expression_index_dependence(p, namespace=namespace)
+                if '_postsynaptic_idx' in p_dep or '_iterator_idx' in p_dep:
+                    j = (f'_k for _k in range(N_post) '
+                         f'if ({condition}) and '
+                         f'rand()<{p}')
+            if j is None:
+                j = (f'_k for _k in sample(N_post, p={p}) '
+                     f'if {condition}')
+        return j
+
+    def _verify_connect_argument_types(self, condition, i, j, n, p):
         if condition is not None and not isinstance(condition, (bool,
                                                                 str)):
             raise TypeError("condition argument must be bool or string. If you "
                             "want to connect based on indices, use "
                             "connect(i=..., j=...).")
-        if i is not None and (not (isinstance(i, (numbers.Integral,
+        if i is not None and not (isinstance(i, (numbers.Integral,
                                                  np.ndarray,
                                                  Sequence)) or
-                                   hasattr(i, '_indices')) or
-                              isinstance(i, str)):
-            raise TypeError("i argument must be int or array")
+                                  hasattr(i, '_indices')):
+            raise TypeError("i argument must be int, array or string")
         if j is not None and not (isinstance(j, (numbers.Integral,
-                                                np.ndarray,
-                                                Sequence)) or
+                                                 np.ndarray,
+                                                 Sequence)) or
                                   hasattr(j, '_indices')):
             raise TypeError("j argument must be int, array or string")
         # TODO: eliminate these restrictions
@@ -1379,126 +1485,13 @@ class Synapses(Group):
         if not isinstance(n, (int, str)):
             raise TypeError("n must be int or string")
         if isinstance(condition, str) and re.search(r'\bfor\b',
-                                                           condition):
-            raise ValueError("Generator expression given for condition, write "
-                             "connect(j='{condition}'...) instead of "
-                             "connect('{condition}'...).".format(condition=condition))
-
-        self._connect_called = True
-
-        # Get namespace information
-        if namespace is None:
-            namespace = get_local_namespace(level=level + 2)
-
-        # which connection case are we in?
-        if condition is None and i is None and j is None:
-            condition = True
-        try:
-            if condition is not None:
-                if i is not None or j is not None:
-                    raise ValueError("Cannot combine condition with i or j "
-                                     "arguments")
-                # convert to generator syntax
-                if condition is False:
-                    return
-                if condition is True:
-                    condition = 'True'
-                # Check that the condition is a boolean expresion
-                identifiers = get_identifiers(condition)
-                variables = self.resolve_all(identifiers, namespace)
-                if not is_boolean_expression(condition, variables):
-                    raise TypeError(f'Condition \'{condition}\' is not a '
-                                    f'boolean condition')
-
-                # Check the units (mostly to check for unit consistency within the condition)
-                dims = parse_expression_dimensions(condition, variables)
-                if dims is not DIMENSIONLESS:
-                    # We should not get here normally
-                    raise TypeError(f'Condition \'{condition}\' is not a '
-                                    f'boolean condition')
-
-                condition = word_substitute(condition, {'j': '_k'})
-                if not isinstance(p, str) and p == 1:
-                    j = ('_k for _k in range(N_post) '
-                         'if {expr}').format(expr=condition)
-                else:
-                    j = None
-                    if isinstance(p, str):
-                        identifiers = get_identifiers(p)
-                        variables = self.resolve_all(identifiers, namespace)
-                        dim = parse_expression_dimensions(p, variables)
-                        if dim is not DIMENSIONLESS:
-                            raise DimensionMismatchError('Expression for p should be dimensionless.')
-                        p_dep = self._expression_index_dependence(p, namespace=namespace)
-                        if '_postsynaptic_idx' in p_dep or '_iterator_idx' in p_dep:
-                            j = ('_k for _k in range(N_post) '
-                                 'if ({expr}) and '
-                                 'rand()<{p}').format(expr=condition, p=p)
-                    if j is None:
-                        j = ('_k for _k in sample(N_post, p={p}) '
-                             'if {expr}').format(expr=condition, p=p)
-                # will now call standard generator syntax (see below)
-            elif i is not None:
-                if j is None:
-                    raise ValueError("i argument must be combined with j "
-                                     "argument")
-                if skip_if_invalid:
-                    raise ValueError("Can only use skip_if_invalid with string "
-                                     "syntax")
-                if hasattr(i, '_indices'):
-                    i = i._indices()
-                i = np.asarray(i)
-                if not np.issubdtype(i.dtype, np.signedinteger):
-                    raise TypeError(('Presynaptic indices have to be given as '
-                                     'integers, are type %s '
-                                     'instead.') % i.dtype)
-
-                if hasattr(j, '_indices'):
-                    j = j._indices()
-                j = np.asarray(j)
-                if not np.issubdtype(j.dtype, np.signedinteger):
-                    raise TypeError(('Presynaptic indices can only be combined '
-                                     'with postsynaptic integer indices))'))
-                if isinstance(n, str):
-                    raise TypeError(('Indices cannot be combined with a string'
-                                     'expression for n. Either use an '
-                                     'array/scalar for n, or a string '
-                                     'expression for the connections'))
-                i, j, n = np.broadcast_arrays(i, j, n)
-                if i.ndim > 1:
-                    raise ValueError('Can only use 1-dimensional indices')
-                self._add_synapses_from_arrays(i, j, n, p, namespace=namespace)
-                return
-            elif j is not None:
-                if isinstance(p, str) or p != 1:
-                    raise ValueError("Generator syntax cannot be combined with "
-                                     "p argument")
-                if not re.search(r'\bfor\b', j):
-                    if_split = j.split(' if ')
-                    if len(if_split) == 1:
-                        j = '{j} for _ in range(1)'.format(j=j)
-                    elif len(if_split) == 2:
-                        j = '{target} for _ in range(1) if {cond}'.format(target=if_split[0],
-                                                                          cond=if_split[1])
-                    else:
-                        raise SyntaxError("Error parsing expression '{j}'. "
-                                          "Expression must have generator "
-                                          "syntax, for example 'k for k in "
-                                          "range(i-10, i+10)'".format(j=j))
-                    # will now call standard generator syntax (see below)
-            else:
-                raise ValueError("Must specify at least one of condition, i or "
-                                 "j arguments")
-
-            # standard generator syntax
-            self._add_synapses_generator(j, n, skip_if_invalid=skip_if_invalid,
-                                         namespace=namespace, level=level+2)
-        except IndexError as e:
-            raise IndexError("Tried to create synapse indices outside valid "
-                             "range. Original error message: " + str(e))
+                                                    condition):
+            raise ValueError(f"Generator expression given for condition, write "
+                             f"connect(j='{condition}'...) instead of "
+                             f"connect('{condition}'...).")
 
     def check_variable_write(self, variable):
-        '''
+        """
         Checks that `Synapses.connect` has been called before setting a
         synaptic variable.
 
@@ -1511,18 +1504,18 @@ class Synapses(Group):
         ------
         TypeError
             If `Synapses.connect` has not been called yet.
-        '''
+        """
         if not self._connect_called:
-            raise TypeError(("Cannot write to synaptic variable '%s', you need "
-                             "to call connect(...) first") % variable.name)
+            raise TypeError(f"Cannot write to synaptic variable '{variable.name}', you "
+                            f"need to call connect(...) first")
 
     def _resize(self, number):
         if not isinstance(number, (numbers.Integral, np.integer)):
-            raise TypeError(('Expected an integer number got {} '
-                             'instead').format(type(number)))
+            raise TypeError(f"Expected an integer number, got {type(number)} "
+                            f"instead.")
         if number < self.N:
-            raise ValueError(('Cannot reduce number of synapses, '
-                              '{} < {}').format(number, len(self)))
+            raise ValueError(f"Cannot reduce number of synapses, "
+                             f"{number} < {len(self)}.")
 
         for variable in self._registered_variables:
             variable.resize(number)
@@ -1563,21 +1556,21 @@ class Synapses(Group):
             synapse_number[:] = calc_repeats(_source_target_pairs)
 
     def register_variable(self, variable):
-        '''
+        """
         Register a `DynamicArray` to be automatically resized when the size of
         the indices change. Called automatically when a `SynapticArrayVariable`
         specifier is created.
-        '''
+        """
         if not hasattr(variable, 'resize'):
-            raise TypeError(('Variable of type {} does not have a resize '
-                             'method, cannot register it with the synaptic '
-                             'indices.').format(type(variable)))
+            raise TypeError(f"Variable of type {type(variable)} does not have a resize "
+                            f"method, cannot register it with the synaptic "
+                            f"indices.")
         self._registered_variables.add(variable)
 
     def unregister_variable(self, variable):
-        '''
+        """
         Unregister a `DynamicArray` from the automatic resizing mechanism.
-        '''
+        """
         self._registered_variables.remove(variable)
 
     def _get_multisynaptic_indices(self):
@@ -1637,9 +1630,8 @@ class Synapses(Group):
             abstract_code += '_real_targets = targets + _target_offset\n'
         else:
             abstract_code += '_real_targets = targets'
-        logger.debug("Creating synapses from group '%s' to group '%s', "
-                     "using pre-defined arrays)" % (self.source.name,
-                                                    self.target.name))
+        logger.debug(f"Creating synapses from group '{self.source.name}' to group "
+                     f"'{self.target.name}', using pre-defined arrays)")
 
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
@@ -1653,9 +1645,9 @@ class Synapses(Group):
 
     def _expression_index_dependence(self, expr, namespace,
                                      additional_indices=None):
-        '''
+        """
         Returns the set of synaptic indices that expr depends on
-        '''
+        """
         nr = NodeRenderer()
         expr = nr.render_expr(expr)
         deps = set()
@@ -1684,71 +1676,93 @@ class Synapses(Group):
             deps.remove('0')
         return deps
 
-    def _add_synapses_generator(self, j, n, skip_if_invalid=False, namespace=None, level=0):
+    def _add_synapses_generator(self, gen, n, skip_if_invalid=False,
+                                over_presynaptic=True, namespace=None, level=0):
         # Get the local namespace
         if namespace is None:
             namespace = get_local_namespace(level=level+1)
 
-        parsed = parse_synapse_generator(j)
+        parsed = parse_synapse_generator(gen)
         self._check_parsed_synapses_generator(parsed, namespace)
 
         # Referring to N_incoming/N_outgoing in the connect statement is
         # ill-defined (see github issue #1227)
-        identifiers = get_identifiers_recursively([j], self.variables)
+        identifiers = get_identifiers_recursively([gen], self.variables)
         for var in ['N_incoming', 'N_outgoing']:
             if var in identifiers:
                 raise ValueError(f'The connect statement cannot refer to '
-                                 f'\'{var}\'.')
+                                 f"'{var}'.")
 
         template_kwds, needed_variables = self._get_multisynaptic_indices()
         template_kwds.update(parsed)
         template_kwds['skip_if_invalid'] = skip_if_invalid
-
+        # To support both i='...' and j='...' syntax, we provide additional keywords
+        # to the template
+        outer_index = 'i' if over_presynaptic else 'j'
+        outer_index_size = 'N_pre' if over_presynaptic else 'N_post'
+        outer_index_array = '_pre_idx' if over_presynaptic else '_post_idx'
+        outer_index_offset = '_source_offset' if over_presynaptic else '_target_offset'
+        result_index = 'j' if over_presynaptic else 'i'
+        result_index_size = 'N_post' if over_presynaptic else 'N_pre'
+        target_idx = '_postsynaptic_idx' if over_presynaptic else '_presynaptic_idx'
+        result_index_array = '_post_idx' if over_presynaptic else '_pre_idx'
+        result_index_offset = '_target_offset' if over_presynaptic else '_source_offset'
+        result_index_name = 'postsynaptic' if over_presynaptic else 'presynaptic'
+        template_kwds.update({'outer_index': outer_index,
+                              'outer_index_size': outer_index_size,
+                              'outer_index_array': outer_index_array,
+                              'outer_index_offset': outer_index_offset,
+                              'result_index': result_index,
+                              'result_index_size': result_index_size,
+                              'result_index_name': result_index_name,
+                              'result_index_array': result_index_array,
+                              'result_index_offset': result_index_offset})
         abstract_code = {'setup_iterator': '',
-                         'create_j': '',
+                         'generator_expr': '',
                          'create_cond': '',
-                         'update_post': ''}
+                         'update': ''}
 
-        additional_indices = {parsed['iteration_variable']: '_iterator_idx'}
+        additional_indices = {parsed['inner_variable']: '_iterator_idx'}
 
         setupiter = ''
         for k, v in parsed['iterator_kwds'].items():
-            if v is not None and k!='sample_size':
+            if v is not None and k != 'sample_size':
                 deps = self._expression_index_dependence(v, namespace=namespace,
                                                          additional_indices=additional_indices)
-                if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:
-                    raise ValueError('Expression "{}" depends on postsynaptic '
-                                     'index or iterator'.format(v))
-                setupiter += '_iter_'+k+' = '+v+'\n'
+                if f'_{result_index_name}_idx' in deps or '_iterator_idx' in deps:
+                    raise ValueError(f'Expression "{v}" depends on {result_index_name} '
+                                     f'index or iterator')
+                setupiter += f'_iter_{k} = {v}\n'
 
         # rand() in the if condition depends on _vectorisation_idx, but not if
         # its in the range expression (handled above)
         additional_indices['_vectorisation_idx'] = '_iterator_idx'
 
-        postsynaptic_condition = False
-        postsynaptic_variable_used = False
+        result_index_condition = False
+        result_index_used = False
         if parsed['if_expression'] is not None:
             deps = self._expression_index_dependence(parsed['if_expression'],
                                                      namespace=namespace,
                                                      additional_indices=additional_indices)
-            if '_postsynaptic_idx' in deps:
-                postsynaptic_condition = True
-                postsynaptic_variable_used = True
+            if target_idx in deps:
+                result_index_condition = True
+                result_index_used = True
             elif '_iterator_idx' in deps:
-                postsynaptic_condition = True
-        template_kwds['postsynaptic_condition'] = postsynaptic_condition
-        template_kwds['postsynaptic_variable_used'] = postsynaptic_variable_used
+                result_index_condition = True
+        template_kwds['result_index_condition'] = result_index_condition
+        template_kwds['result_index_used'] = result_index_used
 
         abstract_code['setup_iterator'] += setupiter
-        abstract_code['create_j'] += '_pre_idx = _raw_pre_idx \n'
-        abstract_code['create_j'] += '_j = '+parsed['element']+'\n'
-        if postsynaptic_condition:
-            abstract_code['create_cond'] += '_post_idx = _raw_post_idx \n'
+        abstract_code['generator_expr'] += f'{outer_index_array} = _raw{outer_index_array} \n'
+        abstract_code['generator_expr'] += f'_{result_index} = {parsed["element"]}\n'
+
+        if result_index_condition:
+            abstract_code['create_cond'] += f'{result_index_array} = _raw{result_index_array} \n'
         if parsed['if_expression'] is not None:
             abstract_code['create_cond'] += ('_cond = ' +
                                              parsed['if_expression'] + '\n')
-            abstract_code['update_post'] += '_post_idx = _raw_post_idx \n'
-        abstract_code['update_post'] += '_n = ' + str(n) + '\n'
+            abstract_code['update'] += f'{result_index_array} = _raw{result_index_array} \n'
+        abstract_code['update'] += '_n = ' + str(n) + '\n'
 
         # This overwrites 'i' and 'j' in the synapses' variables dictionary
         # This is necessary because in the context of synapse creation, i
@@ -1763,7 +1777,7 @@ class Synapses(Group):
         variables.add_auxiliary_variable('_iter_step', dtype=np.int32)
         variables.add_auxiliary_variable('_iter_p')
         variables.add_auxiliary_variable('_iter_size', dtype=np.int32)
-        variables.add_auxiliary_variable(parsed['iteration_variable'],
+        variables.add_auxiliary_variable(parsed['inner_variable'],
                                          dtype=np.int32)
         # Make sure that variables have the correct type in the code
         variables.add_auxiliary_variable('_pre_idx', dtype=np.int32)
@@ -1798,11 +1812,10 @@ class Synapses(Group):
         if self.variables['j'] is self.variables['_synaptic_post']:
             variables.add_subexpression('j', '_j',
                                         dtype=self.variables['j'].dtype)
+        logger.debug(f"Creating synapses from group '{self.source.name}' to group "
+                     f"'{self.target.name}', using generator "
+                     f"'{parsed['original_expression']}'")
 
-        logger.debug(("Creating synapses from group '%s' to group '%s', "
-                      "using generator '%s'") % (self.source.name,
-                                                 self.target.name,
-                                                 parsed['original_expression']))
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
                                         'synapses_create_generator',
@@ -1828,6 +1841,28 @@ class Synapses(Group):
                                              user_identifiers=identifiers)
                 annotated = brian_ast(arg, variables)
                 if annotated.dtype != 'integer':
-                    raise TypeError('The "%s" argument of the range function was '
-                                      '"%s", but it needs to be an '
-                                      'integer.' % (argname, arg))
+                    raise TypeError(
+                        f"The '{argname}' argument of the range function was "
+                        f"'{arg}', but it needs to be an integer.")
+
+    def _finalize_generator_expression(self, generator_expression, iteration_index, p,
+                                       target_index_name, iteration_index_name):
+        if iteration_index is not None:
+            raise TypeError(
+                f"Generator syntax for {target_index_name} cannot be combined with "
+                f"{iteration_index_name} argument")
+        if isinstance(p, str) or p != 1:
+            raise ValueError("Generator syntax cannot be combined with "
+                             "p argument")
+        if not re.search(r'\bfor\b', generator_expression):
+            if_split = generator_expression.split(' if ')
+            if len(if_split) == 1:
+                generator_expression = f'{generator_expression} for _ in range(1)'
+            elif len(if_split) == 2:
+                generator_expression = f'{if_split[0]} for _ in range(1) if {if_split[1]}'
+            else:
+                raise SyntaxError(f"Error parsing expression '{generator_expression}'. "
+                                  f"Expression must have generator "
+                                  f"syntax, for example 'k for k in "
+                                  f"range({iteration_index_name}-10, {iteration_index_name}+10)'")
+        return generator_expression

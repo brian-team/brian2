@@ -19,7 +19,7 @@ INITIAL_MAXSPIKESPER_DT = 1
 
 
 class SpikeQueue(object):
-    '''
+    """
     Data structure saving the spikes and taking care of delays.
     
     Parameters
@@ -44,7 +44,7 @@ class SpikeQueue(object):
     with the same delay. This is difficult to vectorise. If there are n synaptic
     events with the same delay, these events are given an offset between 0 and
     n-1, corresponding to their relative position in the data structure.
-    '''
+    """
     def __init__(self, source_start, source_end):
 
         #: The start of the source indices (for subgroups)
@@ -67,7 +67,7 @@ class SpikeQueue(object):
         self._state_tuple = (self._source_start, self._source_end, self.dtype)
 
     def prepare(self, delays, dt, synapse_sources):
-        '''
+        """
         Prepare the data structures
 
         This is called every time the network is run. The size of the
@@ -75,7 +75,7 @@ class SpikeQueue(object):
         delay in `delays`, if necessary. A flag is set if delays are
         homogeneous, in which case insertion will use a faster method
         implemented in `insert_homogeneous`.
-        '''
+        """
         n_synapses = len(synapse_sources)
 
         if self._dt is not None:
@@ -129,7 +129,7 @@ class SpikeQueue(object):
         self._dt = dt
 
     def _extract_spikes(self):
-        '''
+        """
         Get all the stored spikes
 
         Returns
@@ -138,7 +138,7 @@ class SpikeQueue(object):
             A 2d array with two columns, where each row describes a spike.
             The first column gives the time (as integer time steps) and the
             second column gives the index of the target synapse.
-        '''
+        """
         spikes = np.zeros((np.sum(self.n), 2), dtype=int)
         counter = 0
         for idx, n in enumerate(self.n):
@@ -149,7 +149,7 @@ class SpikeQueue(object):
         return spikes
 
     def _store_spikes(self, spikes):
-        '''
+        """
         Store a list of spikes at the given positions after clearing all
         spikes in the queue.
 
@@ -160,7 +160,7 @@ class SpikeQueue(object):
             The first column gives the time (as integer time steps) and the
             second column gives the index of the target synapse.
 
-        '''
+        """
         # Clear all spikes
         self.n[:] = 0
         for t, target in spikes:
@@ -189,28 +189,28 @@ class SpikeQueue(object):
 
     ################################ SPIKE QUEUE DATASTRUCTURE ################
     def advance(self):
-        '''
+        """
         Advances by one timestep
-        '''
+        """
         self.n[self.currenttime]=0 # erase
         self.currenttime=(self.currenttime+1) % len(self.n)
         
     def peek(self):
-        '''
+        """
         Returns the all the synaptic events corresponding to the current time,
         as an array of synapse indexes.
-        '''      
+        """      
         return self.X[self.currenttime, :self.n[self.currenttime]]    
     
     def push(self, sources):
-        '''
+        """
         Push spikes to the queue.
 
         Parameters
         ----------
         sources : ndarray of int
             The indices of the neurons that spiked.
-        '''
+        """
         if len(sources) and len(self._delays):
             start = self._source_start
             stop = self._source_end
@@ -234,7 +234,7 @@ class SpikeQueue(object):
                 self._insert(self._delays[indices], indices)
 
     def _insert(self, delay, target):
-        '''
+        """
         Vectorised insertion of spike events.
 
         Parameters
@@ -245,7 +245,7 @@ class SpikeQueue(object):
 
         target : ndarray
             Target synaptic indices.
-        '''
+        """
         delay = np.array(delay, dtype=int)
 
         offset = calc_repeats(delay)
@@ -263,7 +263,7 @@ class SpikeQueue(object):
         self.n[timesteps] += offset+1 # that's a trick (to update stack size)
 
     def _insert_homogeneous(self, delay, target):
-        '''
+        """
         Inserts events at a fixed delay.
 
         Parameters
@@ -273,7 +273,7 @@ class SpikeQueue(object):
 
         target : ndarray
             Target synaptic indices.
-        '''
+        """
         timestep = (self.currenttime + delay) % len(self.n)
         nevents = len(target)
         m = self.n[timestep]+nevents+1 # If overflow, then at least one self.n is bigger than the size
@@ -284,7 +284,7 @@ class SpikeQueue(object):
         self.n[timestep] += nevents
 
     def _resize(self, maxevents):
-        '''
+        """
         Resizes the underlying data structure (number of columns = spikes per
         dt).
 
@@ -293,7 +293,7 @@ class SpikeQueue(object):
         maxevents : int
             The new number of columns. It will be rounded to the closest power
             of 2.
-        '''
+        """
         # old and new sizes
         old_maxevents = self.X.shape[1]
         new_maxevents = int(2**np.ceil(np.log2(maxevents))) # maybe 2 is too large

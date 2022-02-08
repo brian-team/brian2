@@ -1,6 +1,6 @@
-'''
+"""
 Module defining `EventMonitor` and `SpikeMonitor`.
-'''
+"""
 import numpy as np
 
 from brian2.core.variables import Variables
@@ -14,7 +14,7 @@ __all__ = ['EventMonitor', 'SpikeMonitor']
 
 
 class EventMonitor(Group, CodeRunner):
-    '''
+    """
     Record events from a `NeuronGroup` or another event source.
 
     The recorded events can be accessed in various ways:
@@ -51,7 +51,7 @@ class EventMonitor(Group, CodeRunner):
     See Also
     --------
     SpikeMonitor
-    '''
+    """
     invalidates_magic_network = False
     add_to_magic_network = True
 
@@ -59,10 +59,9 @@ class EventMonitor(Group, CodeRunner):
                  when=None, order=None, name='eventmonitor*',
                  codeobj_class=None):
         if not isinstance(source, SpikeSource):
-            raise TypeError(('%s can only monitor groups producing spikes '
-                             '(such as NeuronGroup), but the given argument '
-                             'is of type %s.') % (self.__class__.__name__,
-                                                  type(source)))
+            raise TypeError(f"{self.__class__.__name__} can only monitor groups "
+                            f"producing spikes (such as NeuronGroup), but the given "
+                            f"argument is of type {type(source)}.")
         #: The source we are recording from
         self.source = source
         #: Whether to record times and indices of events
@@ -71,9 +70,18 @@ class EventMonitor(Group, CodeRunner):
         self.count = None
         del self.count # this is handled by the Variable mechanism
 
+        if event not in source.events:
+            if event == 'spike':
+                threshold_text = " Did you forget to set a 'threshold'?"
+            else:
+                threshold_text = ''
+            raise ValueError(f"Recorded group '{source.name}' does not define an event "
+                             f"'{event}'.{threshold_text}")
         if when is None:
             if order is not None:
-                raise ValueError('Cannot specify order if when is not specified.')
+                raise ValueError("Cannot specify order if when is not specified.")
+            # TODO: Would be nicer if there was a common way of accessing the
+            #       relevant object for NeuronGroup and SpikeGeneratorGroup
             if hasattr(source, 'thresholder'):
                 parent_obj = source.thresholder[event]
             else:
@@ -96,15 +104,14 @@ class EventMonitor(Group, CodeRunner):
 
         for variable in variables:
             if variable not in source.variables:
-                raise ValueError(("'%s' is not a variable of the recorded "
-                                  "group" % variable))
+                raise ValueError(f"'{variable}' is not a variable of the recorded group")
 
         if self.record:
             self.record_variables |= {'i', 't'}
 
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
-        code = ['_to_record_%s = _source_%s' % (v, v)
+        code = [f'_to_record_{v} = _source_{v}'
                 for v in self.record_variables]
         code = '\n'.join(code)
 
@@ -113,7 +120,7 @@ class EventMonitor(Group, CodeRunner):
         # Since this now works for general events not only spikes, we have to
         # pass the information about which variable to use to the template,
         # it can not longer simply refer to "_spikespace"
-        eventspace_name = '_{}space'.format(event)
+        eventspace_name = f'_{event}space'
 
         # Handle subgroups correctly
         start = getattr(source, 'start', 0)
@@ -127,9 +134,9 @@ class EventMonitor(Group, CodeRunner):
 
         for variable in self.record_variables:
             source_var = source.variables[variable]
-            self.variables.add_reference('_source_%s' % variable,
+            self.variables.add_reference(f'_source_{variable}',
                                          source, variable)
-            self.variables.add_auxiliary_variable('_to_record_%s' % variable,
+            self.variables.add_auxiliary_variable(f'_to_record_{variable}',
                                                   dimensions=source_var.dim,
                                                   dtype=source_var.dtype)
             self.variables.add_dynamic_array(variable, size=0,
@@ -186,31 +193,31 @@ class EventMonitor(Group, CodeRunner):
             self.variables[variable].resize(new_size)
 
     def reinit(self):
-        '''
+        """
         Clears all recorded spikes
-        '''
+        """
         raise NotImplementedError()
 
     @property
     def it(self):
-        '''
+        """
         Returns the pair (`i`, `t`).
-        '''
+        """
         if not self.record:
-            raise AttributeError('Indices and times have not been recorded.'
-                                 'Set the record argument to True to record '
-                                 'them.')
+            raise AttributeError("Indices and times have not been recorded."
+                                 "Set the record argument to True to record "
+                                 "them.")
         return self.i, self.t
 
     @property
     def it_(self):
-        '''
+        """
         Returns the pair (`i`, `t_`).
-        '''
+        """
         if not self.record:
-            raise AttributeError('Indices and times have not been recorded.'
-                                 'Set the record argument to True to record '
-                                 'them.')
+            raise AttributeError("Indices and times have not been recorded."
+                                 "Set the record argument to True to record "
+                                 "them.")
 
         return self.i, self.t_
 
@@ -236,7 +243,7 @@ class EventMonitor(Group, CodeRunner):
         return event_values
 
     def values(self, var):
-        '''
+        """
         Return a dictionary mapping neuron indices to arrays of variable values
         at the time of the events (sorted by time).
 
@@ -254,9 +261,9 @@ class EventMonitor(Group, CodeRunner):
         Examples
         --------
         >>> from brian2 import *
-        >>> G = NeuronGroup(2, """counter1 : integer
+        >>> G = NeuronGroup(2, '''counter1 : integer
         ...                       counter2 : integer
-        ...                       max_value : integer""",
+        ...                       max_value : integer''',
         ...                    threshold='counter1 >= max_value',
         ...                    reset='counter1 = 0')
         >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
@@ -269,11 +276,11 @@ class EventMonitor(Group, CodeRunner):
         [ 50 100]
         >>> print(counter2_values[1])
         [100]
-        '''
+        """
         if not self.record:
-            raise AttributeError('Indices and times have not been recorded.'
-                                 'Set the record argument to True to record '
-                                 'them.')
+            raise AttributeError("Indices and times have not been recorded."
+                                 "Set the record argument to True to record "
+                                 "them.")
         indices = self.i[:]
         # We have to make sure that the sort is stable, otherwise our spike
         # times do not necessarily remain sorted.
@@ -283,7 +290,7 @@ class EventMonitor(Group, CodeRunner):
         return self._values_dict(first_pos, sort_indices, used_indices, var)
 
     def all_values(self):
-        '''
+        """
         Return a dictionary mapping recorded variable names (including ``t``)
         to a dictionary mapping neuron indices to arrays of variable values at
         the time of the events (sorted by time). This is equivalent to (but more
@@ -300,9 +307,9 @@ class EventMonitor(Group, CodeRunner):
         Examples
         --------
         >>> from brian2 import *
-        >>> G = NeuronGroup(2, """counter1 : integer
+        >>> G = NeuronGroup(2, '''counter1 : integer
         ...                       counter2 : integer
-        ...                       max_value : integer""",
+        ...                       max_value : integer''',
         ...                    threshold='counter1 >= max_value',
         ...                    reset='counter1 = 0')
         >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
@@ -315,11 +322,11 @@ class EventMonitor(Group, CodeRunner):
         [ 50 100]
         >>> print(all_values['t'][1])
         [ 9.9] ms
-        '''
+        """
         if not self.record:
-            raise AttributeError('Indices and times have not been recorded.'
-                                 'Set the record argument to True to record '
-                                 'them.')
+            raise AttributeError("Indices and times have not been recorded."
+                                 "Set the record argument to True to record "
+                                 "them.")
         indices = self.i[:]
         sort_indices = np.argsort(indices)
         used_indices, first_pos = np.unique(self.i[:][sort_indices],
@@ -333,7 +340,7 @@ class EventMonitor(Group, CodeRunner):
         return all_values_dict
 
     def event_trains(self):
-        '''
+        """
         Return a dictionary mapping event indices to arrays of event times.
         Equivalent to calling ``values('t')``.
 
@@ -346,25 +353,24 @@ class EventMonitor(Group, CodeRunner):
         See Also
         --------
         SpikeMonitor.spike_trains
-        '''
+        """
         return self.values('t')
 
     @property
     def num_events(self):
-        '''
+        """
         Returns the total number of recorded events.
-        '''
+        """
         return self.N[:]
 
     def __repr__(self):
-        description = '<{classname}, recording event "{event}" from {source}>'
-        return description.format(classname=self.__class__.__name__,
-                                  event=self.event,
-                                  source=self.group.name)
+        classname = self.__class__.__name__
+        return (f"<{classname}, recording event '{self.event}' from " 
+                f"'{self.group.name}'>")
 
 
 class SpikeMonitor(EventMonitor):
-    '''
+    """
     Record spikes from a `NeuronGroup` or other spike source.
 
     The recorded spikes can be accessed in various ways (see Examples below):
@@ -411,9 +417,9 @@ class SpikeMonitor(EventMonitor):
     >>> print(spike_mon.t_[:])
     [ 0.     0.001  0.002]
     >>> from brian2 import *
-    >>> G = NeuronGroup(2, """counter1 : integer
+    >>> G = NeuronGroup(2, '''counter1 : integer
     ...                       counter2 : integer
-    ...                       max_value : integer""",
+    ...                       max_value : integer''',
     ...                    threshold='counter1 >= max_value',
     ...                    reset='counter1 = 0')
     >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
@@ -426,7 +432,7 @@ class SpikeMonitor(EventMonitor):
     [0 0 1]
     >>> print(mon.counter2[:])
     [ 50 100 100]
-    '''
+    """
     def __init__(self, source, variables=None, record=True, when=None,
                  order=None, name='spikemonitor*', codeobj_class=None):
         #: The array of spike counts (length = size of target group)
@@ -439,9 +445,9 @@ class SpikeMonitor(EventMonitor):
 
     @property
     def num_spikes(self):
-        '''
+        """
         Returns the total number of recorded spikes.
-        '''
+        """
         return self.num_events
 
     # We "re-implement" the following functions only to get more specific
@@ -449,7 +455,7 @@ class SpikeMonitor(EventMonitor):
     # reference documentation for SpikeMonitor).
 
     def spike_trains(self):
-        '''
+        """
         Return a dictionary mapping spike indices to arrays of spike times.
 
         Returns
@@ -467,11 +473,11 @@ class SpikeMonitor(EventMonitor):
         >>> spike_trains = spike_mon.spike_trains()
         >>> spike_trains[1]
         array([ 1.]) * msecond
-        '''
+        """
         return self.event_trains()
 
     def values(self, var):
-        '''
+        """
         Return a dictionary mapping neuron indices to arrays of variable values
         at the time of the spikes (sorted by time).
 
@@ -489,9 +495,9 @@ class SpikeMonitor(EventMonitor):
         Examples
         --------
         >>> from brian2 import *
-        >>> G = NeuronGroup(2, """counter1 : integer
+        >>> G = NeuronGroup(2, '''counter1 : integer
         ...                       counter2 : integer
-        ...                       max_value : integer""",
+        ...                       max_value : integer''',
         ...                    threshold='counter1 >= max_value',
         ...                    reset='counter1 = 0')
         >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
@@ -504,11 +510,11 @@ class SpikeMonitor(EventMonitor):
         [ 50 100]
         >>> print(counter2_values[1])
         [100]
-        '''
+        """
         return super(SpikeMonitor, self).values(var)
 
     def all_values(self):
-        '''
+        """
         Return a dictionary mapping recorded variable names (including ``t``)
         to a dictionary mapping neuron indices to arrays of variable values at
         the time of the spikes (sorted by time). This is equivalent to (but more
@@ -525,9 +531,9 @@ class SpikeMonitor(EventMonitor):
         Examples
         --------
         >>> from brian2 import *
-        >>> G = NeuronGroup(2, """counter1 : integer
+        >>> G = NeuronGroup(2, '''counter1 : integer
         ...                       counter2 : integer
-        ...                       max_value : integer""",
+        ...                       max_value : integer''',
         ...                    threshold='counter1 >= max_value',
         ...                    reset='counter1 = 0')
         >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
@@ -540,10 +546,9 @@ class SpikeMonitor(EventMonitor):
         [ 50 100]
         >>> print(all_values['t'][1])
         [ 9.9] ms
-        '''
+        """
         return super(SpikeMonitor, self).all_values()
 
     def __repr__(self):
-        description = '<{classname}, recording from {source}>'
-        return description.format(classname=self.__class__.__name__,
-                                  source=self.group.name)
+        classname = self.__class__.__name__
+        return f"<{classname}, recording from '{self.group.name}'>"

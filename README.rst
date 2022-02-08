@@ -23,15 +23,19 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
 .. image:: https://img.shields.io/conda/vn/conda-forge/brian2.svg
         :target: https://anaconda.org/conda-forge/brian2
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.654861.svg
-        :target: https://doi.org/10.5281/zenodo.654861
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5910837.svg
+   :target: https://doi.org/10.5281/zenodo.5910837
 
-.. image:: https://archive.softwareheritage.org/badge/swh:1:rel:3f86a656a919ae3e6ed6dfc664e121ece3c85d75/
-    :target: https://archive.softwareheritage.org/swh:1:rel:3f86a656a919ae3e6ed6dfc664e121ece3c85d75;origin=https://github.com/brian-team/brian2.git;visit=swh:1:snp:238d008c6403ba6f66c414510cd94b6beb6d51ad/
+.. image:: https://archive.softwareheritage.org/badge/swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9/
+    :target: https://archive.softwareheritage.org/swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:06606ee7c757a47bc7dc168d0bfa8b0a5aecb620
 
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
-        :target: code-of-conduct.md
+        :target: CODE_OF_CONDUCT.md
         :alt: Contributor Covenant
+
+.. image:: https://img.shields.io/discourse/topics?server=https%3A%2F%2Fbrian.discourse.group
+        :target: https://brian.discourse.group
+        :alt: Discourse topics
 
 .. image:: https://badges.gitter.im/Join%20Chat.svg
    :alt: Join the chat at https://gitter.im/brian-team/brian2
@@ -75,11 +79,13 @@ To run the test suite:
 Testing status for master branch
 --------------------------------
 
-.. image:: https://dev.azure.com/brian-team/Brian2/_apis/build/status/brian-team.brian2?branchName=master
-  :target: https://dev.azure.com/brian-team/Brian2/_build/latest?definitionId=3&branchName=master
+.. image:: https://github.com/brian-team/brian2/actions/workflows/testsuite.yml/badge.svg
+  :target: https://github.com/brian-team/brian2/actions/workflows/testsuite.yml
+  :alt: Test status on GitHub Actions
 
 .. image:: https://img.shields.io/coveralls/brian-team/brian2/master.svg
   :target: https://coveralls.io/r/brian-team/brian2?branch=master
+  :alt: Test coverage
 
 .. image:: https://readthedocs.org/projects/brian2/badge/?version=stable
   :target: https://brian2.readthedocs.io/en/stable/?badge=stable

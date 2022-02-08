@@ -13,11 +13,11 @@ def test_cuba():
     Vr = -60*mV
     El = -49*mV
 
-    eqs = '''
+    eqs = """
     dv/dt  = (ge+gi-(v-El))/taum : volt (unless refractory)
     dge/dt = -ge/taue : volt
     dgi/dt = -gi/taui : volt
-    '''
+    """
 
     P = NeuronGroup(4000, eqs, threshold='v>Vt', reset='v = Vr', refractory=5*ms)
     P.v = 'Vr + rand() * (Vt - Vr)'

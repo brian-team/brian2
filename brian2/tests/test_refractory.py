@@ -1,4 +1,3 @@
-
 from collections import Counter
 
 import pytest
@@ -9,15 +8,16 @@ from brian2.utils.logger import catch_logs
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
 from brian2.devices.device import reinit_and_delete
-from brian2.tests.utils import assert_allclose
+from brian2.tests.utils import assert_allclose, exc_isinstance
+
 
 @pytest.mark.codegen_independent
 def test_add_refractoriness():
-    eqs = Equations('''
+    eqs = Equations("""
     dv/dt = -x*v/second : volt (unless refractory)
     dw/dt = -w/second : amp
     x : 1
-    ''')
+    """)
     # only make sure it does not throw an error
     eqs = add_refractoriness(eqs)
     # Check that the parameters were added
@@ -37,10 +37,10 @@ def test_missing_refractory_warning():
 
 @pytest.mark.standalone_compatible
 def test_refractoriness_basic():
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        dv/dt = 99.999*Hz : 1 (unless refractory)
                        dw/dt = 99.999*Hz : 1
-                       ''',
+                       """,
                     threshold='v>1', reset='v=0;w=0',
                     refractory=5*ms)
     # It should take 10ms to reach the threshold, then v should stay at 0
@@ -72,14 +72,14 @@ def test_refractoriness_basic():
 def test_refractoriness_variables(ref_time):
     # Try a string evaluating to a quantity, and an explicit boolean
     # condition -- all should do the same thing
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                     dv/dt = 99.999*Hz : 1 (unless refractory)
                     dw/dt = 99.999*Hz : 1
                     ref : second
                     ref_no_unit : 1
                     time_since_spike = (t - lastspike) +1e-3*dt : second
                     ref_subexpression = (t - lastspike + 1e-3*dt) < ref : boolean
-                    ''',
+                    """,
                     threshold='v>1', reset='v=0;w=0',
                     refractory=ref_time,
                     dtype={'ref': defaultclock.variables['t'].dtype,
@@ -107,14 +107,14 @@ def test_refractoriness_variables(ref_time):
         assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)] > 0)
     except AssertionError as ex:
         raise
-        raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
+        raise AssertionError(f'Assertion failed when using {ref_time!r} as refractory argument:\n{ex}')
 
 
 @pytest.mark.standalone_compatible
 def test_refractoriness_threshold_basic():
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
     dv/dt = 199.99*Hz : 1
-    ''', threshold='v > 1', reset='v=0', refractory=10*ms)
+    """, threshold='v > 1', reset='v=0', refractory=10*ms)
     # The neuron should spike after 5ms but then not spike for the next
     # 10ms. The state variable should continue to integrate so there should
     # be a spike after 15ms
@@ -163,11 +163,11 @@ def test_refractoriness_repeated_legacy():
 def test_refractoriness_threshold(ref_time):
     # Try a quantity, a string evaluating to a quantity, and an explicit boolean
     # condition -- all should do the same thing
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                     dv/dt = 199.999*Hz : 1
                     ref : second
                     ref_no_unit : 1
-                    ''', threshold='v > 1',
+                    """, threshold='v > 1',
                     reset='v=0', refractory=ref_time,
                     dtype={'ref': defaultclock.variables['t'].dtype,
                            'ref_no_unit': defaultclock.variables['t'].dtype})
@@ -187,27 +187,27 @@ def test_refractoriness_types():
     group = NeuronGroup(1, '', refractory='3*Hz')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
     group = NeuronGroup(1, 'ref: Hz', refractory='ref')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
     group = NeuronGroup(1, '', refractory='3')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
     group = NeuronGroup(1, 'ref: 1', refractory='ref')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
 
 @pytest.mark.codegen_independent
 def test_conditional_write_set():
-    '''
+    """
     Test that the conditional_write attribute is set correctly
-    '''
-    G = NeuronGroup(1, '''dv/dt = 10*Hz : 1 (unless refractory)
-                          dw/dt = 10*Hz : 1''', refractory=2*ms)
+    """
+    G = NeuronGroup(1, """dv/dt = 10*Hz : 1 (unless refractory)
+                          dw/dt = 10*Hz : 1""", refractory=2*ms)
     assert G.variables['v'].conditional_write is G.variables['not_refractory']
     assert G.variables['w'].conditional_write is None
 
@@ -216,16 +216,16 @@ def test_conditional_write_behaviour():
     H = NeuronGroup(1, 'v:1', threshold='v>-1')
 
     tau = 1*ms
-    eqs = '''
+    eqs = """
     dv/dt = (2-v)/tau : 1 (unless refractory)
     dx/dt = 0/tau : 1 (unless refractory)
     dy/dt = 0/tau : 1
-    '''
-    reset = '''
+    """
+    reset = """
     v = 0
     x -= 0.05
     y -= 0.05
-    '''
+    """
     G = NeuronGroup(1, eqs, threshold='v>1', reset=reset, refractory=1*ms)
 
     Sx = Synapses(H, G, on_pre='x += dt*100*Hz')
@@ -246,13 +246,13 @@ def test_conditional_write_behaviour():
 @pytest.mark.standalone_compatible
 def test_conditional_write_automatic_and_manual():
     source = NeuronGroup(1, '', threshold='True')  # spiking all the time
-    target = NeuronGroup(2, '''dv/dt = 0/ms : 1 (unless refractory)
-                               dw/dt = 0/ms : 1''',
+    target = NeuronGroup(2, """dv/dt = 0/ms : 1 (unless refractory)
+                               dw/dt = 0/ms : 1""",
                          threshold='t == 0*ms',
                          refractory='False')  # only refractory for the first time step
     # Cell is spiking/refractory only in the first time step
-    syn = Synapses(source, target, on_pre='''v += 1
-                                             w += 1 * int(not_refractory_post)''')
+    syn = Synapses(source, target, on_pre="""v += 1
+                                             w += 1 * int(not_refractory_post)""")
     syn.connect()
     mon = StateMonitor(target, ['v', 'w'], record=True, when='end')
     run(2*defaultclock.dt)

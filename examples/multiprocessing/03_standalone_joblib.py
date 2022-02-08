@@ -1,9 +1,9 @@
-'''
+"""
 This example use C++ standalone mode for the simulation and the
 `joblib library <https://joblib.readthedocs.io>`_
 to parallelize the code. See the previous example (``02_using_standalone.py``)
 for more explanations.
-'''
+"""
 from joblib import Parallel, delayed
 from time import time as wall_time
 from brian2 import *
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     results = Parallel(n_jobs=n_jobs)(map(delayed(run_sim), tau_values))
 
-    print("Done in {:10.3f}".format(wall_time() - start_time))
+    print(f"Done in {wall_time() - start_time:10.3f}")
 
     for tau_value, (t, v) in zip(tau_values, results):
         plt.plot(t, v, label=str(tau_value))

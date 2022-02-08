@@ -1,16 +1,16 @@
 #!/usr/bin/env python
-'''
+"""
 Inhibitory synaptic plasticity in a recurrent network model
------------------------------------------------------------ 
+-----------------------------------------------------------
 (F. Zenke, 2011) (from the 2012 Brian twister)
 
 Adapted from:
 
-Vogels, T. P., H. Sprekeler, F. Zenke, C. Clopath, and W. Gerstner. 
+Vogels, T. P., H. Sprekeler, F. Zenke, C. Clopath, and W. Gerstner.
 Inhibitory Plasticity Balances Excitation and Inhibition in Sensory Pathways and Memory Networks.
-Science (November 10, 2011). 
+Science (November 10, 2011).
 
-'''
+"""
 
 from brian2 import *
 

@@ -32,3 +32,8 @@
     {{_eventspace}}[N] = _cpp_numevents
     
 {% endblock %}
+
+{% block after_code %}
+    {% set _eventspace = get_array_name(eventspace_variable) %}
+    {{_eventspace}}[N] = 0  # Note that this is not an off-by-1-error: the array has N+1 elements
+{% endblock %}

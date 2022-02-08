@@ -121,11 +121,11 @@ def main(rootpath, destdir):
         output = '.. currentmodule:: brian2\n\n'
         output += '.. ' + basename + ':\n\n'
         output += title + '\n' + '=' * len(title) + '\n\n'
-        note = '''
+        note = f'''
         .. only:: html
 
             .. |launchbinder| image:: http://mybinder.org/badge.svg
-            .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=examples/{exname}.ipynb
+            .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=examples/{exname.replace('.', '/')}.ipynb
 
             .. note::
                You can launch an interactive, editable version of this
@@ -133,7 +133,7 @@ def main(rootpath, destdir):
                using the Binder service (although note that at some times this
                may be slow or fail to open): |launchbinder|_
 
-        '''.format(exname=exname.replace('.', '/'))
+        '''
         output += note + '\n\n'
         output += docs + '\n\n::\n\n'
         output += '\n'.join(['    ' + line for line in afterdoccode.split('\n')])
@@ -161,7 +161,7 @@ def main(rootpath, destdir):
         with codecs.open(fname, 'rU', encoding='utf-8') as f:
             print(fname)
             content = f.read()
-        output = file + '\n' + '=' * len(title) + '\n\n'
+        output = file + '\n' + '=' * len(file) + '\n\n'
         output += '.. code:: none\n\n'
         content_lines = ['\t' + l for l in content.split('\n')]
         output += '\n'.join(content_lines)
@@ -176,15 +176,15 @@ def main(rootpath, destdir):
     def insert_category(category, mainpage_text):
         if category:
             label = category.lower().replace(' ', '-').replace('/', '.')
-            mainpage_text += '\n.. _{label}:\n\n'.format(label=label)
+            mainpage_text += f"\n.. _{label}:\n\n"
             mainpage_text += '\n'+category+'\n'+'-'*len(category)+'\n\n'
         mainpage_text += '.. toctree::\n'
         mainpage_text += '   :maxdepth: 1\n\n'
         curpath = ''
         for exname, basename in sorted(categories[category]):
-            mainpage_text += '   %s <%s>\n' % (basename, exname)
+            mainpage_text += f"   {basename} <{exname}>\n"
         for fname, full_name in sorted(category_additional_files[category]):
-            mainpage_text += '   %s <%s>\n' % (fname, full_name)
+            mainpage_text += f"   {fname} <{full_name}>\n"
         return mainpage_text
             
     mainpage_text = insert_category('', mainpage_text)

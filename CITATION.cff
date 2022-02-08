@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it using these metadata.
+title: Brian simulator
+abstract: A clock-driven simulator for spiking neural networks
+authors:
+  - family-names: Stimberg
+    given-names: Marcel
+    orcid: "https://orcid.org/0000-0002-2648-4790"
+  - family-names: Goodman
+    given-names: Dan F. M.
+    orcid: "https://orcid.org/0000-0003-1007-6474"
+  - family-names: Brette
+    given-names: Romain
+    orcid: "https://orcid.org/0000-0003-0110-1623"
+  - name: "Brian contributors"
+version: 2.5.0.3
+date-released: "2022-01-27"
+identifiers:
+  - description: This is the collection of archived snapshots of all versions of Brian 2
+    type: doi
+    value: "10.5281/zenodo.654861"
+  - description: This is the archived snapshot of version 2.5.0.3 of Brian 2
+    type: doi
+    value: "10.5281/zenodo.5910837"
+  - description: Software heritage identifier for version 2.5.0.3
+    type: swh
+    value: "swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9"
+license: CECILL-2.1
+repository-code: "https://github.com/brian-team/brian2"
+preferred-citation:
+    authors:
+      - family-names: Stimberg
+        given-names: Marcel
+        orcid: "https://orcid.org/0000-0002-2648-4790"
+      - family-names: Goodman
+        given-names: Dan F. M.
+        orcid: "https://orcid.org/0000-0003-1007-6474"
+      - family-names: Brette
+        given-names: Romain
+        orcid: "https://orcid.org/0000-0003-0110-1623"
+    title: "Brian 2, an intuitive and efficient neural simulator"
+    journal: eLife
+    month: 8
+    year: 2019
+    volume: 8
+    doi: "10.7554/eLife.47314"
+    type: article
+

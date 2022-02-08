@@ -45,19 +45,19 @@ class StateMonitorView(object):
         elif item.endswith('_') and item[:-1] in mon.record_variables:
             return mon.variables[item[:-1]].get_value().T[self.indices].copy()
         else:
-            raise AttributeError('Unknown attribute %s' % item)
+            raise AttributeError(f'Unknown attribute {item}')
 
     def _calc_indices(self, item):
-        '''
+        """
         Convert the neuron indices to indices into the stored values. For example, if neurons [0, 5, 10] have been
         recorded, [5, 10] is converted to [1, 2].
-        '''
+        """
         dtype = get_dtype(item)
         # scalar value
         if np.issubdtype(dtype, np.signedinteger) and not isinstance(item, np.ndarray):
             indices = np.nonzero(self.monitor.record == item)[0]
             if len(indices) == 0:
-                raise IndexError('Index number %d has not been recorded' % item)
+                raise IndexError(f'Index number {int(item)} has not been recorded')
             return indices[0]
 
         if self.monitor.record_all:
@@ -67,18 +67,17 @@ class StateMonitorView(object):
             if index in self.monitor.record:
                 indices.append(np.nonzero(self.monitor.record == index)[0][0])
             else:
-                raise IndexError('Index number %d has not been recorded' % index)
+                raise IndexError(f'Index number {int(index)} has not been recorded')
         return np.array(indices)
 
     def __repr__(self):
-        description = '<{classname}, giving access to elements {elements} recorded by {monitor}>'
-        return description.format(classname=self.__class__.__name__,
-                                  elements=repr(self.item),
-                                  monitor=self.monitor.name)
+        classname = self.__class__.__name__
+        return (f"<{classname}, giving access to elements {self.item!r} recorded by " 
+                f"{self.monitor.name}>")
 
 
 class StateMonitor(Group, CodeRunner):
-    '''
+    """
     Record values of state variables during a run
     
     To extract recorded values after a run, use the ``t`` attribute for the
@@ -127,9 +126,9 @@ class StateMonitor(Group, CodeRunner):
     
     Record all variables, first 5 indices::
     
-        eqs = """
+        eqs = '''
         dV/dt = (2-V)/(10*ms) : 1
-        """
+        '''
         threshold = 'V>1'
         reset = 'V = 0'
         G = NeuronGroup(100, eqs, threshold=threshold, reset=reset)
@@ -154,7 +153,7 @@ class StateMonitor(Group, CodeRunner):
     not possible in standalone mode, where the synapses have not been created
     yet at this stage. Consider using an explicit array of indices instead,
     i.e. something like ``record=np.arange(n_synapses)``.
-    '''
+    """
     invalidates_magic_network = False
     add_to_magic_network = True
     def __init__(self, source, variables, record, dt=None, clock=None,
@@ -191,14 +190,14 @@ class StateMonitor(Group, CodeRunner):
             except NotImplementedError:
                 # In standalone mode, this is not possible for synaptic
                 # variables because the number of synapses is not defined yet
-                raise NotImplementedError(('Cannot determine the actual '
-                                           'indices to record for record=True. '
-                                           'This can occur for example in '
-                                           'standalone mode when trying to '
-                                           'record a synaptic variable. '
-                                           'Consider providing an explicit '
-                                           'array of indices for the record '
-                                           'argument.'))
+                raise NotImplementedError("Cannot determine the actual "
+                                          "indices to record for record=True. "
+                                          "This can occur for example in "
+                                          "standalone mode when trying to "
+                                          "record a synaptic variable. "
+                                          "Consider providing an explicit "
+                                          "array of indices for the record "
+                                          "argument.")
         elif record is False:
             record = np.array([], dtype=np.int32)
         elif isinstance(record, numbers.Number):
@@ -212,7 +211,7 @@ class StateMonitor(Group, CodeRunner):
 
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
-        code = ['_to_record_%s = _source_%s' % (v, v)
+        code = [f'_to_record_{v} = _source_{v}'
                 for v in variables]
         code = '\n'.join(code)
 
@@ -246,7 +245,7 @@ class StateMonitor(Group, CodeRunner):
                              'recorded once for every target.' % varname),
                             once=True)
             index = source.variables.indices[varname]
-            self.variables.add_reference('_source_%s' % varname,
+            self.variables.add_reference(f'_source_{varname}',
                                          source, varname, index=index)
             if not index in ('_idx', '0') and index not in variables:
                 self.variables.add_reference(index, source)
@@ -260,7 +259,7 @@ class StateMonitor(Group, CodeRunner):
 
         for varname in variables:
             var = self.source.variables[varname]
-            self.variables.add_auxiliary_variable('_to_record_' + varname,
+            self.variables.add_auxiliary_variable(f"_to_record_{varname}",
                                                   dimensions=var.dim,
                                                   dtype=var.dtype,
                                                   scalar=var.scalar)
@@ -292,8 +291,8 @@ class StateMonitor(Group, CodeRunner):
         elif isinstance(item, Sequence):
             index_array = np.array(item)
             if not np.issubdtype(index_array.dtype, np.signedinteger):
-                raise TypeError('Index has to be an integer or a sequence '
-                                'of integers')
+                raise TypeError("Index has to be an integer or a sequence "
+                                "of integers")
             return StateMonitorView(self, item)
         elif hasattr(item, '_indices'):
             # objects that support the indexing interface will return absolute
@@ -302,8 +301,7 @@ class StateMonitor(Group, CodeRunner):
             source_offset = getattr(self.source, '_offset', 0)
             return StateMonitorView(self, item._indices() - source_offset)
         else:
-            raise TypeError('Cannot use object of type %s as an index'
-                            % type(item))
+            raise TypeError(f'Cannot use object of type {type(item)} as an index')
 
     def __getattr__(self, item):
         # We do this because __setattr__ and __getattr__ are not active until
@@ -326,13 +324,12 @@ class StateMonitor(Group, CodeRunner):
             return Group.__getattr__(self, item)
 
     def __repr__(self):
-        description = '<{classname}, recording {variables} from {source}>'
-        return description.format(classname=self.__class__.__name__,
-                                  variables=repr(self.record_variables),
-                                  source=self.source.name)
+        classname = self.__class__.__name__
+        variables = repr(self.record_variables)
+        return f"<{classname}, recording {variables} from '{self.source.name}'>"
 
     def record_single_timestep(self):
-        '''
+        """
         Records a single time step. Useful for recording the values at the end
         of the simulation -- otherwise a `StateMonitor` will not record the
         last simulated values since its ``when`` attribute defaults to
@@ -362,8 +359,8 @@ class StateMonitor(Group, CodeRunner):
         [   0.  100.  200.  300.  400.  500.] us
         >>> print(np.array_str(mon.v[:], precision=3))
         [[ 1.     0.98   0.961  0.942  0.923  0.905]]
-        '''
+        """
         if self.codeobj is None:
-            raise TypeError('Can only record a single time step after the '
-                            'network has been run once.')
+            raise TypeError("Can only record a single time step after the "
+                            "network has been run once.")
         self.codeobj()

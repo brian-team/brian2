@@ -94,8 +94,9 @@ By default, differential equations are integrated in a clock-driven fashion, as 
 `NeuronGroup`. This is potentially very time consuming, because all synapses are updated at every
 timestep and Brian will therefore emit a warning. If you are sure about integrating the equations at
 every timestep (e.g. because you want to record the values continuously), then you should specify
-the flag ``(clock-driven)``. To ask Brian 2 to simulate differential equations in an event-driven fashion
-use the flag ``(event-driven)``. A typical example is pre- and postsynaptic traces in STDP::
+the flag ``(clock-driven)``, which will silence the warning. To ask Brian 2 to simulate differential
+equations in an event-driven fashion use the flag ``(event-driven)``. A typical example is pre- and
+postsynaptic traces in STDP::
 
   model='''w:1
            dApre/dt=-Apre/taupre : 1 (event-driven)
@@ -203,6 +204,21 @@ neurons 0, 2, 4, 6, ... to neurons 0, 1, 2, 3, ... you could write::
 
     S.connect(j='int(i/2) if i % 2 == 0')
 
+The connections above describe the target indices ``j`` as a function of the source indices ``i``.
+You can also apply the syntax in the other direction, i.e. describe source indices ``i`` as a function
+of target indices ``j``. For a 1-to-1 connection, this does not change anything in most cases::
+
+    S.connect(i='j')
+
+Note that there is a subtle difference between the two descriptions if the two groups do not have the same size:
+if the source group has fewer neurons than the target group, then using `j='i'` is possible (there is a target
+neuron for each source neuron), but `i='j'` would raise an error; the opposite is true if the source group is
+bigger than the target group.
+
+The second example from above (neurons 0, 2, 4, ... to neurons 0, 1, 2, ...) can be adapted for the other
+direction, as well, and is possibly more intuitive in this case::
+
+    S.connect(i='j*2')
 
 .. _accessing_synaptic_variables:
 
@@ -355,6 +371,8 @@ exists::
     # Insert the values from the Synapses object
     W[synapses.i[:], synapses.j[:]] = synapses.w[:]
 
+.. _generator_syntax:
+
 Creating synapses with the generator syntax
 -------------------------------------------
 
@@ -367,6 +385,10 @@ generator syntax, e.g. to connect neuron i to all neurons j with
 There are several parts to this syntax. The general form is::
 
     j='EXPR for VAR in RANGE if COND'
+
+or::
+
+    i='EXPR for VAR in RANGE if COND'
 
 Here ``EXPR`` can be any integer-valued expression. VAR is the name
 of the iteration variable (any name you like can be specified
@@ -592,12 +614,30 @@ presynaptic variables. Similarly, the expression for ``j``, ``EXPR`` can depend
 on ``i``, presynaptic variables, and on the iteration variable ``VAR``. The
 condition ``COND`` can depend on anything (presynaptic and postsynaptic variables).
 
+The generator syntax expressing ``i`` as a function of ``j`` is interpreted
+in the same way:
+
+    | For every j:
+    |     for every VAR in RANGE:
+    |         i = EXPR
+    |         if COND:
+    |             Create n(i, j) synapses for (i, j)
+
+Here, ``RANGE`` can only depend on ``j`` and postsynaptic variables, and ``EXPR``
+can only depend on ``j``, postsynaptic variables, and on the iteration variable
+``VAR``.
+
 With the 1-to-1 mapping syntax ``j='EXPR'`` the interpretation is:
 
     | For every i:
     |     j = EXPR
     |     Create n(i, j) synapses for (i, j)
 
+And finally, ``i='EXPR'`` is interpreted as:
+
+    | For every j:
+    |     i = EXPR
+    |     Create n(i, j) synapses for (i, j)
 
 Efficiency considerations
 ~~~~~~~~~~~~~~~~~~~~~~~~~

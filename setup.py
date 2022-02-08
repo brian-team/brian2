@@ -48,10 +48,10 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
     fname = pyx_fname
     if not cython_available:
         if FAIL_ON_ERROR and WITH_CYTHON:
-            raise RuntimeError('Compilation with Cython requested/necesary but '
+            raise RuntimeError('Compilation with Cython requested/necessary but '
                                'Cython >= %s is not available.' % REQUIRED_CYTHON_VERSION)
         else:
-            sys.stderr.write('Compilation with Cython requested/necesary but '
+            sys.stderr.write('Compilation with Cython requested/necessary but '
                              'Cython >= %s is not available.\n' % REQUIRED_CYTHON_VERSION)
             fname = None
     if not os.path.exists(pyx_fname):
@@ -152,9 +152,7 @@ setup(name='Brian2',
                                         'stdint_compat.h'],
                     # include randomkit
                     'brian2.random': ['randomkit/randomkit.c',
-                                      'randomkit/randomkit.h'],
-                    # include default_preferences file
-                    'brian2': ['default_preferences']
+                                      'randomkit/randomkit.h']
                     },
       install_requires=['numpy>=1.17',
                         'cython>=0.29',
@@ -172,11 +170,16 @@ setup(name='Brian2',
       extras_require={'test': ['pytest',
                                'pytest-xdist>=1.22.3'],
                       'docs': ['sphinx>=1.8',
-                               'ipython>=5']},
-      use_2to3=False,
+                               'ipython>=5',
+                               'sphinx-tabs']},
       zip_safe=False,
       ext_modules=extensions,
       url='http://www.briansimulator.org/',
+      project_urls={
+        'Documentation': 'https://brian2.readthedocs.io/',
+        'Source': 'https://github.com/brian-team/brian2',
+        'Tracker': 'https://github.com/brian-team/brian2/issues'
+      },
       description='A clock-driven simulator for spiking neural networks',
       long_description=long_description,
       long_description_content_type='text/x-rst',

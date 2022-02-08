@@ -95,10 +95,10 @@ def test_timedarray_no_upsampling():
 
 #@pytest.mark.standalone_compatible  # see FIXME comment below
 def test_long_timedarray():
-    '''
+    """
     Use a very long timedarray (with a big dt), where the upsampling can lead
     to integer overflow.
-    '''
+    """
     ta = TimedArray(np.arange(16385), dt=1*second)
     G = NeuronGroup(1, 'value = ta(t) : 1')
     mon = StateMonitor(G, 'value', record=True)

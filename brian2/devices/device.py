@@ -1,7 +1,7 @@
-'''
+"""
 Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
-'''
+"""
 
 from weakref import WeakKeyDictionary
 import numbers
@@ -36,7 +36,7 @@ _auto_target = None
 
 
 def auto_target():
-    '''
+    """
     Automatically chose a code generation target (invoked when the
     `codegen.target` preference is set to `'auto'`. Caches its result so it
     only does the check once. Prefers cython > numpy.
@@ -45,7 +45,7 @@ def auto_target():
     -------
     target : class derived from `CodeObject`
         The target to use
-    '''
+    """
     global _auto_target
     if _auto_target is None:
         target_dict = dict((target.class_name, target)
@@ -73,9 +73,9 @@ def auto_target():
 
 
 class Device(object):
-    '''
+    """
     Base Device object.
-    '''
+    """
     def __init__(self):
         #: The network schedule that this device supports. If the device only
         #: supports a specific, fixed schedule, it has to set this attribute to
@@ -91,14 +91,14 @@ class Device(object):
         self._state_tuple = (self.__module__, self.__class__.__name__)
 
     def _set_maximum_run_time(self, maximum_run_time):
-        '''
+        """
         Sets a maximum time for a run before it will break. Used primarily for testing purposes. Not guaranteed to be
         respected by a device.
-        '''
+        """
         self._maximum_run_time = maximum_run_time
 
     def get_array_name(self, var, access_data=True):
-        '''
+        """
         Return a globally unique name for `var`.
 
         Parameters
@@ -112,11 +112,11 @@ class Device(object):
         -------
         name : str
             The name for `var`.
-        '''
+        """
         raise NotImplementedError()
 
     def get_len(self, array):
-        '''
+        """
         Return the length of the array.
 
         Parameters
@@ -128,22 +128,22 @@ class Device(object):
         -------
         l : int
             The length of the array.
-        '''
+        """
         raise NotImplementedError()
 
     def add_array(self, var):
-        '''
+        """
         Add an array to this device.
 
         Parameters
         ----------
         var : `ArrayVariable`
             The array to add.
-        '''
+        """
         raise NotImplementedError()
 
     def init_with_zeros(self, var, dtype):
-        '''
+        """
         Initialize an array with zeros.
 
         Parameters
@@ -152,11 +152,11 @@ class Device(object):
             The array to initialize with zeros.
         dtype : `dtype`
             The data type to use for the array.
-        '''
+        """
         raise NotImplementedError()
 
     def init_with_arange(self, var, start, dtype):
-        '''
+        """
         Initialize an array with an integer range.
 
         Parameters
@@ -167,11 +167,11 @@ class Device(object):
             The start value for the integer range
         dtype : `dtype`
             The data type to use for the array.
-        '''
+        """
         raise NotImplementedError()
 
     def fill_with_array(self, var, arr):
-        '''
+        """
         Fill an array with the values given in another array.
 
         Parameters
@@ -180,11 +180,11 @@ class Device(object):
             The array to fill.
         arr : `ndarray`
             The array values that should be copied to `var`.
-        '''
+        """
         raise NotImplementedError()
 
     def spike_queue(self, source_start, source_end):
-        '''
+        """
         Create and return a new `SpikeQueue` for this `Device`.
 
         Parameters
@@ -193,11 +193,11 @@ class Device(object):
             The start index of the source group (necessary for subgroups)
         source_end : int
             The end index of the source group (necessary for subgroups)
-        '''
+        """
         raise NotImplementedError()
 
     def resize(self, var, new_size):
-        '''
+        """
         Resize a `DynamicArrayVariable`.
 
         Parameters
@@ -206,7 +206,7 @@ class Device(object):
             The variable that should be resized.
         new_size : int
             The new size of the variable
-        '''
+        """
         raise NotImplementedError()
 
     def resize_along_first(self, var, new_size):
@@ -214,7 +214,7 @@ class Device(object):
         return self.resize(var, new_size)
 
     def seed(self, seed=None):
-        '''
+        """
         Set the seed for the random number generator.
 
         Parameters
@@ -222,11 +222,11 @@ class Device(object):
         seed : int, optional
             The seed value for the random number generator, or ``None`` (the
             default) to set a random seed.
-        '''
+        """
         raise NotImplementedError()
 
     def code_object_class(self, codeobj_class=None, fallback_pref='codegen.target'):
-        '''
+        """
         Return `CodeObject` class according to input/default settings
 
         Parameters
@@ -243,7 +243,7 @@ class Device(object):
         -------
         codeobj_class : class
             The `CodeObject` class that should be used
-        '''
+        """
         if isinstance(codeobj_class, str):
             raise TypeError("codeobj_class argument given to code_object_class device method "
                             "should be a CodeObject class, not a string. You can, however, "
@@ -261,8 +261,7 @@ class Device(object):
                 targets = ['auto'] + [target.class_name
                                       for target in codegen_targets
                                       if target.class_name]
-                raise ValueError("Unknown code generation target: %s, should be "
-                                 " one of %s" % (codeobj_class, targets))
+                raise ValueError(f"Unknown code generation target: {codeobj_class}, should be  one of {targets}")
         else:
             return codeobj_class
 
@@ -290,7 +289,7 @@ class Device(object):
         else:
             template_kwds = template_kwds.copy()
 
-        logger.diagnostic('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
+        logger.diagnostic(f'{name} abstract code:\n{indent(code_representation(abstract_code))}')
 
         scalar_code, vector_code, kwds = generator.translate(abstract_code,
                                                              dtype=prefs['core.default_float_dtype'])
@@ -304,19 +303,19 @@ class Device(object):
                 if hasattr(var, 'resize'):
                     dyn_array_name = generator.get_array_name(var,
                                                               access_data=False)
-                    template_kwds['_dynamic_'+varname] = dyn_array_name
+                    template_kwds[f"_dynamic_{varname}"] = dyn_array_name
 
 
         template_kwds.update(kwds)
-        logger.diagnostic('%s snippet (scalar):\n%s' % (name, indent(code_representation(scalar_code))))
-        logger.diagnostic('%s snippet (vector):\n%s' % (name, indent(code_representation(vector_code))))
+        logger.diagnostic(f'{name} snippet (scalar):\n{indent(code_representation(scalar_code))}')
+        logger.diagnostic(f'{name} snippet (vector):\n{indent(code_representation(vector_code))}')
 
         code = template(scalar_code, vector_code,
                         owner=owner, variables=variables, codeobj_name=name,
                         variable_indices=variable_indices,
                         get_array_name=generator.get_array_name,
                         **template_kwds)
-        logger.diagnostic('%s code:\n%s' % (name, indent(code_representation(code))))
+        logger.diagnostic(f'{name} code:\n{indent(code_representation(code))}')
 
         codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,
@@ -326,9 +325,9 @@ class Device(object):
         return codeobj
     
     def activate(self, build_on_run=True, **kwargs):
-        '''
+        """
         Called when this device is set as the current device.
-        '''
+        """
         from brian2.core.clocks import Clock  # avoid import issues
 
         if self.defaultclock is None:
@@ -343,26 +342,26 @@ class Device(object):
                              "to 'insert_code'.")
 
     def insert_code(self, slot, code):
-        '''
+        """
         Insert code directly into a given slot in the device. By default does nothing.
-        '''
-        logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
+        """
+        logger.warn(f"Ignoring device code, unknown slot: {slot}, code: {code}")
         
     def build(self, **kwds):
-        '''
+        """
         For standalone projects, called when the project is ready to be built. Does nothing for runtime mode.
-        '''
+        """
         pass
 
     def reinit(self):
-        '''
+        """
         Reinitialize the device. For standalone devices, clears all the internal
         state of the device.
-        '''
+        """
         pass
 
     def delete(self, data=True, code=True, directory=True, force=False):
-        '''
+        """
         Delete code and/or data generated/stored by the device.
 
         Parameters
@@ -384,11 +383,11 @@ class Device(object):
             if it contains files that were not created by Brian. Useful only
             when the ``directory`` option is set to ``True`` as well. Defaults
             to ``False``.
-        '''
+        """
         pass
 
     def get_random_state(self):
-        '''
+        """
         Return a (pickable) representation of the current random number
         generator state. Providing the returned object (e.g. a dict) to
         `.Device.set_random_state` should restore the random number generator
@@ -399,12 +398,12 @@ class Device(object):
         state
             The state of the random number generator in a representation
             that can be passed as an argument to `.Device.set_random_state`.
-        '''
-        raise NotImplementedError('Device does not support getting the state '
-                                  'of the random number generator.')
+        """
+        raise NotImplementedError("Device does not support getting the state "
+                                  "of the random number generator.")
 
     def set_random_state(self, state):
-        '''
+        """
         Reset the random number generator state to a previously stored state
         (see `.Device.get_random_state`).
 
@@ -413,16 +412,16 @@ class Device(object):
         state
             A random number generator state as provided by
             `Device.get_random_state`.
-        '''
-        raise NotImplementedError('Device does not support setting the state '
-                                  'of the random number generator.')
+        """
+        raise NotImplementedError("Device does not support setting the state "
+                                  "of the random number generator.")
 
 
 class RuntimeDevice(Device):
-    '''
+    """
     The default device used in Brian, state variables are stored as numpy
     arrays in memory.
-    '''
+    """
     def __init__(self):
         super(RuntimeDevice, self).__init__()
         #: Mapping from `Variable` objects to numpy arrays (or `DynamicArray`
@@ -444,14 +443,13 @@ class RuntimeDevice(Device):
 
         if isinstance(var, DynamicArrayVariable):
             if access_data:
-                return '_array_' + owner_name + '_' + var.name
+                return f"_array_{owner_name}_{var.name}"
             else:
-                return '_dynamic_array_' + owner_name + '_' + var.name
+                return f"_dynamic_array_{owner_name}_{var.name}"
         elif isinstance(var, ArrayVariable):
-            return '_array_' + owner_name + '_' + var.name
+            return f"_array_{owner_name}_{var.name}"
         else:
-            raise TypeError(('Do not have a name for variable of type '
-                             '%s') % type(var))
+            raise TypeError(f"Do not have a name for variable of type {type(var)}.")
 
     def add_array(self, var):
         # This creates the actual numpy arrays (or DynamicArrayVariable objects)
@@ -502,7 +500,7 @@ class RuntimeDevice(Device):
         return SpikeQueue(source_start=source_start, source_end=source_end)
 
     def seed(self, seed=None):
-        '''
+        """
         Set the seed for the random number generator.
 
         Parameters
@@ -510,7 +508,7 @@ class RuntimeDevice(Device):
         seed : int, optional
             The seed value for the random number generator, or ``None`` (the
             default) to set a random seed.
-        '''
+        """
         np.random.seed(seed)
         self.rand_buffer_index[:] = 0
         self.randn_buffer_index[:] = 0
@@ -532,9 +530,9 @@ class RuntimeDevice(Device):
 
 
 class Dummy(object):
-    '''
+    """
     Dummy object
-    '''
+    """
     def __getattr__(self, name):
         return Dummy()
     def __call__(self, *args, **kwds):
@@ -550,18 +548,21 @@ class Dummy(object):
 
 
 class CurrentDeviceProxy(object):
-    '''
+    """
     Method proxy for access to the currently active device
-    '''
+    """
     def __getattr__(self, name):
         if not hasattr(active_device, name):
-            if name.startswith('_'):
+            # We special case the name "shape" here, since some IDEs (e.g. The Python
+            # console in PyDev and PyCharm) use the "shape" attribute to determine
+            # whether an object is "array-like".
+            if name.startswith('_') or name == 'shape':
                 # Do not fake private/magic attributes
-                raise AttributeError(('Active device does not have an '
-                                      'attribute %s') % name)
+                raise AttributeError(f"Active device does not have an attribute "
+                                     f"'{name}'.")
             else:
-                logger.warn(("Active device does not have an attribute '%s', "
-                             "ignoring this") % name)
+                logger.warn(f"Active device does not have an attribute '{name}', "
+                            f"ignoring this.")
                 attr = Dummy()
         else:
             attr = getattr(active_device, name)
@@ -574,9 +575,9 @@ active_device = None
 
 
 def get_device():
-    '''
+    """
     Gets the actve `Device` object
-    '''
+    """
     global active_device
     return active_device
 
@@ -586,7 +587,7 @@ previous_devices = []
 
 
 def set_device(device, build_on_run=True, **kwargs):
-    '''
+    """
     Set the device used for simulations.
 
     Parameters
@@ -602,7 +603,7 @@ def set_device(device, build_on_run=True, **kwargs):
     kwargs : dict, optional
         Only relevant when ``build_on_run`` is ``True``: additional arguments
         that will be given to the `Device.build` call.
-    '''
+    """
     global previous_devices
     if active_device is not None:
         prev_build_on_run = getattr(active_device, 'build_on_run', True)
@@ -631,7 +632,7 @@ def _do_set_device(device, build_on_run=True, **kwargs):
 
 
 def reset_device(device=None):
-    '''
+    """
     Reset to a previously used device. Restores also the previously specified
     build options (see `set_device`) for the device. Mostly useful for internal
     Brian code and testing on various devices.
@@ -641,7 +642,7 @@ def reset_device(device=None):
     device : `Device` or str, optional
         The device to go back to. If none is specified, go back to the device
         chosen with `set_device` before the current one.
-    '''
+    """
     global previous_devices
     if isinstance(device, str):
         device = all_devices[device]
@@ -660,7 +661,7 @@ def reset_device(device=None):
 
 
 def reinit_devices():
-    '''
+    """
     Reinitialize all devices, call `Device.activate` again on the current
     device and reset the preferences. Used as a "teardown" function in testing,
     if users want to reset their device (e.g. for multiple standalone runs in a
@@ -671,7 +672,7 @@ def reinit_devices():
     -----
     This also resets the `defaultclock`, i.e. a non-standard ``dt`` has to be
     set again.
-    '''
+    """
     from brian2 import restore_initial_state  # avoids circular import
 
     for device in all_devices.values():
@@ -685,17 +686,17 @@ def reinit_devices():
 
 
 def reinit_and_delete():
-    '''
+    """
     Calls `reinit_devices` and additionally deletes the files left behind by
     the standalone mode in the temporary directory.
     Silently suppresses errors that occur while deleting the directory.
-    '''
+    """
     reinit_devices()
     device.delete(directory=True, force=True)
 
 
 def seed(seed=None):
-    '''
+    """
     Set the seed for the random number generator.
 
     Parameters
@@ -707,10 +708,9 @@ def seed(seed=None):
     Notes
     -----
     This function delegates the call to `Device.seed` of the current device.
-    '''
+    """
     if seed is not None and not isinstance(seed, numbers.Integral):
-        raise TypeError('Seed has to be None or an integer, was '
-                        '%s' % type(seed))
+        raise TypeError(f'Seed has to be None or an integer, was {type(seed)}')
     get_device().seed(seed)
 
 

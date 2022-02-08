@@ -1,11 +1,11 @@
 
-'''
+"""
 This module defines the `VariableOwner` class, a mix-in class for everything
 that saves state variables, e.g. `Clock` or `NeuronGroup`, the class `Group`
 for objects that in addition to storing state variables also execute code, i.e.
 objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
 `CodeRunner`, a class to run code in the context of a `Group`.
-'''
+"""
 from collections.abc import Mapping
 from collections import OrderedDict
 import weakref
@@ -40,7 +40,7 @@ logger = get_logger(__name__)
 
 
 def _display_value(obj):
-    '''
+    """
     Helper function for warning messages that display the value of objects. This
     functions returns a nicer representation for symbolic constants and
     functions.
@@ -54,7 +54,7 @@ def _display_value(obj):
     -------
     value : str
         A string representation of the object
-    '''
+    """
     if isinstance(obj, Function):
         return '<Function>'
     try:
@@ -73,13 +73,13 @@ def _display_value(obj):
     try:
         str_repr = repr(obj)
     except Exception:
-        str_repr = '<object of type %s>' % type(obj)
+        str_repr = f'<object of type {type(obj)}>'
     finally:
         np.set_printoptions(**old_options)
     return str_repr
 
 def _conflict_warning(message, resolutions):
-    '''
+    """
     A little helper functions to generate warnings for logging. Specific
     to the `Group._resolve` method and should only be used by it.
 
@@ -89,25 +89,24 @@ def _conflict_warning(message, resolutions):
         The first part of the warning message.
     resolutions : list of str
         A list of (namespace, object) tuples.
-    '''
+    """
     if len(resolutions) == 0:
         # nothing to warn about
         return
     elif len(resolutions) == 1:
-        second_part = ('but the name also refers to a variable in the %s '
-                       'namespace with value %s.') % (resolutions[0][0],
-                                                      _display_value(resolutions[0][1]))
+        second_part = (f"but the name also refers to a variable in the "
+                       f"{resolutions[0][0]} "
+                       f"namespace with value '{_display_value(resolutions[0][1])}'.")
     else:
-        second_part = ('but the name also refers to a variable in the following '
-                       'namespaces: %s.') % (', '.join([r[0]
-                                                        for r in resolutions]))
+        second_part = (f"but the name also refers to a variable in the following "
+                       f"namespaces: {', '.join([r[0] for r in resolutions])}.")
 
-    logger.warn(message + ' ' + second_part,
+    logger.warn(f"{message} {second_part}",
                 'Group.resolve.resolution_conflict', once=True)
 
 
 def get_dtype(equation, dtype=None):
-    '''
+    """
     Helper function to interpret the `dtype` keyword argument in `NeuronGroup`
     etc.
 
@@ -125,7 +124,7 @@ def get_dtype(equation, dtype=None):
     -------
     d : `dtype`
         The dtype for the variable defined in `equation`
-    '''
+    """
     # Check explicitly provided dtype for compatibility with the variable type
     if isinstance(dtype, Mapping):
         if equation.varname in dtype:
@@ -134,10 +133,9 @@ def get_dtype(equation, dtype=None):
                            FLOAT: 'f'}
             provided_dtype = np.dtype(dtype[equation.varname])
             if not provided_dtype.kind in BASIC_TYPES[equation.var_type]:
-                raise TypeError(('Error determining dtype for variable %s: %s '
-                                 'is not a correct type for %s variables') % (equation.varname,
-                                                              provided_dtype.name,
-                                                              equation.var_type))
+                raise TypeError(f"Error determining dtype for variable "
+                                f"{equation.varname}: {provided_dtype.name} is not "
+                                f"a correct type for {equation.var_type} variables")
             else:
                 return dtype[equation.varname]
         else:  # continue as if no dtype had been specified at all
@@ -152,21 +150,20 @@ def get_dtype(equation, dtype=None):
         if dtype is not None:
             dtype = np.dtype(dtype)
             if not dtype.kind == 'f':
-                raise TypeError(('%s is not a valid floating point '
-                                 'dtype') % dtype)
+                raise TypeError(f"{dtype} is not a valid floating point "
+                                f"dtype.")
             return dtype
         else:
             return prefs['core.default_float_dtype']
     else:
-        raise ValueError(('Do not know how to determine a dtype for '
-                          'variable %s of type %s' ) % (equation.varname,
-                                                        equation.var_type))
+        raise ValueError(f"Do not know how to determine a dtype for "
+                         f"variable '{equation.varname}' of type {equation.var_type}")
 
 
 def _same_value(obj1, obj2):
-    '''
+    """
     Helper function used during namespace resolution.
-    '''
+    """
     if obj1 is obj2:
         return True
     try:
@@ -183,7 +180,7 @@ def _same_value(obj1, obj2):
 
 
 def _same_function(func1, func2):
-    '''
+    """
     Helper function, used during namespace resolution for comparing whether to
     functions are the same. This takes care of treating a function and a
     `Function` variables whose `Function.pyfunc` attribute matches as the
@@ -191,7 +188,7 @@ def _same_function(func1, func2):
     for example a numpy function such as :np:func:`~random.randn` in the local
     namespace, while the ``randn`` symbol in the numpy namespace used for the
     code objects refers to a `RandnFunction` specifier.
-    '''
+    """
     # use the function itself if it doesn't have a pyfunc attribute
     func1 = getattr(func1, 'pyfunc', func1)
     func2 = getattr(func2, 'pyfunc', func2)
@@ -200,20 +197,20 @@ def _same_function(func1, func2):
 
 
 class Indexing(object):
-    '''
+    """
     Object responsible for calculating flat index arrays from arbitrary group-
     specific indices. Stores strong references to the necessary variables so
     that basic indexing (i.e. slicing, integer arrays/values, ...) works even
     when the respective `VariableOwner` no longer exists. Note that this object
     does not handle string indexing.
-    '''
+    """
     def __init__(self, group, default_index='_idx'):
         self.group = weakref.proxy(group)
         self.N = group.variables['N']
         self.default_index = default_index
 
     def __call__(self, item=slice(None), index_var=None):
-        '''
+        """
         Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
         for multidimensional indices and transforms slices into arrays.
@@ -231,8 +228,7 @@ class Indexing(object):
         See Also
         --------
         SynapticIndexing
-        '''
-
+        """
         if index_var is None:
             index_var = self.default_index
 
@@ -240,8 +236,8 @@ class Indexing(object):
             item = item._indices()
 
         if isinstance(item, tuple):
-            raise IndexError(('Can only interpret 1-d indices, '
-                              'got %d dimensions.') % len(item))
+            raise IndexError(f"Can only interpret 1-d indices, "
+                             f"got {len(item)} dimensions.")
         else:
             if isinstance(item, str) and item == 'True':
                 item = slice(None)
@@ -258,9 +254,9 @@ class Indexing(object):
                 if index_array.dtype == bool:
                     index_array = np.nonzero(index_array)[0]
                 elif not np.issubdtype(index_array.dtype, np.signedinteger):
-                    raise TypeError(('Indexing is only supported for integer '
-                                     'and boolean arrays, not for type '
-                                     '%s' % index_array.dtype))
+                    raise TypeError(f"Indexing is only supported for integer "
+                                    f"and boolean arrays, not for type "
+                                    f"{index_array.dtype}")
 
             if index_array.size == 0:
                 return index_array
@@ -290,12 +286,12 @@ class Indexing(object):
 
 
 class IndexWrapper(object):
-    '''
+    """
     Convenience class to allow access to the indices via indexing syntax. This
     allows for example to get all indices for synapses originating from neuron
     10 by writing `synapses.indices[10, :]` instead of
     `synapses._indices.((10, slice(None))`.
-    '''
+    """
     def __init__(self, group):
         self.group = weakref.proxy(group)
         self.indices = group._indices
@@ -310,7 +306,7 @@ class IndexWrapper(object):
             variables.add_auxiliary_variable('_indices', dtype=np.int32)
             variables.add_auxiliary_variable('_cond', dtype=bool)
 
-            abstract_code = '_cond = ' + item
+            abstract_code = f"_cond = {item}"
             namespace = get_local_namespace(level=level+2)  # decorated function
             from brian2.devices.device import get_device
             device = get_device()
@@ -329,18 +325,18 @@ class IndexWrapper(object):
 
 
 class VariableOwner(Nameable):
-    '''
+    """
     Mix-in class for accessing arrays by attribute.
 
     # TODO: Overwrite the __dir__ method to return the state variables
     # (should make autocompletion work)
-    '''
+    """
     def _enable_group_attributes(self):
         if not hasattr(self, 'variables'):
-            raise ValueError(('Classes derived from VariableOwner need a '
-                              'variables attribute.'))
+            raise ValueError("Classes derived from VariableOwner need a "
+                             "variables attribute.")
         if not 'N' in self.variables:
-            raise ValueError('Each VariableOwner needs an "N" variable.')
+            raise ValueError("Each VariableOwner needs an 'N' variable.")
         if not hasattr(self, 'codeobj_class'):
             self.codeobj_class = None
         if not hasattr(self, '_indices'):
@@ -352,7 +348,7 @@ class VariableOwner(Nameable):
         self._group_attribute_access_active = True
 
     def state(self, name, use_units=True, level=0):
-        '''
+        """
         Return the state variable in a way that properly supports indexing in
         the context of this group
 
@@ -369,11 +365,11 @@ class VariableOwner(Nameable):
         var : `VariableView` or scalar value
             The state variable's value that can be indexed (for non-scalar
             values).
-        '''
+        """
         try:
             var = self.variables[name]
         except KeyError as exc:
-            raise KeyError("State variable "+name+" not found.") from exc
+            raise KeyError(f"State variable {name} not found.") from exc
 
         if use_units:
             return var.get_addressable_value_with_unit(name=name, group=self)
@@ -410,7 +406,7 @@ class VariableOwner(Nameable):
             return self.state(name, use_units)
 
         except KeyError:
-            raise AttributeError('No attribute with name ' + name)
+            raise AttributeError(f"No attribute with name {name}")
 
     def __setattr__(self, name, val, level=0):
         # attribute access is switched off until this attribute is created by
@@ -438,7 +434,7 @@ class VariableOwner(Nameable):
                                                  '{value}') % (name, get_unit(var.dim)),
                                                 value=val)
             if var.read_only:
-                raise TypeError('Variable %s is read-only.' % name)
+                raise TypeError(f'Variable {name} is read-only.')
             # Make the call X.var = ... equivalent to X.var[:] = ...
             var.get_addressable_value_with_unit(name, self).set_item(slice(None),
                                                                      val,
@@ -447,7 +443,7 @@ class VariableOwner(Nameable):
             # no unit checking
             var = self.variables[name[:-1]]
             if var.read_only:
-                raise TypeError('Variable %s is read-only.' % name[:-1])
+                raise TypeError(f'Variable {name[:-1]} is read-only.')
             # Make the call X.var = ... equivalent to X.var[:] = ...
             var.get_addressable_value(name[:-1], self).set_item(slice(None),
                                                                 val,
@@ -463,22 +459,22 @@ class VariableOwner(Nameable):
                 name = name[:-1]
             else:
                 suffix = ''
-            error_msg = 'Could not find a state variable with name "%s".' % name
+            error_msg = f'Could not find a state variable with name "{name}".'
             suggestions = checker.suggest(name)
             if len(suggestions) == 1:
                 suggestion, = suggestions
-                error_msg += ' Did you mean to write "%s%s"?' % (suggestion,
-                                                                 suffix)
+                error_msg += f' Did you mean to write "{suggestion}{suffix}"?'
             elif len(suggestions) > 1:
-                error_msg += (' Did you mean to write any of the following: %s ?' %
-                              (', '.join(['"%s%s"' % (suggestion, suffix)
-                                          for suggestion in suggestions])))
+                suggestion_str = ", ".join([f"'{suggestion}{suffix}'"
+                                            for suggestion in suggestions])
+                error_msg += (
+                    f" Did you mean to write any of the following: {suggestion_str} ?")
             error_msg += (' Use the add_attribute method if you intend to add '
                           'a new attribute to the object.')
             raise AttributeError(error_msg)
 
     def add_attribute(self, name):
-        '''
+        """
         Add a new attribute to this group. Using this method instead of simply
         assigning to the new attribute name is necessary because Brian will
         raise an error in that case, to avoid bugs passing unnoticed
@@ -493,18 +489,16 @@ class VariableOwner(Nameable):
         ------
         AttributeError
             If the name already exists as an attribute or a state variable.
-        '''
+        """
         if name in self.variables:
-            raise AttributeError('Cannot add an attribute "%s", it is already '
-                                 'a state variable of this group.' % name)
+            raise AttributeError(f'Cannot add an attribute "{name}", it is already a state variable of this group.')
         if hasattr(self, name):
-            raise AttributeError('Cannot add an attribute "%s", it is already '
-                                 'an attribute of this group.' % name)
+            raise AttributeError(f'Cannot add an attribute "{name}", it is already an attribute of this group.')
         object.__setattr__(self, name, None)
 
     def get_states(self, vars=None, units=True, format='dict',
                    subexpressions=False, read_only_variables=True, level=0):
-        '''
+        """
         Return a copy of the current state variable values. The returned arrays
         are copies of the actual arrays that store the state variable values,
         therefore changing the values in the returned dictionary will not affect
@@ -541,9 +535,9 @@ class VariableOwner(Nameable):
         values : dict or specified format
             The variables specified in ``vars``, in the specified ``format``.
 
-        '''
+        """
         if format not in ImportExport.methods:
-            raise NotImplementedError("Format '%s' is not supported" % format)
+            raise NotImplementedError(f"Format '{format}' is not supported")
         if vars is None:
             vars = []
             for name, var in self.variables.items():
@@ -557,7 +551,7 @@ class VariableOwner(Nameable):
         return data
 
     def set_states(self, values, units=True, format='dict', level=0):
-        '''
+        """
         Set the state variables.
 
         Parameters
@@ -571,15 +565,15 @@ class VariableOwner(Nameable):
         level : int, optional
             How much higher to go up the stack to resolve external variables.
             Only relevant when using string expressions to set values.
-        '''
+        """
         # For the moment, 'dict' is the only supported format -- later this will
         # be made into an extensible system, see github issue #306
         if format not in ImportExport.methods:
-            raise NotImplementedError("Format '%s' is not supported" % format)
+            raise NotImplementedError(f"Format '{format}' is not supported")
         ImportExport.methods[format].import_data(self, values, units=units, level=level)
 
     def check_variable_write(self, variable):
-        '''
+        """
         Function that can be overwritten to raise an error if writing to a
         variable should not be allowed. Note that this does *not* deal with
         incorrect writes that are general to all kind of variables (incorrect
@@ -594,7 +588,7 @@ class VariableOwner(Nameable):
         ----------
         variable : `Variable`
             The variable that the user attempts to set.
-        '''
+        """
         pass
 
     def _full_state(self):
@@ -618,7 +612,7 @@ class VariableOwner(Nameable):
 
     def _check_expression_scalar(self, expr, varname, level=0,
                                  run_namespace=None):
-        '''
+        """
         Helper function to check that an expression only refers to scalar
         variables, used when setting a scalar variable with a string expression.
 
@@ -638,16 +632,16 @@ class VariableOwner(Nameable):
         ------
         ValueError
             If the expression refers to a non-scalar variable.
-        '''
+        """
         identifiers = get_identifiers(expr)
         referred_variables = self.resolve_all(identifiers,
                                               run_namespace=run_namespace,
                                               level=level+1)
         for ref_varname, ref_var in referred_variables.items():
             if not getattr(ref_var, 'scalar', False):
-                raise ValueError(('String expression for setting scalar '
-                                  'variable %s refers to %s which is not '
-                                  'scalar.') % (varname, ref_varname))
+                raise ValueError(f"String expression for setting scalar "
+                                 f"variable '{varname} refers to '{ref_varname} which "
+                                 f"is not scalar.")
 
     def __len__(self):
         return int(self.variables['N'].get_value())
@@ -657,7 +651,7 @@ class Group(VariableOwner, BrianObject):
 
     def _resolve(self, identifier, run_namespace, user_identifier=True,
                  additional_variables=None):
-        '''
+        """
         Resolve an identifier (i.e. variable, constant or function name) in the
         context of this group. This function will first lookup the name in the
         state variables, then look for a standard function or unit of that
@@ -693,7 +687,7 @@ class Group(VariableOwner, BrianObject):
         ------
         KeyError
             If the `identifier` could not be resolved
-        '''
+        """
         resolved_internal = None
 
         if identifier in (additional_variables or {}):
@@ -717,7 +711,7 @@ class Group(VariableOwner, BrianObject):
 
     def resolve_all(self, identifiers, run_namespace, user_identifiers=None,
                     additional_variables=None):
-        '''
+        """
         Resolve a list of identifiers. Calls `Group._resolve` for each
         identifier.
 
@@ -747,7 +741,7 @@ class Group(VariableOwner, BrianObject):
         ------
         KeyError
             If one of the names in `identifier` cannot be resolved
-        '''
+        """
         if user_identifiers is None:
             user_identifiers = identifiers
         assert isinstance(run_namespace, Mapping)
@@ -761,7 +755,7 @@ class Group(VariableOwner, BrianObject):
 
     def _resolve_external(self, identifier, run_namespace, user_identifier=True,
                           internal_variable=None):
-        '''
+        """
         Resolve an external identifier in the context of a `Group`. If the `Group`
         declares an explicit namespace, this namespace is used in addition to the
         standard namespace for units and functions. Additionally, the namespace in
@@ -788,7 +782,7 @@ class Group(VariableOwner, BrianObject):
             The internal variable object that corresponds to this name (if any).
             This is used to give warnings if it also corresponds to a variable
             from an external namespace.
-        '''
+        """
         # We save tuples of (namespace description, referred object) to
         # give meaningful warnings in case of duplicate definitions
         matches = []
@@ -835,8 +829,7 @@ class Group(VariableOwner, BrianObject):
                                  'at the end of your on_pre and/or on_post '
                                  'statements.')
                 else:
-                    error_msg = ('The identifier "%s" could not be resolved.' %
-                                 identifier)
+                    error_msg = f'The identifier "{identifier}" could not be resolved.'
                 raise KeyError(error_msg)
 
         elif len(matches) > 1:
@@ -885,20 +878,21 @@ class Group(VariableOwner, BrianObject):
             if len(filtered_matches) == 0:
                 pass  # Nothing to warn about
             else:
-                warning_message = ('"{name}" is an internal variable of group '
-                                   '"{group}", but also exists in the ')
+                warning_message = (f"'{identifier}' is an internal variable of group "
+                                   f"'{self.name}', but also exists in the ")
                 if len(matches) == 1:
-                    warning_message += ('{namespace} namespace with the value '
-                                        '{value}. ').format(namespace=filtered_matches[0][0],
-                                                           value=_display_value(filtered_matches[0][1]))
+                    namespace = filtered_matches[0][0]
+                    value = _display_value(filtered_matches[0][1])
+                    warning_message += (f"{namespace} namespace with the value "
+                                        f"{value}. ")
                 else:
-                    warning_message += ('following namespaces: '
-                                        '{namespaces}. ').format(namespaces=' ,'.join(match[0]
-                                                                                     for match in filtered_matches))
+                    namespaces_list = ' ,'.join(match[0]
+                                                for match in filtered_matches)
+                    warning_message += (f"following namespaces: "
+                                        f"{namespaces_list}. ")
                 warning_message += 'The internal variable will be used.'
-                logger.warn(warning_message.format(name=identifier,
-                                                   group=self.name),
-                            'Group.resolve.resolution_conflict', once=True)
+                logger.warn(warning_message, 'Group.resolve.resolution_conflict',
+                            once=True)
 
         if internal_variable is not None:
             return None  # We were only interested in the warnings above
@@ -919,8 +913,7 @@ class Group(VariableOwner, BrianObject):
             dimensions = getattr(resolved, 'dim', DIMENSIONLESS)
             value = np.asarray(resolved)
             if value.shape != ():
-                raise KeyError('Variable %s was found in the namespace, but is'
-                               ' not a scalar value' % identifier)
+                raise KeyError(f'Variable {identifier} was found in the namespace, but is not a scalar value')
             resolved = Constant(identifier, dimensions=dimensions, value=value)
 
         return resolved
@@ -935,7 +928,7 @@ class Group(VariableOwner, BrianObject):
 
     def run_regularly(self, code, dt=None, clock=None, when='start',
                       order=0, name=None, codeobj_class=None):
-        '''
+        """
         Run abstract code in the group's namespace. The created `CodeRunner`
         object will be automatically added to the group, it therefore does not
         need to be added to the network manually. However, a reference to the
@@ -967,9 +960,9 @@ class Group(VariableOwner, BrianObject):
         -------
         obj : `CodeRunner`
             A reference to the object that will be run.
-        '''
+        """
         if name is None:
-            name = self.name + '_run_regularly*'
+            name = f"{self.name}_run_regularly*"
 
         if dt is None and clock is None:
             clock = self._clock
@@ -995,10 +988,10 @@ class Group(VariableOwner, BrianObject):
         return runner
 
     def _check_for_invalid_states(self):
-        '''
+        """
         Checks if any state variables updated by differential equations have
         invalid values, and logs a warning if so.
-        '''
+        """
         equations = getattr(self, 'equations', None)
         if not isinstance(equations, Equations):
             return
@@ -1007,23 +1000,22 @@ class Group(VariableOwner, BrianObject):
                                                                use_units=False))
 
     def _check_for_invalid_values(self, k, v):
-        '''
+        """
         Checks if variable named k value v has invalid values, and logs a
         warning if so.
-        '''
+        """
         v = np.asarray(v)
         if np.isnan(v).any() or (np.abs(v) > 1e50).any():
-            logger.warn(("{name}'s variable '{k}' has NaN, very large values, "
-                         "or encountered an error in numerical integration. "
-                         "This is usually a sign that an unstable or invalid "
-                         "integration method was "
-                         "chosen.").format(name=self.name,
-                                           k=k),
+            logger.warn((f"{self.name}'s variable '{k}' has NaN, very large values, "
+                         f"or encountered an error in numerical integration. "
+                         f"This is usually a sign that an unstable or invalid "
+                         f"integration method was "
+                         f"chosen."),
                         name_suffix="invalid_values", once=True)
 
 
 class CodeRunner(BrianObject):
-    '''
+    """
     A "code runner" that runs a `CodeObject` every timestep and keeps a
     reference to the `Group`. Used in `NeuronGroup` for `Thresholder`,
     `Resetter` and `StateUpdater`.
@@ -1084,7 +1076,7 @@ class CodeRunner(BrianObject):
         Whether to generate a `CodeObject` if there is no abstract code to
         execute. Defaults to ``True`` but should be switched off e.g. for a
         `StateUpdater` when there is nothing to do.
-    '''
+    """
     add_to_magic_network = True
     invalidates_magic_network = True
     def __init__(self, group, template, code='', user_code=None,
@@ -1114,13 +1106,13 @@ class CodeRunner(BrianObject):
         self.codeobj = None
 
     def update_abstract_code(self, run_namespace):
-        '''
+        """
         Update the abstract code for the code object. Will be called in
         `before_run` and should update the `CodeRunner.abstract_code`
         attribute.
         
         Does nothing by default.
-        '''
+        """
         pass
 
     def create_default_code_object(self, run_namespace):
@@ -1138,7 +1130,7 @@ class CodeRunner(BrianObject):
                                                  code=self.abstract_code,
                                                  user_code=self.user_code,
                                                  template_name=self.template,
-                                                 name=self.name + '_codeobject*',
+                                                 name=f"{self.name}_codeobject*",
                                                  check_units=self.check_units,
                                                  additional_variables=additional_variables,
                                                  needed_variables=self.needed_variables,

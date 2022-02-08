@@ -1,8 +1,8 @@
-'''
+"""
 Module defining `CodeString`, a class for a string of code together with
 information about its namespace. Only serves as a parent class, its subclasses
 `Expression` and `Statements` are the ones that are actually used.
-'''
+"""
 
 from collections.abc import Hashable
 
@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 
 class CodeString(Hashable):
-    '''
+    """
     A class for representing "code strings", i.e. a single Python expression
     or a sequence of Python statements.
     
@@ -28,7 +28,7 @@ class CodeString(Hashable):
         The code string, may be an expression or a statement(s) (possibly
         multi-line).
         
-    '''
+    """
 
     def __init__(self, code):
         self._code = code.strip()
@@ -37,13 +37,13 @@ class CodeString(Hashable):
         self.identifiers = get_identifiers(code)
 
     code = property(lambda self: self._code,
-                    doc='The code string')
+                    doc="The code string")
 
     def __str__(self):
         return self.code
 
     def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.code)
+        return f'{self.__class__.__name__}({self.code!r})'
 
     def __eq__(self, other):
         if not isinstance(other, CodeString):
@@ -58,7 +58,7 @@ class CodeString(Hashable):
 
 
 class Statements(CodeString):
-    '''
+    """
     Class for representing statements.
 
     Parameters
@@ -73,12 +73,12 @@ class Statements(CodeString):
     `~brian2.equations.codestrings.CodeString`, but it should be used instead
     of that class for clarity and to allow for future functionality that is
     only relevant to statements and not to expressions.
-    '''
+    """
     pass
 
 
 class Expression(CodeString):
-    '''
+    """
     Class for representing an expression.
 
     Parameters
@@ -90,13 +90,14 @@ class Expression(CodeString):
     sympy_expression : sympy expression, optional
         A sympy expression. Alternatively, a plain string expression can be
         provided (in the ``code`` argument).
-    '''
+    """
 
     def __init__(self, code=None, sympy_expression=None):
         if code is None and sympy_expression is None:
-            raise TypeError('Have to provide either a string or a sympy expression')
+            raise TypeError("Have to provide either a string or a sympy expression")
         if code is not None and sympy_expression is not None:
-            raise TypeError('Provide a string expression or a sympy expression, not both')
+            raise TypeError(
+                "Provide a string expression or a sympy expression, not both")
 
         if code is None:
             code = sympy_to_str(sympy_expression)
@@ -111,7 +112,7 @@ class Expression(CodeString):
                                     doc='Stochastic variables in this expression')
 
     def split_stochastic(self):
-        '''
+        """
         Split the expression into a stochastic and non-stochastic part.
         
         Splits the expression into a tuple of one `Expression` objects f (the
@@ -131,7 +132,7 @@ class Expression(CodeString):
             with ``xi_``) to `Expression` objects. If no stochastic variable
             is present in the code string, a tuple ``(self, None)`` will be
             returned with the unchanged `Expression` object.
-        '''
+        """
         stochastic_variables = []
         for identifier in self.identifiers:
             if identifier == 'xi' or identifier.startswith('xi_'):
@@ -154,19 +155,18 @@ class Expression(CodeString):
             expr = Expression(sympy_expression=s_expr)
             if var == 1:
                 if any(s_expr.has(s) for s in stochastic_symbols):
-                    raise AssertionError(('Error when separating expression '
-                                          '"%s" into stochastic and non-'
-                                          'stochastic term: non-stochastic '
-                                          'part was determined to be "%s" but '
-                                          'contains a stochastic symbol)' % (self.code,
-                                                                             s_expr)))
+                    raise AssertionError(f"Error when separating expression "
+                                         f"'{self.code}' into stochastic and non-"
+                                         f"stochastic term: non-stochastic "
+                                         f"part was determined to be '{s_expr}' but "
+                                         f"contains a stochastic symbol.")
                 f_expr = expr
             elif var in stochastic_symbols:
                 stochastic_expressions[str(var)] = expr
             else:
-                raise ValueError(('Expression "%s" cannot be separated into '
-                                  'stochastic and non-stochastic '
-                                  'term') % self.code)
+                raise ValueError(f"Expression '{self.code}' cannot be separated into "
+                                 f"stochastic and non-stochastic "
+                                 f"term")
 
         if f_expr is None:
             f_expr = Expression('0.0')
@@ -174,11 +174,11 @@ class Expression(CodeString):
         return f_expr, stochastic_expressions
 
     def _repr_pretty_(self, p, cycle):
-        '''
+        """
         Pretty printing for ipython.
-        '''
+        """
         if cycle:
-            raise AssertionError('Cyclical call of CodeString._repr_pretty')
+            raise AssertionError("Cyclical call of 'CodeString._repr_pretty'")
         # Make use of sympy's pretty printing
         p.pretty(str_to_sympy(self.code))
 
@@ -195,7 +195,7 @@ class Expression(CodeString):
 
 
 def is_constant_over_dt(expression, variables, dt_value):
-    '''
+    """
     Check whether an expression can be considered as constant over a time step.
     This is *not* the case when the expression either:
 
@@ -219,7 +219,7 @@ def is_constant_over_dt(expression, variables, dt_value):
     is_constant : bool
         Whether the expression can be considered to be constant over a time
         step.
-    '''
+    """
     t_symbol = sympy.Symbol('t', real=True, positive=True)
     if expression == t_symbol:
         return False  # The full expression is simply "t"

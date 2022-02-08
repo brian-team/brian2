@@ -96,8 +96,7 @@ class Timeout(TimeoutError):
         return None
 
     def __str__(self):
-        temp = "The file lock '{}' could not be acquired."\
-               .format(self.lock_file)
+        temp = f"The file lock '{self.lock_file}' could not be acquired."
         return temp
 
 

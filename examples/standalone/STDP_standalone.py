@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-'''
+"""
 Spike-timing dependent plasticity.
 Adapted from Song, Miller and Abbott (2000) and Song and Abbott (2001).
 
 This example is modified from ``synapses_STDP.py`` and writes a standalone
 C++ project in the directory ``STDP_standalone``.
-'''
+"""
 from brian2 import *
 
 set_device('cpp_standalone', directory='STDP_standalone')

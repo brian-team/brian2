@@ -1,6 +1,6 @@
-'''
+"""
 Module defining `PopulationRateMonitor`.
-'''
+"""
 import numpy as np
 
 from brian2.utils.logger import get_logger
@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 
 class PopulationRateMonitor(Group, CodeRunner):
-    '''
+    """
     Record instantaneous firing rates, averaged across neurons from a
     `NeuronGroup` or other spike source.
 
@@ -39,7 +39,7 @@ class PopulationRateMonitor(Group, CodeRunner):
     Currently, this monitor can only monitor the instantaneous firing rates at
     each time step of the source clock. Any binning/smoothing of the firing
     rates has to be done manually afterwards.
-    '''
+    """
     invalidates_magic_network = False
     add_to_magic_network = True
     def __init__(self, source, name='ratemonitor*', codeobj_class=None,
@@ -94,14 +94,14 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables['t'].resize(new_size)
 
     def reinit(self):
-        '''
+        """
         Clears all recorded rates
-        '''
+        """
         raise NotImplementedError()
 
     @check_units(width=second)
     def smooth_rate(self, window='gaussian', width=None):
-        '''
+        """
         smooth_rate(self, window='gaussian', width=None)
 
         Return a smooth version of the population rate.
@@ -134,11 +134,11 @@ class PopulationRateMonitor(Group, CodeRunner):
             returned array is the same as the length of the ``rate`` attribute
             and can be plotted against the `PopulationRateMonitor` 's ``t``
             attribute.
-        '''
+        """
         if width is None and isinstance(window, str):
-            raise TypeError('Need a width when using a predefined window.')
+            raise TypeError("Need a width when using a predefined window.")
         if width is not None and not isinstance(window, str):
-            raise TypeError('Can only specify a width for a predefined window')
+            raise TypeError("Can only specify a width for a predefined window")
 
         if isinstance(window, str):
             if window == 'gaussian':
@@ -152,27 +152,26 @@ class PopulationRateMonitor(Group, CodeRunner):
                 width_dt = int(width / 2 / self.clock.dt)*2 + 1
                 used_width = width_dt * self.clock.dt
                 if abs(used_width - width) > 1e-6*self.clock.dt:
-                    logger.info('width adjusted from %s to %s' % (width, used_width),
+                    logger.info(f'width adjusted from {width} to {used_width}',
                                 'adjusted_width', once=True)
                 window = np.ones(width_dt)
             else:
-                raise NotImplementedError('Unknown pre-defined window "%s"' % window)
+                raise NotImplementedError(f'Unknown pre-defined window "{window}"')
         else:
             try:
                 window = np.asarray(window)
             except TypeError:
-                raise TypeError('Cannot use a window of type %s' % type(window))
+                raise TypeError(f"Cannot use a window of type {type(window)}")
             if window.ndim != 1:
-                raise TypeError('The provided window has to be '
-                                'one-dimensional.')
+                raise TypeError("The provided window has to be "
+                                "one-dimensional.")
             if len(window) % 2 != 1:
-                raise TypeError('The window has to have an odd number of '
-                                'values.')
+                raise TypeError("The window has to have an odd number of "
+                                "values.")
         return Quantity(np.convolve(self.rate_,
                                     window * 1. / sum(window),
                                     mode='same'), dim=hertz.dim)
 
     def __repr__(self):
-        description = '<{classname}, recording {source}>'
-        return description.format(classname=self.__class__.__name__,
-                                  source=self.source.name)
+        classname = self.__class__.__name__
+        return f"<{classname}, recording {self.source.name}>"

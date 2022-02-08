@@ -1,6 +1,6 @@
-'''
+"""
 Benchmark showing the performance of float32 versus float64.
-'''
+"""
 
 from brian2 import *
 from brian2.devices.device import reset_device, reinit_devices

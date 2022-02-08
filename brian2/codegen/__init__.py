@@ -1,6 +1,6 @@
-'''
+"""
 Package providing the code generation framework.
-'''
+"""
 # Import the runtime packages so that they can register their preferences
 
 from .runtime import *

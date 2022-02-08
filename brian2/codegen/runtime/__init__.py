@@ -1,6 +1,6 @@
-'''
+"""
 Runtime targets for code generation.
-'''
+"""
 
 # Register the base category before importing the indivial codegen targets with
 # their subcategories

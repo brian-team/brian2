@@ -1,6 +1,6 @@
-'''
+"""
 Tests the brian2.parsing package
-'''
+"""
 
 from collections import namedtuple
 
@@ -39,7 +39,7 @@ class SimpleGroup(Group):
         self.namespace = namespace
 
 
-TEST_EXPRESSIONS = '''
+TEST_EXPRESSIONS = """
     a+b+c*d-f+g-(b+d)-(a-c)
     a**b**2
     a**(b**2)
@@ -73,7 +73,7 @@ TEST_EXPRESSIONS = '''
     -1.2%3.4
     17e-12
     42e17
-    '''
+    """
 
 
 def parse_expressions(renderer, evaluator, numvalues=10):
@@ -100,9 +100,7 @@ def parse_expressions(renderer, evaluator, numvalues=10):
                 # difference through sympy's rearrangements
                 assert_allclose(r1, r2, atol=1e-8)
             except AssertionError as e:
-                raise AssertionError("In expression " + str(expr) +
-                                     " translated to " + str(pexpr) +
-                                     " " + str(e))
+                raise AssertionError(f"In expression {str(expr)} translated to {str(pexpr)} {str(e)}")
 
 
 def numpy_evaluator(expr, userns):
@@ -116,7 +114,7 @@ def numpy_evaluator(expr, userns):
     try:
         x = eval(expr, ns)
     except Exception as e:
-        raise ValueError("Could not evaluate numpy expression "+expr+" exception "+str(e))
+        raise ValueError(f"Could not evaluate numpy expression {expr} exception {str(e)}")
     if isinstance(x, np.ndarray):
         return x[0]
     else:
@@ -158,13 +156,13 @@ def test_parse_expressions_sympy():
 
 @pytest.mark.codegen_independent
 def test_abstract_code_dependencies():
-    code = '''
+    code = """
     a = b+c
     d = b+c
     a = func_a()
     a = func_b()
     a = x+d
-    '''
+    """
     known_vars = {'a', 'b', 'c'}
     known_funcs = {'func_a'}
     res = abstract_code_dependencies(code, known_vars, known_funcs)
@@ -187,8 +185,7 @@ def test_abstract_code_dependencies():
         )
     for k, v in expected_res.items():
         if not getattr(res, k)==set(v):
-            raise AssertionError("For '%s' result is %s expected %s" % (
-                                        k, getattr(res, k), set(v)))
+            raise AssertionError(f"For '{k}' result is {getattr(res, k)} expected {set(v)}")
 
 
 @pytest.mark.codegen_independent
@@ -230,10 +227,8 @@ def test_is_boolean_expression():
     for expect, expr in EVF:
         ret_val = is_boolean_expression(expr, variables)
         if expect != ret_val:
-            raise AssertionError(('is_boolean_expression(%r) returned %s, '
-                                  'but was supposed to return %s') % (expr,
-                                                                      ret_val,
-                                                                      expect))
+            raise AssertionError(f"is_boolean_expression({expr!r}) returned 'ret_val', "
+                                 f"but was supposed to return 'expect'.")
     with pytest.raises(SyntaxError):
         is_boolean_expression('a<b and c', variables)
     with pytest.raises(SyntaxError):
@@ -421,7 +416,7 @@ def test_abstract_code_from_function():
 
 @pytest.mark.codegen_independent
 def test_extract_abstract_code_functions():
-    code = '''
+    code = """
     def f(x):
         return x*x
         
@@ -429,7 +424,7 @@ def test_extract_abstract_code_functions():
         V += 1
         
     irrelevant_code_here()
-    '''
+    """
     funcs = extract_abstract_code_functions(code)
     assert funcs['f'].return_expr == 'x * x'
     assert funcs['g'].args == ['V']
@@ -442,13 +437,13 @@ def test_substitute_abstract_code_functions():
         return y
     def g(x):
         return f(x)+1
-    code = '''
+    code = """
     z = f(x)
     z = f(x)+f(y)
     w = f(z)
     h = f(f(w))
     p = g(g(x))
-    '''
+    """
     funcs = [abstract_code_from_function(f),
              abstract_code_from_function(g),
              ]
@@ -478,7 +473,7 @@ def test_sympytools():
 
     for expr in expressions:
         expr2 = sympy_to_str(str_to_sympy(expr))
-        assert expr.replace(' ', '') == expr2.replace(' ', ''), '%s != %s' % (expr, expr2)
+        assert expr.replace(' ', '') == expr2.replace(' ', ''), f'{expr} != {expr2}'
 
 @pytest.mark.codegen_independent
 def test_error_messages():
@@ -490,8 +485,7 @@ def test_error_messages():
     for expr, expected_1, expected_2 in expr_expected:
         try:
             nr.render_expr(expr)
-            raise AssertionError('Excepted {} to raise a '
-                                 'SyntaxError.'.format(expr))
+            raise AssertionError(f'Excepted {expr} to raise a SyntaxError.')
         except SyntaxError as exc:
             message = str(exc)
             assert expected_1 in message

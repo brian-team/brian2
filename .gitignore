@@ -14,8 +14,11 @@
 # generated directories
 dist
 build
+.eggs/
 /docs
+docs_sphinx/_build/
 docs_sphinx/reference
+output/
 
 # Unit test / coverage reports
 .coverage

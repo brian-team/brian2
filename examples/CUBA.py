@@ -1,4 +1,4 @@
-'''
+"""
 This is a Brian script implementing a benchmark described
 in the following review paper:
 
@@ -13,7 +13,7 @@ synaptic currents.
 
 Clock-driven implementation with exact subthreshold integration
 (but spike times are aligned to the grid).
-'''
+"""
 from brian2 import *
 
 taum = 20*ms

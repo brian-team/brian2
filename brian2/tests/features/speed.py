@@ -1,6 +1,6 @@
-'''
+"""
 Check the speed of different Brian 2 configurations
-'''
+"""
 
 from brian2 import *
 from brian2.tests.features import SpeedTest
@@ -62,7 +62,7 @@ class HHNeuronsOnly(SpeedTest):
         VT = -63 * mV
 
         # The model
-        eqs = Equations('''
+        eqs = Equations("""
         dv/dt = (gl*(El-v) - g_na*(m*m*m)*h*(v-ENa) - g_kd*(n*n*n*n)*(v-EK) + I)/Cm : volt
         dm/dt = 0.32*(mV**-1)*(13.*mV-v+VT)/
             (exp((13.*mV-v+VT)/(4.*mV))-1.)/ms*(1-m)-0.28*(mV**-1)*(v-VT-40.*mV)/
@@ -71,7 +71,7 @@ class HHNeuronsOnly(SpeedTest):
             (exp((15.*mV-v+VT)/(5.*mV))-1.)/ms*(1.-n)-.5*exp((10.*mV-v+VT)/(40.*mV))/ms*n : 1
         dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*mV)))/ms*h : 1
         I : amp
-        ''')
+        """)
         # Threshold and refractoriness are only used for spike counting
         group = NeuronGroup(num_neurons, eqs,
                             threshold='v > -40*mV',
@@ -103,11 +103,11 @@ class CUBAFixedConnectivity(SpeedTest):
         Vr = -60 * mV
         El = -49 * mV
 
-        eqs = '''
+        eqs = """
         dv/dt  = (ge+gi-(v-El))/taum : volt (unless refractory)
         dge/dt = -ge/taue : volt (unless refractory)
         dgi/dt = -gi/taui : volt (unless refractory)
-        '''
+        """
 
         P = NeuronGroup(
             N, eqs, threshold='v>Vt', reset='v = Vr', refractory=5 * ms)
@@ -160,7 +160,7 @@ class COBAHHFixedConnectivity(SpeedTest):
         wi = 67 * nS  # inhibitory synaptic weight
 
         # The model
-        eqs = Equations('''
+        eqs = Equations("""
         dv/dt = (gl*(El-v)+ge*(Ee-v)+gi*(Ei-v)-
                  g_na*(m*m*m)*h*(v-ENa)-
                  g_kd*(n*n*n*n)*(v-EK))/Cm : volt
@@ -178,7 +178,7 @@ class COBAHHFixedConnectivity(SpeedTest):
         alpha_n = 0.032*(mV**-1)*(15*mV-v+VT)/
                  (exp((15*mV-v+VT)/(5*mV))-1.)/ms : Hz
         beta_n = .5*exp((10*mV-v+VT)/(40*mV))/ms : Hz
-        ''')
+        """)
 
         P = NeuronGroup(N, model=eqs, threshold='v>-20*mV',
                         refractory=3 * ms,
@@ -227,23 +227,23 @@ class STDP(SpeedTest):
         dApost *= gmax
         dApre *= gmax
 
-        eqs_neurons = '''
+        eqs_neurons = """
         dv/dt = (ge * (Ee-vr) + El - v) / taum : volt
         dge/dt = -ge / taue : 1
-        '''
+        """
 
         poisson_input = PoissonGroup(N, rates=F)
         neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
                               method='exact')
         S = Synapses(poisson_input, neurons,
-                     '''w : 1
+                     """w : 1
                         dApre/dt = -Apre / taupre : 1 (event-driven)
-                        dApost/dt = -Apost / taupost : 1 (event-driven)''',
-                     on_pre='''ge += w
+                        dApost/dt = -Apost / taupost : 1 (event-driven)""",
+                     on_pre="""ge += w
                             Apre += dApre
-                            w = clip(w + Apost, 0, gmax)''',
-                     on_post='''Apost += dApost
-                             w = clip(w + Apre, 0, gmax)''',
+                            w = clip(w + Apost, 0, gmax)""",
+                     on_post="""Apost += dApost
+                             w = clip(w + Apre, 0, gmax)""",
                      )
         S.connect()
         S.w = 'rand() * gmax'

@@ -1,6 +1,6 @@
-'''
+"""
 Module defining `SpikeGeneratorGroup`.
-'''
+"""
 
 import numpy as np
 
@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 
 class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
-    '''
+    """
     SpikeGeneratorGroup(N, indices, times, dt=None, clock=None,
                         period=0*second, when='thresholds', order=0,
                         sorted=False, name='spikegeneratorgroup*',
@@ -60,7 +60,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     -----
     * If `sorted` is set to ``True``, the given arrays will not be copied
       (only affects runtime mode)..
-    '''
+    """
 
     @check_units(N=1, indices=1, times=second, period=second)
     def __init__(self, N, indices, times, dt=None, clock=None,
@@ -86,7 +86,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.codeobj_class = codeobj_class
 
         if N < 1 or int(N) != N:
-            raise TypeError('N has to be an integer >=1.')
+            raise TypeError("N has to be an integer >=1.")
         N = int(N)
         self.start = 0
         self.stop = N
@@ -164,10 +164,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         period = self.period_
         if period < np.inf and period != 0:
             if period < dt:
-                raise ValueError('The period of %s is %s, which is smaller '
-                                 'than its dt of %s.' % (self.name,
-                                                         self.period[:],
-                                                         dt*second))
+                raise ValueError(f"The period of '{self.name}' is {self.period[:]!s}, "
+                                 f"which is smaller than its dt of {dt*second!s}.")
 
         if self._spikes_changed:
             current_t = self.variables['t'].get_value().item()
@@ -175,11 +173,10 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             current_step = timestep(current_t, dt)
             in_the_past = np.nonzero(timesteps < current_step)[0]
             if len(in_the_past):
-                logger.warn('The SpikeGeneratorGroup contains spike times '
-                            'earlier than the start time of the current run '
-                            '(t = {}), these spikes will be '
-                            'ignored.'.format(str(current_t*second)),
-                            name_suffix='ignored_spikes')
+                logger.warn(f"The SpikeGeneratorGroup contains spike times "
+                            f"earlier than the start time of the current run "
+                            f"(t = {current_t*second!s}), these spikes will be "
+                            f"ignored.", name_suffix='ignored_spikes')
                 self.variables['_lastindex'].set_value(in_the_past[-1] + 1)
             else:
                 self.variables['_lastindex'].set_value(0)
@@ -197,27 +194,25 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             # that timebins[i]==timebins[i+1] and self._neuron_index[i]==self._neuron_index[i+1]
             # is ever both true
             if (np.logical_and(np.diff(timebins)==0, np.diff(self._neuron_index)==0)).any():
-                raise ValueError('Using a dt of %s, some neurons of '
-                                 'SpikeGeneratorGroup "%s" spike more than '
-                                 'once during a time step.' % (str(self.dt),
-                                                               self.name))
+                raise ValueError(f"Using a dt of {self.dt!s}, some neurons of "
+                                 f"SpikeGeneratorGroup '{self.name}' spike more than "
+                                 f"once during a time step.")
             self.variables['_timebins'].set_value(timebins)
             period_bins = np.round(period / dt)
             max_int = np.iinfo(np.int32).max
             if period_bins > max_int:
-                logger.warn('Periods longer than {} timesteps (={}) are not '
-                            'supported, the period will therefore be '
-                            'considered infinite. Set the period to 0*second '
-                            'to avoid this '
-                            'warning.'.format(max_int, str(max_int*dt*second)),
-                            'spikegenerator_long_period')
+                logger.warn(f"Periods longer than {max_int} timesteps "
+                            f"(={max_int*dt*second!s}) are not "
+                            "supported, the period will therefore be "
+                            "considered infinite. Set the period to 0*second "
+                            "to avoid this "
+                            "warning.", 'spikegenerator_long_period')
                 period = period_bins = 0
             if np.abs(period_bins * dt - period) > period * np.finfo(dt.dtype).eps:
-                raise NotImplementedError('The period of %s is %s, which is '
-                                          'not an integer multiple of its dt '
-                                          'of %s.' % (self.name,
-                                                      self.period[:],
-                                                      dt * second))
+                raise NotImplementedError(f"The period of '{self.name}' is "
+                                          f"{self.period[:]!s}, which is "
+                                          f"not an integer multiple of its dt "
+                                          f"of {dt*second!s}.")
 
             self.variables['_period_bins'].set_value(period_bins)
 
@@ -228,7 +223,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     @check_units(indices=1, times=second, period=second)
     def set_spikes(self, indices, times, period=0*second, sorted=False):
-        '''
+        """
         set_spikes(indices, times, period=0*second, sorted=False)
 
         Change the spikes that this group will generate.
@@ -254,7 +249,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             ``True`` if your events are already sorted (first by spike time,
             then by index), this can save significant time at construction if
             your arrays contain large numbers of spikes. Defaults to ``False``.
-        '''
+        """
 
         indices, times = self._check_args(indices, times, period, self.N,
                                           sorted, self.dt)
@@ -272,23 +267,22 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     def _check_args(self, indices, times, period, N, sorted, dt):
         times = Quantity(times)
         if len(indices) != len(times):
-            raise ValueError(('Length of the indices and times array must '
-                              'match, but %d != %d') % (len(indices),
-                                                        len(times)))
+            raise ValueError(f"Length of the indices and times array must "
+                             f"match, but {len(indices)} != {len(times)}")
         if period < 0*second:
-            raise ValueError('The period cannot be negative.')
+            raise ValueError("The period cannot be negative.")
         elif len(times) and period != 0*second:
             period_bins = np.round(period / dt)
             # Note: we have to use the timestep function here, to use the same
             # binning as in the actual simulation
             max_bin = timestep(np.max(times), dt)
             if max_bin >= period_bins:
-                raise ValueError('The period has to be greater than the '
-                                 'maximum of the spike times')
+                raise ValueError("The period has to be greater than the "
+                                 "maximum of the spike times")
         if len(times) and np.min(times) < 0*second:
-            raise ValueError('Spike times cannot be negative')
+            raise ValueError("Spike times cannot be negative")
         if len(indices) and (np.min(indices) < 0 or np.max(indices) >= N):
-            raise ValueError('Indices have to lie in the interval [0, %d[' % N)
+            raise ValueError(f'Indices have to lie in the interval [0, {int(N)}[')
 
         times = np.asarray(times)
         indices = np.asarray(indices)
@@ -309,9 +303,9 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     @property
     def spikes(self):
-        '''
+        """
         The spikes returned by the most recent thresholding operation.
-        '''
+        """
         # Note that we have to directly access the ArrayVariable object here
         # instead of using the Group mechanism by accessing self._spikespace
         # Using the latter would cut _spikespace to the length of the group
@@ -319,7 +313,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         return spikespace[:spikespace[-1]]
 
     def __repr__(self):
-        return ('{cls}({N}, indices=<length {l} array>, '
-                'times=<length {l} array>').format(cls=self.__class__.__name__,
-                                                   N=self.N,
-                                                   l=self.variables['neuron_index'].size)
+        cls = self.__class__.__name__
+        l = self.variables['neuron_index'].size
+        return (f"{cls}({self.N}, indices=<length {l} array>, "
+                f"times=<length {l} array>)")

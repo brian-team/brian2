@@ -1,4 +1,4 @@
-'''
+"""
 An example that uses a function from external C library (OpenCV in this case).
 Works for all C-based code generation targets (i.e. for cython and cpp_standalone
 device) and for numpy (using the Python bindings).
@@ -6,7 +6,7 @@ device) and for numpy (using the Python bindings).
 This example needs a working installation of OpenCV 3.x and its Python bindings.
 It has been tested on 64 bit Linux in a conda environment with packages from the
 ``conda-forge`` channels (opencv 3.4.4, x264 1!152.20180717, ffmpeg 4.1).
-'''
+"""
 import os
 import urllib.request, urllib.error, urllib.parse
 import cv2  # Import OpenCV2

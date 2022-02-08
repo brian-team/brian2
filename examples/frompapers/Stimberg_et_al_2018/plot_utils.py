@@ -3,7 +3,7 @@ Module with useful functions for making publication-ready plots.
 """
 
 
-def adjust_spines(ax, spines, position=5, smart_bounds=False):
+def adjust_spines(ax, spines, position=5):
     """
     Set custom visibility and position of axes
 
@@ -17,7 +17,6 @@ def adjust_spines(ax, spines, position=5, smart_bounds=False):
     for loc, spine in ax.spines.items():
         if loc in spines:
             spine.set_position(('outward', position))
-            spine.set_smart_bounds(smart_bounds)
         else:
             spine.set_color('none')  # don't draw spine
 

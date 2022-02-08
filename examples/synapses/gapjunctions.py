@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-'''
+"""
 Neurons with gap junctions.
-'''
+"""
 from brian2 import *
 
 n = 10
@@ -20,10 +20,8 @@ trace = StateMonitor(neurons, 'v', record=[0, 5])
 
 S = Synapses(neurons, neurons, '''
              w : 1 # gap junction conductance
-             dx/dt = -x/(10*ms) : 1 (event-driven)
-             dy/dt = (y-x)/(10*ms) : 1 (clock-driven)
-             Igap_post = w * (v_pre - v_post - y) : 1 (summed)
-             ''', on_pre='x += 1')
+             Igap_post = w * (v_pre - v_post) : 1 (summed)
+             ''')
 S.connect()
 S.w = .02
 

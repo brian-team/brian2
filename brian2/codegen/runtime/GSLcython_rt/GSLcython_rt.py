@@ -1,7 +1,7 @@
-'''
+"""
 Module containing the Cython CodeObject for code generation for integration using the ODE solver provided in the
 GNU Scientific Library (GSL)
-'''
+"""
 
 import sys
 from distutils.errors import CompileError
@@ -18,9 +18,9 @@ class GSLCompileError(Exception):
     pass
 
 class IntegrationError(Exception):
-    '''
+    """
     Error used to signify that GSL was unable to complete integration (only works for cython)
-    '''
+    """
     pass
 
 class GSLCythonCodeObject(CythonCodeObject):

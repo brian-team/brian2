@@ -1,5 +1,3 @@
-
-
 import re
 import logging
 
@@ -10,30 +8,29 @@ from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, Variable, Constant
 from brian2.stateupdaters.base import UnsupportedEquationsException
-from brian2.tests.utils import assert_allclose
-
+from brian2.tests.utils import assert_allclose, exc_isinstance
 
 @pytest.mark.codegen_independent
 def test_explicit_stateupdater_parsing():
-    '''
+    """
     Test the parsing of explicit state updater descriptions.
-    '''
+    """
     # These are valid descriptions and should not raise errors
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     updater(Equations('dv/dt = -v / tau : 1'))
-    updater = ExplicitStateUpdater('''x2 = x + dt * f(x, t)
-                                      x_new = x2''')
+    updater = ExplicitStateUpdater("""x2 = x + dt * f(x, t)
+                                      x_new = x2""")
     updater(Equations('dv/dt = -v / tau : 1'))
-    updater = ExplicitStateUpdater('''x1 = g(x, t) * dW
+    updater = ExplicitStateUpdater("""x1 = g(x, t) * dW
                                       x2 = x + dt * f(x, t)
-                                      x_new = x1 + x2''',
+                                      x_new = x1 + x2""",
                                    stochastic='multiplicative')
     updater(Equations('dv/dt = -v / tau + v * xi * tau**-.5: 1'))
     
-    updater = ExplicitStateUpdater('''x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
+    updater = ExplicitStateUpdater("""x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
                                       g_support = g(x_support, t)
                                       k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
-                                      x_new = x + dt*f(x,t) + g(x, t) * dW + k''',
+                                      x_new = x + dt*f(x,t) + g(x, t) * dW + k""",
                                    stochastic='multiplicative')
     updater(Equations('dv/dt = -v / tau + v * xi * tau**-.5: 1'))
 
@@ -44,11 +41,11 @@ def test_explicit_stateupdater_parsing():
         ExplicitStateUpdater('x = x + dt * f(x, t)')
     # Not an assigment
     with pytest.raises(SyntaxError):
-        ExplicitStateUpdater('''2 * x
-                                x_new = x + dt * f(x, t)''')
+        ExplicitStateUpdater("""2 * x
+                                x_new = x + dt * f(x, t)""")
     
     # doesn't separate into stochastic and non-stochastic part
-    updater = ExplicitStateUpdater('''x_new = x + dt * f(x, t) * g(x, t) * dW''')
+    updater = ExplicitStateUpdater("""x_new = x + dt * f(x, t) * g(x, t) * dW""")
     with pytest.raises(ValueError):
         updater(Equations(''))
 
@@ -63,9 +60,9 @@ def test_non_autonomous_equations():
 
 @pytest.mark.codegen_independent
 def test_str_repr():
-    '''
+    """
     Assure that __str__ and __repr__ do not raise errors 
-    '''
+    """
     for integrator in [linear, euler, rk2, rk4]:
         assert len(str(integrator))
         assert len(repr(integrator))
@@ -75,8 +72,8 @@ def test_str_repr():
 def test_multiple_noise_variables_basic():
     # Very basic test, only to make sure that stochastic state updaters handle
     # multiple noise variables at all
-    eqs = Equations('''dv/dt = -v / (10*ms) + xi_1 * ms ** -.5 : 1
-                       dw/dt = -w / (10*ms) + xi_2 * ms ** -.5 : 1''')
+    eqs = Equations("""dv/dt = -v / (10*ms) + xi_1 * ms ** -.5 : 1
+                       dw/dt = -w / (10*ms) + xi_2 * ms ** -.5 : 1""")
     for method in [euler, heun, milstein]:
         code = method(eqs, {})
         assert 'xi_1' in code
@@ -85,17 +82,17 @@ def test_multiple_noise_variables_basic():
 
 def test_multiple_noise_variables_extended():
     # Some actual simulations with multiple noise variables
-    eqs = '''dx/dt = y : 1
+    eqs = """dx/dt = y : 1
              dy/dt = - 1*ms**-1*y - 40*ms**-2*x : Hz
-            '''
-    all_eqs_noise = ['''dx/dt = y : 1
+            """
+    all_eqs_noise = ["""dx/dt = y : 1
                         dy/dt = noise_factor*ms**-1.5*xi_1 + noise_factor*ms**-1.5*xi_2
                            - 1*ms**-1*y - 40*ms**-2*x : Hz
-                     ''',
-                     '''dx/dt = y + noise_factor*ms**-0.5*xi_1: 1
+                     """,
+                     """dx/dt = y + noise_factor*ms**-0.5*xi_1: 1
                         dy/dt = noise_factor*ms**-1.5*xi_2
                             - 1*ms**-1*y - 40*ms**-2*x : Hz
-                     ''']
+                     """]
     G = NeuronGroup(2, eqs, method='euler')
     G.x = [0.5, 1]
     G.y = [0, 0.5] * Hz
@@ -116,24 +113,24 @@ def test_multiple_noise_variables_extended():
                 # non-stochastic terms that are added twice, see #330
                 net.run(10*ms, namespace={'noise_factor': 0})
             assert_allclose(mon.x[:], no_noise_x,
-                            err_msg='Method %s gave incorrect results' % method_name)
+                            err_msg=f'Method {method_name} gave incorrect results')
             assert_allclose(mon.y[:], no_noise_y,
-                            err_msg='Method %s gave incorrect results' % method_name)
+                            err_msg=f'Method {method_name} gave incorrect results')
 
 
 def test_multiple_noise_variables_deterministic_noise(fake_randn_randn_fixture):
-    all_eqs = ['''dx/dt = y : 1
+    all_eqs = ["""dx/dt = y : 1
                           dy/dt = -y / (10*ms) + dt**-.5*0.5*ms**-1.5 + dt**-.5*0.5*ms**-1.5: Hz
-                     ''',
-                     '''dx/dt = y + dt**-.5*0.5*ms**-0.5: 1
+                     """,
+                     """dx/dt = y + dt**-.5*0.5*ms**-0.5: 1
                         dy/dt = -y / (10*ms) + dt**-.5*0.5 * ms**-1.5 : Hz
-                ''']
-    all_eqs_noise = ['''dx/dt = y : 1
+                """]
+    all_eqs_noise = ["""dx/dt = y : 1
                           dy/dt = -y / (10*ms) + xi_1 * ms**-1.5 + xi_2 * ms**-1.5: Hz
-                     ''',
-                     '''dx/dt = y + xi_1*ms**-0.5: 1
+                     """,
+                     """dx/dt = y + xi_1*ms**-0.5: 1
                         dy/dt = -y / (10*ms) + xi_2 * ms**-1.5 : Hz
-                     ''']
+                     """]
     for eqs, eqs_noise in zip(all_eqs, all_eqs_noise):
         G = NeuronGroup(2, eqs, method='euler')
         G.x = [5,  17]
@@ -152,9 +149,9 @@ def test_multiple_noise_variables_deterministic_noise(fake_randn_randn_fixture):
                 net = Network(G, mon)
                 net.run(10*ms)
             assert_allclose(mon.x[:], no_noise_x,
-                            err_msg='Method %s gave incorrect results' % method_name)
+                            err_msg=f'Method {method_name} gave incorrect results')
             assert_allclose(mon.y[:], no_noise_y,
-                            err_msg='Method %s gave incorrect results' % method_name)
+                            err_msg=f'Method {method_name} gave incorrect results')
 
 
 @pytest.mark.codegen_independent
@@ -172,7 +169,7 @@ def test_multiplicative_noise():
     net1 = Network(group1)
     with pytest.raises(BrianObjectException) as exc:
         net1.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Noise is multiplicative (multiplied with time)
     Eq2 = Equations('dv/dt = (t/ms)*xi*(5*ms)**-0.5 :1')
@@ -180,34 +177,34 @@ def test_multiplicative_noise():
     net2 = Network(group2)
     with pytest.raises(BrianObjectException) as exc:
         net2.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Noise is multiplicative (multiplied with time-varying variable)
-    Eq3 = Equations('''dv/dt = w*xi*(5*ms)**-0.5 :1
-                       dw/dt = -w/(10*ms) : 1''')
+    Eq3 = Equations("""dv/dt = w*xi*(5*ms)**-0.5 :1
+                       dw/dt = -w/(10*ms) : 1""")
     group3 = NeuronGroup(1, Eq3, method='euler')
     net3 = Network(group3)
     with pytest.raises(BrianObjectException) as exc:
         net3.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # One of the equations has multiplicative noise
-    Eq4 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
-                       dw/dt = (t/ms)*xi_2*(5*ms)**-0.5 :1''')
+    Eq4 = Equations("""dv/dt = xi_1*(5*ms)**-0.5 : 1
+                       dw/dt = (t/ms)*xi_2*(5*ms)**-0.5 :1""")
     group4 = NeuronGroup(1, Eq4, method='euler')
     net4 = Network(group4)
     with pytest.raises(BrianObjectException) as exc:
         net4.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # One of the equations has multiplicative noise
-    Eq5 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
-                       dw/dt = v*xi_2*(5*ms)**-0.5 :1''')
+    Eq5 = Equations("""dv/dt = xi_1*(5*ms)**-0.5 : 1
+                       dw/dt = v*xi_2*(5*ms)**-0.5 :1""")
     group5 = NeuronGroup(1, Eq5, method='euler')
     net5 = Network(group4)
     with pytest.raises(BrianObjectException) as exc:
         net5.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
 
 def test_pure_noise_deterministic(fake_randn_randn_fixture):
@@ -218,16 +215,16 @@ def test_pure_noise_deterministic(fake_randn_randn_fixture):
         G = NeuronGroup(1, eqs, dt=dt, method=method)
         run(10*dt)
         assert_allclose(G.x, sqrt(dt)*sigma*0.5/sqrt(1*ms)*10,
-                        err_msg='method %s did not give the expected result' % method)
+                        err_msg=f'method {method} did not give the expected result')
 
 
 @pytest.mark.codegen_independent
 def test_temporary_variables():
-    '''
+    """
     Make sure that the code does the distinction between temporary variables
     in the state updater description and external variables used in the
     equations.
-    '''
+    """
     # Use a variable name that is used in the state updater description
     k_2 = 5
     eqs = Equations('dv/dt = -(v + k_2)/(10*ms) : 1')
@@ -244,11 +241,11 @@ def test_temporary_variables():
 
 @pytest.mark.codegen_independent
 def test_temporary_variables2():
-    '''
+    """
     Make sure that the code does the distinction between temporary variables
     in the state updater description and external variables used in the
     equations.
-    '''
+    """
     tau = 10*ms
     # Use a variable name that is used in the state updater description
     k = 5
@@ -266,16 +263,16 @@ def test_temporary_variables2():
 
 @pytest.mark.codegen_independent
 def test_integrator_code():
-    '''
+    """
     Check whether the returned abstract code is as expected.
-    '''
+    """
     # A very simple example where the abstract code should always look the same
     eqs = Equations('dv/dt = -v / (1 * second) : 1')
     
     # Only test very basic stuff (expected number of lines and last line)
     for integrator, lines in zip([linear, euler, rk2, rk4], [2, 2, 3, 6]):
         code_lines = integrator(eqs).split('\n')
-        err_msg = 'Returned code for integrator %s had %d lines instead of %d' % (integrator.__class__.__name__, len(code_lines), lines)
+        err_msg = f'Returned code for integrator {integrator.__class__.__name__} had {len(code_lines)} lines instead of {int(lines)}'
         assert len(code_lines) == lines, err_msg
         assert code_lines[-1] == 'v = _v'
     
@@ -287,34 +284,34 @@ def test_integrator_code():
         # We use a very similar names here to avoid slightly re-arranged
         # expressions due to alphabetical sorting of terms in
         # multiplications, etc.
-        eqs_v = Equations('d{varname}0/dt = -{varname}0 / (1 * second) : 1'.format(varname=varname))
-        eqs_var = Equations('d{varname}/dt = -{varname} / (1 * second) : 1'.format(varname=varname))  
+        eqs_v = Equations(f'd{varname}0/dt = -{varname}0 / (1 * second) : 1')
+        eqs_var = Equations(f'd{varname}/dt = -{varname} / (1 * second) : 1')
         for integrator in [linear, euler, rk2, rk4]:
             code_v = integrator(eqs_v)
             code_var = integrator(eqs_var)
             # Re-substitute the variable names in the output
-            code_var = re.sub(r'\b{varname}\b'.format(varname=varname),
-                              '{varname}0'.format(varname=varname), code_var)
-            code_var = re.sub(r'\b(\w*)_{varname}\b'.format(varname=varname),
-                              r'\1_{varname}0'.format(varname=varname), code_var)
-            assert code_var == code_v, "'%s' does not match '%s'" % (code_var, code_v)
+            code_var = re.sub(rf'\b{varname}\b',
+                              f'{varname}0', code_var)
+            code_var = re.sub(rf'\b(\w*)_{varname}\b',
+                              rf'\1_{varname}0', code_var)
+            assert code_var == code_v, f"'{code_var}' does not match '{code_v}'"
 
 
 @pytest.mark.codegen_independent
 def test_integrator_code2():
-    '''
+    """
     Test integration for a simple model with several state variables.
-    '''
-    eqs = Equations('''
+    """
+    eqs = Equations("""
     dv/dt=(ge+gi-v)/tau : volt
     dge/dt=-ge/taue : volt
     dgi/dt=-gi/taui : volt
-    ''')
+    """)
     euler_integration = euler(eqs)
     lines = sorted(euler_integration.split('\n'))
     # Do a very basic check that the right variables are used in every line
     for varname, line in zip(['_ge', '_gi', '_v', 'ge', 'gi', 'v'], lines):
-        assert line.startswith(varname + ' = '), 'line "%s" does not start with %s' % (line, varname)
+        assert line.startswith(f"{varname} = "), f'line "{line}" does not start with {varname}'
     for variables, line in zip([['dt', 'ge', 'taue'],
                                 ['dt', 'gi', 'taui'],
                                 ['dt', 'ge', 'gi', 'v', 'tau'],
@@ -322,7 +319,7 @@ def test_integrator_code2():
                                lines):
         rhs = line.split('=')[1]
         for variable in variables:
-            assert variable in rhs, '%s not in RHS: "%s"' % (variable, rhs)
+            assert variable in rhs, f'{variable} not in RHS: "{rhs}"'
 
 @pytest.mark.codegen_independent
 def test_illegal_calls():
@@ -357,16 +354,14 @@ def check_integration(eqs, variables, can_integrate):
         try:
             integrator(eqs, variables)
             if able is False:
-                raise AssertionError('Should not be able to integrate these '
-                                     'equations (equations: "{}") with '
-                                     'integrator {}'.format(eqs,
-                                                            integrator.__class__.__name__))
+                raise AssertionError(f"Should not be able to integrate these "
+                                     f"equations (equations: '{eqs}') with "
+                                     f"integrator {integrator.__class__.__name__}")
         except UnsupportedEquationsException:
             if able is True:
-                raise AssertionError('Should be able to integrate these '
-                                     'equations (equations: "{}") with '
-                                     'integrator {}'.format(eqs,
-                                                            integrator.__class__.__name__))
+                raise AssertionError(f"Should be able to integrate these "
+                                     f"equations (equations: '{eqs}') with "
+                                     f"integrator {integrator.__class__.__name__}")
 
 @pytest.mark.codegen_independent
 def test_priority():
@@ -395,8 +390,8 @@ def test_priority():
 
     # Constant equation, should work for all except linear (see #1010)
     param = 1
-    eqs = Equations('''dv/dt = 10*Hz : 1
-                       dw/dt = -v/(10*ms) : 1''')
+    eqs = Equations("""dv/dt = 10*Hz : 1
+                       dw/dt = -v/(10*ms) : 1""")
     updater(eqs, variables)  # should not raise an error
     can_integrate = {linear: None, euler: True, exponential_euler: True,
                      rk2: True, rk4: True, heun: True, milstein: True}
@@ -404,10 +399,10 @@ def test_priority():
     check_integration(eqs, variables, can_integrate)
 
     # Equations resulting in complex linear solution for older versions of sympy
-    eqs = Equations('''dv/dt      = (ge+gi-(v+49*mV))/(20*ms) : volt
+    eqs = Equations("""dv/dt      = (ge+gi-(v+49*mV))/(20*ms) : volt
             dge/dt     = -ge/(5*ms) : volt
             dgi/dt     = Dgi/(5*ms) : volt
-            dDgi/dt    = ((-2./5) * Dgi - (1./5**2)*gi)/(10*ms) : volt''')
+            dDgi/dt    = ((-2./5) * Dgi - (1./5**2)*gi)/(10*ms) : volt""")
     can_integrate = {linear: None, euler: True, exponential_euler: True,
                      rk2: True, rk4: True, heun: True, milstein: True}
     check_integration(eqs, variables, can_integrate)
@@ -436,9 +431,9 @@ def test_priority():
 
 @pytest.mark.codegen_independent
 def test_registration():
-    '''
+    """
     Test state updater registration.
-    '''
+    """
     # Save state before tests
     before = dict(StateUpdateMethod.stateupdaters)
     
@@ -463,9 +458,9 @@ def test_registration():
 
 @pytest.mark.codegen_independent
 def test_determination():
-    '''
+    """
     Test the determination of suitable state updaters.
-    '''
+    """
     # To save some typing
     apply_stateupdater = StateUpdateMethod.apply_stateupdater
     
@@ -481,7 +476,7 @@ def test_determination():
         with catch_logs() as logs:
             returned = apply_stateupdater(eqs, variables,
                                           method=integrator)
-            assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
+            assert len(logs) == 0, f'Got {len(logs)} unexpected warnings: {str([l[2] for l in logs])}'
     
     # Equation with multiplicative noise, only milstein and heun should work
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
@@ -493,7 +488,7 @@ def test_determination():
         with catch_logs() as logs:
             returned = apply_stateupdater(eqs, variables,
                                           method=integrator)
-            assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
+            assert len(logs) == 0, f'Got {len(logs)} unexpected warnings: {str([l[2] for l in logs])}'
     
     # Arbitrary functions (converting equations into abstract code) should
     # always work
@@ -551,8 +546,8 @@ def test_determination():
         assert ('linear' in logs[0][2]) or ('exact' in logs[0][2])
     
     # This is conditionally linear
-    eqs = Equations('''dv/dt = -(v + w**2)/ (10*ms) : 1
-                       dw/dt = -w/ (10*ms) : 1''')
+    eqs = Equations("""dv/dt = -(v + w**2)/ (10*ms) : 1
+                       dw/dt = -w/ (10*ms) : 1""")
     with catch_logs(log_level=logging.INFO) as logs:
         apply_stateupdater(eqs, variables, all_methods)
         assert len(logs) == 1
@@ -582,15 +577,15 @@ def test_determination():
 
 @pytest.mark.standalone_compatible
 def test_subexpressions_basic():
-    '''
+    """
     Make sure that the integration of a (non-stochastic) differential equation
     does not depend on whether it's formulated using subexpressions.
-    '''
+    """
     # no subexpression
     eqs1 = 'dv/dt = (-v + sin(2*pi*100*Hz*t)) / (10*ms) : 1'
     # same with subexpression
-    eqs2 = '''dv/dt = I / (10*ms) : 1
-              I = -v + sin(2*pi*100*Hz*t): 1'''
+    eqs2 = """dv/dt = I / (10*ms) : 1
+              I = -v + sin(2*pi*100*Hz*t): 1"""
     method = 'euler'
     G1 = NeuronGroup(1, eqs1, method=method)
     G1.v = 1
@@ -599,19 +594,19 @@ def test_subexpressions_basic():
     mon1 = StateMonitor(G1, 'v', record=True)
     mon2 = StateMonitor(G2, 'v', record=True)
     run(10*ms)
-    assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
+    assert_equal(mon1.v, mon2.v, f'Results for method {method} differed!')
 
 
 def test_subexpressions():
-    '''
+    """
     Make sure that the integration of a (non-stochastic) differential equation
     does not depend on whether it's formulated using subexpressions.
-    '''
+    """
     # no subexpression
     eqs1 = 'dv/dt = (-v + sin(2*pi*100*Hz*t)) / (10*ms) : 1'
     # same with subexpression
-    eqs2 = '''dv/dt = I / (10*ms) : 1
-              I = -v + sin(2*pi*100*Hz*t): 1'''
+    eqs2 = """dv/dt = I / (10*ms) : 1
+              I = -v + sin(2*pi*100*Hz*t): 1"""
     
     methods = ['exponential_euler', 'rk2', 'rk4']  # euler is tested in test_subexpressions_basic
     for method in methods:
@@ -623,7 +618,7 @@ def test_subexpressions():
         mon2 = StateMonitor(G2, 'v', record=True)
         net = Network(G1, mon1, G2, mon2)
         net.run(10*ms)
-        assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
+        assert_equal(mon1.v, mon2.v, f'Results for method {method} differed!')
 
 
 @pytest.mark.codegen_independent
@@ -673,7 +668,7 @@ def test_locally_constant_check():
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Arbitrary functions are not constant over a time step
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*t)*Hz : 1',
@@ -681,7 +676,7 @@ def test_locally_constant_check():
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Stateful functions aren't either
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + rand()*Hz : 1',
@@ -689,14 +684,14 @@ def test_locally_constant_check():
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Neither is "t" itself
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='exact')
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # But if the argument is not referring to t, all should be well
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',
@@ -714,7 +709,7 @@ def test_refractory():
     for method in ['linear', 'exact', 'independent', 'euler', 'exponential_euler', 'rk2', 'rk4']:
         G_no_ref = NeuronGroup(10, eqs_base, method=method)
         G_no_ref.v = '(i+1)/11.'
-        G_ref = NeuronGroup(10, eqs_base + '(unless refractory)',
+        G_ref = NeuronGroup(10, f"{eqs_base}(unless refractory)",
                             refractory=1*ms, method=method)
         G_ref.v = '(i+1)/11.'
         net = Network(G_ref, G_no_ref)
@@ -731,7 +726,7 @@ def test_refractory_stochastic(fake_randn_randn_fixture):
     for method in ['euler', 'heun', 'milstein']:
         G_no_ref = NeuronGroup(10, eqs_base, method=method)
         G_no_ref.v = '(i+1)/11.'
-        G_ref = NeuronGroup(10, eqs_base + ' (unless refractory)',
+        G_ref = NeuronGroup(10, f"{eqs_base} (unless refractory)",
                             refractory=1*ms, method=method)
         G_ref.v = '(i+1)/11.'
         net = Network(G_ref, G_no_ref)
@@ -750,10 +745,10 @@ def test_check_for_invalid_values_linear_integrator():
     b = 1.0 / ms
     c = -0.5 / ms
     d = -0.1 / ms
-    eqs = '''
+    eqs = """
     dx/dt = a * x + b * y : 1
     dy/dt = c * x + d * y : 1
-    '''
+    """
     G = NeuronGroup(1, eqs, threshold='x > 100', reset='x = 0', method='exact',
                     method_options={'simplify': False})
     G.x = 1

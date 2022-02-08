@@ -1,6 +1,6 @@
-'''
+"""
 Implementation of `TimedArray`.
-'''
+"""
 
 
 import numpy as np
@@ -26,7 +26,8 @@ def _find_K(group_dt, dt):
     dt_ratio = dt / group_dt
     if dt_ratio > 1 and np.floor(dt_ratio) != dt_ratio:
         logger.warn(('Group uses a dt of %s while TimedArray uses dt '
-                     'of %s') % (group_dt*second, dt*second), once=True)
+                     'of %s (ratio: 1/%s) → time grids not aligned') %
+                    (group_dt*second, dt*second, dt_ratio), once=True)
     # Find an upsampling factor that should avoid rounding issues even
     # for multistep methods
     K = max(int(2**np.ceil(np.log2(8/group_dt*dt))), 1)
@@ -36,7 +37,7 @@ def _find_K(group_dt, dt):
 def _generate_cpp_code_1d(values, dt, name):
     def cpp_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
-        code = '''
+        code = """
         static inline double %NAME%(const double t)
         {
             const double epsilon = %DT% / %K%;
@@ -47,7 +48,7 @@ def _generate_cpp_code_1d(values, dt, name):
                 i = %NUM_VALUES%-1;
             return _namespace%NAME%_values[i];
         }
-        '''.replace('%NAME%', name).replace('%DT%', '%.18f' % dt).replace(
+        """.replace('%NAME%', name).replace('%DT%', f'{dt:.18f}').replace(
             '%K%', str(K)).replace('%NUM_VALUES%', str(len(values)))
 
         return code
@@ -58,7 +59,7 @@ def _generate_cpp_code_1d(values, dt, name):
 def _generate_cpp_code_2d(values, dt, name):
     def cpp_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
-        support_code = '''
+        support_code = """
         static inline double %NAME%(const double t, const int i)
         {
             const double epsilon = %DT% / %K%;
@@ -71,9 +72,9 @@ def _generate_cpp_code_2d(values, dt, name):
                 timestep = %ROWS%-1;
             return _namespace%NAME%_values[timestep*%COLS% + i];
         }
-        '''
+        """
         code = replace(support_code, {'%NAME%': name,
-                                      '%DT%': '%.18f' % dt,
+                                      '%DT%': f'{dt:.18f}',
                                       '%K%': str(K),
                                       '%COLS%': str(values.shape[1]),
                                       '%ROWS%': str(values.shape[0])})
@@ -84,7 +85,7 @@ def _generate_cpp_code_2d(values, dt, name):
 def _generate_cython_code_1d(values, dt, name):
     def cython_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
-        code = '''
+        code = """
         cdef double %NAME%(const double t):
             global _namespace%NAME%_values
             cdef double epsilon = %DT% / %K%
@@ -94,7 +95,7 @@ def _generate_cython_code_1d(values, dt, name):
             if i >= %NUM_VALUES%:
                 i = %NUM_VALUES% - 1
             return _namespace%NAME%_values[i]
-        '''.replace('%NAME%', name).replace('%DT%', '%.18f' % dt).replace(
+        """.replace('%NAME%', name).replace('%DT%', f'{dt:.18f}').replace(
             '%K%', str(K)).replace('%NUM_VALUES%', str(len(values)))
 
         return code
@@ -104,7 +105,7 @@ def _generate_cython_code_1d(values, dt, name):
 def _generate_cython_code_2d(values, dt, name):
     def cython_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
-        code = '''
+        code = """
         cdef double %NAME%(const double t, const int i):
             global _namespace%NAME%_values
             cdef double epsilon = %DT% / %K%
@@ -116,9 +117,9 @@ def _generate_cython_code_2d(values, dt, name):
             elif timestep >= %ROWS%:
                 timestep = %ROWS%-1
             return _namespace%NAME%_values[timestep*%COLS% + i]
-        '''
+        """
         code = replace(code, {'%NAME%': name,
-                              '%DT%': '%.18f' % dt,
+                              '%DT%': f'{dt:.18f}',
                               '%K%': str(K),
                               '%COLS%': str(values.shape[1]),
                               '%ROWS%': str(values.shape[0])})
@@ -127,7 +128,7 @@ def _generate_cython_code_2d(values, dt, name):
 
 
 class TimedArray(Function, Nameable, CacheKey):
-    '''
+    """
     TimedArray(values, dt, name=None)
 
     A function of time built from an array of values. The returned object can
@@ -176,7 +177,7 @@ class TimedArray(Function, Nameable, CacheKey):
      [ 2.  4.]
      [ 1.  3.]
      [ 2.  4.]] mV
-    '''
+    """
     _cache_irrelevant_attributes = {'_id', 'values', 'pyfunc',
                                     'implementations'}
 
@@ -210,8 +211,8 @@ class TimedArray(Function, Nameable, CacheKey):
         elif values.ndim == 2:
             self._init_2d()
         else:
-            raise NotImplementedError(('Only 1d and 2d arrays are supported '
-                                       'for TimedArray'))
+            raise NotImplementedError("Only 1d and 2d arrays are supported "
+                                      "for TimedArray")
 
     def _init_1d(self):
         dimensions = self.dim
@@ -252,7 +253,7 @@ class TimedArray(Function, Nameable, CacheKey):
 
         self.implementations.add_dynamic_implementation('numpy',
                                                         create_numpy_implementation)
-        namespace = lambda owner: {'%s_values' % self.name: self.values}
+        namespace = lambda owner: {f'{self.name}_values': self.values}
 
         for target, (func_1d, _) in TimedArray.implementations.items():
             self.implementations.add_dynamic_implementation(target,
@@ -304,7 +305,7 @@ class TimedArray(Function, Nameable, CacheKey):
         values_flat = self.values.astype(np.double,
                                        order='C',
                                        copy=False).ravel()
-        namespace = lambda owner: {'%s_values' % self.name: values_flat}
+        namespace = lambda owner: {f'{self.name}_values': values_flat}
 
         for target, (_, func_2d) in TimedArray.implementations.items():
             self.implementations.add_dynamic_implementation(target,

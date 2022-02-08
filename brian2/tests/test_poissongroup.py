@@ -1,4 +1,3 @@
-
 import uuid
 
 from numpy.testing import assert_equal
@@ -8,6 +7,7 @@ from brian2 import *
 from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_and_delete
 from brian2.utils.logger import catch_logs
+from brian2.tests.utils import exc_isinstance
 
 
 @pytest.mark.standalone_compatible
@@ -43,13 +43,13 @@ def test_rate_unit_check():
     net = Network(P)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
     P = PoissonGroup(1, 'i')
     net = Network(P)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
 
 @pytest.mark.standalone_compatible
@@ -105,7 +105,7 @@ def test_poissongroup_namespace():
     rate_const = 0*Hz
     P = PoissonGroup(1, rates='rate_const', namespace={'rate_const':
                                                        1/defaultclock.dt},
-                     name='poissongroup_%s' % (uuid.uuid4().hex))
+                     name=f'poissongroup_{uuid.uuid4().hex}')
     P2 = PoissonGroup(1, rates='rate_const')
     mon = SpikeMonitor(P)
     mon2 = SpikeMonitor(P2)

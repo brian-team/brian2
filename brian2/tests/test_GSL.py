@@ -7,6 +7,7 @@ from brian2.core.preferences import PreferenceError
 
 from brian2.codegen.runtime.GSLcython_rt import IntegrationError
 from brian2.stateupdaters.base import UnsupportedEquationsException
+from brian2.tests.utils import exc_isinstance
 
 max_difference = .1*mV
 
@@ -30,14 +31,14 @@ def skip_if_not_implemented(func):
 def test_GSL_stateupdater_basic():
     # just the adaptive_threshold example: run for exponential_euler and GSL and see
     # if results are comparable (same amount of spikes and spikes > 0)
-    eqs = '''
+    eqs = """
     dv/dt = -v/(10*ms) : volt
     dvt/dt = (10*mV-vt)/(15*ms) : volt
-    '''
-    reset = '''
+    """
+    reset = """
     v = 0*mV
     vt += 3*mV
-    '''
+    """
     neurons_conventional = NeuronGroup(1, model=eqs, reset=reset,
                                        threshold='v>vt', method='exponential_euler')
     neurons_GSL = NeuronGroup(1, model=eqs, reset=reset,
@@ -80,10 +81,10 @@ def test_GSL_default_function():
         n = 100
         b = 1.2 # constant current mean, the modulation varies
         freq = 10*Hz
-        eqs = '''
+        eqs = """
         dv/dt = (-v + a * sin(2 * pi * freq * t) + b) / tau : 1
         a : 1
-        '''
+        """
         vrand = rand(n)
         neurons_conventional = NeuronGroup(n, model=eqs, threshold='v > 1',
                                            reset='v = 0', method='exponential_euler')
@@ -107,18 +108,18 @@ def test_GSL_default_function():
 @skip_if_not_implemented
 def test_GSL_user_defined_function():
     # phase_locking example with user_defined sin
-    eqs = '''
+    eqs = """
     dv/dt = (-v + a * sin(2 * pi * freq * t) + b) / tau : 1
     a : 1
-    '''
-    @implementation('cpp', '''
+    """
+    @implementation('cpp', """
     double user_sin(double phase)
     {
         return sin(phase);
-    }''')
-    @implementation('cython', '''
+    }""")
+    @implementation('cython', """
     cdef double user_sin(double phase):
-        return sin(phase)''')
+        return sin(phase)""")
     @check_units(phase=1, result=1)
     def user_sin(phase):
         raise Exception
@@ -126,10 +127,10 @@ def test_GSL_user_defined_function():
     n = 100
     b = 1.2 # constant current mean, the modulation varies
     freq = 10*Hz
-    eqs = '''
+    eqs = """
     dv/dt = (-v + a * user_sin(2 * pi * freq * t) + b) / tau : 1
     a : 1
-    '''
+    """
     vrand = rand(n)
     neurons_conventional = NeuronGroup(n, model=eqs, threshold='v > 1',
                                        reset='v = 0', method='exponential_euler')
@@ -177,87 +178,93 @@ def test_GSL_failing_directory():
 def test_GSL_stochastic():
     tau = 20*ms
     sigma = .015
-    eqs = '''
+    eqs = """
     dx/dt = (1.1 - x) / tau + sigma * (2 / tau)**.5 * xi : 1
-    '''
+    """
     neuron = NeuronGroup(1, eqs, method='gsl')
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={'tau': tau,
                                  'sigma': sigma})
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException,
+                          raise_not_implemented=True)
+
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_dimension_mismatch_unit():
-    eqs = '''
+    eqs = """
     dv/dt = (v0 - v)/(10*ms) : volt
     v0 : volt
-    '''
+    """
     options = {'absolute_error_per_variable' : {'v' : 1*nS}}
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_dimension_mismatch_dimensionless1():
-    eqs = '''
+    eqs = """
     dv/dt = (v0 - v)/(10*ms) : 1
     v0 : 1
-    '''
+    """
     options = {'absolute_error_per_variable' : {'v' : 1*mV}}
     neuron = NeuronGroup(1, eqs, threshold='v > 10', reset='v = 0',
                          method='gsl', method_options=options)
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_dimension_mismatch_dimensionless2():
-    eqs = '''
+    eqs = """
     dv/dt = (v0 - v)/(10*ms) : volt
     v0 : volt
-    '''
+    """
     options = {'absolute_error_per_variable': {'v': 1e-3}}
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_nonexisting_variable():
-    eqs = '''
+    eqs = """
     dv/dt = (v0 - v)/(10*ms) : volt
     v0 : volt
-    '''
+    """
     options = {'absolute_error_per_variable' : {'dummy' : 1e-3*mV}}
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_incorrect_error_format():
-    eqs = '''
+    eqs = """
     dv/dt = (v0 - v)/(10*ms) : volt
     v0 : volt
-    '''
+    """
     options = {'absolute_error_per_variable': object()}
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
@@ -268,26 +275,29 @@ def test_GSL_error_incorrect_error_format():
     net2 = Network(neuron2)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError,
+                          raise_not_implemented=True)
     with pytest.raises(BrianObjectException) as exc:
         net2.run(0*ms, namespace={})
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_nonODE_variable():
-    eqs = '''
+    eqs = """
     dv/dt = (v0 - v)/(10*ms) : volt
     v0 : volt
-    '''
+    """
     options = {'absolute_error_per_variable': {'v0': 1e-3*mV}}
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
@@ -297,9 +307,9 @@ def test_GSL_error_bounds():
     error1 = 1e-2*volt
     error2 = 1e-4*volt
     error3 = 1e-6*volt  # default error
-    eqs = '''
+    eqs = """
     dv/dt = (stimulus(t) + -v)/(.1*ms) : volt
-    '''
+    """
     stimulus = TimedArray(rand(int(runtime/(10*ms)))*3*volt, dt=5*ms)
     neuron1 = NeuronGroup(1, model=eqs, reset='v=0*mV', threshold='v>10*volt',
                           method='gsl',
@@ -319,7 +329,7 @@ def test_GSL_error_bounds():
     err1 = abs(mon1.v[0] - mon_control.v[0])
     err2 = abs(mon2.v[0] - mon_control.v[0])
     err3 = abs(mon3.v[0] - mon_control.v[0])
-    assert max(err1) < error1, ("Error bound exceeded, error bound: %e, obtained error: %e"%(error1, max(err1)))
+    assert max(err1) < error1, (f"Error bound exceeded, error bound: {error1:e}, obtained error: {max(err1):e}")
     assert max(err2) < error2, ("Error bound exceeded")
     assert max(err3) < error3, ("Error bound exceeded")
     assert max(err1) > max(err2), ("The simulation with smaller error bound produced a bigger maximum error")
@@ -329,8 +339,8 @@ def test_GSL_error_bounds():
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_non_autonomous():
-    eqs = '''dv/dt = sin(2*pi*freq*t)/ms : 1
-             freq : Hz'''
+    eqs = """dv/dt = sin(2*pi*freq*t)/ms : 1
+             freq : Hz"""
     neuron = NeuronGroup(10, eqs, method='gsl')
     neuron.freq = 'i*10*Hz + 10*Hz'
     neuron2 = NeuronGroup(10, eqs, method='euler')
@@ -346,8 +356,8 @@ def test_GSL_non_autonomous():
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_non_autonomous():
-    eqs = '''dv/dt = sin(2*pi*freq*t)/ms : 1
-             freq : Hz'''
+    eqs = """dv/dt = sin(2*pi*freq*t)/ms : 1
+             freq : Hz"""
     neuron = NeuronGroup(10, eqs, method='gsl')
     neuron.freq = 'i*10*Hz + 10*Hz'
     neuron2 = NeuronGroup(10, eqs, method='euler')
@@ -362,7 +372,7 @@ def test_GSL_non_autonomous():
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_refractory():
-    eqs = '''dv/dt = 99.99*Hz : 1 (unless refractory)'''
+    eqs = """dv/dt = 99.99*Hz : 1 (unless refractory)"""
     neuron = NeuronGroup(1, eqs, method='gsl', threshold='v>1', reset='v=0', refractory=3*ms)
     neuron2 = NeuronGroup(1, eqs, method='euler', threshold='v>1', reset='v=0', refractory=3*ms)
     mon = SpikeMonitor(neuron, 'v')
@@ -373,9 +383,9 @@ def test_GSL_refractory():
 
 @skip_if_not_implemented
 def test_GSL_save_step_count():
-    eqs = '''
+    eqs = """
     dv/dt = -v/(.1*ms) : volt
-    '''
+    """
     neuron = NeuronGroup(1, model=eqs, method='gsl',
                          method_options={'save_step_count': True}, dt=1*ms)
     run(0*ms)
@@ -395,7 +405,7 @@ HH_namespace = {
     'VT': -63*mV
 }
 
-HH_eqs = Equations('''
+HH_eqs = Equations("""
 dv/dt = (gl*(El-v) - g_na*(m*m*m)*h*(v-ENa) - g_kd*(n*n*n*n)*(v-EK) + I)/Cm : volt
 dm/dt = 0.32*(mV**-1)*(13.*mV-v+VT)/
     (exp((13.*mV-v+VT)/(4.*mV))-1.)/ms*(1-m)-0.28*(mV**-1)*(v-VT-40.*mV)/
@@ -404,7 +414,7 @@ dn/dt = 0.032*(mV**-1)*(15.*mV-v+VT)/
     (exp((15.*mV-v+VT)/(5.*mV))-1.)/ms*(1.-n)-.5*exp((10.*mV-v+VT)/(40.*mV))/ms*n : 1
 dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*mV)))/ms*h : 1
 I : amp/metre**2
-''')
+""")
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
@@ -447,10 +457,10 @@ def test_GSL_method_options_neurongroup():
 @skip_if_not_implemented
 def test_GSL_method_options_spatialneuron():
     morpho = Soma(30*um)
-    eqs = '''
+    eqs = """
     Im = g * v : amp/meter**2
     dg/dt = siemens/metre**2/second : siemens/metre**2
-    '''
+    """
     neuron1 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
                             method='gsl_rkf45', method_options={'adaptable_timestep': True})
     neuron2 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
@@ -479,23 +489,23 @@ def test_GSL_method_options_synapses():
     dApost = -dApre * taupre / taupost * 1.05
     dApost *= gmax
     dApre *= gmax
-    eqs_neurons = '''
+    eqs_neurons = """
     dv/dt = (ge * (Ee-vr) + El - v) / taum : volt
     dge/dt = -ge / taue : 1
-    '''
+    """
     poisson_input = PoissonGroup(N, rates=F)
     neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
                           method='gsl_rkf45')
     S1 = Synapses(poisson_input, neurons,
-                  '''w : 1
+                  """w : 1
                      dApre/dt = -Apre / taupre : 1 (clock-driven)
-                     dApost/dt = -Apost / taupost : 1 (clock-driven)''',
+                     dApost/dt = -Apost / taupost : 1 (clock-driven)""",
                   method='gsl_rkf45',
                   method_options={'adaptable_timestep':True})
     S2 = Synapses(poisson_input, neurons,
-                  '''w : 1
+                  """w : 1
                      dApre/dt = -Apre / taupre : 1 (clock-driven)
-                     dApost/dt = -Apost / taupost : 1 (clock-driven)''',
+                     dApost/dt = -Apost / taupost : 1 (clock-driven)""",
                   method='gsl_rkf45',
                   method_options={'adaptable_timestep':False})
     run(0*ms)
@@ -532,4 +542,4 @@ if __name__ == '__main__':
         try:
             t()
         except Skipped as ex:
-            print('Skipped: {} ({})'.format(t.__name__, str(ex)))
+            print(f'Skipped: {t.__name__} ({str(ex)})')

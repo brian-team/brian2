@@ -266,7 +266,7 @@ string description may include other state variables (differential equations or 
 or parameters, exactly as in `NeuronGroup`. At every timestep, Brian integrates the state variables, calculates the
 transmembrane current at every point on the neuronal morphology, and updates ``v`` using the transmembrane current and
 the diffusion current, which is calculated based on the morphology and the intracellular resistivity.
-Note that the transmembrane current is a surfacic current, not the total current in the compartement.
+Note that the transmembrane current is a surfacic current, not the total current in the compartment.
 This choice means that the model equations are independent of the number of compartments chosen for the simulation.
 The space and time constants can obtained for any point of the neuron with the ``space_constant`` respectively
 ``time_constant`` attributes::
@@ -319,18 +319,18 @@ soma), you can use::
 In the same way as for sections, you can also use slices, either with the
 indices of compartments, or with the distance from the root::
 
-    first_compartments = neurons[:3]
-    first_compartments = neurons[0*um:30*um]
+    first_compartments = neuron[:3]
+    first_compartments = neuron[0*um:30*um]
 
 However, note that this is restricted to contiguous indices which most of the
 time means that all compartments indexed in this way have to be part of the
 same section. Such indices can be acquired directly from the morphology::
 
-    axon = neurons[morpho.axon.indices[:]]
+    axon = neuron[morpho.axon.indices[:]]
 
 or, more concisely::
 
-    axon = neurons[morpho.axon]
+    axon = neuron[morpho.axon]
 
 Synaptic inputs
 ~~~~~~~~~~~~~~~

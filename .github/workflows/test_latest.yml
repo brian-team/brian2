@@ -1,0 +1,68 @@
+name: Test against latest dependencies
+
+on:
+  schedule:
+    - cron:  '25 5 * * SUN'
+
+jobs:
+  get_python_versions:
+    name: "Determine Python versions"
+    runs-on: ubuntu-latest
+    outputs:
+      min-python: ${{ steps.nep29.outputs.min-python }}
+      max-python: ${{ steps.nep29.outputs.max-python }}
+    steps:
+      - name: "calculate versions according to NEP29"
+        id: nep29
+        uses: mstimberg/github-calc-nep29@v0.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+  
+  testing:
+    needs: [get_python_versions]
+    name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, windows-2019, macOS-10.15]
+        standalone: [false, true]
+        float_dtype_32: [false, true]
+        python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
+
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Conda and Python
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          auto-activate-base: false
+          channels: conda-forge,defaults
+          channel-priority: true
+          activate-environment: 'test_env'
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Brian2 and dependencies
+        run: |
+          conda install -n test_env --quiet --yes -c conda-forge gsl pip
+          conda activate test_env
+          python -m pip install --pre pytest cython sympy pyparsing numpy jinja2 scipy sphinx
+          python -m pip install .
+
+      - name: Run Tests
+        run: |
+          cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
+          python -Wd $GITHUB_WORKSPACE/dev/continuous-integration/run_test_suite.py
+        env:
+          PYTHONWARNINGS: default
+          AGENT_OS: ${{runner.os}}
+          STANDALONE: ${{ matrix.standalone }}
+          FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
+

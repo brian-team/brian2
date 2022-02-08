@@ -1,23 +1,21 @@
-
 from numpy.testing import assert_equal
 import pytest
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete
 from brian2.core.network import schedule_propagation_offset
-from brian2.tests.utils import assert_allclose
-
+from brian2.tests.utils import assert_allclose, exc_isinstance
 
 @pytest.mark.standalone_compatible
 def test_poissoninput():
     # Test extreme cases and do a very basic test of an intermediate case, we
     # don't want tests to be stochastic
-    G = NeuronGroup(10, '''x : volt
+    G = NeuronGroup(10, """x : volt
                            y : volt
                            y2 : volt
                            z : volt
                            z2 : volt
-                           w : 1''')
+                           w : 1""")
     G.w = 0.5
 
     never_update = PoissonInput(G, 'x', 100, 0*Hz, weight=1*volt)
@@ -50,8 +48,8 @@ def test_poissoninput():
 @pytest.mark.codegen_independent
 def test_poissoninput_errors():
     # Targeting non-existing variable
-    G = NeuronGroup(10, '''x : volt
-                           y : 1''')
+    G = NeuronGroup(10, """x : volt
+                           y : 1""")
     with pytest.raises(KeyError):
         PoissonInput(G, 'z', 100, 100*Hz, weight=1.0)
 
@@ -68,15 +66,15 @@ def test_poissoninput_errors():
     net = Network(collect())
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, NotImplementedError)
     defaultclock.dt = old_dt
 
 
 @pytest.mark.standalone_compatible
 def test_poissoninput_refractory():
-    eqs = '''
+    eqs = """
     dv/dt = 0/second : 1 (unless refractory)
-    '''
+    """
     G = NeuronGroup(10, eqs, reset='v=0', threshold='v>4.5', refractory=5*defaultclock.dt)
     # Will increase the value by 1.0 at each time step
     P = PoissonInput(G, 'v', 1, 1/defaultclock.dt, weight=1.0)

@@ -1,7 +1,7 @@
 __all__ = ['SpikeSource']
 
 class SpikeSource(object):
-    '''
+    """
     A source of spikes.
     
     An object that can be used as a source of spikes for objects such as
@@ -25,6 +25,6 @@ class SpikeSource(object):
     .. attribute:: clock
     
         The clock on which the spikes will be updated.
-    '''
+    """
     # No implementation, just used for documentation purposes.
     pass

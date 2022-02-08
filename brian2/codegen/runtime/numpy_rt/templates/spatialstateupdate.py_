@@ -10,10 +10,10 @@
                   _invr0, _invrn, _invr,
                   r_length_1, r_length_2, area} #}
 {# ITERATE_ALL { _idx } #}
-'''
+"""
 Solves the cable equation (spatial diffusion of currents).
 This is where most time-consuming time computations are done.
-'''
+"""
 {% extends 'common_group.py_' %}
 
 {# Preparation of the data structures #}
@@ -26,7 +26,7 @@ for _first in {{_starts}}:
 
 # Linear systems
 # The particular solution
-'''a[i,j]=ab[u+i-j,j]'''  # u is the number of upper diagonals = 1
+"""a[i,j]=ab[u+i-j,j]"""  # u is the number of upper diagonals = 1
 
 {{_ab_star0}}[1:] = {{_invr}}[1:] / {{area}}[:-1]
 {{_ab_star2}}[:-1] = {{_invr}}[1:] / {{area}}[1:]

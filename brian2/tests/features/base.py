@@ -29,8 +29,8 @@ class InaccuracyError(AssertionError):
         AssertionError.__init__(self, *args)
 
 class BaseTest(object):
-    '''
-    '''
+    """
+    """
     
     category = None # a string with the category of features
     name = None # a string with the particular feature name within the category
@@ -41,21 +41,21 @@ class BaseTest(object):
 
     @classmethod
     def fullname(cls):
-        return cls.category+': '+cls.name
+        return f"{cls.category}: {cls.name}"
 
     def run(self):
-        '''
+        """
         Runs the feature test but do not return results (some devices may 
         require an extra step before results are available).
-        '''
+        """
         raise NotImplementedError
 
     def timed_run(self, duration):
-        '''
+        """
         Do a timed run. This means that for RuntimeDevice it will run for defaultclock.dt before running for the
         rest of the duration. This means total run duration will be duration+defaultclock.dt.
         For standalone devices, this feature may or may not be implemented.
-        '''
+        """
         if isinstance(brian2.get_device(), brian2.devices.RuntimeDevice):
             brian2.run(brian2.defaultclock.dt, level=1)
             brian2.run(duration, level=1)
@@ -64,35 +64,35 @@ class BaseTest(object):
 
 
 class FeatureTest(BaseTest):
-    '''
-    '''
+    """
+    """
         
     def results(self):
-        '''
+        """
         Return the results after a run call.
-        '''
+        """
         raise NotImplementedError
     
     def compare(self, maxrelerr, results_base, results_test):
-        '''
+        """
         Compare results from standard Brian run to another run.
         
         This method or `check` should be implemented.
-        '''
+        """
         raise NotImplementedError
     
     def check(self, maxrelerr, results):
-        '''
+        """
         Check results are valid (e.g. analytically).
         
         This method or `compare` should be implemented.
-        '''
+        """
         raise NotImplementedError
     
     def compare_arrays(self, maxrelerr, v_base, v_test):
-        '''
+        """
         Often you just want to compare the values of some arrays, this does that.
-        '''
+        """
         if isinstance(v_base, dict):
             for k in v_base:
                 self.compare_arrays(maxrelerr, v_base[k], v_test[k])
@@ -128,8 +128,8 @@ class SpeedTest(BaseTest):
 
 
 class Configuration(object):
-    '''
-    '''
+    """
+    """
     
     name = None # The name of this configuration
 
@@ -144,18 +144,18 @@ class Configuration(object):
         pass
     
     def get_last_run_time(self):
-        '''
+        """
         Implement this to overwrite the measured runtime (e.g. to remove overhead).
-        '''
+        """
         if hasattr(brian2.device, '_last_run_time'):
             return brian2.device._last_run_time
         raise NotImplementedError
 
     def get_last_run_completed_fraction(self):
-        '''
+        """
         Implement this to overwrite the amount of the last run that was completed (for devices that allow breaking
         early if the maximum run time is exceeded).
-        '''
+        """
         if hasattr(brian2.device, '_last_run_completed_fraction'):
             return brian2.device._last_run_completed_fraction
         return 1.0
@@ -224,7 +224,7 @@ def results(configuration, feature, n=None, maximum_run_time=1e7*brian2.second):
         init_args = ''
     else:
         init_args = str(n)
-    code_string = '''
+    code_string = """
 __file__ = '{fname}'
 import brian2
 from {config_module} import {config_name}
@@ -261,7 +261,7 @@ except Exception, ex:
     f = open(r'{tempfname}', 'wb')
     pickle.dump((tb, ex, 0.0, []), f, -1)
     f.close()
-    '''.format(config_module=configuration.__module__,
+    """.format(config_module=configuration.__module__,
                config_name=configuration.__name__,
                feature_module=feature.__module__,
                feature_name=feature.__name__,
@@ -320,7 +320,7 @@ def run_feature_tests(configurations=None, feature_tests=None,
     for ft in feature_tests:
         baseline = None
         if verbose:
-            print(ft.fullname()+': [', end=' ')
+            print(f"{ft.fullname()}: [", end=' ')
         for configuration in configurations:
             txt = 'OK'
             sym = '.'
@@ -344,10 +344,10 @@ def run_feature_tests(configurations=None, feature_tests=None,
                     try:
                         check_or_compare(ft, res, baseline, tolerant)
                         sym = 'I'
-                        txt = 'Poor (error=%.2f%%)' % (100.0*exc.error)
+                        txt = f'Poor (error={100.0 * exc.error:.2f}%)'
                     except InaccuracyError as exc:
                         sym = 'F'
-                        txt = 'Fail (error=%.2f%%)' % (100.0*exc.error)
+                        txt = f'Fail (error={100.0 * exc.error:.2f}%)'
             sys.stdout.write(sym)
             full_results[configuration.name, ft.fullname()] = (sym, txt, exc, tb, runtime, prof_info)
             for tag in ft.tags:
@@ -410,12 +410,9 @@ class FeatureTestResults(object):
                 elif errcount==n:
                     txt = 'Unsupported'
                 elif okcount+poorcount==n:
-                    txt = 'Poor (%d%%)' % int(poorcount*100.0/n)
+                    txt = f'Poor ({int(int(poorcount * 100.0 / n))}%)'
                 elif okcount+poorcount+failcount==n:
-                    txt = 'Fail: {fail}% (poor={poor}%)'.format(
-                        fail=int(failcount*100.0/n),
-                        poor=int(poorcount*100.0/n),
-                        )
+                    txt = f'Fail: {int(failcount * 100.0 / n)}% (poor={int(poorcount * 100.0 / n)}%)'
                 else:
                     txt = 'Fail: OK={ok}%, Poor={poor}%, Fail={fail}%, NotImpl={ni}% Error={err}%'.format(
                         ok=int(okcount*100.0/n), poor=int(poorcount*100.0/n), 
@@ -430,9 +427,9 @@ class FeatureTestResults(object):
     def tables(self):
         r = ''
         s = 'Feature test results'
-        r += s+'\n'+'-'*len(s)+'\n\n'+self.test_table+'\n'
+        r += f"{s}\n{'-' * len(s)}\n\n{self.test_table}\n"
         s = 'Tag results'
-        r += s+'\n'+'-'*len(s)+'\n\n'+self.tag_table+'\n'
+        r += f"{s}\n{'-' * len(s)}\n\n{self.tag_table}\n"
         return r
     
     @property
@@ -451,17 +448,17 @@ class FeatureTestResults(object):
             return ''
         r = ''
         s = 'Exceptions'
-        r += s+'\n'+'-'*len(s)+'\n\n'
+        r += f"{s}\n{'-' * len(s)}\n\n"
         for config_name, curconfig in exc_list:
             s = config_name
-            r += s+'\n'+'^'*len(s)+'\n\n'
+            r += f"{s}\n{'^' * len(s)}\n\n"
             for name, tb in curconfig:
-                r += name+'::\n\n'+indent(tb)+'\n\n' 
+                r += f"{name}::\n\n{indent(tb)}\n\n" 
         return r
     
     @property
     def tables_and_exceptions(self):
-        return self.tables+'\n'+self.exceptions
+        return f"{self.tables}\n{self.exceptions}"
         
     def __str__(self):
         return self.tables
@@ -488,10 +485,10 @@ def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbo
     tag_results = defaultdict(lambda:defaultdict(list))
     for ft in speed_tests:
         if verbose:
-            print(ft.fullname()+': ', end=' ')
+            print(f"{ft.fullname()}: ", end=' ')
         for n in ft.n_range[n_slice]:
             if verbose:
-                print('n=%d [' % n, end=' ')
+                print(f'n={int(n)} [', end=' ')
             for configuration in configurations:
                 sym = '.'
                 for _ in range(1+int(run_twice)):
@@ -647,7 +644,7 @@ def table_div(max_cols, header_flag=1):
         style = "-"
 
     for max_col in max_cols:
-        out += max_col * style + " "
+        out += f"{max_col * style} "
 
     out += "\n"
     return out
@@ -658,4 +655,4 @@ def normalize_row(row, max_cols):
     for i, max_col in enumerate(max_cols):
         r += row[i] + (max_col  - len(row[i]) + 1) * " "
 
-    return r + "\n"
+    return f"{r}\n"
