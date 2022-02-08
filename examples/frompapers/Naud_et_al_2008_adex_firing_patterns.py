@@ -175,4 +175,4 @@ for pattern, parameters in patterns.items():
     ax_vm_w = fig.add_subplot(gs[:, 1])
 
     sim(ax_vm, ax_w, ax_vm_w, parameters)
-    plt.show()
+plt.show()
