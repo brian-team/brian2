@@ -24,21 +24,25 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
         :target: https://anaconda.org/conda-forge/brian2
 
 
-.. image:: https://img.shields.io/debian/v/python3-brian/testing   :alt: Debian package
+.. image:: https://img.shields.io/debian/v/python3-brian/testing
+   :alt: Debian package
    :target: https://packages.debian.org/testing/python3-brian
 
-.. image:: https://img.shields.io/fedora/v/python3-brian2   :alt: Fedora package
+.. image:: https://img.shields.io/fedora/v/python3-brian2
+   :alt: Fedora package
    :target: https://packages.fedoraproject.org/pkgs/python-brian2/python3-brian2/
 
-.. image:: https://img.shields.io/spack/v/py-brian2   :alt: Spack
+.. image:: https://img.shields.io/spack/v/py-brian2
+   :alt: Spack
    :target: https://spack.readthedocs.io/en/latest/package_list.html#py-brian2
 
-.. image:: https://img.shields.io/aur/version/python-brian2   :alt: AUR version   
+.. image:: https://img.shields.io/aur/version/python-brian2
+   :alt: AUR version   
    :target: https://aur.archlinux.org/packages/python-brian2
+
 
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5910837.svg
    :target: https://doi.org/10.5281/zenodo.5910837
-
 
 .. image:: https://archive.softwareheritage.org/badge/swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9/
     :target: https://archive.softwareheritage.org/swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:06606ee7c757a47bc7dc168d0bfa8b0a5aecb620
