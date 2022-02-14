@@ -27,7 +27,7 @@ output/
 .pytest_cache
 
 # VS Code devcontainer metadata
-.devcontainer/frozen_requirements.txt
+.devcontainer/frozen-requirements.txt
 
 # Eclipse project files and settings
 .project

@@ -42,7 +42,7 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "pip3 install --user -r requirements.txt",
-	"postCreateCommand": "pip3 install --user -e . && pip3 freeze > .devcontainer/frozen_requirements.txt",
+	"postCreateCommand": "pip3 install --user -e . && pip3 freeze > .devcontainer/frozen-requirements.txt",
 
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
