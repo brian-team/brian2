@@ -4,3 +4,5 @@ matplotlib >= 2.0
 sphinx >= 1.8
 pytest
 pytest-xdist
+jupyterlab
+ipympl
