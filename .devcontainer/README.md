@@ -14,6 +14,11 @@ The container environment can be customised in many ways, such as with [dotfiles
 
 The exact dependency versions used in this container will be saved in `.devcontainer/frozen_dependencies.txt`, which may be useful for debugging. 
 
+Plots can be saved directly to disk e.g. as `png` files for viewing. [JupyterLab](https://jupyterlab.readthedocs.io/en/stable/) is also provided for running code in notebooks and interactive plotting. The backend must be chosen before importing `matplotlib` with one of the following "magic" commands:
+
+* `%matplotlib inline` - This is the default and will render images as PNGs in the notebook.
+* `%matplotlib widget` - This generates an ipywidget that renders plots with interactive controls (e.g. resizing, panning and zooming). See the [`README`](https://github.com/matplotlib/ipympl) for more information.
+
 TODO
 ----
 
