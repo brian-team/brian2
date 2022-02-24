@@ -17,7 +17,9 @@ The exact dependency versions used in this container will be saved in `.devconta
 Plots can be saved directly to disk e.g. as `png` files for viewing. [JupyterLab](https://jupyterlab.readthedocs.io/en/stable/) is also provided for running code in notebooks and interactive plotting. The backend must be chosen before importing `matplotlib` with one of the following "magic" commands:
 
 * `%matplotlib inline` - This is the default and will render images as PNGs in the notebook.
-* `%matplotlib widget` - This generates an ipywidget that renders plots with interactive controls (e.g. resizing, panning and zooming). See the [`README`](https://github.com/matplotlib/ipympl) for more information.
+* `%matplotlib widget` - This generates an ipywidget that renders plots with interactive controls (e.g. resizing, panning and zooming).
+
+See the [`README`](https://github.com/matplotlib/ipympl) and these [notes](https://github.com/microsoft/vscode-jupyter/wiki/Using-%25matplotlib-widget-instead-of-%25matplotlib-notebook,tk,etc) on using Jupyter within a VS Code container for more information. Extra [settings](https://github.com/microsoft/vscode-jupyter/wiki/IPyWidget-Support-in-VS-Code-Python) are included to automatically obtain the required supporting files.  
 
 TODO
 ----
