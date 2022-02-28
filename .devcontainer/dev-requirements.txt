@@ -3,11 +3,12 @@ sympy >= 1.2
 Cython >= 0.29
 scipy >= 0.13.3
 matplotlib >= 2.0
+Jinja2 >= 2.7
+ipython >= 5
 Sphinx >= 1.8
 sphinx-tabs
 pytest
 pytest-xdist
 pyparsing
-Jinja2
 jupyterlab
 ipympl
