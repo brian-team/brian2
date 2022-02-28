@@ -1,8 +1,13 @@
 # GSL>=1.16 # Installed in Dockerfile
+sympy >= 1.2
+Cython >= 0.29
 scipy >= 0.13.3
 matplotlib >= 2.0
-sphinx >= 1.8
+Sphinx >= 1.8
+sphinx-tabs
 pytest
 pytest-xdist
+pyparsing
+Jinja2
 jupyterlab
 ipympl
