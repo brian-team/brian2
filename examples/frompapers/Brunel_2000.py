@@ -90,7 +90,7 @@ def sim(g, nu_ext_over_nu_thr, sim_time, ax_spikes, ax_rates, rate_tick_step):
     ax_spikes.plot(spike_monitor.t / ms, spike_monitor.i, "|")
     ax_rates.plot(rate_monitor.t / ms, rate_monitor.rate / Hz)
 
-    ax_spikes.set_yticks([], [])
+    ax_spikes.set_yticks([])
 
     ax_spikes.set_xlim(*params["t_range"])
     ax_rates.set_xlim(*params["t_range"])
