@@ -78,11 +78,7 @@ def sim(g, nu_ext_over_nu_thr, sim_time, ax_spikes, ax_rates, rate_tick_step):
 
     rate_monitor = PopulationRateMonitor(neurons)
 
-    # shuffle indices to randomly select neurons
-    indices = neurons.i[:]
-    np.random.shuffle(indices)
-    neurons.index = indices
-
+    # record from the first 50 excitatory neurons
     spike_monitor = SpikeMonitor(neurons[:50])
 
     run(sim_time, report='text')
