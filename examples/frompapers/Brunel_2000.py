@@ -53,7 +53,6 @@ def sim(g, nu_ext_over_nu_thr, sim_time, ax_spikes, ax_rates, rate_tick_step):
     neurons = NeuronGroup(N,
                           """
                           dv/dt = -v/tau : volt (unless refractory)
-                          index : integer (constant)
                           """,
                           threshold="v > theta",
                           reset="v = V_r",
