@@ -85,7 +85,7 @@ def sim(g, nu_ext_over_nu_thr, sim_time, ax_spikes, ax_rates, rate_tick_step):
 
     spike_monitor = SpikeMonitor(neurons[:50])
 
-    run(sim_time)
+    run(sim_time, report='text')
 
     ax_spikes.plot(spike_monitor.t / ms, spike_monitor.i, "|")
     ax_rates.plot(rate_monitor.t / ms, rate_monitor.rate / Hz)
