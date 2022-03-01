@@ -179,7 +179,7 @@ class StateUpdater(CodeRunner):
                             clock=group.clock,
                             when='groups',
                             order=group.order,
-                            name=f"{group.name}_stateupdater*",
+                            name=f"{group.name}_stateupdater",
                             check_units=False,
                             generate_empty_code=False)
 
@@ -312,7 +312,7 @@ class Thresholder(CodeRunner):
                             clock=group.clock,
                             when=when,
                             order=group.order,
-                            name=f"{group.name}_thresholder*",
+                            name=f"{group.name}_{event}_thresholder",
                             needed_variables=needed_variables,
                             template_kwds=template_kwds)
 
@@ -369,7 +369,7 @@ class Resetter(CodeRunner):
                             clock=group.clock,
                             when=when,
                             order=order,
-                            name=f"{group.name}_resetter*",
+                            name=f"{group.name}_{event}_resetter",
                             override_conditional_write=['not_refractory'],
                             needed_variables=needed_variables,
                             template_kwds=template_kwds)

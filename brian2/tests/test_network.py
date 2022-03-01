@@ -297,10 +297,11 @@ def test_scheduling_summary_magic():
                                       name=f"{basename}_sm_ia", when='after_end')
     inactive_state_mon.active = False
     summary_before = scheduling_summary()
+
     assert [entry.name for entry in summary_before.entries] == [f"{basename}_sm",
                                                                 f"{basename}_stateupdater",
-                                                                f"{basename}_thresholder",
-                                                                f"{basename}_resetter",
+                                                                f"{basename}_spike_thresholder",
+                                                                f"{basename}_spike_resetter",
                                                                 f"{basename}_run_regularly",
                                                                 f"{basename}_sm_ia"]
     assert [entry.when for entry in summary_before.entries] == ['start',
@@ -347,8 +348,8 @@ def test_scheduling_summary():
     summary_before = scheduling_summary(net)
     assert [entry.name for entry in summary_before.entries] == [f"{basename}_sm",
                                                                 f"{basename}_stateupdater",
-                                                                f"{basename}_thresholder",
-                                                                f"{basename}_resetter",
+                                                                f"{basename}_spike_thresholder",
+                                                                f"{basename}_spike_resetter",
                                                                 f"{basename}_net_op",
                                                                 f"{basename}_run_regularly",
                                                                 f"{basename}_sm_ia"]
@@ -1436,7 +1437,7 @@ def test_profile():
     # does
     assert 3 <= len(info) <= 4
     assert len(info) == 3 or 'profile_test' in info_dict
-    for obj in ['stateupdater', 'thresholder', 'resetter']:
+    for obj in ['stateupdater', 'spike_thresholder', 'spike_resetter']:
         name = f"profile_test_{obj}"
         assert name in info_dict or f"{name}_codeobject" in info_dict
     assert all([t>=0*second for _, t in info])

@@ -15,7 +15,7 @@ import inspect
 import numpy as np
 
 from brian2.core.base import BrianObject, weakproxy_with_fallback
-from brian2.core.names import Nameable
+from brian2.core.names import Nameable, find_name
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
                                    ArrayVariable, DynamicArrayVariable,
@@ -943,7 +943,8 @@ class Group(VariableOwner, BrianObject):
             A reference to the object that will be run.
         """
         if name is None:
-            name = f"{self.name}_run_regularly*"
+            names = [o.name for o in self.contained_objects]
+            name = find_name(f"{self.name}_run_regularly*", names)
 
         if dt is None and clock is None:
             clock = self._clock
