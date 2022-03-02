@@ -31,11 +31,24 @@ def evaluate_expr(expr, ns):
     Try to evaluate the expression in the given namespace
 
     Returns either (value, True) if successful, or (expr, False) otherwise.
+
+    Example
+    -------
+    >>> assumptions = {'sin': DEFAULT_FUNCTIONS['sin'].pyfunc,
+    ...                'pi': DEFAULT_CONSTANTS['pi'].value}
+    >>> evaluate_expr('1/2', assumptions)
+    (0.5, True)
+    >>> evaluate_expr('sin(pi/2)', assumptions)
+    (1.0, True)
+    >>> evaluate_expr('sin(2*pi*freq*t)', assumptions)
+    ('sin(2*pi*freq*t)', False)
+    >>> evaluate_expr('1/0', assumptions)
+    ('1/0', False)
     """
     try:
         val = eval(expr, ns)
         return val, True
-    except NameError:
+    except (NameError, ArithmeticError):
         return expr, False
 
 
