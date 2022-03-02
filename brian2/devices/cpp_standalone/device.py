@@ -7,12 +7,12 @@ import shutil
 import subprocess
 import sys
 import inspect
-import struct
 from collections import defaultdict, Counter
 import itertools
 import numbers
 import tempfile
 from distutils import ccompiler
+import time
 
 import numpy as np
 
@@ -198,6 +198,12 @@ class CPPStandaloneDevice(Device):
                            'after_start': [],
                            'before_end': [],
                            'after_end': []}
+
+        #: Dictionary storing compile and binary execution times
+        self.timers = {'run_binary': None,
+                       'compile': {'clean':None,
+                                   'make': None,
+                                   'all': None}}
 
         self.clocks = set([])
 
@@ -954,13 +960,24 @@ class CPPStandaloneDevice(Device):
                 with std_silent(debug):
                     if vcvars_cmd:
                         if clean:
+                            start_time = time.time()
                             os.system(f'{vcvars_cmd} >>winmake.log 2>&1 && {make_cmd} clean > NUL 2>&1')
+                            self.timers['compile']['clean'] = time.time() - start_time
+                        start_time = time.time()
                         x = os.system(f'{vcvars_cmd} >>winmake.log 2>&1 && {make_cmd} {make_args}>>winmake.log 2>&1')
+                        self.timers['compile']['make'] = time.time() - start_time
                     else:
                         os.environ.update(msvc_env)
                         if clean:
+                            start_time = time.time()
                             os.system(f'{make_cmd} clean > NUL 2>&1')
+                            self.timers['compile']['clean'] = time.time() - start_time
+                        start_time = time.time()
                         x = os.system(f'{make_cmd} {make_args}>>winmake.log 2>&1')
+                        self.timers['compile']['make'] = time.time() - start_time
+                    self.timers['compile']['all'] = sum(
+                        t for t in self.timers['compile'].values() if t is not None
+                    )
                     if x != 0:
                         if os.path.exists('winmake.log'):
                             with open('winmake.log', 'r') as f:
@@ -1020,7 +1037,9 @@ class CPPStandaloneDevice(Device):
                 run_cmd = prefs.devices.cpp_standalone.run_cmd_unix
                 if isinstance(run_cmd, str):
                     run_cmd = [run_cmd]
+                start_time = time.time()
                 x = subprocess.call(run_cmd + run_args, stdout=stdout)
+                self.timers['run_binary'] = time.time() - start_time
             if stdout is not None:
                 stdout.close()
             if x:
