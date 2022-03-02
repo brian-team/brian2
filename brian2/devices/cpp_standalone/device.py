@@ -197,7 +197,9 @@ class CPPStandaloneDevice(Device):
         self.code_lines = {'before_start': [],
                            'after_start': [],
                            'before_end': [],
-                           'after_end': []}
+                           'after_end': [],
+                           'before_run': [],
+                           'after_run': []}
 
         self.clocks = set([])
 
@@ -1479,7 +1481,9 @@ class CPPStandaloneDevice(Device):
             if clock not in all_clocks:
                 run_lines.append(f'{net.name}.add(&{clock.name}, NULL);')
 
+        run_lines.extend(self.code_lines['before_run'])
         run_lines.append(f'{net.name}.run({float(duration)!r}, {report_call}, {float(report_period)!r});')
+        run_lines.extend(self.code_lines['after_run'])
         self.main_queue.append(('run_network', (net, run_lines)))
 
         net.after_run()
