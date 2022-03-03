@@ -143,12 +143,7 @@ something like this may not behave as you would like::
 
 The current C++ standalone code generation only works for a fixed number of `~Network.run` statements, not with loops.
 If you need to do loops or other features not supported automatically, you can do so by inspecting the generated
-C++ source code and modifying it, or by inserting code directly into the main loop as follows::
-
-    device.insert_code('main', '''
-    cout << "Testing direct insertion of code." << endl;
-    ''')
-
+C++ source code and modifying it, or by inserting code directly into the main loop as described below.
 
 Variables
 ~~~~~~~~~
@@ -178,6 +173,58 @@ too small timestep (dt > 0.1ms), and results do not depend on the number of
 threads used in the simulation.
 
 .. _standalone_custom_build:
+
+Custom code injection
+~~~~~~~~~~~~~~~~~~~~~
+It is possible to insert custom code directly into the generated code of a
+standalone simulation using a Device's `~.Device.insert_code` method::
+
+    device.insert_code(slot, code)
+
+``slot`` can be one of ``main``, ``before_start``, ``after_start``,
+``before_network_run``, ``after_network_run``, ``before_end`` and ``after_end``,
+which determines where the code is inserted. ``code`` is the code in the
+Device's language. Here is an example for the C++ Standalone Device::
+
+    device.insert_code('main', '''
+    cout << "Testing direct insertion of code." << endl;
+    ''')
+
+For the C++ Standalone Device, all code is inserted into the ``main.cpp`` file,
+here into the ``main`` slot, referring to the main simulation function.
+This is a simplified version of this function in ``main.cpp``::
+
+    int main(int argc, char **argv)
+    {
+        // before_start
+        brian_start();
+        // after_start
+
+        {{main_lines}}
+
+        // before_end
+        brian_end();
+        // after_end
+
+        return 0;
+    }
+
+``{{main_lines}}`` is replaced in the generated code with the actual simulation.
+Code inserted into the ``main`` slot will be placed within the
+``{{main_lines}}``. ``brian_start`` allocates and initializes all arrays needed
+during the simulation and ``brian_end`` writes the results to disc and
+deallocates memory. Within the ``{{main_lines}}``, all ``Network`` objects
+defined in Python are created and run. Code inserted in the
+``before/after_network_run`` slot will be inserted around the ``Network.run``
+call, which starts the time loop. Note that if your Python script has multiple
+``Network`` objects or multiple ``run`` calls, code in the
+``before/after_network_run`` slot will be inserted around each ``Network.run``
+call in the generated code.
+
+The code injection mechanism has been used for benchmarking experiments, see
+e.g. `here for Brian2CUDA benchmarks <https://github.com/brian-team/brian2cuda/blob/835c978ad758bc0621e34344c1fb7b811ef8a118/brian2cuda/tests/features/cuda_configuration.py#L148-L156>`_ or `here for Brian2GeNN benchmarks <https://github.com/brian-team/brian2genn_benchmarks/blob/6d1a6d9d97c05653cec2e413c9fd312cfe13e15c/benchmark_utils.py#L78-L136>`_.
+
+
 
 Customizing the build process
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
