@@ -20,10 +20,3 @@ Plots can be saved directly to disk e.g. as `png` files for viewing. [JupyterLab
 * `%matplotlib widget` - This generates an ipywidget that renders plots with interactive controls (e.g. resizing, panning and zooming).
 
 See the [`README`](https://github.com/matplotlib/ipympl) and these [notes](https://github.com/microsoft/vscode-jupyter/wiki/Using-%25matplotlib-widget-instead-of-%25matplotlib-notebook,tk,etc) on using Jupyter within a VS Code container for more information. Extra [settings](https://github.com/microsoft/vscode-jupyter/wiki/IPyWidget-Support-in-VS-Code-Python) are included to automatically obtain the required supporting files.  
-
-TODO
-----
-
-* Synchronise minimum package versions in `dev-requirements.txt`
-* Pre-install standard brian dependencies in the `Dockerfile` to cache rebuilds
-* Investigate `launch.json` settings for [debugging](https://code.visualstudio.com/docs/editor/debugging)
