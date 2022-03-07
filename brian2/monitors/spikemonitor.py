@@ -326,7 +326,7 @@ class EventMonitor(Group, CodeRunner):
 
     def event_trains(self):
         """
-        Return a dictionary mapping event indices to arrays of event times.
+        Return a dictionary mapping neuron indices to arrays of event times.
         Equivalent to calling ``values('t')``.
 
         Returns
@@ -441,7 +441,7 @@ class SpikeMonitor(EventMonitor):
 
     def spike_trains(self):
         """
-        Return a dictionary mapping spike indices to arrays of spike times.
+        Return a dictionary mapping neuron indices to arrays of spike times.
 
         Returns
         -------
