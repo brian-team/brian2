@@ -172,8 +172,6 @@ of the number of threads. However, this is working fine for networks with not
 too small timestep (dt > 0.1ms), and results do not depend on the number of
 threads used in the simulation.
 
-.. _standalone_custom_build:
-
 Custom code injection
 ~~~~~~~~~~~~~~~~~~~~~
 It is possible to insert custom code directly into the generated code of a
@@ -225,6 +223,7 @@ The code injection mechanism has been used for benchmarking experiments, see
 e.g. `here for Brian2CUDA benchmarks <https://github.com/brian-team/brian2cuda/blob/835c978ad758bc0621e34344c1fb7b811ef8a118/brian2cuda/tests/features/cuda_configuration.py#L148-L156>`_ or `here for Brian2GeNN benchmarks <https://github.com/brian-team/brian2genn_benchmarks/blob/6d1a6d9d97c05653cec2e413c9fd312cfe13e15c/benchmark_utils.py#L78-L136>`_.
 
 
+.. _standalone_custom_build:
 
 Customizing the build process
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
