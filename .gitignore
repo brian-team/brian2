@@ -26,6 +26,9 @@ output/
 # Test cache
 .pytest_cache
 
+# VS Code devcontainer metadata
+.devcontainer/frozen-requirements.txt
+
 # Eclipse project files and settings
 .project
 .pydevproject
