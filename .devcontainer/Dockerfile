@@ -19,5 +19,5 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # Upgrade pip and install developer requirements
 COPY .devcontainer/dev-requirements.txt /tmp/pip-tmp/
 RUN pip3 install --upgrade pip \
-   && pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/dev-requirements.txt \
-   && rm -rf /tmp/pip-tmp
+    && pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/dev-requirements.txt \
+    && rm -rf /tmp/pip-tmp
