@@ -1,0 +1,5 @@
+# GSL>=1.16 # Installed in Dockerfile
+scipy >= 0.13.3
+matplotlib >= 2.0
+jupyterlab
+ipympl
