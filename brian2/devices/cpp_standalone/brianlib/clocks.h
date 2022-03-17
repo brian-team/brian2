@@ -6,9 +6,9 @@
 #include<math.h>
 
 namespace {
-	inline int fround(double x)
+	inline int64_t fround(double x)
 	{
-		return (int)(x+0.5);
+		return (int64_t)(x+0.5);
 	};
 };
 
@@ -28,20 +28,20 @@ public:
 	inline bool running() { return timestep[0]<i_end; };
 	void set_interval(double start, double end)
 	{
-        int i_start = fround(start/dt[0]);
+        int64_t i_start = fround(start/dt[0]);
         double t_start = i_start*dt[0];
         if(t_start==start || fabs(t_start-start)<=epsilon*fabs(t_start))
         {
             timestep[0] = i_start;
         } else
         {
-            timestep[0] = (int)ceil(start/dt[0]);
+            timestep[0] = (int64_t)ceil(start/dt[0]);
         }
         i_end = fround(end/dt[0]);
         double t_end = i_end*dt[0];
         if(!(t_end==end || fabs(t_end-end)<=epsilon*fabs(t_end)))
         {
-            i_end = (int)ceil(end/dt[0]);
+            i_end = (int64_t)ceil(end/dt[0]);
         }
 	}
 private:
