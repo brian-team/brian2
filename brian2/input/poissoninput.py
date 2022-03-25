@@ -42,7 +42,7 @@ class PoissonInput(CodeRunner):
         `target_var`
     when : str, optional
         When to update the target variable during a time step. Defaults to
-        the `synapses` scheduling slot.
+        the `synapses` scheduling slot. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of of the update compared to other operations occurring at
         the same time step and in the same scheduling slot. Defaults to 0.

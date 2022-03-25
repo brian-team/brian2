@@ -47,6 +47,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         is specified, the `defaultclock` will be used.
     when : str, optional
         When to run within a time step, defaults to the ``'thresholds'`` slot.
+        See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.

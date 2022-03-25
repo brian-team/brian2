@@ -36,7 +36,7 @@ class EventMonitor(Group, CodeRunner):
         always be recorded). Defaults to ``True``.
     when : str, optional
         When to record the events, by default records events in the same slot
-        where the event is emitted.
+        where the event is emitted. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to the order where the
@@ -377,7 +377,7 @@ class SpikeMonitor(EventMonitor):
         always be recorded). Defaults to ``True``.
     when : str, optional
         When to record the events, by default records events in the same slot
-        where the event is emitted.
+        where the event is emitted. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to the order where the
