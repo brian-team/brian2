@@ -24,7 +24,7 @@ class NetworkOperation(BrianObject):
         is specified, the `defaultclock` will be used.
     when : str, optional
         In which scheduling slot to execute the operation during a time step.
-        Defaults to ``'start'``.
+        Defaults to ``'start'``. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of this operation for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.
@@ -103,7 +103,7 @@ def network_operation(*args, **kwds):
         is specified, the `defaultclock` will be used.
     when : str, optional
         In which scheduling slot to execute the operation during a time step.
-        Defaults to ``'start'``.
+        Defaults to ``'start'``. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of this operation for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.

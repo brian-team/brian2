@@ -36,7 +36,7 @@ class BrianObject(Nameable):
         is specified, the `defaultclock` will be used.
     when : str, optional
         In which scheduling slot to simulate the object during a time step.
-        Defaults to ``'start'``.
+        Defaults to ``'start'``. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of this object for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.
