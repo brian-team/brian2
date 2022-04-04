@@ -563,8 +563,7 @@ Explicit event-driven updates
 As mentioned above, it is possible to write event-driven update code for the synaptic variables.
 This can also be done manually, by defining the variable ``lastupdate`` and
 referring to the predefined variable ``t`` (current time).
-Here's an example for short-term plasticity -- but note that using the automatic
-``event-driven`` approach from above is usually preferable::
+Here's an example for short-term plasticity::
 
 	S=Synapses(neuron_input,neuron,
 	           model='''x : 1
@@ -582,6 +581,10 @@ By default, the ``pre`` pathway is executed before the ``post`` pathway (both
 are executed in the ``'synapses'`` scheduling slot, but the ``pre`` pathway has
 the ``order`` attribute -1, wheras the ``post`` pathway has ``order`` 1. See
 :ref:`scheduling` for more details).
+
+Note that using the automatic ``event-driven`` approach from above is usually preferable,
+see :doc:`../examples/frompapers.Stimberg_et_al_2018.example_1_COBA` for an ``event-driven``
+implementation of short-term plasticity.
 
 Technical notes
 ---------------
