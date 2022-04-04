@@ -166,8 +166,8 @@ connect neurons that are not very far apart with::
 
 The string expressions can also refer to pre- or postsynaptic variables. This
 can be useful for example for spatial connectivity: assuming that the pre- and
-postsynaptic groups have parameters ``x`` and ``y``, storing their location, the
-following statement connects all cells in a 250 um radius::
+postsynaptic groups have user-defined parameters ``x`` and ``y``, storing their
+location, the following statement connects all cells in a 250 um radius::
 
     S.connect(condition='sqrt((x_pre-x_post)**2 + (y_pre-y_post)**2) < 250*umeter')
 
@@ -189,7 +189,8 @@ that depends on distance::
 If this statement is applied to a `Synapses` object that connects a group to
 itself, it prevents self-connections (``i != j``) and connects cells with a
 probability that is modulated according to a 2-dimensional Gaussian of the
-distance between the cells.
+distance between the cells computed from the user-defined parameters ``x``
+and ``y``, storing their location.
 
 One-to-one
 ~~~~~~~~~~
