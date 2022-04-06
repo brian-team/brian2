@@ -7,6 +7,7 @@ from numpy.testing import assert_array_equal
 import pytest
 
 from brian2 import *
+from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
 from brian2.utils.logger import catch_logs
 from brian2.tests.utils import assert_allclose
 
@@ -446,6 +447,40 @@ def test_state_monitor_resize():
     # Note that the internally stored variable has the transposed shape of the
     # variable that is visible to the user
     assert mon.variables['v'].size == (10, 2)
+
+@pytest.mark.standalone_compatible
+def test_state_monitor_synapses():
+    # Check that recording from synapses works correctly
+    G = NeuronGroup(5, '')
+    S1 = Synapses(G, G, 'w : 1')
+    S1.run_regularly('w += 1')
+    S1.connect(i=[0, 1], j=[2, 3])
+    S1.w = 'i'
+    # We can check the record argument even in standalone mode, since we created
+    # the synapses with an array of indices of known length
+    with catch_logs() as l:
+        S1_mon = StateMonitor(S1, 'w', record=[0, 1])
+    assert len(l) == 0
+
+    with pytest.raises(IndexError):
+        StateMonitor(S1, 'w', record=[0, 2])
+    
+    S2 = Synapses(G, G, 'w:1')
+    S2.run_regularly('w += 1')
+    S2.connect('i==j')  # Not yet executed for standalone mode
+    S2.w = 'i'
+    with catch_logs() as l:
+        S2_mon = StateMonitor(S2, 'w', record=[0, 4])
+
+    if isinstance(get_device(), CPPStandaloneDevice):
+        assert len(l) == 1
+        assert l[0][0] == 'WARNING'
+        assert l[0][1].endswith('.cannot_check_statemonitor_indices')
+    else:
+        assert len(l) == 0
+    run(2*defaultclock.dt)
+    assert_array_equal(S1_mon.w[:], [[0, 1], [1, 2]])
+    assert_array_equal(S2_mon.w[:], [[0, 1], [4, 5]])
 
 @pytest.mark.codegen_independent
 def test_statemonitor_namespace():
