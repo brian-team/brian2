@@ -34,10 +34,10 @@ declaring a state variable that stores the refractory period per neuron as a
 model parameter. The refractory expression can then refer to this parameter::
 
     G = NeuronGroup(N, model='''...
-                                refractory : second''', threshold='...',
-                    reset='...', refractory='refractory')
+                                ref : second''', threshold='...',
+                    reset='...', refractory='ref')
     # Set the refractory period for each cell
-    G.refractory = ...
+    G.ref = ...
 
 This state variable can also be a dynamic variable itself. For example, it can
 serve as an adaptation mechanism by increasing it after every spike and letting
@@ -46,11 +46,11 @@ it relax back to a steady-state value between spikes::
     refractory_0 = 2*ms
     tau_refractory = 50*ms
     G = NeuronGroup(N, model='''...
-                                drefractory/dt = (refractory_0 - refractory) / tau_refractory : second''',
-                    threshold='...', refractory='refractory',
+                                dref/dt = (refractory_0 - ref) / tau_refractory : second''',
+                    threshold='...', refractory='ref',
                     reset='''...
-                             refractory += 1*ms''')
-    G.refractory = refractory_0
+                             ref += 1*ms''')
+    G.ref = refractory_0
 
 In some cases, the condition for leaving the refractory period is not easily
 expressed as a certain time span. For example, in a Hodgkin-Huxley type model the
