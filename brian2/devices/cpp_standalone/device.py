@@ -587,6 +587,36 @@ class CPPStandaloneDevice(Device):
                                          prefs['codegen.cpp.headers'] +
                                          codeobj_headers)
         template_kwds['profiled'] = self.enable_profiling
+
+        
+        do_not_invalidate = set()
+        if template_name == 'synapses_create_array':
+            cache = self.array_cache
+            if cache[variables['N']] is None:  # case 1: synapses have been created with code
+                pass  # Nothing we can do
+            elif cache[variables['N']][0] == 0:  # case 2: first time we are creating synapses
+                cache[variables['N']][0] = variables['sources'].size
+                do_not_invalidate.add(variables['N'])
+                for var, value in [(variables['_synaptic_pre'],
+                                    variables['sources'].get_value() +
+                                    variables['_source_offset'].get_value()),
+                                   (variables['_synaptic_post'],
+                                    variables['targets'].get_value() +
+                                    variables['_target_offset'].get_value())]:
+                    cache[var] = value
+                    do_not_invalidate.add(var)
+            elif cache[variables['N']][0] > 0:  # case 3: we created synapses with arrays before
+                cache[variables['N']][0] += variables['sources'].size
+                do_not_invalidate.add(variables['N'])
+                for var, value in [(variables['_synaptic_pre'],
+                                    variables['sources'].get_value() +
+                                    variables['_source_offset'].get_value()),
+                                   (variables['_synaptic_post'],
+                                    variables['targets'].get_value() +
+                                    variables['_target_offset'].get_value())]:
+                    cache[var] = np.append(cache[var], value)
+                    do_not_invalidate.add(var)
+
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
                                                                template_name, variable_indices,
                                                                codeobj_class=codeobj_class,
@@ -620,7 +650,7 @@ class CPPStandaloneDevice(Device):
                                   for varname in template.writes_read_only} |
                                  getattr(owner, 'written_readonly_vars', set()))
         for var in codeobj.variables.values():
-            if (isinstance(var, ArrayVariable) and
+            if (isinstance(var, ArrayVariable) and not var in do_not_invalidate and
                     (not var.read_only or var in written_readonly_vars)):
                 self.array_cache[var] = None
 

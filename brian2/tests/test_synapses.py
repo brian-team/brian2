@@ -2077,6 +2077,20 @@ def test_synapses_to_synapses():
     # Third group has its weight increased to 2 after the second spike
     assert_array_equal(target.v, [5, 3, 4])
 
+@pytest.mark.standalone_compatible
+def test_synapses_to_synapses_connection_array():
+    source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
+    modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
+    target = NeuronGroup(3, 'v : integer')
+    conn = Synapses(source, target, 'w : integer', on_pre='v += w')
+    conn.connect(i=[0, 1, 2], j=[0, 1, 2])
+    conn.w = 1
+    modulatory_conn = Synapses(modulator, conn, on_pre='w += 1')
+    modulatory_conn.connect(i=[0, 1, 2], j=[0, 1, 2])
+    run(5*ms)
+    # First group has its weight increased to 2 after the first spike
+    # Third group has its weight increased to 2 after the second spike
+    assert_array_equal(target.v, [5, 3, 4])
 
 @pytest.mark.standalone_compatible
 def test_synapses_to_synapses_statevar_access():
