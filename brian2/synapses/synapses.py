@@ -1614,9 +1614,9 @@ class Synapses(Group):
         targets = targets.repeat(n)
 
         variables.add_array('sources', len(sources), dtype=np.int32,
-                            values=sources)
+                            values=sources, read_only=True)
         variables.add_array('targets', len(targets), dtype=np.int32,
-                            values=targets)
+                            values=targets, read_only=True)
         # These definitions are important to get the types right in C++
         variables.add_auxiliary_variable('_real_sources', dtype=np.int32)
         variables.add_auxiliary_variable('_real_targets', dtype=np.int32)
