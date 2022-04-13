@@ -913,7 +913,7 @@ class Synapses(Group):
                 raise ValueError(f"The summed variable '{varname}' does not end "
                                  f"in '_pre' or '_post'.")
             if not varname in self.variables:
-                raise ValueError(f"The summed variable '{varname}' does not refer"
+                raise ValueError(f"The summed variable '{varname}' does not refer "
                                  f"to any known variable in the "
                                  f"target group.")
             if varname.endswith('_pre'):
