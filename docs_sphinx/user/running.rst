@@ -235,6 +235,8 @@ a string summary can be obtained by calling `profiling_summary`. The
 following example shows profiling output after running the CUBA example (where
 the neuronal state updates take up the most time)::
 
+    >>> from brian2 import profiling_summary
+    # your magic network goes here
     >>> profiling_summary(show=5)  # show the 5 objects that took the longest  # doctest: +SKIP
     Profiling summary
     =================
@@ -244,6 +246,11 @@ the neuronal state updates take up the most time)::
     spikemonitor                0.59 s     6.55 %
     neurongroup_thresholder     0.33 s     3.66 %
 
+If you use an explicit ``Network`` object, you need to pass it to ``profiling_summary``::
+
+    >>> from brian2 import profiling_summary
+    >>> net = Network(...)
+    >>> profiling_summary(net, ...) # doctest: +SKIP
 
 .. _scheduling:
 
