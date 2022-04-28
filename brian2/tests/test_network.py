@@ -1536,6 +1536,7 @@ def test_both_equal():
     assert (M1.v == M2.v).all()
 
 @pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_long_run():
     defaultclock.dt = 0.1 * ms
     group = NeuronGroup(1, 'x : 1')
@@ -1543,15 +1544,16 @@ def test_long_run():
     # Timesteps are internally stored as 64bit integers, but previous versions
     # converted them into 32bit integers along the way. We'll make sure that
     # this is not the case and everything runs fine. To not actually run such a
-    # long simulation we manually advance the clock.
-    net = Network(group, name='network')
+    # long simulation we run a single huge time step
     start_step = 2**31-5
-    start_time = start_step*defaultclock.dt_
-    with catch_logs() as l:
-        net.t_ = start_time  # for runtime
-        device.insert_code('main', 'network.t = {};'.format(start_time))  # for standalone
-        net.run(6 * defaultclock.dt)
-    assert group.x == 6
+    defaultclock.dt = 0.1*ms
+    start_time = start_step*defaultclock.dt
+    defaultclock.dt = start_time
+    run(start_time)  # A single, *very* long time step
+    defaultclock.dt = 0.1*ms
+    run(6 * defaultclock.dt)
+    device.build(direct_call=False, **device.build_options)
+    assert group.x == 7
 
 @pytest.mark.codegen_independent
 def test_long_run_dt_change():
