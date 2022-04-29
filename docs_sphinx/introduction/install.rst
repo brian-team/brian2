@@ -84,6 +84,14 @@ Standard install
        Brian releases get packaged by the `NeuroFedora <https://docs.fedoraproject.org/en-US/neurofedora/overview/>`_ team,
        but note that it might take a while until the most recent version shows up in the repository.
 
+    .. group-tab:: Spack package
+
+       `Spack <https://spack.io>`_ is a flexible package manager supporting multiple versions, configurations, platforms, and compilers.
+
+       After setting up Spack you can install Brian with the following command::
+
+         spack install py-brian2
+
 .. _updating_install:
 
 Updating an existing installation
