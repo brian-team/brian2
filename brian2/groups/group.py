@@ -16,7 +16,7 @@ import numpy as np
 
 from brian2.core.base import (BrianObject, weakproxy_with_fallback,
                               device_override)
-from brian2.core.names import Nameable
+from brian2.core.names import Nameable, find_name
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
                                    ArrayVariable, DynamicArrayVariable,
@@ -947,6 +947,7 @@ class Group(VariableOwner, BrianObject):
             the `dt` argument is specified, defaults to the clock of the group.
         when : str, optional
             When to run within a time step, defaults to the ``'start'`` slot.
+            See :ref:`scheduling` for possible values.
         name : str, optional
             A unique name, if non is given the name of the group appended with
             'run_regularly', 'run_regularly_1', etc. will be used. If a
@@ -962,7 +963,8 @@ class Group(VariableOwner, BrianObject):
             A reference to the object that will be run.
         """
         if name is None:
-            name = f"{self.name}_run_regularly*"
+            names = [o.name for o in self.contained_objects]
+            name = find_name(f"{self.name}_run_regularly*", names)
 
         if dt is None and clock is None:
             clock = self._clock
@@ -1046,7 +1048,7 @@ class CodeRunner(BrianObject):
         is specified, the `defaultclock` will be used.
     when : str, optional
         In which scheduling slot to execute the operation during a time step.
-        Defaults to ``'start'``.
+        Defaults to ``'start'``. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of this operation for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.

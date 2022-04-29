@@ -104,7 +104,7 @@ class StateUpdater(CodeRunner):
                             clock=group.clock,
                             when='groups',
                             order=group.order,
-                            name=f"{group.name}_stateupdater*",
+                            name=f"{group.name}_stateupdater",
                             check_units=False,
                             generate_empty_code=False)
 
@@ -237,7 +237,7 @@ class Thresholder(CodeRunner):
                             clock=group.clock,
                             when=when,
                             order=group.order,
-                            name=f"{group.name}_thresholder*",
+                            name=f"{group.name}_{event}_thresholder",
                             needed_variables=needed_variables,
                             template_kwds=template_kwds)
 
@@ -294,7 +294,7 @@ class Resetter(CodeRunner):
                             clock=group.clock,
                             when=when,
                             order=order,
-                            name=f"{group.name}_resetter*",
+                            name=f"{group.name}_{event}_resetter",
                             override_conditional_write=['not_refractory'],
                             needed_variables=needed_variables,
                             template_kwds=template_kwds)
@@ -576,7 +576,7 @@ class NeuronGroup(Group, SpikeSource):
             The code that should be executed
         when : str, optional
             The scheduling slot that should be used to execute the code.
-            Defaults to `'after_resets'`.
+            Defaults to `'after_resets'`. See :ref:`scheduling` for possible values.
         order : int, optional
             The order for operations in the same scheduling slot. Defaults to
             the order of the `NeuronGroup`.
@@ -611,7 +611,7 @@ class NeuronGroup(Group, SpikeSource):
             The name of the event for which the scheduling should be changed
         when : str, optional
             The scheduling slot that should be used to check the condition.
-            Defaults to `'after_thresholds'`.
+            Defaults to `'after_thresholds'`. See :ref:`scheduling` for possible values.
         order : int, optional
             The order for operations in the same scheduling slot. Defaults to
             the order of the `NeuronGroup`.

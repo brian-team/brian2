@@ -5,3 +5,4 @@
 ipython >= 5
 sphinx >= 2.1
 sphinx-tabs
+docutils<0.17

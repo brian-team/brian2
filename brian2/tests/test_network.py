@@ -297,10 +297,11 @@ def test_scheduling_summary_magic():
                                       name=f"{basename}_sm_ia", when='after_end')
     inactive_state_mon.active = False
     summary_before = scheduling_summary()
+
     assert [entry.name for entry in summary_before.entries] == [f"{basename}_sm",
                                                                 f"{basename}_stateupdater",
-                                                                f"{basename}_thresholder",
-                                                                f"{basename}_resetter",
+                                                                f"{basename}_spike_thresholder",
+                                                                f"{basename}_spike_resetter",
                                                                 f"{basename}_run_regularly",
                                                                 f"{basename}_sm_ia"]
     assert [entry.when for entry in summary_before.entries] == ['start',
@@ -347,8 +348,8 @@ def test_scheduling_summary():
     summary_before = scheduling_summary(net)
     assert [entry.name for entry in summary_before.entries] == [f"{basename}_sm",
                                                                 f"{basename}_stateupdater",
-                                                                f"{basename}_thresholder",
-                                                                f"{basename}_resetter",
+                                                                f"{basename}_spike_thresholder",
+                                                                f"{basename}_spike_resetter",
                                                                 f"{basename}_net_op",
                                                                 f"{basename}_run_regularly",
                                                                 f"{basename}_sm_ia"]
@@ -1436,7 +1437,7 @@ def test_profile():
     # does
     assert 3 <= len(info) <= 4
     assert len(info) == 3 or 'profile_test' in info_dict
-    for obj in ['stateupdater', 'thresholder', 'resetter']:
+    for obj in ['stateupdater', 'spike_thresholder', 'spike_resetter']:
         name = f"profile_test_{obj}"
         assert name in info_dict or f"{name}_codeobject" in info_dict
     assert all([t>=0*second for _, t in info])
@@ -1534,6 +1535,25 @@ def test_both_equal():
 
     assert (M1.v == M2.v).all()
 
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
+def test_long_run():
+    defaultclock.dt = 0.1 * ms
+    group = NeuronGroup(1, 'x : 1')
+    group.run_regularly('x += 1')
+    # Timesteps are internally stored as 64bit integers, but previous versions
+    # converted them into 32bit integers along the way. We'll make sure that
+    # this is not the case and everything runs fine. To not actually run such a
+    # long simulation we run a single huge time step
+    start_step = 2**31-5
+    defaultclock.dt = 0.1*ms
+    start_time = start_step*defaultclock.dt
+    defaultclock.dt = start_time
+    run(start_time)  # A single, *very* long time step
+    defaultclock.dt = 0.1*ms
+    run(6 * defaultclock.dt)
+    device.build(direct_call=False, **device.build_options)
+    assert group.x == 7
 
 @pytest.mark.codegen_independent
 def test_long_run_dt_change():
@@ -1569,6 +1589,7 @@ def test_multiple_runs_function_change():
     run(2*defaultclock.dt)
     device.build(direct_call=False, **device.build_options)
     assert_equal(mon.v[0], [1, 2, 3, 4])
+
 
 if __name__ == '__main__':
     BrianLogger.log_level_warn()
@@ -1634,6 +1655,7 @@ if __name__ == '__main__':
             test_runtime_rounding,
             test_small_runs,
             test_both_equal,
+            test_long_run,
             test_long_run_dt_change,
             test_multiple_runs_constant_change,
             test_multiple_runs_function_change

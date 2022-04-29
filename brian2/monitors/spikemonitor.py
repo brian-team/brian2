@@ -37,7 +37,7 @@ class EventMonitor(Group, CodeRunner):
         always be recorded). Defaults to ``True``.
     when : str, optional
         When to record the events, by default records events in the same slot
-        where the event is emitted.
+        where the event is emitted. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to the order where the
@@ -341,7 +341,7 @@ class EventMonitor(Group, CodeRunner):
 
     def event_trains(self):
         """
-        Return a dictionary mapping event indices to arrays of event times.
+        Return a dictionary mapping neuron indices to arrays of event times.
         Equivalent to calling ``values('t')``.
 
         Returns
@@ -392,7 +392,7 @@ class SpikeMonitor(EventMonitor):
         always be recorded). Defaults to ``True``.
     when : str, optional
         When to record the events, by default records events in the same slot
-        where the event is emitted.
+        where the event is emitted. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to the order where the
@@ -456,7 +456,7 @@ class SpikeMonitor(EventMonitor):
 
     def spike_trains(self):
         """
-        Return a dictionary mapping spike indices to arrays of spike times.
+        Return a dictionary mapping neuron indices to arrays of spike times.
 
         Returns
         -------

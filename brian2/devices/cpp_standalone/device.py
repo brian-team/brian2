@@ -197,6 +197,8 @@ class CPPStandaloneDevice(Device):
         #: Note that the main slot is handled separately as part of `main_queue`
         self.code_lines = {'before_start': [],
                            'after_start': [],
+                           'before_network_run': [],
+                           'after_network_run': [],
                            'before_end': [],
                            'after_end': []}
 
@@ -1513,7 +1515,9 @@ class CPPStandaloneDevice(Device):
             if clock not in all_clocks:
                 run_lines.append(f'{net.name}.add(&{clock.name}, NULL);')
 
+        run_lines.extend(self.code_lines['before_network_run'])
         run_lines.append(f'{net.name}.run({float(duration)!r}, {report_call}, {float(report_period)!r});')
+        run_lines.extend(self.code_lines['after_network_run'])
         self.main_queue.append(('run_network', (net, run_lines)))
 
         net.after_run()

@@ -826,6 +826,51 @@ def test_point_current():
     assert 'I1/area' in neuron.equations['Im'].expr.code
     assert 'I2/area' in neuron.equations['Im'].expr.code  # see issue #1160
 
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
+def test_spatialneuron_threshold_location():
+    morpho = Soma(10*um)
+    morpho.axon = Cylinder(1*um, n=2, length=20*um)
+    model = '''
+    Im = 0*nA/cm**2 : amp/meter**2
+    should_spike : boolean (constant)
+    '''
+    neuron = SpatialNeuron(morpho, model, threshold_location=morpho.axon[15*um],
+                           threshold='should_spike')
+    # Different variants that should do the same thing
+    neuron2 = SpatialNeuron(morpho, model, threshold_location=morpho.axon.indices[15*um],
+                           threshold='should_spike')
+    neuron3 = SpatialNeuron(morpho, model, threshold_location=2,
+                           threshold='should_spike')
+    # Cannot use multiple compartments
+    with pytest.raises(AttributeError):
+        SpatialNeuron(morpho, model, threshold_location=[2, 3],
+                           threshold='should_spike')
+    with pytest.raises(AttributeError):
+        SpatialNeuron(morpho, model, threshold_location=morpho.axon[5*um:15*um],
+                           threshold='should_spike')
+    neurons = [neuron, neuron2, neuron3]
+    monitors = [SpikeMonitor(n) for n in neurons]
+
+    net = Network(neurons, monitors)
+    for n in neurons:
+        n.should_spike = True  # all compartments want to spike
+    net.run(defaultclock.dt)
+    for n in neurons:
+        n.should_spike = False  # no compartment wants to spike
+    net.run(defaultclock.dt)
+    for n in neurons:
+        n.should_spike = [False, False, True]
+    net.run(defaultclock.dt)
+    for n in neurons:
+        n.should_spike = [True, True, False]
+    net.run(defaultclock.dt)
+    device.build(direct_call=False, **device.build_options)
+    for mon in monitors:
+        assert len(mon.i) == 2
+        assert all(mon.i == 2)
+        assert_allclose(mon.t, [0*ms, 2*defaultclock.dt])
+
 
 if __name__ == '__main__':
     test_custom_events()
