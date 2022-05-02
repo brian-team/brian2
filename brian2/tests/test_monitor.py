@@ -156,7 +156,7 @@ def test_spike_monitor_subgroups():
     spikes_2 = SpikeMonitor(G[2:4])
     spikes_3 = SpikeMonitor(G[4:])
     spikes_indexed = SpikeMonitor(G[::2])
-    with pytest.raises(TypeError):
+    with pytest.raises(IndexError):
         SpikeMonitor(G[[4, 0, 2]])  # unsorted
     run(defaultclock.dt)
     # Spikes
