@@ -41,6 +41,8 @@
             _idx = {{_eventspace}}[_j]
             if _idx < {{_source_indices}}[_source_index_counter]:
                 continue
+            if _idx > {{_source_indices}}[{{source_N}}-1]:
+                break
             while {{_source_indices}}[_source_index_counter] < _idx:
                 _source_index_counter += 1
             if (_source_index_counter < {{source_N}} and
