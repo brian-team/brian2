@@ -61,11 +61,6 @@ def to_start_stop_or_index(item, group, level=0):
     if indices.shape == ():
         indices = np.array([indices])
 
-    if not np.all(indices[:-1] <= indices[1:]):
-        raise TypeError("Subgroups can only be created from ordered indices.")
-    if not len(indices) > 0:
-        raise IndexError("Cannot create an empty subgroup")
-
     if np.all(np.diff(indices) == 1):
         start = int(indices[0])
         stop = int(indices[-1]) + 1
@@ -99,22 +94,35 @@ class Subgroup(Group, SpikeSource):
         if start != stop and (start is None or stop is None):
             raise TypeError("start and stop have to be specified together.")
         if indices is not None and (start is not None):
-            raise TypeError("Cannot specify both sub_indices and start and stop.")
+            raise TypeError("Cannot specify both indices and start and stop.")
         if start is not None:
             self.contiguous = True
+            if start < 0:
+                raise IndexError("Start index cannot be negative.")
+            if stop <= start:
+                raise IndexError("Stop index has to be bigger than start.")
+            if stop > len(source):
+                raise IndexError(
+                    "Stop index cannot be > the size of the group "
+                    f"({stop} > {len(source)})."
+                )
         else:
             self.contiguous = False
             if not len(indices):
                 raise IndexError("Cannot create an empty subgroup.")
+            min_index = np.min(indices)
             max_index = np.max(indices)
+            if min_index < 0:
+                raise IndexError("Indices cannot contain negative values.")
             if max_index >= len(source):
                 raise IndexError(
-                    "Index {} cannot be >= the size of the group ({})".format(
-                        max_index, len(source)
-                    )
+                    "Indices cannot be ≥ the size of the group "
+                    f"({max_index} ≥ {len(source)})."
                 )
-            if len(indices) != len(np.unique(indices)):
-                raise IndexError("sub_indices cannot contain repeated values.")
+            if not np.all(np.diff(indices) > 0):
+                raise IndexError(
+                    "indices need to be sorted and cannot contain repeated values."
+                )
 
         self.source = weakproxy_with_fallback(source)
 
