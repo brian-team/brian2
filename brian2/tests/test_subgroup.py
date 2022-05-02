@@ -24,6 +24,35 @@ def test_str_repr():
     assert len(str(SGi))
     assert len(repr(SGi))
 
+@pytest.mark.codegen_independent
+def test_creation():
+    G = NeuronGroup(10, '')
+    SG = G[5:8]
+    SGi = G[[3, 6, 9]]
+    SGi2 = G[[3, 4, 5]]
+    assert len(SG) == 3
+    assert SG.contiguous
+    assert len(SGi) == 3
+    assert not SGi.contiguous
+    assert len(SGi2) == 3
+    assert SGi2.contiguous
+
+    with pytest.raises(IndexError):
+        Subgroup(G, start=-1, stop=5)
+    with pytest.raises(IndexError):
+        Subgroup(G, start=1, stop=1)
+    with pytest.raises(IndexError):
+        Subgroup(G, start=1, stop=11)
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[])
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[1, 1, 2])
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[-1, 1, 2])
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[1, 2, 10])
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[3, 2, 1])
 
 def test_state_variables():
     """
@@ -95,6 +124,13 @@ def test_state_variables_simple_indexed():
                            c : 1
                            d : 1
                            ''')
+    # Illegal indices:
+    with pytest.raises(IndexError):
+        G[[3, 5, 5, 7, 9]]  # duplicate indices
+    with pytest.raises(IndexError):
+        G[[9, 7, 5, 3]]  # unsorted
+    with pytest.raises(IndexError):
+        G[[8, 10]]  # out of range
     SG = G[[3, 5, 7, 9]]
     SG.a = 1
     SG.a['i == 0'] = 2
@@ -170,16 +206,40 @@ def test_state_monitor():
     G = NeuronGroup(10, 'v : volt')
     G.v = np.arange(10) * volt
     SG = G[5:]
+    SG_indices = G[[2, 4, 6]]
     mon_all = StateMonitor(SG, 'v', record=True)
     mon_0 = StateMonitor(SG, 'v', record=0)
+    mon_all_indices = StateMonitor(SG_indices, 'v', record=True)
+    mon_0_indices = StateMonitor(SG_indices, 'v', record=0)
     run(defaultclock.dt)
 
     assert_allclose(mon_0[0].v, mon_all[0].v)
     assert_allclose(mon_0[0].v, np.array([5]) * volt)
     assert_allclose(mon_all.v.flatten(), np.arange(5, 10) * volt)
 
+    assert_allclose(mon_0_indices[0].v, mon_all_indices[0].v)
+    assert_allclose(mon_0_indices[0].v, np.array([2]) * volt)
+    assert_allclose(mon_all_indices.v.flatten(), np.array([2, 4, 6]) * volt)
+
     with pytest.raises(IndexError):
         mon_all[5]
+    with pytest.raises(IndexError):
+        mon_all_indices[3]
+
+@pytest.mark.standalone_compatible
+def test_rate_monitor():
+    G = NeuronGroup(10, '', threshold='i%2 == 0')
+    SG = G[5:]
+    SG_indices = G[[2, 4, 6]]
+    SG_indices2 = G[[3, 5, 7]]
+    pop_mon = PopulationRateMonitor(SG)
+    pop_mon_indices = PopulationRateMonitor(SG_indices)
+    pop_mon_indices2 = PopulationRateMonitor(SG_indices2)
+    run(defaultclock.dt)
+    r = 1/defaultclock.dt
+    assert_allclose(pop_mon.rate[0], (2*r + 3*0)/5)  # 2 out of 3 neurons are firing
+    assert_allclose(pop_mon_indices.rate[0], r)      # all neurons firing
+    assert_allclose(pop_mon_indices2.rate[0], 0*Hz)  # no neurons firing
 
 
 def test_shared_variable():
