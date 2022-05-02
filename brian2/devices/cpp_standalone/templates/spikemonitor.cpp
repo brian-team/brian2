@@ -40,11 +40,14 @@
         }
         _num_events = _end_idx - _start_idx;
         {% else %}
+        const size_t _max_source_index = {{_source_indices}}[{{source_N}}-1];
         for (size_t _j=0; _j<_num_events; _j++)
         {
             const size_t _idx = {{_eventspace}}[_j];
             if (_idx < {{_source_indices}}[_source_index_counter])
                 continue;
+            if (_idx > _max_source_index)
+                break;
             while ({{_source_indices}}[_source_index_counter] < _idx)
             {
                 _source_index_counter++;
