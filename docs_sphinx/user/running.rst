@@ -18,6 +18,8 @@ Note that Brian has several different ways of running the actual computations,
 and choosing the right one can make orders of magnitude of difference in
 terms of simplicity and efficiency. See :doc:`computation` for more details.
 
+.. _networks:
+
 Networks
 --------
 In most straightforward simulations, you do not have to explicitly create a
@@ -230,13 +232,13 @@ To get an idea which parts of a simulation take the most time, Brian offers a
 basic profiling mechanism. If a simulation is run with the ``profile=True``
 keyword argument, it will collect information about the total simulation time
 for each `CodeObject`. This information can then be retrieved from
-`Network.profiling_info`, which contains a list of ``(name, time)`` tuples or
-a string summary can be obtained by calling `profiling_summary`. The
+`Network.profiling_info`, which contains a list of ``(name, time)`` tuples. For
+convenience, a string summary can be obtained by calling `profiling_summary` (which
+will automatically refer to the current :ref:`"magic" network <networks>`). The
 following example shows profiling output after running the CUBA example (where
 the neuronal state updates take up the most time)::
 
     >>> from brian2 import profiling_summary
-    # your magic network goes here
     >>> profiling_summary(show=5)  # show the 5 objects that took the longest  # doctest: +SKIP
     Profiling summary
     =================
@@ -246,10 +248,9 @@ the neuronal state updates take up the most time)::
     spikemonitor                0.59 s     6.55 %
     neurongroup_thresholder     0.33 s     3.66 %
 
-If you use an explicit ``Network`` object, you need to pass it to ``profiling_summary``::
+If you use an explicit `~.Network` object, you need to pass it to ``profiling_summary``::
 
-    >>> from brian2 import profiling_summary
-    >>> net = Network(...)
+    >>> net = Network(...) # doctest: +SKIP
     >>> profiling_summary(net, ...) # doctest: +SKIP
 
 .. _scheduling:
