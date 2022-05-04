@@ -143,11 +143,11 @@ def get_neurons():
         N_NEURONS,
         """
         tau_mem : second (shared, constant)
-        tau_refrac : second (shared, constant)
+        tau_refrac : second (constant)
         v_reset : volt (shared, constant)
         v_thresh : volt (shared, constant)
         I_b : ampere (shared, constant)
-        tau_stimulus : second (shared, constant)
+        tau_stimulus : second (constant)
         I_syn_ee_synapses : ampere
         I_syn_ei_synapses : ampere
         I_syn_ie_synapses : ampere
@@ -364,13 +364,19 @@ if __name__ == '__main__':
     spike_monitor_stimulus = SpikeMonitor(stimulus)
 
     static_synapses_exc = Synapses(
-        stimulus, exc_neurons, "A : ampere", on_pre="I_stimulus += A"
+        stimulus,
+        exc_neurons,
+        "A : ampere (shared, constant)",
+        on_pre="I_stimulus += A"
     )
     static_synapses_exc.connect(p=1)
     static_synapses_exc.A = 18 * nA
 
     static_synapses_inh = Synapses(
-        stimulus, inh_neurons, "A : ampere", on_pre="I_stimulus += A"
+        stimulus,
+        inh_neurons,
+        "A : ampere (shared, constant)",
+        on_pre="I_stimulus += A"
     )
     static_synapses_inh.connect(p=1)
     static_synapses_inh.A = 9 * nA
