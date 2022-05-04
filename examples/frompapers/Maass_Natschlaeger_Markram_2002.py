@@ -142,12 +142,12 @@ def get_neurons():
     neurons = NeuronGroup(
         N_NEURONS,
         """
-        tau_mem : second
-        tau_refrac : second
-        v_reset : volt
-        v_thresh : volt
-        I_b : ampere
-        tau_stimulus : second
+        tau_mem : second (shared, constant)
+        tau_refrac : second (shared, constant)
+        v_reset : volt (shared, constant)
+        v_thresh : volt (shared, constant)
+        I_b : ampere (shared, constant)
+        tau_stimulus : second (shared, constant)
         I_syn_ee_synapses : ampere
         I_syn_ei_synapses : ampere
         I_syn_ie_synapses : ampere
@@ -160,9 +160,9 @@ def get_neurons():
                               I_syn_ii_synapses)*R_in/tau_mem
                            + I_b*R_in/tau_mem
                            + I_stimulus*R_in/tau_mem: volt (unless refractory)
-        x_pos : 1
-        y_pos : 1
-        z_pos : 1
+        x_pos : 1 (constant)
+        y_pos : 1 (constant)
+        z_pos : 1 (constant)
         """,
         threshold="v>v_thresh",
         reset="v=v_reset",
@@ -197,10 +197,10 @@ def get_neurons():
 
 def get_synapses(name, source, target, C, l, tau_I, A, U, D, F, delay):
     synapses_eqs = """
-    A : ampere
-    U : 1
-    tau_I : second
-    D : second
+    A : ampere (constant)
+    U : 1 (constant)
+    tau_I : second (shared, constant)
+    D : second (constant)
     dx/dt =  z/D       : 1 (clock-driven) # recovered
     dy/dt = -y/tau_I   : 1 (clock-driven) # active
     z = 1 - x - y      : 1                # inactive
@@ -210,7 +210,7 @@ def get_synapses(name, source, target, C, l, tau_I, A, U, D, F, delay):
     if F:
         synapses_eqs += """
         du/dt = -u/F : 1 (clock-driven)
-        F : second
+        F : second (constant)
         """
 
         synapses_action = """
