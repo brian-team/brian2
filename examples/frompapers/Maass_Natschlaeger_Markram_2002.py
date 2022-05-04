@@ -290,158 +290,156 @@ def sim(net, spike_times):
 
     return liquid_states
 
+if __name__ == '__main__':
+    neurons = get_neurons()
 
-neurons = get_neurons()
+    N_exc = int(0.8 * len(neurons))
 
-N_exc = int(0.8 * len(neurons))
+    exc_neurons = neurons[:N_exc]
+    exc_neurons.tau_refrac = 3 * ms
+    exc_neurons.tau_stimulus = 3 * ms
 
-exc_neurons = neurons[:N_exc]
-exc_neurons.tau_refrac = 3 * ms
-exc_neurons.tau_stimulus = 3 * ms
+    inh_neurons = neurons[N_exc:]
+    inh_neurons.tau_refrac = 2 * ms
+    inh_neurons.tau_stimulus = 6 * ms
 
-inh_neurons = neurons[N_exc:]
-inh_neurons.tau_refrac = 2 * ms
-inh_neurons.tau_stimulus = 6 * ms
+    l_lambda = 2
 
-l_lambda = 2
-
-ee_synapses = get_synapses(
-    "ee_synapses",
-    exc_neurons,
-    exc_neurons,
-    C=0.3,
-    l=l_lambda,
-    tau_I=3 * ms,
-    A=30 * nA,
-    U=0.5,
-    D=1.1 * second,
-    F=0.05 * second,
-    delay=1.5 * ms,
-)
-ei_synapses = get_synapses(
-    "ei_synapses",
-    exc_neurons,
-    inh_neurons,
-    C=0.2,
-    l=l_lambda,
-    tau_I=3 * ms,
-    A=60 * nA,
-    U=0.05,
-    D=0.125 * second,
-    F=1.2 * second,
-    delay=0.8 * ms,
-)
-ie_synapses = get_synapses(
-    "ie_synapses",
-    inh_neurons,
-    exc_neurons,
-    C=0.4,
-    l=l_lambda,
-    tau_I=6 * ms,
-    A=-19 * nA,
-    U=0.25,
-    D=0.7 * second,
-    F=0.02 * second,
-    delay=0.8 * ms,
-)
-ii_synapses = get_synapses(
-    "ii_synapses",
-    inh_neurons,
-    inh_neurons,
-    C=0.1,
-    l=l_lambda,
-    tau_I=6 * ms,
-    A=-19 * nA,
-    U=0.32,
-    D=0.144 * second,
-    F=0.06 * second,
-    delay=0.8 * ms,
-)
-
-# place holder for stimulus
-stimulus = SpikeGeneratorGroup(1, [], [] * ms, name="stimulus")
-
-spike_monitor_stimulus = SpikeMonitor(stimulus)
-
-static_synapses_exc = Synapses(
-    stimulus, exc_neurons, "A : ampere", on_pre="I_stimulus += A"
-)
-static_synapses_exc.connect(p=1)
-static_synapses_exc.A = 18 * nA
-
-static_synapses_inh = Synapses(
-    stimulus, inh_neurons, "A : ampere", on_pre="I_stimulus += A"
-)
-static_synapses_inh.connect(p=1)
-static_synapses_inh.A = 9 * nA
-
-spike_monitor_exc = SpikeMonitor(exc_neurons, name="spike_monitor_exc")
-spike_monitor_inh = SpikeMonitor(inh_neurons, name="spike_monitor_inh")
-
-defaultclock.dt = DT
-
-net = Network(
-    [
-        neurons,
-        ee_synapses,
-        ei_synapses,
-        ie_synapses,
-        ii_synapses,
-        static_synapses_exc,
-        static_synapses_inh,
-        stimulus,
-        spike_monitor_exc,
-        spike_monitor_inh,
-    ]
-)
-net.store()
-
-collected_pairs = collect_stimulus_pairs()
-
-# add only jittered pairs
-collected_pairs[0] = [
-    [generate_poisson(DURATION / ms, STIMULUS_POISSON_RATE / Hz / 1e3)] * 2
-    for _ in range(N_PAIRS)
-]
-
-def map_sim(spike_times):
-    """Wrapper to sim for multiprocessing
-    """
-    return sim(net, spike_times)
-
-result = defaultdict(list)
-
-# loop over all distances and Poisson stimulus pairs
-for d, pairs in collected_pairs.items():
-
-    with multiprocessing.Pool() as p:
-        states_u = p.map(map_sim, [p[0] for p in pairs])
-        states_v = p.map(map_sim, [p[1] for p in pairs])
-
-    for liquid_states_u, liquid_states_v in zip(states_u, states_v):
-        ed = euclidian_distance(liquid_states_u, liquid_states_v)
-        result[d].append(ed)
-
-# plot
-fig, ax = plt.subplots(figsize=(5, 5))
-
-linestyles = ["dashed", (0, (8, 6, 1, 6)), (0, (5, 10)), "solid"]
-
-for d, ls in zip(TARGET_DISTANCES + [0], linestyles):
-
-    eds = result[d]
-    eds = np.array(eds)
-
-    ax.plot(
-        TS / 1000, np.mean(eds, axis=0), label=f"d(u,v)={d}", linestyle=ls, color="k"
+    ee_synapses = get_synapses(
+        "ee_synapses",
+        exc_neurons,
+        exc_neurons,
+        C=0.3,
+        l=l_lambda,
+        tau_I=3 * ms,
+        A=30 * nA,
+        U=0.5,
+        D=1.1 * second,
+        F=0.05 * second,
+        delay=1.5 * ms,
+    )
+    ei_synapses = get_synapses(
+        "ei_synapses",
+        exc_neurons,
+        inh_neurons,
+        C=0.2,
+        l=l_lambda,
+        tau_I=3 * ms,
+        A=60 * nA,
+        U=0.05,
+        D=0.125 * second,
+        F=1.2 * second,
+        delay=0.8 * ms,
+    )
+    ie_synapses = get_synapses(
+        "ie_synapses",
+        inh_neurons,
+        exc_neurons,
+        C=0.4,
+        l=l_lambda,
+        tau_I=6 * ms,
+        A=-19 * nA,
+        U=0.25,
+        D=0.7 * second,
+        F=0.02 * second,
+        delay=0.8 * ms,
+    )
+    ii_synapses = get_synapses(
+        "ii_synapses",
+        inh_neurons,
+        inh_neurons,
+        C=0.1,
+        l=l_lambda,
+        tau_I=6 * ms,
+        A=-19 * nA,
+        U=0.32,
+        D=0.144 * second,
+        F=0.06 * second,
+        delay=0.8 * ms,
     )
 
-ax.set_xlabel("time [sec]")
-ax.set_ylabel("state distance")
+    # place holder for stimulus
+    stimulus = SpikeGeneratorGroup(1, [], [] * ms, name="stimulus")
 
-ax.set_xlim(0, 0.5)
-ax.set_ylim(0, 2.5)
+    spike_monitor_stimulus = SpikeMonitor(stimulus)
 
-ax.legend(loc="upper center", fontsize="x-large", frameon=False)
+    static_synapses_exc = Synapses(
+        stimulus, exc_neurons, "A : ampere", on_pre="I_stimulus += A"
+    )
+    static_synapses_exc.connect(p=1)
+    static_synapses_exc.A = 18 * nA
 
-fig.show()
+    static_synapses_inh = Synapses(
+        stimulus, inh_neurons, "A : ampere", on_pre="I_stimulus += A"
+    )
+    static_synapses_inh.connect(p=1)
+    static_synapses_inh.A = 9 * nA
+
+    spike_monitor_exc = SpikeMonitor(exc_neurons, name="spike_monitor_exc")
+    spike_monitor_inh = SpikeMonitor(inh_neurons, name="spike_monitor_inh")
+
+    defaultclock.dt = DT
+
+    net = Network(
+        [
+            neurons,
+            ee_synapses,
+            ei_synapses,
+            ie_synapses,
+            ii_synapses,
+            static_synapses_exc,
+            static_synapses_inh,
+            stimulus,
+            spike_monitor_exc,
+            spike_monitor_inh,
+        ]
+    )
+    net.store()
+
+    collected_pairs = collect_stimulus_pairs()
+
+    # add only jittered pairs
+    collected_pairs[0] = [
+        [generate_poisson(DURATION / ms, STIMULUS_POISSON_RATE / Hz / 1e3)] * 2
+        for _ in range(N_PAIRS)
+    ]
+
+    def map_sim(spike_times):
+        """Wrapper to sim for multiprocessing
+        """
+        return sim(net, spike_times)
+
+    result = defaultdict(list)
+    # loop over all distances and Poisson stimulus pairs
+    for d, pairs in collected_pairs.items():
+
+        with multiprocessing.Pool() as p:
+            states_u = p.map(map_sim, [p[0] for p in pairs])
+            states_v = p.map(map_sim, [p[1] for p in pairs])
+
+        for liquid_states_u, liquid_states_v in zip(states_u, states_v):
+            ed = euclidian_distance(liquid_states_u, liquid_states_v)
+            result[d].append(ed)
+    # plot
+    fig, ax = plt.subplots(figsize=(5, 5))
+
+    linestyles = ["dashed", (0, (8, 6, 1, 6)), (0, (5, 10)), "solid"]
+
+    for d, ls in zip(TARGET_DISTANCES + [0], linestyles):
+
+        eds = result[d]
+        eds = np.array(eds)
+
+        ax.plot(
+            TS / 1000, np.mean(eds, axis=0), label=f"d(u,v)={d}", linestyle=ls, color="k"
+        )
+
+    ax.set_xlabel("time [sec]")
+    ax.set_ylabel("state distance")
+
+    ax.set_xlim(0, 0.5)
+    ax.set_ylim(0, 2.5)
+
+    ax.legend(loc="upper center", fontsize="x-large", frameon=False)
+
+    plt.show()
