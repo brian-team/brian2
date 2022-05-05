@@ -338,9 +338,11 @@ def run(duration, report=None, report_period=10*second, namespace=None,
         report progress. If stdout or stderr is specified, print the
         progress to stdout or stderr. If graphical, Tkinter is used to
         show a graphical progress bar. Alternatively, you can specify
-        a callback ``function(elapsed, complete)`` which will be passed
-        the amount of time elapsed (in seconds) and the fraction complete
-        from 0 to 1.
+        a callback ``callable(elapsed, completed, start, duration)``
+        which will be passed the amount of time elapsed as a `Quantity`,
+        the fraction `completed` from 0.0 to 1.0, the `start` time of the
+        simulation as a `Quantity` and the total duration of the simulation
+        (in biological time) as a `Quantity`.
     report_period : `Quantity`
         How frequently (in real time) to report progress.
     profile : bool, optional
