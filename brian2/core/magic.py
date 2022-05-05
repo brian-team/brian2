@@ -333,16 +333,18 @@ def run(duration, report=None, report_period=10*second, namespace=None,
         set of objects, the second and subsequent runs will start from the
         end time of the previous run. To explicitly reset the time to 0,
         do ``magic_network.t = 0*second``.
-    report : {None, 'stdout', 'stderr', 'graphical', function}, optional
-        How to report the progress of the simulation. If None, do not
-        report progress. If stdout or stderr is specified, print the
-        progress to stdout or stderr. If graphical, Tkinter is used to
-        show a graphical progress bar. Alternatively, you can specify
-        a callback ``callable(elapsed, completed, start, duration)``
-        which will be passed the amount of time elapsed as a `Quantity`,
-        the fraction `completed` from 0.0 to 1.0, the `start` time of the
-        simulation as a `Quantity` and the total duration of the simulation
-        (in biological time) as a `Quantity`.
+    report : {None, 'text', 'stdout', 'stderr', function}, optional
+        How to report the progress of the simulation. If ``None``, do not
+        report progress. If ``'text'`` or ``'stdout'`` is specified, print
+        the progress to stdout. If ``'stderr'`` is specified, print the
+        progress to stderr. Alternatively, you can specify a callback
+        ``callable(elapsed, completed, start, duration)`` which will be passed
+        the amount of time elapsed as a `Quantity`, the fraction ``completed``
+        from 0.0 to 1.0, the ``start`` time of the simulation as a `Quantity`
+        and the total duration of the simulation (in biological time)
+        as a `Quantity`.
+        The function will always be called at the beginning and the end
+        (i.e. for fractions 0.0 and 1.0), regardless of the ``report_period``.
     report_period : `Quantity`
         How frequently (in real time) to report progress.
     profile : bool, optional
