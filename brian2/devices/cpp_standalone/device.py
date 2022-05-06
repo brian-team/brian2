@@ -1265,6 +1265,13 @@ class CPPStandaloneDevice(Device):
             self.compile_source(directory, compiler, debug, clean)
             if run:
                 self.run(directory, with_output, run_args)
+        time_measurements = {"'make clean'": self.timers['compile']['clean'],
+                             "'make'": self.timers['compile']['make'],
+                             "running 'main'": self.timers['run_binary']}
+        logged_times = [f"{task}: {measurement:.2f}s"
+                        for task, measurement in time_measurements.items()
+                        if measurement is not None]
+        logger.debug(f"Time measurements: {', '.join(logged_times)}")
 
     def delete(self, code=True, data=True, directory=True, force=False):
         if self.project_dir is None:
