@@ -239,7 +239,11 @@ def _determine_flag_compatibility(compiler, flagname):
     with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f, std_silent():
         f.write('int main (int argc, char **argv) { return 0; }')
         try:
-            compiler.compile([f.name], extra_postargs=[flagname])
+            object_files = compiler.compile([f.name],
+                                            output_dir=os.path.dirname(f.name),
+                                            extra_postargs=[flagname])
+            for object_file in object_files:
+                os.unlink(object_file)
         except CompileError:
             logger.warn(f"Removing unsupported flag '{flagname}' from "
                         f'compiler flags.')
