@@ -349,7 +349,7 @@ def create_runner_codeobj(group, code, template_name,
         needed_variables = []
     # Resolve all variables (variables used in the code and variables needed by
     # the template)
-    variables = group.resolve_all(identifiers | set(needed_variables) | set(template_variables),
+    variables = group.resolve_all(sorted(identifiers | set(needed_variables) | set(template_variables)),
                                   # template variables are not known to the user:
                                   user_identifiers=user_identifiers,
                                   additional_variables=additional_variables,
