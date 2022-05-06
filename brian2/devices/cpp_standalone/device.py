@@ -1,4 +1,3 @@
-
 """
 Module implementing the C++ "standalone" device.
 """
@@ -201,9 +200,8 @@ class CPPStandaloneDevice(Device):
 
         #: Dictionary storing compile and binary execution times
         self.timers = {'run_binary': None,
-                       'compile': {'clean':None,
-                                   'make': None,
-                                   'all': None}}
+                       'compile': {'clean': None,
+                                   'make': None}}
 
         self.clocks = set([])
 
@@ -975,9 +973,7 @@ class CPPStandaloneDevice(Device):
                         start_time = time.time()
                         x = os.system(f'{make_cmd} {make_args}>>winmake.log 2>&1')
                         self.timers['compile']['make'] = time.time() - start_time
-                    self.timers['compile']['all'] = sum(
-                        t for t in self.timers['compile'].values() if t is not None
-                    )
+
                     if x != 0:
                         if os.path.exists('winmake.log'):
                             with open('winmake.log', 'r') as f:
@@ -992,10 +988,14 @@ class CPPStandaloneDevice(Device):
             else:
                 with std_silent(debug):
                     if clean:
+                        start_time = time.time()
                         os.system('make clean >/dev/null 2>&1')
+                        self.timers['compile']['clean'] = time.time() - start_time
                     make_cmd = prefs.devices.cpp_standalone.make_cmd_unix
                     make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_unix)
+                    start_time = time.time()
                     x = os.system(f'{make_cmd} {make_args}')
+                    self.timers['compile']['make'] = time.time() - start_time
                     if x != 0:
                         error_message = ('Project compilation failed (error '
                                          'code: %u).') % x
@@ -1032,7 +1032,9 @@ class CPPStandaloneDevice(Device):
             else:
                 stdout = None
             if os.name == 'nt':
+                start_time = time.time()
                 x = subprocess.call(['main'] + run_args, stdout=stdout)
+                self.timers['run_binary'] = time.time() - start_time
             else:
                 run_cmd = prefs.devices.cpp_standalone.run_cmd_unix
                 if isinstance(run_cmd, str):
