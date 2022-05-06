@@ -2,7 +2,7 @@
 """
 Fig. 2 C, panel DP from:
 
-Calcium-based plasticity model explains sensitivity ofsynaptic changes
+Calcium-based plasticity model explains sensitivity of synaptic changes
 to spike pattern, rate, and dendritic location
 
 PNAS 109 (10): 3991-3996 (2012)
