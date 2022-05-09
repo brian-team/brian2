@@ -2,12 +2,12 @@ Development workflow
 ====================
 
 Brian development is done in a `git`_ repository on `github`_. Continuous
-integration testing is provided by `travis CI`_, code coverage is measured with
+integration testing is provided by `GitHub Actions`_, code coverage is measured with
 `coveralls.io`_.
 
 .. _git: https://git-scm.com/
 .. _github: https://github.com/
-.. _`travis CI`: https://travis-ci.org/
+.. _`GitHub Actions`: https://github.com/features/actions
 .. _`coveralls.io`: https://coveralls.io/
 
 The repository structure
@@ -45,7 +45,7 @@ specific feedback on the code is needed, open a "pull request" to merge the
 changes from your branch into *master*. In this pull request, others can comment
 on the code and make suggestions for improvements. New commits to the respective
 branch automatically appear in the pull request which makes it a great tool for
-iterative code review. Even more useful, travis will automatically run the test
+iterative code review. Even more useful, GitHub Actions will automatically run the test
 suite on the result of the merge. As a reviewer, always wait for the result of
 this test (it can take up to 30 minutes or so until it appears) before doing
 the merge and never merge when a test fails. As soon as the reviewer (someone
@@ -56,7 +56,7 @@ delete the corresponding branch (but it will be hidden by default, anyway).
 Useful links
 ------------
 * The Brian repository: https://github.com/brian-team/brian2
-* Travis testing for Brian: https://travis-ci.org/brian-team/brian2
+* GitHub Actions tests for Brian: https://github.com/brian-team/brian2/actions
 * Code Coverage for Brian: https://coveralls.io/github/brian-team/brian2
 * The Pro Git book: https://git-scm.com/book/en/v2
 * github's documentation on pull requests: https://help.github.com/articles/using-pull-requests

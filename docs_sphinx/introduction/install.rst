@@ -84,6 +84,14 @@ Standard install
        Brian releases get packaged by the `NeuroFedora <https://docs.fedoraproject.org/en-US/neurofedora/overview/>`_ team,
        but note that it might take a while until the most recent version shows up in the repository.
 
+    .. group-tab:: Spack package
+
+       `Spack <https://spack.io>`_ is a flexible package manager supporting multiple versions, configurations, platforms, and compilers.
+
+       After setting up Spack you can install Brian with the following command::
+
+         spack install py-brian2
+
 .. _updating_install:
 
 Updating an existing installation
@@ -245,7 +253,6 @@ failures. For more control about the tests that are run see the
 .. _ipython: http://ipython.org/
 .. _jupyter: http://jupyter.org/
 .. _brian2tools: https://brian2tools.readthedocs.io
-.. _travis: https://travis-ci.org/brian-team/brian2
 .. _azure: https://azure.microsoft.com/en-us/services/devops/pipelines/
 .. _pytest: https://docs.pytest.org/en/stable/
 .. _Cython: http://cython.org/

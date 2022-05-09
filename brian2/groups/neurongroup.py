@@ -651,7 +651,7 @@ class NeuronGroup(Group, SpikeSource):
             The code that should be executed
         when : str, optional
             The scheduling slot that should be used to execute the code.
-            Defaults to `'after_resets'`.
+            Defaults to `'after_resets'`. See :ref:`scheduling` for possible values.
         order : int, optional
             The order for operations in the same scheduling slot. Defaults to
             the order of the `NeuronGroup`.
@@ -686,7 +686,7 @@ class NeuronGroup(Group, SpikeSource):
             The name of the event for which the scheduling should be changed
         when : str, optional
             The scheduling slot that should be used to check the condition.
-            Defaults to `'after_thresholds'`.
+            Defaults to `'after_thresholds'`. See :ref:`scheduling` for possible values.
         order : int, optional
             The order for operations in the same scheduling slot. Defaults to
             the order of the `NeuronGroup`.

@@ -928,6 +928,7 @@ class Group(VariableOwner, BrianObject):
             the `dt` argument is specified, defaults to the clock of the group.
         when : str, optional
             When to run within a time step, defaults to the ``'start'`` slot.
+            See :ref:`scheduling` for possible values.
         name : str, optional
             A unique name, if non is given the name of the group appended with
             'run_regularly', 'run_regularly_1', etc. will be used. If a
@@ -1028,7 +1029,7 @@ class CodeRunner(BrianObject):
         is specified, the `defaultclock` will be used.
     when : str, optional
         In which scheduling slot to execute the operation during a time step.
-        Defaults to ``'start'``.
+        Defaults to ``'start'``. See :ref:`scheduling` for possible values.
     order : int, optional
         The priority of this operation for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.

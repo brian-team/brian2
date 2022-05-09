@@ -246,12 +246,12 @@ class SpatialNeuron(NeuronGroup):
             if hasattr(threshold_location,
                        '_indices'):  # assuming this is a method
                 threshold_location = threshold_location._indices()
-                # for now, only a single compartment allowed
-                if len(threshold_location) == 1:
-                    threshold_location = threshold_location[0]
-                else:
-                    raise AttributeError("Threshold can only be applied on a "
-                                         "single location")
+            # for now, only a single compartment allowed
+            try:
+                treshold_location = int(threshold_location)
+            except TypeError:
+                raise AttributeError("Threshold can only be applied on a "
+                                     "single location")
             threshold = f"({threshold}) and (i == {str(threshold_location)})"
 
         # Check flags (we have point currents)

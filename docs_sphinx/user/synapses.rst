@@ -166,8 +166,8 @@ connect neurons that are not very far apart with::
 
 The string expressions can also refer to pre- or postsynaptic variables. This
 can be useful for example for spatial connectivity: assuming that the pre- and
-postsynaptic groups have parameters ``x`` and ``y``, storing their location, the
-following statement connects all cells in a 250 um radius::
+postsynaptic groups have user-defined parameters ``x`` and ``y``, storing their
+location, the following statement connects all cells in a 250 um radius::
 
     S.connect(condition='sqrt((x_pre-x_post)**2 + (y_pre-y_post)**2) < 250*umeter')
 
@@ -189,7 +189,8 @@ that depends on distance::
 If this statement is applied to a `Synapses` object that connects a group to
 itself, it prevents self-connections (``i != j``) and connects cells with a
 probability that is modulated according to a 2-dimensional Gaussian of the
-distance between the cells.
+distance between the cells computed from the user-defined parameters ``x``
+and ``y``, storing their location.
 
 One-to-one
 ~~~~~~~~~~
@@ -563,8 +564,7 @@ Explicit event-driven updates
 As mentioned above, it is possible to write event-driven update code for the synaptic variables.
 This can also be done manually, by defining the variable ``lastupdate`` and
 referring to the predefined variable ``t`` (current time).
-Here's an example for short-term plasticity -- but note that using the automatic
-``event-driven`` approach from above is usually preferable::
+Here's an example for short-term plasticity::
 
 	S=Synapses(neuron_input,neuron,
 	           model='''x : 1
@@ -582,6 +582,10 @@ By default, the ``pre`` pathway is executed before the ``post`` pathway (both
 are executed in the ``'synapses'`` scheduling slot, but the ``pre`` pathway has
 the ``order`` attribute -1, wheras the ``post`` pathway has ``order`` 1. See
 :ref:`scheduling` for more details).
+
+Note that using the automatic ``event-driven`` approach from above is usually preferable,
+see :doc:`../examples/frompapers.Stimberg_et_al_2018.example_1_COBA` for an ``event-driven``
+implementation of short-term plasticity.
 
 Technical notes
 ---------------
