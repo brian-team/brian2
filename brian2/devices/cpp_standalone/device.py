@@ -13,6 +13,7 @@ import itertools
 import numbers
 import tempfile
 from distutils import ccompiler
+import zlib
 
 import numpy as np
 
@@ -325,8 +326,8 @@ class CPPStandaloneDevice(Device):
         -------
         filename : str
             A filename of the form
-            ``'results/'+varname+'_'+str(hash(varname))``, where varname is the
-            name returned by `get_array_name`.
+            ``'results/'+varname+'_'+str(zlib.crc32(varname))``, where varname
+            is the name returned by `get_array_name`.
 
         Notes
         -----
@@ -335,7 +336,7 @@ class CPPStandaloneDevice(Device):
         that are not case sensitive (e.g. on Windows).
         """
         varname = self.get_array_name(var, access_data=False)
-        return os.path.join(basedir, f"{varname}_{str(hash(varname))}")
+        return os.path.join(basedir, f"{varname}_{str(zlib.crc32(varname.encode('utf-8')))}")
 
     def add_array(self, var):
         # Note that a dynamic array variable is added to both the arrays and

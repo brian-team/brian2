@@ -240,7 +240,7 @@ class CPPCodeGenerator(CodeGenerator):
     def translate_to_read_arrays(self, read, write, indices):
         lines = []
         # index and read arrays (index arrays first)
-        for varname in itertools.chain(indices, read):
+        for varname in itertools.chain(sorted(indices), sorted(read)):
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
             if varname not in write:
@@ -255,7 +255,7 @@ class CPPCodeGenerator(CodeGenerator):
     def translate_to_declarations(self, read, write, indices):
         lines = []
         # simply declare variables that will be written but not read
-        for varname in write:
+        for varname in sorted(write):
             if varname not in read and varname not in indices:
                 var = self.variables[varname]
                 line = f"{self.c_data_type(var.dtype)} {varname};"
@@ -278,7 +278,7 @@ class CPPCodeGenerator(CodeGenerator):
     def translate_to_write_arrays(self, write):
         lines = []
         # write arrays
-        for varname in write:
+        for varname in sorted(write):
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
             line = f"{self.get_array_name(var)}[{index_var}] = {varname};"

@@ -132,7 +132,7 @@ class CythonCodeGenerator(CodeGenerator):
 
     def translate_to_read_arrays(self, read, indices):
         lines = []
-        for varname in itertools.chain(indices, read):
+        for varname in itertools.chain(sorted(indices), sorted(read)):
             var = self.variables[varname]
             index = self.variable_indices[varname]
             arrayname = self.get_array_name(var)
@@ -157,7 +157,7 @@ class CythonCodeGenerator(CodeGenerator):
 
     def translate_to_write_arrays(self, write):
         lines = []
-        for varname in write:
+        for varname in sorted(write):
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
             line = f"{self.get_array_name(var, self.variables)}[{index_var}] = {varname}"
