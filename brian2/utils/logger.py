@@ -9,6 +9,7 @@ Preferences
 import atexit
 import logging
 import logging.handlers
+from logging.handlers import RotatingFileHandler
 import os
 import shutil
 import sys
@@ -324,6 +325,9 @@ class BrianLogger(object):
     #: deleted after the run if no exception occurred), if any
     tmp_script = None
 
+    #: The pid of the process that initialized the logger – used to switch off file logging in
+    #: multiprocessing contexts
+    _pid = None
     def __init__(self, name):
         self.name = name
 
@@ -346,6 +350,12 @@ class BrianLogger(object):
         if name_suffix:
             name += f".{name_suffix}"
         
+        # Switch off file logging when using multiprocessing
+        if BrianLogger.tmp_log is not None and BrianLogger._pid != os.getpid():
+            BrianLogger.tmp_log = None
+            logging.getLogger('brian2').removeHandler(BrianLogger.file_handler)
+            BrianLogger.file_handler = None
+
         if once:
             # Check whether this exact message has already been displayed 
             log_tuple = (name, log_level, msg)
@@ -552,16 +562,20 @@ class BrianLogger(object):
                                                                   suffix='.log',
                                                                   delete=False)
                 BrianLogger.tmp_log = BrianLogger.tmp_log.name
+                # Remove any previously existing file handler
+                if BrianLogger.file_handler is not None:
+                    logger.removeHandler(BrianLogger.file_handler)
                 # Rotate log file after prefs['logging.file_log_max_size'] bytes and keep one copy
-                BrianLogger.file_handler = logging.handlers.RotatingFileHandler(BrianLogger.tmp_log,
-                                                                                mode='a',
-                                                                                maxBytes=prefs['logging.file_log_max_size'],
-                                                                                backupCount=1)
+                BrianLogger.file_handler = RotatingFileHandler(BrianLogger.tmp_log,
+                                                               mode='a',
+                                                               maxBytes=prefs['logging.file_log_max_size'],
+                                                               backupCount=1)
                 BrianLogger.file_handler.setLevel(
                     LOG_LEVELS[prefs['logging.file_log_level'].upper()])
                 BrianLogger.file_handler.setFormatter(logging.Formatter(
                     '%(asctime)s %(levelname)-10s %(name)s: %(message)s'))
                 logger.addHandler(BrianLogger.file_handler)
+                BrianLogger._pid = os.getpid()
             except IOError as ex:
                 warn(f'Could not create log file: {ex}')
 
@@ -591,6 +605,9 @@ class BrianLogger(object):
                 except IOError as ex:
                     warn(
                         f'Could not copy script file to temp directory: {ex}')
+
+        if BrianLogger.console_handler is not None:
+            logger.removeHandler(BrianLogger.console_handler)
 
         # create console handler with a higher log level
         BrianLogger.console_handler = logging.StreamHandler()
