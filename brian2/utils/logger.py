@@ -614,10 +614,10 @@ class BrianLogger(object):
             warn_logger.addHandler(BrianLogger.file_handler)
 
         # Put some standard info into the log file
-        logger.log(DIAGNOSTIC,
+        logger.log(logging.DEBUG,
                    f'Logging to file: {BrianLogger.tmp_log}, copy of main script saved as: {BrianLogger.tmp_script}')
-        logger.log(DIAGNOSTIC, f'Python interpreter: {sys.executable}')
-        logger.log(DIAGNOSTIC, f'Platform: {sys.platform}')
+        logger.log(logging.DEBUG, f'Python interpreter: {sys.executable}')
+        logger.log(logging.DEBUG, f'Platform: {sys.platform}')
         version_infos = {'brian': brian2.__version__,
                          'numpy': numpy.__version__,
                          'scipy': scipy.__version__ if scipy else 'not installed',
@@ -625,7 +625,7 @@ class BrianLogger(object):
                          'python': sys.version,
                          }
         for _name, _version in version_infos.items():
-            logger.log(DIAGNOSTIC,
+            logger.log(logging.DEBUG,
                        f'{_name} version is: {str(_version)}')
         # Handle uncaught exceptions
         sys.excepthook = brian_excepthook
