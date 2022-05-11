@@ -67,7 +67,7 @@ if 'logging' not in prefs.pref_register:
             """,
             ),
         file_log_level=BrianPreference(
-            default='DIAGNOSTIC',
+            default='DEBUG',
             docs="""
             What log level to use for the log written to the log file.
             
