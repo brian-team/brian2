@@ -2,7 +2,9 @@
 Script to run the test suite during automatic testing (easier than putting all
 the logic into Windows batch/bash statements)
 '''
-
+# Importing multiprocessing here seems to fix hangs in the test suite on OS X
+# see https://github.com/scipy/scipy/issues/11835
+import multiprocessing
 import os
 import sys
 
