@@ -33,6 +33,7 @@ def run_in_process_with_logger(x):
     logger.info(f"subprocess info message {x}")
     return BrianLogger.tmp_log
 
+@pytest.mark.codegen_independent
 def test_file_logging_multiprocessing():
     logger.info("info message before multiprocessing")
 
@@ -47,6 +48,7 @@ def test_file_logging_multiprocessing():
     assert "info message before multiprocessing" in log_content[-1]
 
 
+@pytest.mark.codegen_independent
 def test_file_logging_multiprocessing_with_loggers():
     logger.info("info message before multiprocessing")
     prefs.logging.delete_log_on_exit = False
