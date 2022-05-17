@@ -542,7 +542,7 @@ modelling them as rectangular currents::
     synapses = Synapses(...,
                         on_pre={'up': 'I_syn_post += 1*nA',
                                 'down': 'I_syn_post -= 1*nA'},
-                        delays={'up': 0*ms, 'down': 5*ms}  # 5ms-wide rectangular current
+                        delay={'up': 0*ms, 'down': 5*ms}  # 5ms-wide rectangular current
                         )
 
 Numerical integration
