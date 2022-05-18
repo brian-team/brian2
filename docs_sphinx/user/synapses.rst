@@ -375,7 +375,7 @@ exists::
 You can also set synapses given a fully connected weight matrix
 (as a 2D ``numpy`` array ``W``)::
 
-    synapses.w[:] = W.flatten()*mV
+    synapses.w[:] = W.flatten()
 
 This works because the internal ordering of synapses is exactly the
 same as for a flattened matrix.
