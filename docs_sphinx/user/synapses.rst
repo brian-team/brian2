@@ -372,6 +372,14 @@ exists::
     # Insert the values from the Synapses object
     W[synapses.i[:], synapses.j[:]] = synapses.w[:]
 
+You can also set synapses given a fully connected weight matrix
+(as a 2D ``numpy`` array ``W``)::
+
+    synapses.w[:] = W.flatten()
+
+This works because the internal ordering of synapses is exactly the
+same as for a flattened matrix.
+
 .. _generator_syntax:
 
 Creating synapses with the generator syntax
