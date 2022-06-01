@@ -87,6 +87,16 @@ def test_device_cache_synapses():
     with pytest.raises(NotImplementedError):
         S.j[:]
 
+    S.connect(i=[1], j=[1])
+    # Synapses are still "unknown" due to the previous p=0.1 call
+    with pytest.raises(NotImplementedError):
+        len(S)
+    
+    with pytest.raises(NotImplementedError):
+        S.i[:]
+
+    with pytest.raises(NotImplementedError):
+        S.j[:]
 
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
