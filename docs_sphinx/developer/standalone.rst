@@ -29,11 +29,10 @@ previously stored values::
     >>> G = NeuronGroup(10, 'v : volt')
     >>> v_var = G.variables['v']
     >>> print(device.array_cache[v_var])  # CPPStandaloneDevice.init_with_zeros stored initial zero values
-    [0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+    [ 0.  0.  0.  0.  0.  0.  0.  0.  0.  0.]
     >>> G.v = -70*mV
-    [-0.07 -0.07 -0.07 -0.07 -0.07 -0.07 -0.07 -0.07 -0.07 -0.07]
     >>> print(device.array_cache[v_var])  # CPPStandaloneDevice.fill_with_array updated the values
+    [-0.07 -0.07 -0.07 -0.07 -0.07 -0.07 -0.07 -0.07 -0.07 -0.07]
     >>> G.v = '-70*mV + i*2*mV'
-    G.v = '-70*mV + i*2*mV'
     >>> print(device.array_cache[v_var])  # Array cache for v has been invalidated
     None
