@@ -593,7 +593,10 @@ class CPPStandaloneDevice(Device):
         if template_name == 'synapses_create_array':
             cache = self.array_cache
             if cache[variables['N']] is None:  # case 1: synapses have been created with code
-                pass  # Nothing we can do
+                # Nothing we can do
+                logger.debug(f"Synapses for '{owner.name}' have previously been created with "
+                             f"code, we therefore cannot cache the synapses created with arrays "
+                             f"via '{name}'", name_suffix='code_created_synapses_exist')
             elif cache[variables['N']][0] == 0:  # case 2: first time we are creating synapses
                 cache[variables['N']][0] = variables['sources'].size
                 do_not_invalidate.add(variables['N'])
