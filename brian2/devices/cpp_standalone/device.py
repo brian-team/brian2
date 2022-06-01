@@ -592,23 +592,12 @@ class CPPStandaloneDevice(Device):
         do_not_invalidate = set()
         if template_name == 'synapses_create_array':
             cache = self.array_cache
-            if cache[variables['N']] is None:  # case 1: synapses have been created with code
+            if cache[variables['N']] is None:  # synapses have been previously created with code
                 # Nothing we can do
                 logger.debug(f"Synapses for '{owner.name}' have previously been created with "
                              f"code, we therefore cannot cache the synapses created with arrays "
                              f"via '{name}'", name_suffix='code_created_synapses_exist')
-            elif cache[variables['N']][0] == 0:  # case 2: first time we are creating synapses
-                cache[variables['N']][0] = variables['sources'].size
-                do_not_invalidate.add(variables['N'])
-                for var, value in [(variables['_synaptic_pre'],
-                                    variables['sources'].get_value() +
-                                    variables['_source_offset'].get_value()),
-                                   (variables['_synaptic_post'],
-                                    variables['targets'].get_value() +
-                                    variables['_target_offset'].get_value())]:
-                    cache[var] = value
-                    do_not_invalidate.add(var)
-            elif cache[variables['N']][0] > 0:  # case 3: we created synapses with arrays before
+            else:  # first time we create synapses, or all previous connect calls were with arrays
                 cache[variables['N']][0] += variables['sources'].size
                 do_not_invalidate.add(variables['N'])
                 for var, value in [(variables['_synaptic_pre'],
@@ -617,7 +606,7 @@ class CPPStandaloneDevice(Device):
                                    (variables['_synaptic_post'],
                                     variables['targets'].get_value() +
                                     variables['_target_offset'].get_value())]:
-                    cache[var] = np.append(cache[var], value)
+                    cache[var] = np.append(cache.get(var, np.empty(0, dtype=int)), value)
                     do_not_invalidate.add(var)
 
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
