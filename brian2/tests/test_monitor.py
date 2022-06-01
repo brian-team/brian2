@@ -465,7 +465,7 @@ def test_state_monitor_synapses():
     with pytest.raises(IndexError):
         StateMonitor(S1, 'w', record=[0, 2])
     
-    S2 = Synapses(G, G, 'w:1')
+    S2 = Synapses(G, G, 'w : 1')
     S2.run_regularly('w += 1')
     S2.connect('i==j')  # Not yet executed for standalone mode
     S2.w = 'i'
