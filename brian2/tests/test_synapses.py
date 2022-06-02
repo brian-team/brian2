@@ -2095,7 +2095,6 @@ def test_synapses_to_synapses_connection_array():
 
 @pytest.mark.standalone_compatible
 def test_synapses_to_synapses_rule_and_array():
-    set_device('cpp_standalone')
     source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
     modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
     target = NeuronGroup(3, 'v : integer')
