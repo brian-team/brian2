@@ -947,12 +947,13 @@ class Network(Nameable):
             report progress. If ``'text'`` or ``'stdout'`` is specified, print
             the progress to stdout. If ``'stderr'`` is specified, print the
             progress to stderr. Alternatively, you can specify a callback
-            ``callable(elapsed, complete, duration)`` which will be passed
-            the amount of time elapsed as a `Quantity`, the
-            fraction complete from 0.0 to 1.0 and the total duration of the
-            simulation (in biological time).
+            ``callable(elapsed, completed, start, duration)`` which will be passed
+            the amount of time elapsed as a `Quantity`, the fraction ``completed``
+            from 0.0 to 1.0, the ``start`` time of the simulation as a `Quantity`
+            and the total duration of the simulation (in biological time)
+            as a `Quantity`.
             The function will always be called at the beginning and the end
-            (i.e. for fractions 0.0 and 1.0), regardless of the `report_period`.
+            (i.e. for fractions 0.0 and 1.0), regardless of the ``report_period``.
         report_period : `Quantity`
             How frequently (in real time) to report progress.
         namespace : dict-like, optional

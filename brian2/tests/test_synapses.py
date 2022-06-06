@@ -3175,6 +3175,22 @@ def test_incorrect_connect_N_incoming_outgoing():
         syn.connect('N_outgoing < 5')
         assert 'N_outgoing' in str(ex)
 
+@pytest.mark.codegen_independent
+def test_setting_from_weight_matrix():
+    # fully connected weight matrix
+    # weights[source_index, target_index]
+    weights = np.array([[1,2,3],
+                        [4,5,6]])
+
+    source = NeuronGroup(2, '')
+    target = NeuronGroup(3, '')
+
+    syn = Synapses(source, target, 'w : 1')
+    syn.connect()
+    syn.w[:] = weights.flatten()
+
+    for (i, j), w in np.ndenumerate(weights):
+        assert all(syn.w[i, j] == weights[i, j])
 
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
@@ -3274,5 +3290,6 @@ if __name__ == '__main__':
     test_missing_lastupdate_error_run_regularly()
     test_synaptic_subgroups()
     test_incorrect_connect_N_incoming_outgoing()
+    test_setting_from_weight_matrix()
     print('Tests took', time.time()-start)
     
