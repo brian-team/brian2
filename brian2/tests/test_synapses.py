@@ -15,6 +15,7 @@ from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
 from brian2.devices.device import reinit_and_delete, all_devices, get_device
+from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.tests.utils import assert_allclose, exc_isinstance
@@ -2077,6 +2078,45 @@ def test_synapses_to_synapses():
     # Third group has its weight increased to 2 after the second spike
     assert_array_equal(target.v, [5, 3, 4])
 
+@pytest.mark.standalone_compatible
+def test_synapses_to_synapses_connection_array():
+    source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
+    modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
+    target = NeuronGroup(3, 'v : integer')
+    conn = Synapses(source, target, 'w : integer', on_pre='v += w')
+    conn.connect(i=[0, 1, 2], j=[0, 1, 2])
+    conn.w = 1
+    modulatory_conn = Synapses(modulator, conn, on_pre='w += 1')
+    modulatory_conn.connect(i=[0, 1, 2], j=[0, 1, 2])
+    run(5*ms)
+    # First group has its weight increased to 2 after the first spike
+    # Third group has its weight increased to 2 after the second spike
+    assert_array_equal(target.v, [5, 3, 4])
+
+@pytest.mark.standalone_compatible
+def test_synapses_to_synapses_rule_and_array():
+    source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
+    modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
+    target = NeuronGroup(3, 'v : integer')
+    conn = Synapses(source, target, 'w : integer', on_pre='v += w')
+    conn.connect(j='i')
+    conn.w = 1
+    modulatory_conn = Synapses(modulator, conn, on_pre='w += 1')
+    # This will raise a warning in standalone mode, since we cannot check
+    # whether the 'j' indices actually correspond to existing synapses
+    # (the j='i' connection from above has not been executed yet)
+    with catch_logs() as l:
+        modulatory_conn.connect(i=[0, 1, 2], j=[0, 1, 2])
+    if isinstance(get_device(), CPPStandaloneDevice):
+        assert len(l) == 1
+        assert l[0][0] == 'WARNING'
+        assert l[0][1] == 'brian2.synapses.synapses.cannot_check_synapse_indices'
+    else:
+        assert len(l) == 0
+    run(5*ms)
+    # First group has its weight increased to 2 after the first spike
+    # Third group has its weight increased to 2 after the second spike
+    assert_array_equal(target.v, [5, 3, 4])
 
 @pytest.mark.standalone_compatible
 def test_synapses_to_synapses_statevar_access():

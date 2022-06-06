@@ -145,11 +145,72 @@ The current C++ standalone code generation only works for a fixed number of `~Ne
 If you need to do loops or other features not supported automatically, you can do so by inspecting the generated
 C++ source code and modifying it, or by inserting code directly into the main loop as described below.
 
+.. _standalone_variables:
 Variables
 ~~~~~~~~~
-After a simulation has been run (after the `run` call if `set_device` has been called with ``build_on_run`` set to
-``True`` or after the `Device.build` call with ``run`` set to ``True``), state variables and
-monitored variables can be accessed using standard syntax, with a few exceptions (e.g. string expressions for indexing).
+In standalone mode, code will only be executed when the simulation is run (after the `run` call by default, or after a call
+to `.Device.build`, if `set_device` has been called with ``build_on_run`` set to ``False``). This means that it is not
+possible to access state variables and synaptic connection indices in the Python script doing the set up of the model. For
+example, the following code would work fine in runtime mode, but raise a ``NotImplementedError`` in standalone mode::
+
+    neuron = NeuronGroup(10, 'v : volt')
+    neuron.v = '-70*mV + rand()*10*mV'
+    print(np.mean(neuron.v))
+
+Sometimes, access is needed to make one variable depend on another variable for initialization. In such cases, it is often
+possible to circumvent the issue by using initialization with string expressions for both variables. For example, to set
+the initial membrane potential relative to a random leak reversal potential, the following code would work in runtime mode
+but fail in standalone mode::
+
+    neuron = NeuronGroup(10, 'dv/dt = -g_L*(v - E_L)/tau : volt')
+    neuron.E_L = '-70*mV + rand()*10*mV'  # E_L between -70mV and -60mV
+    neuron.v = neuron.E_L  # initial membrane potential equal to E_L
+
+Instead, you can initialize the variable `v` with a string expression, which means that standalone will execute it
+during the run when the value of `E_L` is available::
+
+    neuron = NeuronGroup(10, 'dv/dt = -g_L*(v - E_L)/tau : volt')
+    neuron.E_L = '-70*mV + rand()*10*mV'  # E_L between -70mV and -60mV
+    neuron.v = 'E_L'  # works both in runtime and standalone mode
+
+The same applies to synaptic indices. For example, if we want to set weights differently depending on the target index
+of a synapse, the following would work in runtime mode but fail in standalone mode, since the synaptic indices have not
+been determined yet::
+
+    neurons = NeuronGroup(10, '')
+    synapses = Synapses(neurons, neurons, 'w : 1')
+    synapses.connect(p=0.25)
+    # Set weights to low values when targetting first five neurons and to high values otherwise
+    synapses.w[:, :5] = 0.1
+    synapses.w[:, 5:] = 0.9
+
+Again, this initialization can be replaced by string expressions, so that standalone mode can evaluate them in the
+generated code after synapse creation::
+
+    neurons = NeuronGroup(10, '')
+    synapses = Synapses(neurons, neurons, 'w : 1')
+    synapses.connect(p=0.25)
+    # Set weights to low values when targetting first five neurons and to high values otherwise
+    synapses.w['j < 5'] = 0.1
+    synapses.w['j >= 5'] = 0.9
+
+Note that this limitation only applies if the variables or synapses have been initialized in ways that require the
+execution of code. If instead they are initialized with concrete values, they can be accessed in Python code even
+in standalone mode::
+
+    neurons = NeuronGroup(10, 'v : volt')
+    neurons.v = -70*mV 
+    print(np.mean(neurons.v))  # works in standalone
+    synapses = Synapses(neurons, neurons, 'w : 1')
+    synapses.connect(i=[0, 2, 4, 6, 8], j=[1, 3, 5, 7, 9])
+    # works as well, since synaptic indices are known
+    synapses.w[:, :5] = 0.1
+    synapses.w[:, 5:] = 0.9
+
+
+
+In any case, state variables, synaptic indices, and monitored variables can be accessed using standard syntax *after* a
+run (with a few exceptions, e.g. string expressions for indexing).
 
 .. _openmp:
 

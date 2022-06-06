@@ -61,6 +61,45 @@ def test_multiple_connects():
 
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
+def test_device_cache_synapses():
+    # Check that we can ask for known synaptic information at runtime
+    set_device('cpp_standalone', build_on_run=False)
+    G = NeuronGroup(10, 'v:1')
+    S = Synapses(G, G, 'w:1')
+    S.connect(i=[0], j=[0])
+    assert len(S) == 1
+    assert_equal(S.i[:], [0])
+    assert_equal(S.j[:], [0])
+    
+    S.connect(i=[1], j=[1])
+    assert len(S) == 2
+    assert_equal(S.i[:], [0, 1])
+    assert_equal(S.j[:], [0, 1])
+
+    S.connect(p=0.1)  # We can't know anything about synapses anymore
+
+    with pytest.raises(NotImplementedError):
+        len(S)
+    
+    with pytest.raises(NotImplementedError):
+        S.i[:]
+
+    with pytest.raises(NotImplementedError):
+        S.j[:]
+
+    S.connect(i=[1], j=[1])
+    # Synapses are still "unknown" due to the previous p=0.1 call
+    with pytest.raises(NotImplementedError):
+        len(S)
+    
+    with pytest.raises(NotImplementedError):
+        S.i[:]
+
+    with pytest.raises(NotImplementedError):
+        S.j[:]
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_storing_loading():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, """v : volt
