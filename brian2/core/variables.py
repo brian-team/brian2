@@ -1,4 +1,3 @@
-
 """
 Classes used to specify the type of a function, variable or common
 sub-expression.
@@ -1091,6 +1090,16 @@ class VariableView(object):
         elif (isinstance(item, slice) and item == slice(None)
               and self.index_var == '_idx'):
             indices = slice(None)
+        # Quick fix for matplotlib calling 1-d variables as var[:, np.newaxis]
+        # The test is a bit verbose, but we need to avoid comparisons that raise errors
+        # (e.g. comparing an array to slice(None))
+        elif (isinstance(item, tuple) and
+              len(item) == 2 and
+              isinstance(item[0], slice) and
+              item[0] == slice(None) and
+              item[1] is None and
+              self.index_var == '_idx'):
+            return variable.get_value()[item]
         else:
             indices = self.indexing(item, self.index_var)
 
@@ -1399,6 +1408,10 @@ class VariableView(object):
     @property
     def shape(self):
         return self.get_item(slice(None), level=1).shape
+
+    @property
+    def ndim(self):
+        return self.get_item(slice(None), level=1).ndim
 
     @property
     def dtype(self):

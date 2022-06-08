@@ -22,6 +22,7 @@ for this approach can be found in the ``.devcontainer`` directory.
    preferences
    functions
    codegen
-   devices
+   standalone
    openmp
+   devices
    GSL

@@ -21,6 +21,7 @@ if __name__ == '__main__':
     cross_compiled = os.environ.get('CROSS_COMPILED', 'FALSE').lower() in ['yes', 'true']
     report_coverage = os.environ.get('REPORT_COVERAGE', 'no').lower() in ['yes', 'true']
     dtype_32_bit = os.environ.get('FLOAT_DTYPE_32', 'no').lower() in ['yes', 'true']
+    sphinx_dir = os.environ.get('SPHINX_DIR')
     src_dir = os.environ.get('SRCDIR')
 
     if split_run == '1':
@@ -57,7 +58,8 @@ if __name__ == '__main__':
                              test_in_parallel=in_parallel,
                              reset_preferences=reset_preferences,
                              float_dtype=float_dtype,
-                             test_GSL=True)
+                             test_GSL=True,
+                             sphinx_dir=sphinx_dir)
     else:
         result = brian2.test(targets,
                              test_codegen_independent=independent,
@@ -65,7 +67,8 @@ if __name__ == '__main__':
                              test_in_parallel=in_parallel,
                              reset_preferences=reset_preferences,
                              float_dtype=float_dtype,
-                             test_GSL=True)
+                             test_GSL=True, 
+                             sphinx_dir=sphinx_dir)
 
     if not result:
         sys.exit(1)
