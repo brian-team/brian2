@@ -1595,12 +1595,20 @@ class Synapses(Group):
                          'values outside of the range [0, {max_value}] '
                          'allowed for the {source_or_target} group '
                          '"{group_name}"')
-        for indices, source_or_target, group in [(sources, 'source', self.source),
-                                                 (targets, 'target', self.target)]:
-            if np.max(indices) >= len(group) or np.min(indices) < 0:
-                raise IndexError(error_message.format(source_or_target=source_or_target,
-                                                      max_value=len(group)-1,
-                                                      group_name=group.name))
+        try:
+            for indices, source_or_target, group in [(sources, 'source', self.source),
+                                                    (targets, 'target', self.target)]:
+                if np.max(indices) >= len(group) or np.min(indices) < 0:
+                    raise IndexError(error_message.format(source_or_target=source_or_target,
+                                                        max_value=len(group)-1,
+                                                        group_name=group.name))
+        except NotImplementedError:
+            logger.warn("Cannot check whether the indices given for the connect call are "
+                        "valid. This can happen in standalone mode when using indices to connect "
+                        "to synapses that have been created with a connection pattern. You can "
+                        "avoid this situation by either using a connection pattern or synaptic "
+                        "indices in both connect calls.",
+                        name_suffix='cannot_check_synapse_indices')
         n = np.atleast_1d(n)
         p = np.atleast_1d(p)
 
@@ -1613,9 +1621,9 @@ class Synapses(Group):
         targets = targets.repeat(n)
 
         variables.add_array('sources', len(sources), dtype=np.int32,
-                            values=sources)
+                            values=sources, read_only=True)
         variables.add_array('targets', len(targets), dtype=np.int32,
-                            values=targets)
+                            values=targets, read_only=True)
         # These definitions are important to get the types right in C++
         variables.add_auxiliary_variable('_real_sources', dtype=np.int32)
         variables.add_auxiliary_variable('_real_targets', dtype=np.int32)
