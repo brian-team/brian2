@@ -162,6 +162,7 @@ def arange(*args, **kwargs):
                               step=np.asarray(step),
                               **kwargs),
                     dim=dim, copy=False)
+arange._do_not_run_doctests = True
 
 @wraps(np.linspace)
 def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):

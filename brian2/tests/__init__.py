@@ -131,8 +131,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
         reset_preferences=True, fail_for_not_implemented=True, test_GSL=False,
-        build_options=None, extra_test_dirs=None, float_dtype=None,
-        additional_args=None):
+        build_options=None, extra_test_dirs=None, sphinx_dir=None,
+        float_dtype=None, additional_args=None):
     """
     Run brian's test suite. Needs an installation of the pytest testing tool.
 
@@ -180,6 +180,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     extra_test_dirs : list of str or str, optional
         Additional directories as a list of strings (or a single directory as
         a string) that will be searched for additional tests.
+    sphinx_dir : str, optional
+        The full path to ``docs_sphinx``, in order to execute doc tests in the
+        rst files. If not provided, assumes we are running from a checked out
+        repository where the directory can be found at ``../../docs_sphinx``.
+        Will ignore the provided directory if it does not exist.
     float_dtype : np.dtype, optional
         Set the dtype to use for floating point variables to a value different
         from the default `core.default_float_dtype` setting.
@@ -288,8 +293,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             # Always test doctests with 64 bit, to avoid differences in print output
             if float_dtype is not None:
                 prefs['core.default_float_dtype'] = np.float64
-            sphinx_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                      '..', '..', 'docs_sphinx'))
+            if sphinx_dir is None:
+                sphinx_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                             '..', '..', 'docs_sphinx'))
             if os.path.exists(sphinx_dir):
                 sphinx_doc_dir = [sphinx_dir]
             else:

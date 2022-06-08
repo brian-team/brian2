@@ -209,6 +209,19 @@ class StateMonitor(Group, CodeRunner):
         self.record = record
         self.n_indices = len(record)
 
+        if not self.record_all:
+            try:
+                if len(record) and (np.max(record) >= len(source) or np.min(record) < 0):
+                    # Check whether the values in record make sense
+                    error_message = (f"The indices to record from contain values outside of the range "
+                                     f"[0, {len(source)-1}] allowed for the group '{source.name}'")
+                    raise IndexError(error_message)
+            except NotImplementedError:
+                logger.warn("Cannot check whether the indices to record from are valid. This can happen "
+                            "in standalone mode when recording from synapses that have been created with "
+                            "a connection pattern. You can avoid this situation by using synaptic indices "
+                            "in the connect call.", name_suffix='cannot_check_statemonitor_indices')
+
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
         code = [f'_to_record_{v} = _source_{v}'

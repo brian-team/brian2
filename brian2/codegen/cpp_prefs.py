@@ -236,10 +236,13 @@ prefs.register_preferences(
 def _determine_flag_compatibility(compiler, flagname):
     import tempfile
     from distutils.errors import CompileError
-    with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f, std_silent():
-        f.write('int main (int argc, char **argv) { return 0; }')
+    with tempfile.TemporaryDirectory(prefix='brian_flag_test_') as temp_dir, std_silent():
+        fname = os.path.join(temp_dir, 'flag_test.cpp')
+        with open(fname, 'wt') as f:
+            f.write('int main (int argc, char **argv) { return 0; }')
         try:
-            compiler.compile([f.name], extra_postargs=[flagname])
+            compiler.compile([fname], output_dir=temp_dir,
+                             extra_postargs=[flagname])
         except CompileError:
             logger.warn(f"Removing unsupported flag '{flagname}' from "
                         f'compiler flags.')

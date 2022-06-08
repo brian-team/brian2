@@ -111,7 +111,7 @@ class EventMonitor(Group, CodeRunner):
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
         code = [f'_to_record_{v} = _source_{v}'
-                for v in self.record_variables]
+                for v in sorted(self.record_variables)]
         code = '\n'.join(code)
 
         self.codeobj_class = codeobj_class
