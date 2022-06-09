@@ -38,12 +38,12 @@ what messages are displayed, see below.
 
 Logging and multiprocessing
 ---------------------------
-Brian's logging system is not designed for multiple parrallel Brian processes
+Brian's logging system is not designed for multiple parallel Brian processes
 started via Python's `multiprocessing` module (see the
 :ref:`multiprocessing examples <multiprocessing>`). Log messages that get printed
 from different processes to the console are not printed in a well-defined order and
 do not contain any indication about which processes they are coming from. You might
-therefore consider to use e.g. `BrianLogger.log_level_error()` to only show error
+therefore consider using e.g. `BrianLogger.log_level_error()` to only show error
 messages before starting the processes and avoid cluttering your console with
 warning and info messages.
 

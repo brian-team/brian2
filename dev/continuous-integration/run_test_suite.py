@@ -67,7 +67,7 @@ if __name__ == '__main__':
                              test_in_parallel=in_parallel,
                              reset_preferences=reset_preferences,
                              float_dtype=float_dtype,
-                             test_GSL=True, 
+                             test_GSL=True,
                              sphinx_dir=sphinx_dir)
 
     if not result:
