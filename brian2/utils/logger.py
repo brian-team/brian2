@@ -558,12 +558,13 @@ class BrianLogger(object):
         if prefs['logging.file_log']:
             try:
                 # Temporary filename used for logging
-                BrianLogger.tmp_log = tempfile.NamedTemporaryFile(prefix='brian_debug_',
-                                                                  suffix='.log',
-                                                                  delete=False)
-                BrianLogger.tmp_log = BrianLogger.tmp_log.name
+                with tempfile.NamedTemporaryFile(prefix='brian_debug_',
+                                                 suffix='.log',
+                                                 delete=False) as tmp_f:
+                    BrianLogger.tmp_log = tmp_f.name
                 # Remove any previously existing file handler
                 if BrianLogger.file_handler is not None:
+                    BrianLogger.file_handler.close()
                     logger.removeHandler(BrianLogger.file_handler)
                 # Rotate log file after prefs['logging.file_log_max_size'] bytes and keep one copy
                 BrianLogger.file_handler = RotatingFileHandler(BrianLogger.tmp_log,
