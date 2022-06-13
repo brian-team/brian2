@@ -1097,9 +1097,11 @@ class VariableView(object):
               len(item) == 2 and
               isinstance(item[0], slice) and
               item[0] == slice(None) and
-              item[1] is None and
-              self.index_var == '_idx'):
-            return variable.get_value()[item]
+              item[1] is None):
+            if self.index_var == '_idx':
+                return variable.get_value()[item]
+            else:
+                return variable.get_value()[self.index_var.get_value()][item]
         else:
             indices = self.indexing(item, self.index_var)
 
