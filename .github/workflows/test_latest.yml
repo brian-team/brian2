@@ -3,6 +3,7 @@ name: Test against latest dependencies
 on:
   schedule:
     - cron:  '25 5 * * SUN'
+  workflow_dispatch:
 
 jobs:
   get_python_versions:
