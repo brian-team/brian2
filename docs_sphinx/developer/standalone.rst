@@ -36,3 +36,4 @@ previously stored values::
     >>> G.v = '-70*mV + i*2*mV'
     >>> print(device.array_cache[v_var])  # Array cache for v has been invalidated
     None
+    >>> set_device('runtime')  # Reset device to avoid problems in other doctests
