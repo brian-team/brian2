@@ -17,6 +17,7 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            Unit,
                                            have_same_dimensions,
                                            get_dimensions,
+                                           is_dimensionless,
                                            is_scalar_type,
                                            DimensionMismatchError,
                                            check_units,
@@ -205,10 +206,11 @@ def test_pickling():
 def test_str_repr():
     """
     Test that str representations do not raise any errors and that repr
-    fullfills eval(repr(x)) == x.
+    fullfills eval(repr(x)) == x. Also test generating LaTeX representations via sympy.
     """
     from numpy import array # necessary for evaluating repr    
-    
+    import sympy
+
     units_which_should_exist = [metre, meter, kilogram, kilogramme, second, amp, kelvin, mole, candle,
                                 radian, steradian, hertz, newton, pascal, joule, watt,
                                 coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
@@ -229,7 +231,9 @@ def test_str_repr():
                      metre * second**-1, 10 * metre * second**-1,
                      array([1, 2, 3]) * kmetre / second,
                      np.ones(3) * nS / cm**2,
-                     Unit(1, dim=get_or_create_dimension(length=5, time=2)),
+                     # Made-up unit:
+                     Unit(1, dim=get_or_create_dimension(length=5, time=2),
+                          dispname='O', latexname=r'\Omega'),
                      8000*umetre**3, [0.0001, 10000] * umetre**3,
                      1/metre, 1/(coulomb*metre**2), Unit(1)/second,
                      3.*mM, 5*mole/liter, 7*liter/meter3,
@@ -240,9 +244,16 @@ def test_str_repr():
     
     for u in itertools.chain(units_which_should_exist, some_scaled_units,
                               powered_units, complex_units, unitless):
-        assert(len(str(u)) > 0)
+        assert len(str(u)) > 0
+        if not is_dimensionless(u):
+            assert len(sympy.latex(u))
         assert get_dimensions(eval(repr(u))) == get_dimensions(u)
         assert_allclose(eval(repr(u)), u)
+
+    for ar in [np.arange(10000)*mV, np.arange(100).reshape(10, 10)*mV]:
+        latex_str = sympy.latex(ar)
+        assert 0 < len(latex_str) < 1000  # arbitrary threshold, but see #1425
+
 
     # test the `DIMENSIONLESS` object
     assert str(DIMENSIONLESS) == '1'
