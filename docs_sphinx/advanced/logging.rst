@@ -36,6 +36,8 @@ what messages are displayed, see below.
    i.e. when the simulation exited without an error. To keep the log around,
    set the `logging.delete_log_on_exit` preference to ``False``.
 
+.. _logging_and_multiprocessing:
+
 Logging and multiprocessing
 ---------------------------
 Brian's logging system is not designed for multiple parallel Brian processes
