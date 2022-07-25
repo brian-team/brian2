@@ -24,6 +24,17 @@
 
 {{report_func|autoindent}}
 
+void set_from_command_line(int argc, char **argv)
+{
+    const std::vector<std::string> args(argv + 1, argv + argc);
+    for (const auto& arg : args) {
+		// Split into two parts
+		size_t equal_sign = arg.find("=");
+		auto name = arg.substr(0, equal_sign);
+		auto value = arg.substr(equal_sign + 1, arg.length());
+		brian::set_variable_by_name(name, value);
+	}
+}
 int main(int argc, char **argv)
 {
     {{'\n'.join(code_lines['before_start'])|autoindent}}
