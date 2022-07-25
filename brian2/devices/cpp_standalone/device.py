@@ -782,7 +782,7 @@ class CPPStandaloneDevice(Device):
                 main_lines.append(f"_after_run_{codeobj.name}();")
             elif func == "run_network":
                 net, netcode = args
-                main_lines.extend(netcode)
+                main_lines.extend(["set_from_command_line(argc, argv);"] + netcode)
             elif func == "set_by_constant":
                 arrayname, value, is_dynamic = args
                 size_str = f"{arrayname}.size()" if is_dynamic else f"_num_{arrayname}"
@@ -1193,7 +1193,15 @@ class CPPStandaloneDevice(Device):
         """
         self.main_queue.append(("seed", seed))
 
-    def run(self, directory, with_output, run_args):
+    def run(self, directory=None, with_output=True, run_args=None):
+        if directory is None:
+            directory = self.project_dir
+        if run_args is None:
+            run_args = []
+        # Invalidate the cached end time of the clock and network, to deal with stopped simulations
+        for clock in self.clocks:
+            self.array_cache[clock.variables["t"]] = None
+
         with in_directory(directory):
             # Set environment variables
 
