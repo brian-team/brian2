@@ -17,6 +17,7 @@
 
 namespace brian {
 
+std::string results_dir = "results/";  // can be overwritten by --results_dir command line arg
 std::vector< rk_state* > _mersenne_twister_states;
 
 //////////////// networks /////////////////
@@ -228,7 +229,7 @@ void _write_arrays()
 	{% for var, varname in array_specs | dictsort(by='value') %}
 	{% if not (var in dynamic_array_specs or var in dynamic_array_2d_specs) %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}", ios::binary | ios::out);
+	outfile_{{varname}}.open(results_dir + "{{get_array_filename(var)}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
 		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{get_array_name(var)}}[0]));
@@ -242,7 +243,7 @@ void _write_arrays()
 
 	{% for var, varname in dynamic_array_specs | dictsort(by='value') %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}", ios::binary | ios::out);
+	outfile_{{varname}}.open(results_dir + "{{get_array_filename(var)}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
         if (! {{varname}}.empty() )
@@ -258,7 +259,7 @@ void _write_arrays()
 
 	{% for var, varname in dynamic_array_2d_specs | dictsort(by='value') %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}", ios::binary | ios::out);
+	outfile_{{varname}}.open(results_dir + "{{get_array_filename(var)}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
         for (int n=0; n<{{varname}}.n; n++)
@@ -277,7 +278,7 @@ void _write_arrays()
     {% if profiled_codeobjects is defined and profiled_codeobjects %}
 	// Write profiling info to disk
 	ofstream outfile_profiling_info;
-	outfile_profiling_info.open("results/profiling_info.txt", ios::out);
+	outfile_profiling_info.open(results_dir + "profiling_info.txt", ios::out);
 	if(outfile_profiling_info.is_open())
 	{
 	{% for codeobj in profiled_codeobjects | sort %}
@@ -291,7 +292,7 @@ void _write_arrays()
     {% endif %}
 	// Write last run info to disk
 	ofstream outfile_last_run_info;
-	outfile_last_run_info.open("results/last_run_info.txt", ios::out);
+	outfile_last_run_info.open(results_dir + "last_run_info.txt", ios::out);
 	if(outfile_last_run_info.is_open())
 	{
 		outfile_last_run_info << (Network::_last_run_time) << " " << (Network::_last_run_completed_fraction) << std::endl;
@@ -348,6 +349,7 @@ void _dealloc_arrays()
 
 namespace brian {
 
+extern std::string results_dir;
 // In OpenMP we need one state per thread
 extern std::vector< rk_state* > _mersenne_twister_states;
 

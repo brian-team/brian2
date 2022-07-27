@@ -176,6 +176,9 @@ class CPPStandaloneDevice(Device):
         #: The directory which contains the generated code and results
         self.project_dir = None
 
+        #: The directory which contains the results (relative to `project_dir``)
+        self.results_dir = None
+
         #: Whether to generate profiling information (stored in an instance
         #: variable to be accessible during CodeObject generation)
         self.enable_profiling = False
@@ -324,7 +327,7 @@ class CPPStandaloneDevice(Device):
         else:
             raise TypeError(f"Do not have a name for variable of type {type(var)}.")
 
-    def get_array_filename(self, var, basedir="results"):
+    def get_array_filename(self, var, basedir=None):
         """
         Return a file name for a variable.
 
@@ -334,23 +337,24 @@ class CPPStandaloneDevice(Device):
             The variable to get a filename for.
         basedir : str
             The base directory for the filename, defaults to ``'results'``.
+            DEPRECATED: Will raise an error if specified.
         Returns
         -------
         filename : str
             A filename of the form
-            ``'results/'+varname+'_'+str(zlib.crc32(varname))``, where varname
+            ``varname+'_'+str(zlib.crc32(varname))``, where varname
             is the name returned by `get_array_name`.
 
         Notes
         -----
-        The reason that the filename is not simply ``'results/' + varname`` is
+        The reason that the filename is not simply ``varname`` is
         that this could lead to file names that are not unique in file systems
         that are not case sensitive (e.g. on Windows).
         """
+        if basedir is not None:
+            raise ValueError("Specifying 'basedir' is no longer supported.")
         varname = self.get_array_name(var, access_data=False)
-        return os.path.join(
-            basedir, f"{varname}_{str(zlib.crc32(varname.encode('utf-8')))}"
-        )
+        return f"{varname}_{str(zlib.crc32(varname.encode('utf-8')))}"
 
     def add_array(self, var):
         # Note that a dynamic array variable is added to both the arrays and
@@ -529,7 +533,7 @@ class CPPStandaloneDevice(Device):
             # disk
             if self.has_been_run:
                 dtype = var.dtype
-                fname = os.path.join(self.project_dir, self.get_array_filename(var))
+                fname = os.path.join(self.results_dir, self.get_array_filename(var))
                 with open(fname, "rb") as f:
                     data = np.fromfile(f, dtype=dtype)
                 # This is a bit of an heuristic, but our 2d dynamic arrays are
@@ -782,7 +786,7 @@ class CPPStandaloneDevice(Device):
                 main_lines.append(f"_after_run_{codeobj.name}();")
             elif func == "run_network":
                 net, netcode = args
-                main_lines.extend(["set_from_command_line(argc, argv);"] + netcode)
+                main_lines.extend(["set_from_command_line(args);"] + netcode)
             elif func == "set_by_constant":
                 arrayname, value, is_dynamic = args
                 size_str = f"{arrayname}.size()" if is_dynamic else f"_num_{arrayname}"
@@ -1193,11 +1197,29 @@ class CPPStandaloneDevice(Device):
         """
         self.main_queue.append(("seed", seed))
 
-    def run(self, directory=None, with_output=True, run_args=None):
+    def run(
+        self, directory=None, results_directory=None, with_output=True, run_args=None
+    ):
         if directory is None:
             directory = self.project_dir
+        if results_directory is None:
+            results_directory = self.results_dir
+        else:
+            if os.path.isabs(results_directory):
+                raise TypeError(
+                    "The 'results_directory' argument needs to be a relative path but"
+                    f" was '{results_directory}'."
+                )
+            # Translate path to absolute path which ends with /
+            self.results_dir = os.path.join(
+                os.path.abspath(os.path.join(directory, results_directory)), ""
+            )
+        ensure_directory(self.results_dir)
+
         if run_args is None:
             run_args = []
+        run_args = ["--results_dir", self.results_dir] + run_args
+
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
         for clock in self.clocks:
             self.array_cache[clock.variables["t"]] = None
@@ -1271,6 +1293,7 @@ class CPPStandaloneDevice(Device):
     def build(
         self,
         directory="output",
+        results_directory="results",
         compile=True,
         run=True,
         debug=False,
@@ -1360,6 +1383,15 @@ class CPPStandaloneDevice(Device):
             directory = tempfile.mkdtemp(prefix="brian_standalone_")
         self.project_dir = directory
         ensure_directory(directory)
+        if os.path.isabs(results_directory):
+            raise TypeError(
+                "The 'results_directory' argument needs to be a relative path but was "
+                f"'{results_directory}'."
+            )
+        # Translate path to absolute path which ends with /
+        self.results_dir = os.path.abspath(
+            os.path.join(directory, results_directory, "")
+        )
 
         # Determine compiler flags and directories
         compiler, default_extra_compile_args = get_compiler_and_args()
@@ -1496,7 +1528,7 @@ class CPPStandaloneDevice(Device):
         if compile:
             self.compile_source(directory, compiler, debug, clean)
             if run:
-                self.run(directory, with_output, run_args)
+                self.run(directory, results_directory, with_output, run_args)
         time_measurements = {
             "'make clean'": self.timers["compile"]["clean"],
             "'make'": self.timers["compile"]["make"],
