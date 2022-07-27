@@ -1342,13 +1342,13 @@ class CPPStandaloneDevice(Device):
 
         # Delete data
         if data:
-            results_dir = os.path.join(self.project_dir, 'results')
+            results_dir = self.results_dir
             logger.debug(f"Deleting data files in '{results_dir}'")
-            fnames.append(os.path.join('results', 'last_run_info.txt'))
+            fnames.append(os.path.join(results_dir, 'last_run_info.txt'))
             if self.profiled_codeobjects:
-                fnames.append(os.path.join('results', 'profiling_info.txt'))
+                fnames.append(os.path.join(results_dir, 'profiling_info.txt'))
             for var in self.arrays:
-                fnames.append(self.get_array_filename(var))
+                fnames.append(os.path.join(results_dir, self.get_array_filename(var)))
 
         # Delete code
         if code:
