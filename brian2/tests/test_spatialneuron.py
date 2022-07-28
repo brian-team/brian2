@@ -67,6 +67,7 @@ def test_construction():
     assert_allclose(neuron.L.main.distance, morpho.L.distance)
     assert_allclose(neuron.L.main.area, morpho.L.area)
     assert_allclose(neuron.L.main.length, morpho.L.length)
+    assert_allclose(neuron.L.main.volume, morpho.L.volume)
 
     # Check basic consistency of the flattened representation
     assert all(neuron.diffusion_state_updater._ends[:].flat >=
