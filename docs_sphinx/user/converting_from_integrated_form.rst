@@ -56,36 +56,36 @@ In general, to convert from integrated form to ODE form, see
 `Sánchez-Montañás (2001) <https://link.springer.com/chapter/10.1007/3-540-45720-8_14>`_,
 and `Jahnke et al. (1999) <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.20.2284&rep=rep1&type=pdf>`_.
 However, for some simple and widely used types of synapses, use the list below. In this list, we assume synapses
-are postsynaptic potentials, but you can replace :math:`V(t)` with a current or conductance for postsynaptic
+are postsynaptic potentials, but you can replace :math:`PSP(t)` with a current or conductance for postsynaptic
 currents or conductances. In each case, we give the Brian code with unitless variables, where ``eqs`` is the
 differential equations for the target `NeuronGroup`, and ``on_pre`` is the argument to `Synapses`.
 
-**Exponential synapse** :math:`V(t)=e^{-t/\tau}`::
+**Exponential synapse** :math:`PSP(t)=e^{-t/\tau}`::
 
     eqs = '''
-    dV/dt = -V/tau : 1
+    dPSP/dt = -PSP/tau : 1
     '''
-    on_pre = 'V += w'
+    on_pre = 'PSP += w'
 
-**Alpha synapse** :math:`V(t)=(t/\tau)e^{-t/\tau}`::
+**Alpha synapse** :math:`PSP(t)=(t/\tau)e^{-t/\tau}`::
 
     eqs = '''
-    dV/dt = (x-V)/tau : 1
+    dPSP/dt = (x-PSP)/tau : 1
     dx/dt = -x/tau    : 1
     '''
     on_pre = 'x += w'
 
-:math:`V(t)` reaches a maximum value of :math:`w/e` at time :math:`t=\tau`.
+:math:`PSP(t)` reaches a maximum value of :math:`w/e` at time :math:`t=\tau`.
 
-**Biexponential synapse** :math:`V(t)=\frac{\tau_2}{\tau_2-\tau_1}\left(e^{-t/\tau_1}-e^{-t/\tau_2}\right)`::
+**Biexponential synapse** :math:`PSP(t)=\frac{\tau_2}{\tau_2-\tau_1}\left(e^{-t/\tau_1}-e^{-t/\tau_2}\right)`::
 
     eqs = '''
-    dV/dt = ((tau_2 / tau_1) ** (tau_1 / (tau_2 - tau_1))*x-V)/tau_1 : 1
+    dPSP/dt = ((tau_2 / tau_1) ** (tau_1 / (tau_2 - tau_1))*x-PSP)/tau_1 : 1
     dx/dt = -x/tau_2                                                 : 1
     '''
     on_pre = 'x += w'
 
-:math:`V(t)` reaches a maximum value of :math:`w` at time
+:math:`PSP(t)` reaches a maximum value of :math:`w` at time
 :math:`t=\frac{\tau_1\tau_2}{\tau_2-\tau_1}\log\left(\frac{\tau_2}{\tau_1}\right)`.
 
 **STDP**
