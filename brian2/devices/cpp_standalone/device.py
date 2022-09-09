@@ -167,6 +167,9 @@ class CPPStandaloneDevice(Device):
         #: Whether the simulation has been run
         self.has_been_run = False
 
+        #: Whether apply_run_args has been called
+        self.run_args_applied = False
+
         #: Whether a run should trigger a build
         self.build_on_run = False
 
@@ -291,6 +294,14 @@ class CPPStandaloneDevice(Device):
             self.code_lines[slot].append(code)
         else:
             logger.warn(f"Ignoring device code, unknown slot: {slot}, code: {code}")
+
+    def apply_run_args(self):
+        if self.run_args_applied:
+            raise RuntimeError(
+                "The 'apply_run_args()' function can only be called once."
+            )
+        self.insert_code("main", "set_from_command_line(args);")
+        self.run_args_applied = True
 
     def static_array(self, name, arr):
         arr = np.atleast_1d(arr)
@@ -786,7 +797,7 @@ class CPPStandaloneDevice(Device):
                 main_lines.append(f"_after_run_{codeobj.name}();")
             elif func == "run_network":
                 net, netcode = args
-                main_lines.extend(["set_from_command_line(args);"] + netcode)
+                main_lines.extend(netcode)
             elif func == "set_by_constant":
                 arrayname, value, is_dynamic = args
                 size_str = f"{arrayname}.size()" if is_dynamic else f"_num_{arrayname}"
@@ -1218,6 +1229,17 @@ class CPPStandaloneDevice(Device):
 
         if run_args is None:
             run_args = []
+
+        # Invalidate array cache for all variables set on the command line
+        for arg in run_args:
+            s = arg.split("=")
+            if len(s) == 2:
+                for var in self.array_cache:
+                    print(var.owner.name + var.name)
+                    if var.owner.name + "." + var.name == s[0]:
+                        print("invalidating", var.name)
+                        self.array_cache[var] = None
+
         run_args = ["--results_dir", self.results_dir] + run_args
 
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
@@ -1818,6 +1840,9 @@ class CPPStandaloneDevice(Device):
                 run_lines.append(f"{net.name}.add(&{clock.name}, NULL);")
 
         run_lines.extend(self.code_lines["before_network_run"])
+        if not self.run_args_applied:
+            run_lines.append("set_from_command_line(args);")
+            self.run_args_applied = True
         run_lines.append(
             f"{net.name}.run({float(duration)!r}, {report_call},"
             f" {float(report_period)!r});"
