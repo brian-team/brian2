@@ -598,6 +598,53 @@ def test_constant_replacement():
     assert G.y[0] == 42.
 
 
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_change_parameter_without_recompile():
+    set_device('cpp_standalone', directory=None, with_output=False)
+    G = NeuronGroup(10, 'v:1', name='neurons')
+    G.v = np.arange(10)
+    
+    run(0*ms)
+    assert array_equal(G.v, np.arange(10))
+    
+    device.run(run_args=['neurons.v=5'])
+    assert array_equal(G.v, np.ones(10)*5)
+    
+    ar = np.arange(10)*2.0
+    ar.tofile(os.path.join(device.project_dir, 'init_values.dat'))
+    device.run(run_args=[f'neurons.v=init_values.dat'])
+    assert array_equal(G.v, ar)
+    
+    reset_device()
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_change_parameter_without_recompile_dependencies():
+    set_device('cpp_standalone', directory=None, with_output=False)
+    G = NeuronGroup(10, '''v:1
+                           w:1''', name='neurons')
+    G.v = np.arange(10)
+    device.apply_run_args()
+    G.w = 'v*2'
+    
+    run(0*ms)
+    assert array_equal(G.v, np.arange(10))
+    assert array_equal(G.w, np.arange(10)*2)
+
+    device.run(run_args=['neurons.v=5'])
+    assert array_equal(G.v, np.ones(10)*5)
+    assert array_equal(G.w, np.ones(10)*5*2)
+    
+    ar = np.arange(10)*2.0
+    ar.tofile(os.path.join(device.project_dir, 'init_values.dat'))
+    device.run(run_args=[f'neurons.v=init_values.dat'])
+    assert array_equal(G.v, ar)
+    assert array_equal(G.w, ar*2)
+    
+    reset_device()
+
+
 if __name__=='__main__':
     for t in [
              test_cpp_standalone,
@@ -613,7 +660,9 @@ if __name__=='__main__':
              test_profile_via_set_device_arg,
              test_delete_code_data,
              test_delete_directory,
-             test_multiple_standalone_runs
+             test_multiple_standalone_runs,
+             test_change_parameter_without_recompile,
+             test_change_parameter_without_recompile_dependencies
              ]:
         t()
         reinit_and_delete()
