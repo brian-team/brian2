@@ -1555,6 +1555,9 @@ class VariableView:
 
         return f"<{self.group_name}.{varname}: {values}>"
 
+    def __hash__(self):
+        return hash((self.group_name, self.name))
+
     # Get access to some basic properties of the underlying array
     @property
     def shape(self):
