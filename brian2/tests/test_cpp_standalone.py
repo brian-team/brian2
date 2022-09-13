@@ -618,6 +618,27 @@ def test_change_parameter_without_recompile():
     
     reset_device()
 
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_change_parameter_without_recompile_dict_syntax():
+    set_device('cpp_standalone', directory=None, with_output=False)
+    G = NeuronGroup(10, 'v:1', name='neurons')
+    G.v = np.arange(10)
+    
+    run(0*ms)
+    assert array_equal(G.v, np.arange(10))
+    
+    device.run(run_args={G.v: 5})
+    assert array_equal(G.v, np.ones(10)*5)
+    
+    ar = np.arange(10)*2.0
+    device.run(run_args={G.v: ar})
+    assert array_equal(G.v, ar)
+    
+    reset_device()
+
+
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
 def test_change_parameter_without_recompile_dependencies():

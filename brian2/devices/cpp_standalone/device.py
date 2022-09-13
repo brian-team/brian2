@@ -1,6 +1,7 @@
 """
 Module implementing the C++ "standalone" device.
 """
+from hashlib import md5
 import os
 import shutil
 import subprocess
@@ -12,6 +13,7 @@ import numbers
 import tempfile
 from distutils import ccompiler
 import time
+from typing import Mapping
 import zlib
 
 import numpy as np
@@ -32,7 +34,7 @@ from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
-from brian2.units.fundamentalunits import Quantity
+from brian2.units.fundamentalunits import Quantity, fail_for_dimension_mismatch
 from brian2.units import second
 from brian2.utils.logger import get_logger, std_silent
 
@@ -1072,6 +1074,25 @@ class CPPStandaloneDevice(Device):
 
         if run_args is None:
             run_args = []
+        elif isinstance(run_args, Mapping):
+            list_rep = []
+            for key, value in run_args.items():
+                if not isinstance(key, VariableView):
+                    raise TypeError(f"The keys for 'run_args' need to be 'VariableView' objects, i.e. "
+                                    f"attributes of groups such as 'neurongroup.v'. Key has type "
+                                    f"'{type(key)}' instead.")
+                fail_for_dimension_mismatch(key.dim, value)  # TODO: Give name of variable
+                value_ar = np.array(value, copy=False)
+                if value_ar.ndim == 0 or value_ar.size == 1:
+                    # single value, give value directly on command line
+                    string_value = repr(value_ar.item())
+                else:
+                    value_name = f'init_value_{md5(value_ar.data).hexdigest()}.dat'
+                    fname = os.path.join(self.project_dir, 'static_arrays', value_name)
+                    value_ar.tofile(fname)
+                    string_value = f'static_arrays/{value_name}'
+                list_rep.append(f'{key.group_name}.{key.name}={string_value}')
+            run_args = list_rep
         
         # Invalidate array cache for all variables set on the command line
         for arg in run_args:
@@ -1082,7 +1103,7 @@ class CPPStandaloneDevice(Device):
                         self.array_cache[var] = None
 
         run_args = ['--results_dir', self.results_dir] + run_args
-        
+        print(run_args)
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
         for clock in self.clocks:
             self.array_cache[clock.variables['t']] = None
