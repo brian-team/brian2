@@ -612,7 +612,7 @@ def test_change_parameter_without_recompile():
     assert array_equal(G.v, np.ones(10)*5)
     
     ar = np.arange(10)*2.0
-    ar.tofile(os.path.join(device.project_dir, 'init_values_test1.dat'))
+    ar.astype(np.float64).tofile(os.path.join(device.project_dir, 'init_values_test1.dat'))
     device.run(run_args=[f'neurons.v=init_values_test1.dat'])
     assert array_equal(G.v, ar)
     
@@ -658,7 +658,7 @@ def test_change_parameter_without_recompile_dependencies():
     assert array_equal(G.w, np.ones(10)*5*2)
     
     ar = np.arange(10)*2.0
-    ar.tofile(os.path.join(device.project_dir, 'init_values_test2.dat'))
+    ar.astype(np.float64).tofile(os.path.join(device.project_dir, 'init_values_test2.dat'))
     device.run(run_args=[f'neurons.v=init_values_test2.dat'])
     assert array_equal(G.v, ar)
     assert array_equal(G.w, ar*2)

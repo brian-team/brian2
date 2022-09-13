@@ -1082,7 +1082,7 @@ class CPPStandaloneDevice(Device):
                                     f"attributes of groups such as 'neurongroup.v'. Key has type "
                                     f"'{type(key)}' instead.")
                 fail_for_dimension_mismatch(key.dim, value)  # TODO: Give name of variable
-                value_ar = np.array(value, copy=False)
+                value_ar = np.array(value, dtype=key.dtype)
                 if value_ar.ndim == 0 or value_ar.size == 1:
                     # single value, give value directly on command line
                     string_value = repr(value_ar.item())
