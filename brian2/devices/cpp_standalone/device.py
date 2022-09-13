@@ -1248,6 +1248,12 @@ class CPPStandaloneDevice(Device):
                     # single value, give value directly on command line
                     string_value = repr(value_ar.item())
                 else:
+                    if value_ar.ndim != 1 or value_ar.size != key.shape[0]:
+                        raise TypeError(
+                            "Incorrect size for variable"
+                            f" '{key.group_name}.{key.name}'. Shape {key.shape} ≠"
+                            f" {value_ar.shape}."
+                        )
                     value_name = f"init_value_{md5(value_ar.data).hexdigest()}.dat"
                     fname = os.path.join(self.project_dir, "static_arrays", value_name)
                     value_ar.tofile(fname)
