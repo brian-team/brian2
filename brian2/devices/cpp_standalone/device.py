@@ -1235,9 +1235,7 @@ class CPPStandaloneDevice(Device):
             s = arg.split("=")
             if len(s) == 2:
                 for var in self.array_cache:
-                    print(var.owner.name + var.name)
                     if var.owner.name + "." + var.name == s[0]:
-                        print("invalidating", var.name)
                         self.array_cache[var] = None
 
         run_args = ["--results_dir", self.results_dir] + run_args

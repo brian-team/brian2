@@ -720,8 +720,8 @@ def test_change_parameter_without_recompile():
     assert array_equal(G.v, np.ones(10) * 5)
 
     ar = np.arange(10) * 2.0
-    ar.tofile(os.path.join(device.project_dir, "init_values.dat"))
-    device.run(run_args=[f"neurons.v=init_values.dat"])
+    ar.tofile(os.path.join(device.project_dir, "init_values_test1.dat"))
+    device.run(run_args=[f"neurons.v=init_values_test1.dat"])
     assert array_equal(G.v, ar)
 
     reset_device()
@@ -741,17 +741,13 @@ def test_change_parameter_without_recompile_dependencies():
     device.apply_run_args()
     G.w = "v*2"
 
-    run(0 * ms)
-    assert array_equal(G.v, np.arange(10))
-    assert array_equal(G.w, np.arange(10) * 2)
-
     device.run(run_args=["neurons.v=5"])
     assert array_equal(G.v, np.ones(10) * 5)
     assert array_equal(G.w, np.ones(10) * 5 * 2)
 
     ar = np.arange(10) * 2.0
-    ar.tofile(os.path.join(device.project_dir, "init_values.dat"))
-    device.run(run_args=[f"neurons.v=init_values.dat"])
+    ar.tofile(os.path.join(device.project_dir, "init_values_test2.dat"))
+    device.run(run_args=[f"neurons.v=init_values_test2.dat"])
     assert array_equal(G.v, ar)
     assert array_equal(G.w, ar * 2)
 
