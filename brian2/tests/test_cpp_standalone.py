@@ -723,7 +723,7 @@ def test_change_parameter_without_recompile():
     assert array_equal(G.x, np.arange(10))
     assert array_equal(G.v, np.arange(10) * volt)
 
-    device.run(run_args=["neurons.x=5", "neuron.v=3"])
+    device.run(run_args=["neurons.x=5", "neurons.v=3"])
     assert array_equal(G.x, np.ones(10) * 5)
     assert array_equal(G.v, np.ones(10) * 3 * volt)
 
