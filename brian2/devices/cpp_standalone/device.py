@@ -38,6 +38,7 @@ from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
 from brian2.units import second
 from brian2.units.fundamentalunits import Quantity, fail_for_dimension_mismatch
+from brian2.utils.filelock import FileLock
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.logger import get_logger, std_silent
 from brian2.utils.stringtools import word_substitute
@@ -1256,7 +1257,10 @@ class CPPStandaloneDevice(Device):
                         )
                     value_name = f"init_value_{md5(value_ar.data).hexdigest()}.dat"
                     fname = os.path.join(self.project_dir, "static_arrays", value_name)
-                    value_ar.tofile(fname)
+                    # Make sure processes trying to write the same file don't clash
+                    with FileLock(fname + ".lock"):
+                        if not os.path.exists(fname):
+                            value_ar.tofile(fname)
                     string_value = f"static_arrays/{value_name}"
                 list_rep.append(f"{key.group_name}.{key.name}={string_value}")
             run_args = list_rep
