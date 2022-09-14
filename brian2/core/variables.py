@@ -1412,15 +1412,18 @@ class VariableView(object):
     # Get access to some basic properties of the underlying array
     @property
     def shape(self):
-        return self.get_item(slice(None), level=1).shape
+        if self.ndim == 1:
+            return (self.variable.size, )
+        else:
+            return self.variable.size
 
     @property
     def ndim(self):
-        return self.get_item(slice(None), level=1).ndim
+        return getattr(self.variable, 'ndim', 1)
 
     @property
     def dtype(self):
-        return self.get_item(slice(None), level=1).dtype
+        return self.variable.dtype
 
 
 class Variables(Mapping):
