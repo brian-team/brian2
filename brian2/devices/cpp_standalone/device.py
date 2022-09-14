@@ -31,6 +31,7 @@ from brian2.groups.group import Group
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
 from brian2.core.preferences import prefs, BrianPreference
+from brian2.utils.filelock import FileLock
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
@@ -1092,7 +1093,10 @@ class CPPStandaloneDevice(Device):
                                         f"Shape {key.shape} ≠ {value_ar.shape}.")
                     value_name = f'init_value_{md5(value_ar.data).hexdigest()}.dat'
                     fname = os.path.join(self.project_dir, 'static_arrays', value_name)
-                    value_ar.tofile(fname)
+                    # Make sure processes trying to write the same file don't clash
+                    with FileLock(fname + '.lock'):
+                        if not os.path.exists(fname):
+                            value_ar.tofile(fname)
                     string_value = f'static_arrays/{value_name}'
                 list_rep.append(f'{key.group_name}.{key.name}={string_value}')
             run_args = list_rep

@@ -694,6 +694,39 @@ def test_change_parameter_without_recompile_dependencies():
     
     reset_device()
 
+class RunSim:
+    def __init__(self):
+        set_device('cpp_standalone', directory=None, debug=True)
+        self.G = NeuronGroup(10, '''v:volt
+                                    w:1
+                                    x:1''', name='neurons')
+        run(0*ms)
+
+    def run_sim(self, idx):
+        device.run(results_directory=f'results_{idx}',
+                   run_args={self.G.v: idx*volt,
+                             self.G.w: np.arange(10),    # Same values for all processes
+                             self.G.x: np.arange(10)*idx # Different values
+                             })
+        print(device.results_dir)
+        return self.G.v[:], self.G.w[:], self.G.x[:]
+
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_change_parameters_multiprocessing():
+    sim = RunSim()
+
+    import multiprocessing
+    with multiprocessing.Pool() as p:
+        results = map(sim.run_sim, range(5))
+    
+    for idx, result in zip(range(5), results):
+        v, w, x = result
+        assert array_equal(v, np.ones(10)*idx*volt)
+        assert array_equal(w, np.arange(10))
+        assert array_equal(x, np.arange(10)*idx)
+
 
 if __name__=='__main__':
     for t in [
@@ -712,6 +745,8 @@ if __name__=='__main__':
              test_delete_directory,
              test_multiple_standalone_runs,
              test_change_parameter_without_recompile,
+             test_change_parameter_without_recompile_errors,
+             test_change_parameter_without_recompile_dict_syntax,
              test_change_parameter_without_recompile_dependencies
              ]:
         t()
