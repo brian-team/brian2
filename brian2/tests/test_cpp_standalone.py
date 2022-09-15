@@ -703,12 +703,13 @@ class RunSim:
         run(0*ms)
 
     def run_sim(self, idx):
-        device.run(results_directory=f'results_{idx}',
+        print(get_device())
+        get_device().run(results_directory=f'results_{idx}',
                    run_args={self.G.v: idx*volt,
                              self.G.w: np.arange(10),    # Same values for all processes
                              self.G.x: np.arange(10)*idx # Different values
                              })
-        print(device.results_dir)
+        print(get_device().results_dir)
         return self.G.v[:], self.G.w[:], self.G.x[:]
 
 
