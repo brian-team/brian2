@@ -696,31 +696,30 @@ def test_change_parameter_without_recompile_dependencies():
 
 class RunSim:
     def __init__(self):
-        set_device('cpp_standalone', directory=None, debug=True)
         self.G = NeuronGroup(10, '''v:volt
                                     w:1
                                     x:1''', name='neurons')
         run(0*ms)
 
-    def run_sim(self, idx):
-        print(get_device())
-        get_device().run(results_directory=f'results_{idx}',
+    def run_sim(self, idx, device):
+        device.run(results_directory=f'results_{idx}',
                    run_args={self.G.v: idx*volt,
                              self.G.w: np.arange(10),    # Same values for all processes
                              self.G.x: np.arange(10)*idx # Different values
                              })
-        print(get_device().results_dir)
         return self.G.v[:], self.G.w[:], self.G.x[:]
 
 
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
 def test_change_parameters_multiprocessing():
+    set_device('cpp_standalone', directory=None, debug=True)
     sim = RunSim()
 
     import multiprocessing
+    import itertools
     with multiprocessing.Pool() as p:
-        results = p.map(sim.run_sim, range(5))
+        results = p.map(sim.run_sim, zip(range(5), itertools.repeat(get_device(), 5)))
     
     for idx, result in zip(range(5), results):
         v, w, x = result
