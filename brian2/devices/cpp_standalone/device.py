@@ -1097,7 +1097,7 @@ class CPPStandaloneDevice(Device):
                     with FileLock(fname + '.lock'):
                         if not os.path.exists(fname):
                             value_ar.tofile(fname)
-                    string_value = f'static_arrays/{value_name}'
+                    string_value = os.path.join('static_arrays', value_name)
                 list_rep.append(f'{key.group_name}.{key.name}={string_value}')
             run_args = list_rep
         
