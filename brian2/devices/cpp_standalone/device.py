@@ -1137,6 +1137,7 @@ class CPPStandaloneDevice(Device):
                 if isinstance(run_cmd, str):
                     run_cmd = [run_cmd]
                 start_time = time.time()
+                print(f'Running "{run_cmd + run_args}"')
                 x = subprocess.call(run_cmd + run_args, stdout=stdout)
                 self.timers['run_binary'] = time.time() - start_time
             if stdout is not None:
@@ -1145,7 +1146,7 @@ class CPPStandaloneDevice(Device):
                 if os.path.exists('results/stdout.txt'):
                     with open('results/stdout.txt', 'r') as f:
                         print(f.read())
-                raise RuntimeError(f"Project run failed (project directory: {os.path.abspath(directory)})")
+                raise RuntimeError(f"Project run failed with error code {x} (project directory: {os.path.abspath(directory)})")
             self.has_been_run = True
             if os.path.isfile('results/last_run_info.txt'):
                 with open('results/last_run_info.txt', 'r') as f:
