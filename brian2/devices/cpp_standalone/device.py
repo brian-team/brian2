@@ -1134,6 +1134,7 @@ class CPPStandaloneDevice(Device):
                 stdout = None
             if os.name == 'nt':
                 start_time = time.time()
+                print(f'running "main {run_args}" in {os.getcwd()}')
                 x = subprocess.call(['main'] + run_args, stdout=stdout)
                 self.timers['run_binary'] = time.time() - start_time
             else:
