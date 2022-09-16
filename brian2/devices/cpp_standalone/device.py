@@ -1110,7 +1110,9 @@ class CPPStandaloneDevice(Device):
                         if var.owner.name + '.' + var.name == s[0]:
                             self.array_cache[var] = None
                     except AttributeError:
-                        print('AttributeError for', var)
+                        print('AttributeError for', var, 'with owner', getattr(var, 'owner', None))
+                        if hasattr(var, 'owner'):
+                            print('owner.name is', getattr(var.owner, 'name', None))
         run_args = ['--results_dir', self.results_dir] + run_args
         print(run_args)
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
