@@ -719,7 +719,7 @@ def test_change_parameters_multiprocessing():
     import multiprocessing
     import itertools
     with multiprocessing.Pool() as p:
-        results = p.map(sim.run_sim, zip(range(5), itertools.repeat(get_device(), 5)))
+        results = p.starmap(sim.run_sim, zip(range(5), itertools.repeat(get_device(), 5)))
     
     for idx, result in zip(range(5), results):
         v, w, x = result
