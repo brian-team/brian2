@@ -618,7 +618,7 @@ def test_header_file_inclusion():
             ''')
         @implementation('cpp',
         '''
-        double function(int index) {
+        double brian_function(int index) {
             using namespace brian_test_namespace;
             return test_variable * index;
         }
@@ -627,11 +627,11 @@ def test_header_file_inclusion():
         sources=[os.path.join(tmpdir, 'foo.cpp')],
         include_dirs=[tmpdir])
         @check_units(index=1, result=1)
-        def function(index):
+        def brian_function(index):
             raise NotImplementedError()
         # Use the function in a somewhat convoluted way that exposes errors in the
         # code generation process
-        G = PoissonGroup(5, rates='function(i)*Hz')
+        G = PoissonGroup(5, rates='brian_function(i)*Hz')
         S = Synapses(G, G, 'rate_copy : Hz')
         S.connect(j='i')
         S.run_regularly('rate_copy = rates_pre')
