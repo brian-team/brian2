@@ -8,6 +8,9 @@
 #include<iostream>
 #include<fstream>
 #include<climits>
+{% for name in user_headers | sort %}
+#include {{name}}
+{% endfor %}
 
 ////// SUPPORT CODE ///////
 namespace {
@@ -120,6 +123,9 @@ void _run_{{codeobj_name}}();
 #include<iostream>
 #include<fstream>
 #include<climits>
+{% for name in user_headers | sort %}
+#include {{name}}
+{% endfor %}
 
 ////// SUPPORT CODE ///////
 namespace {

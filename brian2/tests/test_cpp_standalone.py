@@ -1,5 +1,6 @@
 
 import os
+import tempfile
 
 import pytest
 from numpy.testing import assert_equal
@@ -598,6 +599,46 @@ def test_constant_replacement():
     assert G.y[0] == 42.
 
 
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_header_file_inclusion():
+    set_device('cpp_standalone', directory=None, debug=True)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(os.path.join(tmpdir, 'foo.h'), 'wt') as f:
+            f.write('''
+            namespace brian_test_namespace {
+                extern double test_variable;
+            }
+            ''')
+        with open(os.path.join(tmpdir, 'foo.cpp'), 'wt') as f:
+            f.write('''
+            namespace brian_test_namespace {
+                double test_variable = 42;
+            }
+            ''')
+        @implementation('cpp',
+        '''
+        double brian_function(int index) {
+            using namespace brian_test_namespace;
+            return test_variable * index;
+        }
+        ''',
+        headers=['"foo.h"'],
+        sources=[os.path.join(tmpdir, 'foo.cpp')],
+        include_dirs=[tmpdir])
+        @check_units(index=1, result=1)
+        def brian_function(index):
+            raise NotImplementedError()
+        # Use the function in a somewhat convoluted way that exposes errors in the
+        # code generation process
+        G = PoissonGroup(5, rates='brian_function(i)*Hz')
+        S = Synapses(G, G, 'rate_copy : Hz')
+        S.connect(j='i')
+        S.run_regularly('rate_copy = rates_pre')
+        run(defaultclock.dt)
+    assert_allclose(S.rate_copy[:], np.arange(len(G))*42*Hz)
+
+
 if __name__=='__main__':
     for t in [
              test_cpp_standalone,
@@ -613,7 +654,8 @@ if __name__=='__main__':
              test_profile_via_set_device_arg,
              test_delete_code_data,
              test_delete_directory,
-             test_multiple_standalone_runs
+             test_multiple_standalone_runs,
+             test_header_file_inclusion
              ]:
         t()
         reinit_and_delete()
