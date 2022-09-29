@@ -86,9 +86,8 @@ def get_dtype_str(val):
 
 def variables_by_owner(variables, owner):
     owner_name = getattr(owner, 'name', None)
-    return dict([(varname, var) for varname, var in variables.items()
-                 if getattr(var.owner, 'name', None) is owner_name])
-
+    return {varname: var for varname, var in variables.items()
+          if getattr(var.owner, 'name', None) is owner_name}
 
 class Variable(CacheKey):
     """
