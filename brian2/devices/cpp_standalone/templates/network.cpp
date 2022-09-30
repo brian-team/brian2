@@ -140,10 +140,10 @@ void Network::compute_clocks()
 
 Clock* Network::next_clocks()
 {
+    if (clocks.empty())
+        return NULL;
     // find minclock, clock with smallest t value
     Clock *minclock = *clocks.begin();
-    if (!minclock) // empty list of clocks
-        return NULL;
 
     for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
     {
