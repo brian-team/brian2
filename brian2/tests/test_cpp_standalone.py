@@ -5,6 +5,7 @@ import pytest
 from numpy.testing import assert_equal
 
 from brian2 import *
+from brian2.devices import device_module
 from brian2.devices.device import reinit_and_delete, reset_device, set_device
 from brian2.tests.utils import assert_allclose
 from brian2.utils.logger import catch_logs
@@ -819,17 +820,19 @@ def test_change_parameter_without_recompile_dependencies():
 
 class RunSim:
     def __init__(self):
-        set_device("cpp_standalone", directory=None, debug=True)
+        self.device = get_device()
         self.G = NeuronGroup(
             10,
             """v:volt
-                                    w:1
-                                    x:1""",
+               w:1
+               x:1""",
             name="neurons",
         )
         run(0 * ms)
 
     def run_sim(self, idx):
+        # Ugly hack needed for windows
+        device_module.active_device = self.device
         device.run(
             results_directory=f"results_{idx}",
             run_args={
@@ -845,12 +848,13 @@ class RunSim:
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
 def test_change_parameters_multiprocessing():
+    set_device("cpp_standalone", directory=None)
     sim = RunSim()
 
     import multiprocessing
 
     with multiprocessing.Pool() as p:
-        results = map(sim.run_sim, range(5))
+        results = p.map(sim.run_sim, range(5))
 
     for idx, result in zip(range(5), results):
         v, w, x = result
@@ -880,6 +884,7 @@ if __name__ == "__main__":
         test_change_parameter_without_recompile_errors,
         test_change_parameter_without_recompile_dict_syntax,
         test_change_parameter_without_recompile_dependencies,
+        test_change_parameters_multiprocessing,
     ]:
         t()
         reinit_and_delete()
