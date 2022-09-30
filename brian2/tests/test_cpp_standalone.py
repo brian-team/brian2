@@ -6,6 +6,7 @@ from numpy.testing import assert_equal
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete, set_device, reset_device
+from brian2.devices import device_module
 from brian2.tests.utils import assert_allclose
 from brian2.utils.logger import catch_logs
 
@@ -696,12 +697,15 @@ def test_change_parameter_without_recompile_dependencies():
 
 class RunSim:
     def __init__(self):
+        self.device = get_device()
         self.G = NeuronGroup(10, '''v:volt
                                     w:1
                                     x:1''', name='neurons')
         run(0*ms)
 
-    def run_sim(self, idx, device):
+    def run_sim(self, idx):
+        # Ugly hack needed for windows
+        device_module.active_device = self.device
         device.run(results_directory=f'results_{idx}',
                    run_args={self.G.v: idx*volt,
                              self.G.w: np.arange(10),    # Same values for all processes
@@ -719,7 +723,7 @@ def test_change_parameters_multiprocessing():
     import multiprocessing
     import itertools
     with multiprocessing.Pool() as p:
-        results = p.starmap(sim.run_sim, zip(range(5), itertools.repeat(get_device(), 5)))
+        results = p.map(sim.run_sim, range(5))
     
     for idx, result in zip(range(5), results):
         v, w, x = result
