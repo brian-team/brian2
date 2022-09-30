@@ -1106,9 +1106,8 @@ class CPPStandaloneDevice(Device):
             s = arg.split('=')
             if len(s) == 2:
                 for var in self.array_cache:
-                    if var.owner.name + '.' + var.name == s[0]:
+                    if hasattr(var.owner, 'name') and var.owner.name + '.' + var.name == s[0]:
                         self.array_cache[var] = None
-
         run_args = ['--results_dir', self.results_dir] + run_args
         print(run_args)
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
@@ -1167,7 +1166,7 @@ class CPPStandaloneDevice(Device):
         already_checked = set()
         for owner in owners:
             try:
-                if owner.name in already_checked:
+                if not hasattr(owner, 'name') or owner.name in already_checked:
                     continue
                 if isinstance(owner, Group):
                     owner._check_for_invalid_states()
