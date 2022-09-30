@@ -1294,7 +1294,7 @@ class CPPStandaloneDevice(Device):
                     )
                 os.environ[key] = value
             if not with_output:
-                stdout = open("results/stdout.txt", "w")
+                stdout = open(os.path.join(self.results_dir, "stdout.txt"), "w")
             else:
                 stdout = None
             if os.name == "nt":
@@ -1311,16 +1311,18 @@ class CPPStandaloneDevice(Device):
             if stdout is not None:
                 stdout.close()
             if x:
-                if os.path.exists("results/stdout.txt"):
-                    with open("results/stdout.txt") as f:
+                stdout_fname = os.path.join(self.results_dir, "stdout.txt")
+                if os.path.exists(stdout_fname):
+                    with open(stdout_fname) as f:
                         print(f.read())
                 raise RuntimeError(
                     "Project run failed (project directory:"
                     f" {os.path.abspath(directory)})"
                 )
             self.has_been_run = True
-            if os.path.isfile("results/last_run_info.txt"):
-                with open("results/last_run_info.txt") as f:
+            run_info_fname = os.path.join(self.results_dir, "last_run_info.txt")
+            if os.path.isfile(run_info_fname):
+                with open(run_info_fname) as f:
                     last_run_info = f.read()
                 run_time, completed_fraction = last_run_info.split()
                 self._last_run_time = float(run_time)
