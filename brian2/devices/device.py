@@ -483,6 +483,17 @@ class RuntimeDevice(Device):
         self.randn_buffer_index = np.zeros(1, dtype=np.int32)
         self.rand_buffer_index = np.zeros(1, dtype=np.int32)
 
+    def __getstate__(self):
+        state = dict(self.__dict__)
+        # Python's pickle module cannot pickle a WeakKeyDictionary, we therefore
+        # convert it to a standard dictionary
+        state['arrays'] = dict(self.arrays)
+        return state
+    
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.__dict__['arrays'] = WeakKeyDictionary(self.__dict__['arrays'])
+
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
         # of indices when doing G.x[indices] = ...). The name is not
