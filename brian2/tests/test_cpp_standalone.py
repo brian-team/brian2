@@ -711,7 +711,6 @@ class RunSim:
                              self.G.w: np.arange(10),    # Same values for all processes
                              self.G.x: np.arange(10)*idx # Different values
                              })
-        print(device.results_dir)
         return self.G.v[:], self.G.w[:], self.G.x[:]
 
 

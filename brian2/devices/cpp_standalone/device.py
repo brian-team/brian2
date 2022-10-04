@@ -1109,7 +1109,6 @@ class CPPStandaloneDevice(Device):
                     if hasattr(var.owner, 'name') and var.owner.name + '.' + var.name == s[0]:
                         self.array_cache[var] = None
         run_args = ['--results_dir', self.results_dir] + run_args
-        print(run_args)
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
         for clock in self.clocks:
             self.array_cache[clock.variables['t']] = None
