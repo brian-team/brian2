@@ -23,7 +23,7 @@ if __name__ == '__main__':
     dtype_32_bit = os.environ.get('FLOAT_DTYPE_32', 'no').lower() in ['yes', 'true']
     sphinx_dir = os.environ.get('SPHINX_DIR')
     src_dir = os.environ.get('SRCDIR')
-
+    deprecation_error = os.environ.get('DEPRECATION_ERROR', 'false').lower() in ['yes', 'true']
     if split_run == '1':
         targets = ['numpy']
         independent = True
@@ -50,6 +50,11 @@ if __name__ == '__main__':
     else:
         float_dtype = None
 
+    if deprecation_error:
+        args = ['-W', 'error::DeprecationWarning']
+    else:
+        args = []
+
     if standalone:
         result = brian2.test([],
                              test_codegen_independent=False,
@@ -59,7 +64,8 @@ if __name__ == '__main__':
                              reset_preferences=reset_preferences,
                              float_dtype=float_dtype,
                              test_GSL=True,
-                             sphinx_dir=sphinx_dir)
+                             sphinx_dir=sphinx_dir,
+                             additional_args=args)
     else:
         result = brian2.test(targets,
                              test_codegen_independent=independent,
@@ -68,7 +74,8 @@ if __name__ == '__main__':
                              reset_preferences=reset_preferences,
                              float_dtype=float_dtype,
                              test_GSL=True,
-                             sphinx_dir=sphinx_dir)
+                             sphinx_dir=sphinx_dir,
+                             additional_args=args)
 
     if not result:
         sys.exit(1)
