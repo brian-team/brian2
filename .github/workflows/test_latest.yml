@@ -18,7 +18,6 @@ jobs:
         uses: mstimberg/github-calc-nep29@v0.3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          include-release-candidates: true
   
   testing:
     needs: [get_python_versions]
