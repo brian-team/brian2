@@ -1597,7 +1597,7 @@ class Quantity(np.ndarray, object):
         unitless = np.array(self / best_unit, copy=False)
         threshold = np.get_printoptions()['threshold'] // 100
         if unitless.ndim == 0:
-            sympy_quantity = np.float(unitless)
+            sympy_quantity = float(unitless)
         elif unitless.ndim == 1:
             array_str = np.array2string(unitless, separator=" & ", threshold=threshold,
                                         max_line_width=sys.maxsize)
