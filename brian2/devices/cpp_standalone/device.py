@@ -1447,8 +1447,8 @@ class CPPStandaloneDevice(Device):
                 f"'{results_directory}'."
             )
         # Translate path to absolute path which ends with /
-        self.results_dir = os.path.abspath(
-            os.path.join(directory, results_directory, "")
+        self.results_dir = os.path.join(
+            os.path.abspath(os.path.join(directory, results_directory)), ""
         )
 
         # Determine compiler flags and directories
