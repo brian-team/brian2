@@ -184,6 +184,15 @@ class Variable(CacheKey):
         #: Whether the variable is an array
         self.array = array
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["owner"] = state["owner"].__repr__.__self__  # replace proxy
+        return state
+
+    def __setstate__(self, state):
+        state["owner"] = weakproxy_with_fallback(state["owner"])
+        self.__dict__ = state
+
     @property
     def is_boolean(self):
         return np.issubdtype(self.dtype, np.bool_)
@@ -1606,6 +1615,15 @@ class Variables(Mapping):
         self.indices = collections.defaultdict(functools.partial(str, default_index))
         # Note that by using functools.partial (instead of e.g. a lambda
         # function) above, this object remains pickable.
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["owner"] = state["owner"].__repr__.__self__
+        return state
+
+    def __setstate__(self, state):
+        state["owner"] = weakproxy_with_fallback(state["owner"])
+        self.__dict__ = state
 
     def __getitem__(self, item):
         return self._variables[item]
