@@ -1,13 +1,13 @@
 """
 Module providing the base `CodeObject` and related functions.
 """
-
 import collections
 import copy
 import platform
 import weakref
 
-from brian2.core.functions import Function
+from brian2.core.base import weakproxy_with_fallback
+from brian2.core.functions import Function, DEFAULT_FUNCTIONS
 from brian2.core.names import Nameable
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
@@ -63,11 +63,7 @@ class CodeObject(Nameable):
                  template_name, template_source, compiler_kwds,
                  name='codeobject*'):
         Nameable.__init__(self, name=name)
-        try:    
-            owner = weakref.proxy(owner)
-        except TypeError:
-            pass # if owner was already a weakproxy then this will be the error raised
-        self.owner = owner
+        self.owner = weakproxy_with_fallback(owner)
         self.code = code
         self.compiled_code = {}
         self.variables = variables
@@ -75,6 +71,23 @@ class CodeObject(Nameable):
         self.template_name = template_name
         self.template_source = template_source
         self.compiler_kwds = compiler_kwds
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['owner'] = self.owner.__repr__.__self__
+        # Replace Function objects for standard functions by their name
+        state['variables'] = self.variables.copy()
+        for k, v in state['variables'].items():
+            if isinstance(v, Function) and v is DEFAULT_FUNCTIONS[k]:
+                state['variables'][k] = k
+        return state
+    
+    def __setstate__(self, state):
+        state['owner'] = weakproxy_with_fallback(state['owner'])
+        for k, v in state['variables'].items():
+            if isinstance(v, str):
+                state['variables'][k] = DEFAULT_FUNCTIONS[k]
+        self.__dict__ = state
 
     @classmethod
     def is_available(cls):
