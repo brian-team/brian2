@@ -1091,7 +1091,7 @@ class CPPStandaloneDevice(Device):
                     if value_ar.ndim != 1 or value_ar.size != key.shape[0]:
                         raise TypeError(f"Incorrect size for variable '{key.group_name}.{key.name}'. "
                                         f"Shape {key.shape} ≠ {value_ar.shape}.")
-                    value_name = f'init_value_{md5(value_ar.data).hexdigest()}.dat'
+                    value_name = f'init_{key.group_name}_{key.name}_{md5(value_ar.data).hexdigest()}.dat'
                     fname = os.path.join(self.project_dir, 'static_arrays', value_name)
                     # Make sure processes trying to write the same file don't clash
                     with FileLock(fname + '.lock'):

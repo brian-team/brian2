@@ -60,6 +60,9 @@ void set_variable_by_name(std::string owner_variable, std::string s_value) {
 
 	if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9'))
 	{
+		#ifdef DEBUG
+		std::cout << "Setting '" << owner_variable << "' to " << s_value << std::endl;
+		#endif
 		if (var_type == "double")
 		{
 			const double d_value = atof(s_value.c_str());
@@ -90,6 +93,9 @@ void set_variable_by_name(std::string owner_variable, std::string s_value) {
 	else
 	{ // file name
 		ifstream f;
+		#ifdef DEBUG
+		std::cout << "Setting '" << owner_variable << "' from file '" << s_value << "'" << std::endl;
+		#endif
 		f.open(s_value, ios::in | ios::binary);
 		if (f.is_open())
 		{
