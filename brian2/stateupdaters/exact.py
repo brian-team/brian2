@@ -7,6 +7,7 @@ import itertools
 import sympy as sp
 from sympy import Wild, Symbol, I, re, im
 
+from brian2.utils.caching import cached
 from brian2.equations.codestrings import is_constant_over_dt
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.stateupdaters.base import (StateUpdateMethod,
@@ -154,6 +155,7 @@ class LinearStateUpdater(StateUpdateMethod):
     analytical solution given by sympy. Uses the matrix exponential (which is
     only implemented for diagonalizable matrices in sympy).
     """
+    @cached
     def __call__(self, equations, variables=None, method_options=None):
         method_options = extract_method_options(method_options,
                                                 {'simplify': True})
