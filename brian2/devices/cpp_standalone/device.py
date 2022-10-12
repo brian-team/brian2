@@ -1088,7 +1088,9 @@ class CPPStandaloneDevice(Device):
                     # single value, give value directly on command line
                     string_value = repr(value_ar.item())
                 else:
-                    if value_ar.ndim != 1 or value_ar.size != key.shape[0]:
+                    # TODO: Check size for dynamic arrays in C++ code
+                    if value_ar.ndim != 1 or (not key.variable.dynamic and
+                                              value_ar.size != key.shape[0]):
                         raise TypeError(f"Incorrect size for variable '{key.group_name}.{key.name}'. "
                                         f"Shape {key.shape} ≠ {value_ar.shape}.")
                     value_name = f'init_{key.group_name}_{key.name}_{md5(value_ar.data).hexdigest()}.dat'
