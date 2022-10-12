@@ -26,35 +26,45 @@ Network {{net.name}};
 {% endfor %}
 
 //////////////// array meta data //////////
-std::map<std::string, std::tuple<size_t, std::string, void*>> array_meta_data;
+std::map<std::string, std::tuple<bool, size_t, std::string, void*>> array_meta_data;
 
 //////////////// set arrays by name ///////
 void set_variable_by_name(std::string owner_variable, std::string s_value) {
-	std::tuple<size_t, std::string, void*> meta_data;
+	std::tuple<bool, size_t, std::string, void*> meta_data;
 	try {
-		meta_data  = array_meta_data.at(owner_variable);
+		meta_data = array_meta_data.at(owner_variable);
 	} catch (const std::out_of_range& oor) {
     	std::cerr << "Did not find variable '" << owner_variable << "'" << std::endl;
   	}
-	const size_t var_size = std::get<0>(meta_data);
+	const bool is_dynamic = std::get<0>(meta_data);
+	size_t var_size = std::get<1>(meta_data);  // will be overwritten by actual size for dynamic arrays
 	size_t data_size;
-	const std::string var_type = std::get<1>(meta_data);
-	void* var_pointer = std::get<2>(meta_data);
+	const std::string var_type = std::get<2>(meta_data);
+	void* var_pointer = std::get<3>(meta_data);
+	
 
 	if (var_type == "double")
 	{
+		if (is_dynamic)
+			var_size = ((std::vector<double>*)var_pointer)->size();
 		data_size = var_size * sizeof(double);
 	}
 	else if (var_type == "float")
 	{
+		if (is_dynamic)
+			var_size = ((std::vector<float>*)var_pointer)->size();
 		data_size = var_size * sizeof(float);
 	}
 	else if (var_type == "int64_t")
 	{
+		if (is_dynamic)
+			var_size = ((std::vector<int64_t>*)var_pointer)->size();
 		data_size = var_size * sizeof(int64_t);
 	}
 	else if (var_type == "int32_t")
 	{
+		if (is_dynamic)
+			var_size = ((std::vector<int32_t>*)var_pointer)->size();
 		data_size = var_size * sizeof(int32_t);
 	}
 
@@ -197,7 +207,11 @@ void _init_arrays()
 	array_meta_data = {
 	{% for var, varname in array_specs | dictsort(by='value') %}
 		{% if not var in dynamic_array_specs and not var in dynamic_array_2d_specs and not var.read_only %}
-		{"{{var.owner.name}}.{{var.name}}", { {{var.size}}, "{{c_data_type(var.dtype)}}", {{varname}} } },
+		{"{{var.owner.name}}.{{var.name}}", { false, {{var.size}}, "{{c_data_type(var.dtype)}}", {{varname}} } },
+		{% endif %}
+		{% if var in dynamic_array_specs and not var.read_only %}
+		{# size will be directly requested from vector #}
+		{"{{var.owner.name}}.{{var.name}}", { true, 0, "{{c_data_type(var.dtype)}}", {{varname}} } },
 		{% endif %}
 	{% endfor %}
 	};
@@ -371,7 +385,7 @@ extern Network {{net.name}};
 
 void set_variable_by_name(std::string, std::string);
 
-extern std::map<std::string, std::tuple<size_t, std::string, void*>> array_meta_data;
+extern std::map<std::string, std::tuple<bool, size_t, std::string, void*>> array_meta_data;
 
 //////////////// dynamic arrays ///////////
 {% for var, varname in dynamic_array_specs | dictsort(by='value') %}
