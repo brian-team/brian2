@@ -8,6 +8,9 @@
 #include<iostream>
 #include<fstream>
 #include<climits>
+{% for name in user_headers | sort %}
+#include {{name}}
+{% endfor %}
 
 ////// SUPPORT CODE ///////
 namespace {
@@ -120,6 +123,9 @@ void _run_{{codeobj_name}}();
 #include<iostream>
 #include<fstream>
 #include<climits>
+{% for name in user_headers | sort %}
+#include {{name}}
+{% endfor %}
 
 ////// SUPPORT CODE ///////
 namespace {
@@ -142,7 +148,7 @@ void _after_run_{{codeobj_name}}()
 
 {% macro after_run_h_file() %}
 #ifndef _INCLUDED_{{codeobj_name}}_after
-#define _INCLUDED_{{codeobj_name}}_afer
+#define _INCLUDED_{{codeobj_name}}_after
 
 void _after_run_{{codeobj_name}}();
 

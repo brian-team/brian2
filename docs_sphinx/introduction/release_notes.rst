@@ -1,6 +1,69 @@
 Release notes
 =============
 
+Brian 2.5.1
+-----------
+This new minor release contains a large number of bug fixes and improvements, in particular for the C++ standalone mode,
+as well as many new contributed examples. For users of Visual Studio Code, getting involved with Brian development is now
+easier than ever, thanks to a new "development container" that automatically provides an environment with all the necessary
+dependencies.
+
+New features
+~~~~~~~~~~~~
+* Ben Evans added a Docker container for development with Visual Studio Code (:issue:`1387`).
+* Synaptic indices of synapses created with manually provided indices can now be accessed in standalone mode even before
+  the situation has been run. This makes certain complex situations (e.g. synapses modulating other synapses) easier to
+  write and also makes more detailed error checking possible (:issue:`1403`).
+* Additional "code slots", as well as more detailed profiling information about compilation times are avaiable for
+  C++ standalone mode (:issue:`1390`, :issue:`1391`). Thanks to Denis Alevi for contributing this feature.
+* LaTeX output for quantity arrays (which is automatically used for the "rich representation" in jupyter notebooks), is
+  now limited to reasonable size and no longer tries to display all values for large arrays. It now also observes most
+  of numpy's print options (:issue:`1426`)
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Internally, Brian objects now have more consistent names (used in the generated code), and variables declarations are
+  generated in deterministic order. This should make repeated runs of models faster, since less code has to be recompiled
+  (:issue:`1384`, :issue:`1417`).
+* Running several simulations in parallel with Python's ``multiprocessing`` meant that all processes accessed the same
+  log file which led to redundant information and could lead to crashes when several processes tried to rotate the same
+  file. Brian now switches off logging in subprocesses, but users can enable also enable individual logs for each process,
+  see :ref:`logging_and_multiprocessing`. The default log level for the file log has also been raised to ``DEBUG``
+  (:issue:`1419`).
+* Some common plotting idioms (e.g. ``plt.plot(spike_mon.t/ms, spike_mon.i, '.')``) were broken with the most recent
+  matplotlib version and are now working again (:issue:`1412`)
+* Very long runs (with more then 2e9 simulation time steps) failed to run in C++ standalone mode (:issue:`1394`). Thanks to
+  Kai Chen for making us aware of the issue.
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Sebastian Schmitt has contributed several new :doc:`../examples/index`, reproducing results from several papers (e.g.
+  :doc:`../examples/frompapers.Maass_Natschlaeger_Markram_2002` and :doc:`../examples/frompapers.Naud_et_al_2008_adex_firing_patterns`)
+* Akif Erdem Sağtekin and Sebastian Schmitt contributed the example :doc:`../examples/frompapers.Izhikevich_2003`.
+* A number of fixes to the documentation have been contributed by Sebastian Schmitt.
+
+Contributions
+~~~~~~~~~~~~~
+
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* Sebastian Schmitt (`@schmitts <https://github.com/schmitts>`_)
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* Akif Erdem Sağtekin (`@aesagtekin <https://github.com/aesagtekin>`_)
+* `@MunozatABI <https://github.com/MunozatABI>`_
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* `@ivapl <https://github.com/ivapl>`_
+* `@dokato <https://github.com/dokato>`_
+* Davide Schiavone (`@davideschiavone <https://github.com/davideschiavone>`_)
+* Kai Chen (`@NeoNeuron <https://github.com/NeoNeuron>`_)
+* Yahya Ashrafi (`@yahya-ashrafi <https://github.com/yahya-ashrafi>`_)
+* Ariel Martínez Silberstein (`@ariel-m-s <https://github.com/ariel-m-s>`_)
+* Adam Willats (`@awillats <https://github.com/awillats>`_)
+
+
 Brian 2.5.0.3
 -------------
 Another patch-level release that fixes incorrectly built Python wheels (the binary package

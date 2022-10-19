@@ -392,6 +392,7 @@ class SpatialNeuron(NeuronGroup):
         self.length_ = self.flat_morphology.length
         self.area_ = self.flat_morphology.area
         self.diameter_ = self.flat_morphology.diameter
+        self.volume_ = self.flat_morphology.volume
         self.r_length_1_ = self.flat_morphology.r_length_1
         self.r_length_2_ = self.flat_morphology.r_length_2
         if self.flat_morphology.has_coordinates:

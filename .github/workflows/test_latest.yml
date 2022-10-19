@@ -3,6 +3,7 @@ name: Test against latest dependencies
 on:
   schedule:
     - cron:  '25 5 * * SUN'
+  workflow_dispatch:
 
 jobs:
   get_python_versions:
@@ -14,7 +15,7 @@ jobs:
     steps:
       - name: "calculate versions according to NEP29"
         id: nep29
-        uses: mstimberg/github-calc-nep29@v0.1.1
+        uses: mstimberg/github-calc-nep29@v0.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
   
@@ -61,7 +62,7 @@ jobs:
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
           python -Wd $GITHUB_WORKSPACE/dev/continuous-integration/run_test_suite.py
         env:
-          PYTHONWARNINGS: default
+          DEPRECATION_ERROR: true
           AGENT_OS: ${{runner.os}}
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}

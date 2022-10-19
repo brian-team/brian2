@@ -3,6 +3,7 @@
 from brian2 import prefs
 from brian2.tests.test_synapses import test_transmission_simple
 
-prefs.codegen.target = 'cython'
+if __name__ == '__main__':
+    prefs.codegen.target = 'cython'
 
-test_transmission_simple()
+    test_transmission_simple()

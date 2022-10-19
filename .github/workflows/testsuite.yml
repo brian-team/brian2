@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: "calculate versions according to NEP29"
         id: nep29
-        uses: mstimberg/github-calc-nep29@v0.1.1
+        uses: mstimberg/github-calc-nep29@v0.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
   
@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-10.15]
+        os: [ubuntu-20.04, windows-2019, macOS-11]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]

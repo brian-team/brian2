@@ -315,10 +315,10 @@ texinfo_documents = [
 
 
 intersphinx_mapping = {
-    'http://docs.python.org/': None,
-    'http://docs.scipy.org/doc/numpy': None,
-    'http://docs.scipy.org/doc/scipy/reference': None,
-    'http://docs.sympy.org/dev/': None
+    'https://docs.python.org/3': None,
+    'https://numpy.org/doc/stable': None,
+    'https://docs.scipy.org/doc/scipy': None,
+    'https://docs.sympy.org/dev/': None
 }
 
 autodoc_default_options = {'show-inheritance': True}

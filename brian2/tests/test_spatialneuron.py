@@ -67,6 +67,7 @@ def test_construction():
     assert_allclose(neuron.L.main.distance, morpho.L.distance)
     assert_allclose(neuron.L.main.area, morpho.L.area)
     assert_allclose(neuron.L.main.length, morpho.L.length)
+    assert_allclose(neuron.L.main.volume, morpho.L.volume)
 
     # Check basic consistency of the flattened representation
     assert all(neuron.diffusion_state_updater._ends[:].flat >=
@@ -872,6 +873,18 @@ def test_spatialneuron_threshold_location():
         assert_allclose(mon.t, [0*ms, 2*defaultclock.dt])
 
 
+@pytest.mark.standalone_compatible
+def test_spatialneuron_timedarray():
+    # See GitHub issue 1427
+    ta = TimedArray([0, 1]*nA, dt=1*ms)
+    morpho = Soma(diameter=10*um)
+    neuron = SpatialNeuron(morpho, 'Im = ta(t)/area : amp/meter**2', method='euler')
+    mon = StateMonitor(neuron, 'v', record=0, when='after_groups')
+    run(2*ms)
+    assert_allclose(np.diff(mon.v_[0]), np.r_[np.zeros(9),
+                                              np.array(np.ones(10)*1*nA/neuron.area[0]/neuron.Cm*defaultclock.dt)])
+
+
 if __name__ == '__main__':
     test_custom_events()
     test_construction()
@@ -889,3 +902,4 @@ if __name__ == '__main__':
     test_spatialneuron_subtree_assignment()
     test_spatialneuron_morphology_assignment()
     test_spatialneuron_capacitive_currents()
+    test_spatialneuron_timedarray()
