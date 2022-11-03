@@ -360,7 +360,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
         right_dim = parse_expression_dimensions(expr.right, variables, orig_expr=orig_expr)
         if op in ['Add', 'Sub', 'Mod']:
             # dimensions should be the same
-            if left_dim != right_dim:
+            left_dim is not right_dim and left_dim != right_dim:
                 op_symbol = {'Add': '+', 'Sub': '-', 'Mod': '%'}.get(op)
                 left_str = NodeRenderer().render_node(expr.left)
                 right_str = NodeRenderer().render_node(expr.right)
