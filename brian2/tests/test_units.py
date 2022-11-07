@@ -203,6 +203,18 @@ def test_pickling():
 
 
 @pytest.mark.codegen_independent
+def test_dimension_singletons():
+    # Make sure that Dimension objects are singletons, even when pickled
+    volt_dim = get_or_create_dimension((2, 1, -3, -1, 0, 0, 0))
+    assert volt.dim is volt_dim
+    import pickle
+    pickled_dim = pickle.dumps(volt_dim)
+    unpickled_dim = pickle.loads(pickled_dim)
+    assert unpickled_dim is volt_dim
+    assert unpickled_dim is volt.dim
+
+
+@pytest.mark.codegen_independent
 def test_str_repr():
     """
     Test that str representations do not raise any errors and that repr
