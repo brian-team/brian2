@@ -1,4 +1,3 @@
-
 import pytest
 import numpy as np
 from numpy.testing import assert_equal
@@ -22,7 +21,7 @@ def test_dynamic_array_1d_access():
 @pytest.mark.codegen_independent
 def test_dynamic_array_1d_resize_up_down():
     for numpy_resize in [True, False]:
-        da = DynamicArray1D(10, use_numpy_resize=numpy_resize)
+        da = DynamicArray1D(10, use_numpy_resize=numpy_resize, refcheck=False)
         da[:] = np.arange(10)
         da.resize(15)
         assert len(da) == 15
@@ -52,7 +51,7 @@ def test_dynamic_array_1d_resize_down_up():
 @pytest.mark.codegen_independent
 def test_dynamic_array_1d_shrink():
     for numpy_resize in [True, False]:
-        da = DynamicArray1D(10, use_numpy_resize=numpy_resize)
+        da = DynamicArray1D(10, use_numpy_resize=numpy_resize, refcheck=False)
         da[:] = np.arange(10)
         da.shrink(5)
         assert len(da) == 5
@@ -77,7 +76,7 @@ def test_dynamic_array_2d_access():
 @pytest.mark.codegen_independent
 def test_dynamic_array_2d_resize_up_down():
     for numpy_resize in [True, False]:
-        da = DynamicArray((10, 20), use_numpy_resize=numpy_resize)
+        da = DynamicArray((10, 20), use_numpy_resize=numpy_resize, refcheck=False)
         da[:, :] = np.arange(200).reshape((10, 20))
         da.resize((15, 20))
         assert da.shape == (15, 20)
@@ -96,7 +95,7 @@ def test_dynamic_array_2d_resize_up_down():
 @pytest.mark.codegen_independent
 def test_dynamic_array_2d_resize_down_up():
     for numpy_resize in [True, False]:
-        da = DynamicArray((10, 20), use_numpy_resize=numpy_resize)
+        da = DynamicArray((10, 20), use_numpy_resize=numpy_resize, refcheck=False)
         da[:, :] = np.arange(200).reshape((10, 20))
         da.resize((5, 20))
         assert da.shape == (5, 20)
@@ -116,7 +115,7 @@ def test_dynamic_array_2d_resize_down_up():
 @pytest.mark.codegen_independent
 def test_dynamic_array_2d_shrink():
     for numpy_resize in [True, False]:
-        da = DynamicArray((10, 20), use_numpy_resize=numpy_resize)
+        da = DynamicArray((10, 20), use_numpy_resize=numpy_resize, refcheck=False)
         da[:, :] = np.arange(200).reshape((10, 20))
         da.shrink((5, 15))
         assert da.shape == (5, 15)
