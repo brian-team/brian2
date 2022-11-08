@@ -139,8 +139,8 @@ def main(rootpath, destdir):
         output += '\n'.join(['    ' + line for line in afterdoccode.split('\n')])
         output += '\n\n'
 
-        eximgpattern = os.path.join(eximgpath, '%s.*.png' % exname)
-        images = glob.glob(eximgpattern)
+        eximgpattern = os.path.join(eximgpath, '%s.*' % exname)
+        images = glob.glob(eximgpattern + '.png') + glob.glob(eximgpattern + '.gif')
         for image in sorted(images):
             _, image = os.path.split(image)
             print('Found example image file', image)
