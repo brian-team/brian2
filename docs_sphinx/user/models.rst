@@ -182,17 +182,23 @@ neurons. In general ``G[i:j]`` refers to the neurons with indices from ``i``
 to ``j-1``, as in general in Python.
 
 For convenience, you can also use a single index, i.e. ``G[i]`` is equivalent
-to ``G[i:i+1]``. In some situations, it can be easier to provide a list of
-indices instead of a slice, Brian therefore also allows for this syntax. Note
-that this is restricted to cases that are strictly equivalent with slicing
-syntax, e.g. you can write ``G[[3, 4, 5]]`` instead of ``G[3:6]``, but you
-*cannot* write ``G[[3, 5, 7]]`` or ``G[[5, 4, 3]]``.
+to ``G[i:i+1]``. Brian also allows a simplified form of numpy's
+`integer array indexing <https://numpy.org/doc/stable/user/basics.indexing.html#integer-array-indexing>`_,
+to create "non-contiguous" subgroups (subgroups with "gaps" in them).
+You can for example refer to ``G[[0, 2, 4, 6, 8]]`` or ``G[[-5, -3, -1]]``.
+There are two restrictions to index arrays for subgroups: they cannot contain
+repeated indices, and the indices need to be provided in ascending order.
 
 Subgroups can be used in most places where regular groups are used, e.g. their
 state variables or spiking activity can be recorded using monitors, they can be
 connected via `Synapses`, etc. In such situations, indices (e.g. the indices of
 the neurons to record from in a `StateMonitor`) are relative to the subgroup,
 not to the main group
+
+.. note::
+
+    Non-contiguous subgroups (i.e. subgroups created with the index array syntax)
+    cannot be used as the source/target groups for `Synapses`.
 
 .. admonition:: The following topics are not essential for beginners.
 
