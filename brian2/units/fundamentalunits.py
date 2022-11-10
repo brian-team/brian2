@@ -485,6 +485,10 @@ class Dimension(object):
     def __setstate__(self, state):
         self._dims = state
 
+    def __reduce__(self):
+        # Make sure that unpickling Dimension objects does not bypass the singleton system
+        return (get_or_create_dimension, (self._dims, ))
+
     ### Dimension objects are singletons and deepcopy is therefore not necessary
     def __deepcopy__(self, memodict):
         return self
