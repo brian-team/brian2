@@ -322,15 +322,22 @@ indices of compartments, or with the distance from the root::
     first_compartments = neuron[:3]
     first_compartments = neuron[0*um:30*um]
 
-However, note that this is restricted to contiguous indices which most of the
-time means that all compartments indexed in this way have to be part of the
-same section. Such indices can be acquired directly from the morphology::
+Subgroups can also consist of several compartments that are not directly connected to
+each other and lie in different sections. This can be achieved by using a list of
+indices or a string expression instead of a slice. For example, to create a subgroup
+referring to the compartments with indices 1, 2, 5, and 6, you can use::
 
-    axon = neuron[morpho.axon.indices[:]]
+    subset = neuron[[1, 2, 5, 6]]
 
-or, more concisely::
+The same restrictions as for general :ref:`subgroups` apply: the given indices need to
+be in ascending order without duplicates. Note that you can get indices from the
+`Morphology`, e.g. by asking for ``morpho.axon.indices[:]``.
 
-    axon = neuron[morpho.axon]
+With string indexing, the compartments can be selected by referring to their attributes.
+For example, to select all compartments that are at a distance of more than 100µm from
+the soma, you can use::
+
+    distal = neuron['distance > 100*um']
 
 Synaptic inputs
 ~~~~~~~~~~~~~~~
@@ -409,8 +416,3 @@ Again the location of the threshold can be specified with spatial position::
                            threshold_location=morpho.axon[30*um],
                            refractory='m > 0.4')
 
-Subgroups
-~~~~~~~~~
-
-In the same way that you can refer to a subset of neurons in a `NeuronGroup`,
-you can also refer to a subset of compartments in a `SpatialNeuron`
