@@ -37,11 +37,11 @@ def test_creation():
     assert len(SGi2) == 3
     assert SGi2.contiguous
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Subgroup(G)
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Subgroup(G, start=3)
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Subgroup(G, stop=3)
     with pytest.raises(IndexError):
         Subgroup(G, start=-1, stop=5)
@@ -49,7 +49,7 @@ def test_creation():
         Subgroup(G, start=1, stop=1)
     with pytest.raises(IndexError):
         Subgroup(G, start=1, stop=11)
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Subgroup(G, start=1, stop=11, indices=[2, 4, 6])
     with pytest.raises(IndexError):
         Subgroup(G, indices=[])
