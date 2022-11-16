@@ -73,7 +73,7 @@ from brian2.only import test
 
 # Check for outdated dependency versions
 def _check_dependency_version(name, version):
-    from distutils.version import LooseVersion
+    from packaging.version import Version
     from .core.preferences import prefs
     from .utils.logger import get_logger
     import sys
@@ -82,7 +82,7 @@ def _check_dependency_version(name, version):
     module = sys.modules[name]
     if not isinstance(module.__version__, str):  # mocked module
         return
-    if not LooseVersion(module.__version__) >= LooseVersion(version):
+    if not Version(module.__version__) >= Version(version):
         message = f'{name} is outdated (got version {module.__version__}, need version {version})'
         if prefs.core.outdated_dependency_error:
             raise ImportError(message)
