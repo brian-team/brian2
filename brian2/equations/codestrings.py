@@ -12,7 +12,7 @@ from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
-__all__ = ['Expression', 'Statements']
+__all__ = ["Expression", "Statements"]
 
 logger = get_logger(__name__)
 
@@ -21,13 +21,13 @@ class CodeString(Hashable):
     """
     A class for representing "code strings", i.e. a single Python expression
     or a sequence of Python statements.
-    
+
     Parameters
     ----------
     code : str
         The code string, may be an expression or a statement(s) (possibly
         multi-line).
-        
+
     """
 
     def __init__(self, code):
@@ -36,14 +36,13 @@ class CodeString(Hashable):
         # : Set of identifiers in the code string
         self.identifiers = get_identifiers(code)
 
-    code = property(lambda self: self._code,
-                    doc="The code string")
+    code = property(lambda self: self._code, doc="The code string")
 
     def __str__(self):
         return self.code
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.code!r})'
+        return f"{self.__class__.__name__}({self.code!r})"
 
     def __eq__(self, other):
         if not isinstance(other, CodeString):
@@ -66,7 +65,7 @@ class Statements(CodeString):
     code : str
         The statement or statements. Several statements can be given as a
         multi-line string or separated by semicolons.
-    
+
     Notes
     -----
     Currently, the implementation of this class does not add anything to
@@ -74,6 +73,7 @@ class Statements(CodeString):
     of that class for clarity and to allow for future functionality that is
     only relevant to statements and not to expressions.
     """
+
     pass
 
 
@@ -97,7 +97,8 @@ class Expression(CodeString):
             raise TypeError("Have to provide either a string or a sympy expression")
         if code is not None and sympy_expression is not None:
             raise TypeError(
-                "Provide a string expression or a sympy expression, not both")
+                "Provide a string expression or a sympy expression, not both"
+            )
 
         if code is None:
             code = sympy_to_str(sympy_expression)
@@ -107,27 +108,32 @@ class Expression(CodeString):
             str_to_sympy(code)
         super(Expression, self).__init__(code=code)
 
-    stochastic_variables = property(lambda self: {variable for variable in self.identifiers
-                                                  if variable =='xi' or variable.startswith('xi_')},
-                                    doc='Stochastic variables in this expression')
+    stochastic_variables = property(
+        lambda self: {
+            variable
+            for variable in self.identifiers
+            if variable == "xi" or variable.startswith("xi_")
+        },
+        doc="Stochastic variables in this expression",
+    )
 
     def split_stochastic(self):
         """
         Split the expression into a stochastic and non-stochastic part.
-        
+
         Splits the expression into a tuple of one `Expression` objects f (the
         non-stochastic part) and a dictionary mapping stochastic variables
-        to `Expression` objects. For example, an expression of the form 
+        to `Expression` objects. For example, an expression of the form
         ``f + g * xi_1 + h * xi_2`` would be returned as:
         ``(f, {'xi_1': g, 'xi_2': h})``
         Note that the `Expression` objects for the stochastic parts do not
-        include the stochastic variable itself. 
-        
+        include the stochastic variable itself.
+
         Returns
         -------
         (f, d) : (`Expression`, dict)
             A tuple of an `Expression` object and a dictionary, the first
-            expression being the non-stochastic part of the equation and 
+            expression being the non-stochastic part of the equation and
             the dictionary mapping stochastic variables (``xi`` or starting
             with ``xi_``) to `Expression` objects. If no stochastic variable
             is present in the code string, a tuple ``(self, None)`` will be
@@ -135,19 +141,21 @@ class Expression(CodeString):
         """
         stochastic_variables = []
         for identifier in self.identifiers:
-            if identifier == 'xi' or identifier.startswith('xi_'):
+            if identifier == "xi" or identifier.startswith("xi_"):
                 stochastic_variables.append(identifier)
 
         # No stochastic variable
         if not len(stochastic_variables):
             return (self, None)
 
-        stochastic_symbols = [sympy.Symbol(variable, real=True)
-                              for variable in stochastic_variables]
+        stochastic_symbols = [
+            sympy.Symbol(variable, real=True) for variable in stochastic_variables
+        ]
 
         # Note that collect only works properly if the expression is expanded
-        collected = str_to_sympy(self.code).expand().collect(stochastic_symbols,
-                                                             evaluate=False)
+        collected = (
+            str_to_sympy(self.code).expand().collect(stochastic_symbols, evaluate=False)
+        )
 
         f_expr = None
         stochastic_expressions = {}
@@ -155,21 +163,25 @@ class Expression(CodeString):
             expr = Expression(sympy_expression=s_expr)
             if var == 1:
                 if any(s_expr.has(s) for s in stochastic_symbols):
-                    raise AssertionError(f"Error when separating expression "
-                                         f"'{self.code}' into stochastic and non-"
-                                         f"stochastic term: non-stochastic "
-                                         f"part was determined to be '{s_expr}' but "
-                                         f"contains a stochastic symbol.")
+                    raise AssertionError(
+                        "Error when separating expression "
+                        f"'{self.code}' into stochastic and non-"
+                        "stochastic term: non-stochastic "
+                        f"part was determined to be '{s_expr}' but "
+                        "contains a stochastic symbol."
+                    )
                 f_expr = expr
             elif var in stochastic_symbols:
                 stochastic_expressions[str(var)] = expr
             else:
-                raise ValueError(f"Expression '{self.code}' cannot be separated into "
-                                 f"stochastic and non-stochastic "
-                                 f"term")
+                raise ValueError(
+                    f"Expression '{self.code}' cannot be separated into "
+                    "stochastic and non-stochastic "
+                    "term"
+                )
 
         if f_expr is None:
-            f_expr = Expression('0.0')
+            f_expr = Expression("0.0")
 
         return f_expr, stochastic_expressions
 
@@ -220,7 +232,7 @@ def is_constant_over_dt(expression, variables, dt_value):
         Whether the expression can be considered to be constant over a time
         step.
     """
-    t_symbol = sympy.Symbol('t', real=True, positive=True)
+    t_symbol = sympy.Symbol("t", real=True, positive=True)
     if expression == t_symbol:
         return False  # The full expression is simply "t"
     func_name = str(expression.func)
@@ -231,8 +243,10 @@ def is_constant_over_dt(expression, variables, dt_value):
         if arg == t_symbol and dt_value is not None:
             # We found "t" -- if it is not the only argument of a locally
             # constant function we bail out
-            if not (func_variable is not None and
-                        func_variable.is_locally_constant(dt_value)):
+            if not (
+                func_variable is not None
+                and func_variable.is_locally_constant(dt_value)
+            ):
                 return False
         else:
             if not is_constant_over_dt(arg, variables, dt_value):

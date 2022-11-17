@@ -26,8 +26,7 @@ from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
 from brian2.parsing.bast import brian_ast
 from brian2.utils.caching import cached
 from brian2.core.functions import Function
-from brian2.utils.stringtools import (deindent, strip_empty_lines,
-                                      get_identifiers)
+from brian2.utils.stringtools import deindent, strip_empty_lines, get_identifiers
 from brian2.utils.topsort import topsort
 from brian2.parsing.statements import parse_statement
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
@@ -35,33 +34,36 @@ from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from .statements import Statement
 from .optimisation import optimise_statements
 
-__all__ = ['analyse_identifiers', 'get_identifiers_recursively']
+__all__ = ["analyse_identifiers", "get_identifiers_recursively"]
 
 
 class LineInfo(object):
     """
     A helper class, just used to store attributes.
     """
+
     def __init__(self, **kwds):
         for k, v in kwds.items():
             setattr(self, k, v)
 
     # TODO: This information should go somewhere else, I guess
-STANDARD_IDENTIFIERS = {'and', 'or', 'not', 'True', 'False'}
+
+
+STANDARD_IDENTIFIERS = {"and", "or", "not", "True", "False"}
 
 
 def analyse_identifiers(code, variables, recursive=False):
     """
     Analyses a code string (sequence of statements) to find all identifiers by type.
-    
+
     In a given code block, some variable names (identifiers) must be given as inputs to the code
     block, and some are created by the code block. For example, the line::
-    
+
         a = b+c
-        
+
     This could mean to create a new variable a from b and c, or it could mean modify the existing
     value of a from b or c, depending on whether a was previously known.
-    
+
     Parameters
     ----------
     code : str
@@ -70,7 +72,7 @@ def analyse_identifiers(code, variables, recursive=False):
         Specifiers for the model variables or a set of known names
     recursive : bool, optional
         Whether to recurse down into subexpressions (defaults to ``False``).
-    
+
     Returns
     -------
     newly_defined : set
@@ -84,27 +86,31 @@ def analyse_identifiers(code, variables, recursive=False):
         external namespace.
     """
     if isinstance(variables, Mapping):
-        known = set(k for k, v in variables.items()
-                    if not isinstance(k, AuxiliaryVariable))
+        known = set(
+            k for k, v in variables.items() if not isinstance(k, AuxiliaryVariable)
+        )
     else:
         known = set(variables)
-        variables = dict((k, Variable(name=k, dtype=np.float64))
-                         for k in known)
+        variables = dict((k, Variable(name=k, dtype=np.float64)) for k in known)
 
     known |= STANDARD_IDENTIFIERS
-    scalar_stmts, vector_stmts = make_statements(code, variables, np.float64, optimise=False)
+    scalar_stmts, vector_stmts = make_statements(
+        code, variables, np.float64, optimise=False
+    )
     stmts = scalar_stmts + vector_stmts
-    defined = set(stmt.var for stmt in stmts if stmt.op == ':=')
+    defined = set(stmt.var for stmt in stmts if stmt.op == ":=")
     if len(stmts) == 0:
         allids = set()
     elif recursive:
         if not isinstance(variables, Mapping):
             raise TypeError("Have to specify a variables dictionary.")
-        allids = get_identifiers_recursively([stmt.expr for stmt in stmts],
-                                             variables) | {stmt.var for stmt in stmts}
+        allids = get_identifiers_recursively(
+            [stmt.expr for stmt in stmts], variables
+        ) | {stmt.var for stmt in stmts}
     else:
-        allids = set.union(*[get_identifiers(stmt.expr)
-                             for stmt in stmts]) | {stmt.var for stmt in stmts}
+        allids = set.union(*[get_identifiers(stmt.expr) for stmt in stmts]) | {
+            stmt.var for stmt in stmts
+        }
     dependent = allids.difference(defined, known)
     used_known = allids.intersection(known) - STANDARD_IDENTIFIERS
     return defined, used_known, dependent
@@ -125,15 +131,19 @@ def get_identifiers_recursively(expressions, variables, include_numbers=False):
         Whether to include number literals in the output. Defaults to ``False``.
     """
     if len(expressions):
-        identifiers = set.union(*[get_identifiers(expr, include_numbers=include_numbers)
-                                  for expr in expressions])
+        identifiers = set.union(
+            *[
+                get_identifiers(expr, include_numbers=include_numbers)
+                for expr in expressions
+            ]
+        )
     else:
         identifiers = set()
     for name in set(identifiers):
         if name in variables and isinstance(variables[name], Subexpression):
-            s_identifiers = get_identifiers_recursively([variables[name].expr],
-                                                        variables,
-                                                        include_numbers=include_numbers)
+            s_identifiers = get_identifiers_recursively(
+                [variables[name].expr], variables, include_numbers=include_numbers
+            )
             identifiers |= s_identifiers
     return identifiers
 
@@ -159,13 +169,16 @@ def is_scalar_expression(expr, variables):
     # In the following we assume that all unknown identifiers are
     # scalar constants -- this should cover numerical literals and
     # e.g. "True" or "inf".
-    return all(name not in variables or
-               getattr(variables[name], 'scalar', False) or
-               (isinstance(variables[name], Function) and variables[name].stateless)
-               for name in identifiers)
+    return all(
+        name not in variables
+        or getattr(variables[name], "scalar", False)
+        or (isinstance(variables[name], Function) and variables[name].stateless)
+        for name in identifiers
+    )
+
 
 @cached
-def make_statements(code, variables, dtype, optimise=True, blockname=''):
+def make_statements(code, variables, dtype, optimise=True, blockname=""):
     """
     make_statements(code, variables, dtype, optimise=True, blockname='')
 
@@ -212,34 +225,37 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     statements. Calls `~brian2.codegen.optimisation.optimise_statements`.
     """
     code = strip_empty_lines(deindent(code))
-    lines = re.split(r'[;\n]', code)
+    lines = re.split(r"[;\n]", code)
     lines = [LineInfo(code=line) for line in lines if len(line)]
     # Do a copy so we can add stuff without altering the original dict
     variables = dict(variables)
     # we will do inference to work out which lines are := and which are =
-    defined = set(k for k, v in variables.items()
-                  if not isinstance(v, AuxiliaryVariable))
+    defined = set(
+        k for k, v in variables.items() if not isinstance(v, AuxiliaryVariable)
+    )
     for line in lines:
         statement = None
         # parse statement into "var op expr"
         var, op, expr, comment = parse_statement(line.code)
         if var in variables and isinstance(variables[var], Subexpression):
-            raise SyntaxError(f"Illegal line '{line.code}' in abstract code. Cannot write to subexpression '{var}'.")
-        if op == '=':
+            raise SyntaxError(
+                f"Illegal line '{line.code}' in abstract code. Cannot write to"
+                f" subexpression '{var}'."
+            )
+        if op == "=":
             if var not in defined:
-                op = ':='
+                op = ":="
                 defined.add(var)
                 if var not in variables:
                     annotated_ast = brian_ast(expr, variables)
                     is_scalar = annotated_ast.scalar
-                    if annotated_ast.dtype == 'boolean':
+                    if annotated_ast.dtype == "boolean":
                         use_dtype = bool
-                    elif annotated_ast.dtype == 'integer':
+                    elif annotated_ast.dtype == "integer":
                         use_dtype = int
                     else:
                         use_dtype = dtype
-                    new_var = AuxiliaryVariable(var, dtype=use_dtype,
-                                                scalar=is_scalar)
+                    new_var = AuxiliaryVariable(var, dtype=use_dtype, scalar=is_scalar)
                     variables[var] = new_var
             elif not variables[var].is_boolean:
                 sympy_expr = str_to_sympy(expr, variables)
@@ -248,37 +264,51 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                 else:
                     sympy_var = sympy.Symbol(var, real=True)
                 try:
-                    collected = sympy.collect(sympy_expr, sympy_var,
-                                              exact=True, evaluate=False)
+                    collected = sympy.collect(
+                        sympy_expr, sympy_var, exact=True, evaluate=False
+                    )
                 except AttributeError:
                     # If something goes wrong during collection, e.g. collect
                     # does not work for logical expressions
                     collected = {1: sympy_expr}
 
-                if (len(collected) == 2 and
-                        set(collected.keys()) == {1, sympy_var} and
-                        collected[sympy_var] == 1):
+                if (
+                    len(collected) == 2
+                    and set(collected.keys()) == {1, sympy_var}
+                    and collected[sympy_var] == 1
+                ):
                     # We can replace this statement by a += assignment
-                    statement = Statement(var, '+=',
-                                          sympy_to_str(collected[1]),
-                                          comment,
-                                          dtype=variables[var].dtype,
-                                          scalar=variables[var].scalar)
+                    statement = Statement(
+                        var,
+                        "+=",
+                        sympy_to_str(collected[1]),
+                        comment,
+                        dtype=variables[var].dtype,
+                        scalar=variables[var].scalar,
+                    )
                 elif len(collected) == 1 and sympy_var in collected:
                     # We can replace this statement by a *= assignment
-                    statement = Statement(var, '*=',
-                                          sympy_to_str(collected[sympy_var]),
-                                          comment,
-                                          dtype=variables[var].dtype,
-                                          scalar=variables[var].scalar)
+                    statement = Statement(
+                        var,
+                        "*=",
+                        sympy_to_str(collected[sympy_var]),
+                        comment,
+                        dtype=variables[var].dtype,
+                        scalar=variables[var].scalar,
+                    )
         if statement is None:
-            statement = Statement(var, op, expr, comment,
-                                  dtype=variables[var].dtype,
-                                  scalar=variables[var].scalar)
+            statement = Statement(
+                var,
+                op,
+                expr,
+                comment,
+                dtype=variables[var].dtype,
+                scalar=variables[var].scalar,
+            )
 
         line.statement = statement
         # for each line will give the variable being written to
-        line.write = var 
+        line.write = var
         # each line will give a set of variables which are read
         line.read = get_identifiers_recursively([expr], variables)
 
@@ -287,10 +317,12 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     scalar_write_done = False
     for line in lines:
         stmt = line.statement
-        if stmt.op != ':=' and variables[stmt.var].scalar and scalar_write_done:
-            raise SyntaxError(f"All writes to scalar variables in a code block "
-                              f"have to be made before writes to vector "
-                              f"variables. Illegal write to '{line.write}'.")
+        if stmt.op != ":=" and variables[stmt.var].scalar and scalar_write_done:
+            raise SyntaxError(
+                "All writes to scalar variables in a code block "
+                "have to be made before writes to vector "
+                f"variables. Illegal write to '{line.write}'."
+            )
         elif not variables[stmt.var].scalar:
             scalar_write_done = True
 
@@ -306,8 +338,9 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         line.will_write = will_write.copy()
         will_write.add(line.write)
 
-    subexpressions = dict((name, val) for name, val in variables.items()
-                          if isinstance(val, Subexpression))
+    subexpressions = dict(
+        (name, val) for name, val in variables.items() if isinstance(val, Subexpression)
+    )
     # Check that no scalar subexpression refers to a vectorised function
     # (e.g. rand()) -- otherwise it would be differently interpreted depending
     # on whether it is used in a scalar or a vector context (i.e., even though
@@ -317,23 +350,25 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         if subexpr.scalar:
             identifiers = get_identifiers(subexpr.expr)
             for identifier in identifiers:
-                if (identifier in variables and
-                        getattr(variables[identifier],
-                                'auto_vectorise', False)):
+                if identifier in variables and getattr(
+                    variables[identifier], "auto_vectorise", False
+                ):
                     raise SyntaxError(
                         f"The scalar subexpression '{name}' refers to "
                         f"the implicitly vectorised function '{identifier}' "
-                        f"-- this is not allowed since it leads "
-                        f"to different interpretations of this "
-                        f"subexpression depending on whether it "
-                        f"is used in a scalar or vector "
-                        f"context.")
+                        "-- this is not allowed since it leads "
+                        "to different interpretations of this "
+                        "subexpression depending on whether it "
+                        "is used in a scalar or vector "
+                        "context."
+                    )
 
     # sort subexpressions into an order so that subexpressions that don't depend
     # on other subexpressions are first
-    subexpr_deps = dict((name, [dep for dep in subexpr.identifiers
-                                if dep in subexpressions])
-                        for name, subexpr in subexpressions.items())
+    subexpr_deps = dict(
+        (name, [dep for dep in subexpr.identifiers if dep in subexpressions])
+        for name, subexpr in subexpressions.items()
+    )
     sorted_subexpr_vars = topsort(subexpr_deps)
 
     statements = []
@@ -348,23 +383,28 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
 
             subexpression = subexpressions[var]
             # if already defined/declared
-            if subdefined[var] == 'constant':
+            if subdefined[var] == "constant":
                 continue
-            elif subdefined[var] == 'variable':
-                op = '='
+            elif subdefined[var] == "variable":
+                op = "="
                 constant = False
             else:
-                op = ':='
+                op = ":="
                 # check if the referred variables ever change
                 ids = subexpression.identifiers
                 constant = all(v not in line.will_write for v in ids)
-                subdefined[var] = 'constant' if constant else 'variable'
+                subdefined[var] = "constant" if constant else "variable"
 
-            statement = Statement(var, op, subexpression.expr, comment='',
-                                  dtype=variables[var].dtype,
-                                  constant=constant,
-                                  subexpression=True,
-                                  scalar=variables[var].scalar)
+            statement = Statement(
+                var,
+                op,
+                subexpression.expr,
+                comment="",
+                dtype=variables[var].dtype,
+                constant=constant,
+                subexpression=True,
+                scalar=variables[var].scalar,
+            )
             statements.append(statement)
 
         stmt = line.statement
@@ -372,20 +412,24 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
 
         # constant only if we are declaring a new variable and we will not
         # write to it again
-        constant = op == ':=' and var not in line.will_write
-        statement = Statement(var, op, expr, comment,
-                              dtype=variables[var].dtype,
-                              constant=constant,
-                              scalar=variables[var].scalar)
+        constant = op == ":=" and var not in line.will_write
+        statement = Statement(
+            var,
+            op,
+            expr,
+            comment,
+            dtype=variables[var].dtype,
+            constant=constant,
+            scalar=variables[var].scalar,
+        )
         statements.append(statement)
 
     scalar_statements = [s for s in statements if s.scalar]
     vector_statements = [s for s in statements if not s.scalar]
 
     if optimise and prefs.codegen.loop_invariant_optimisations:
-        scalar_statements, vector_statements = optimise_statements(scalar_statements,
-                                                                   vector_statements,
-                                                                   variables,
-                                                                   blockname=blockname)
+        scalar_statements, vector_statements = optimise_statements(
+            scalar_statements, vector_statements, variables, blockname=blockname
+        )
 
     return scalar_statements, vector_statements

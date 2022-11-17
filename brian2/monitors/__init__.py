@@ -6,5 +6,4 @@ from .spikemonitor import *
 from .statemonitor import *
 from .ratemonitor import *
 
-__all__ = ['SpikeMonitor', 'EventMonitor', 'StateMonitor',
-           'PopulationRateMonitor']
+__all__ = ["SpikeMonitor", "EventMonitor", "StateMonitor", "PopulationRateMonitor"]

@@ -10,7 +10,8 @@ The CPU flags are printed to stdout encoded as JSON.
 
 import json
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import cpuinfo
-    flags = cpuinfo.get_cpu_info()['flags']
+
+    flags = cpuinfo.get_cpu_info()["flags"]
     print(json.dumps(flags))

@@ -1,9 +1,10 @@
-
-__all__ = ['FeatureTest',
-           'SpeedTest',
-           'InaccuracyError',
-           'Configuration',
-           'run_feature_tests']
+__all__ = [
+    "FeatureTest",
+    "SpeedTest",
+    "InaccuracyError",
+    "Configuration",
+    "run_feature_tests",
+]
 
 from .base import *
 from . import neurongroup

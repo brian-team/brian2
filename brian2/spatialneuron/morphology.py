@@ -11,17 +11,15 @@ import os
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
 from brian2.units.stdunits import um
-from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
-                                           check_units)
+from brian2.units.fundamentalunits import have_same_dimensions, Quantity, check_units
 from brian2 import numpy as np
 
 logger = get_logger(__name__)
 
-__all__ = ['Morphology', 'Section', 'Cylinder', 'Soma']
+__all__ = ["Morphology", "Section", "Cylinder", "Soma"]
 
 
-Node = namedtuple('Node',
-                  field_names='index,comp_name,x,y,z,diameter,parent,children')
+Node = namedtuple("Node", field_names="index,comp_name,x,y,z,diameter,parent,children")
 
 
 def _to_meters(value):
@@ -51,13 +49,13 @@ class MorphologyIndexWrapper(object):
     string indexing (`Morphology` is not a `Group`). It allows to use
     ``morphology.indices[...]`` instead of ``morphology[...]._indices()``.
     """
+
     def __init__(self, morphology):
         self.morphology = morphology
 
     def __getitem__(self, item):
         if isinstance(item, str):
-            raise NotImplementedError("Morphologies do not support string "
-                                      "indexing")
+            raise NotImplementedError("Morphologies do not support string indexing")
         assert isinstance(self.morphology, (SubMorphology, Morphology))
         return self.morphology._indices(item)
 
@@ -98,6 +96,7 @@ class Topology(object):
     A representation of the topology of a `Morphology`. Has a useful string
     representation, inspired by NEURON's ``topology`` function.
     """
+
     def __init__(self, morphology):
         self.morphology = morphology
 
@@ -107,32 +106,35 @@ class Topology(object):
         return Topology._str_topology(self.morphology, compartments_divisor=divisor)
 
     @staticmethod
-    def _str_topology(morphology, indent=0, named_path='',
-                      compartments_divisor=1, parent=None):
+    def _str_topology(
+        morphology, indent=0, named_path="", compartments_divisor=1, parent=None
+    ):
         """
         A simple string-based representation of a morphology. Inspired by
         NEURON's ``topology`` function.
         """
-        description = ' '*indent
-        length = max([1, morphology.n//compartments_divisor])
+        description = " " * indent
+        length = max([1, morphology.n // compartments_divisor])
         if parent is not None:
-            description += '`'
+            description += "`"
         if isinstance(morphology, Soma):
-            description += '( )'
+            description += "( )"
         else:
-            description += '-' * length
-            description += '|'
+            description += "-" * length
+            description += "|"
         if len(named_path) == 0:
-            description += '  [root] \n'
+            description += "  [root] \n"
         else:
             description += f"  {named_path}\n"
         for child in morphology.children:
             name = morphology.children.name(child)
-            description += Topology._str_topology(child,
-                                                  indent=indent+2+length,
-                                                  named_path=f"{named_path}.{name}",
-                                                  compartments_divisor=compartments_divisor,
-                                                  parent=morphology)
+            description += Topology._str_topology(
+                child,
+                indent=indent + 2 + length,
+                named_path=f"{named_path}.{name}",
+                compartments_divisor=compartments_divisor,
+                parent=morphology,
+            )
         return description
 
     __repr__ = __str__
@@ -156,9 +158,11 @@ def _rotate(vec, axis, angle):
     rotated : `ndarray`
         The rotated vector.
     """
-    return (vec*np.cos(angle) -
-            np.cross(axis, vec)*np.sin(angle) +
-            axis*np.dot(axis, vec)*(1 - np.cos(angle)))
+    return (
+        vec * np.cos(angle)
+        - np.cross(axis, vec) * np.sin(angle)
+        + axis * np.dot(axis, vec) * (1 - np.cos(angle))
+    )
 
 
 def _perturb(vec, sigma):
@@ -171,26 +175,37 @@ def _perturb(vec, sigma):
         orthogonal = np.array([1, 0, 0])
 
     # Rotate the orthogonal vector
-    orthogonal = _rotate(orthogonal, vec, np.random.rand()*np.pi*2)
+    orthogonal = _rotate(orthogonal, vec, np.random.rand() * np.pi * 2)
 
     # Use an exponentially distributed angle for the perturbation
     perturbation = np.random.exponential(sigma, 1)
     return _rotate(vec, orthogonal, perturbation)
 
 
-def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
-                     section_randomness=0.0, compartment_randomness=0.0,
-                     n_th_child=0, total_children=0,
-                     overwrite_existing=False):
+def _add_coordinates(
+    orig_morphology,
+    root=None,
+    parent=None,
+    name=None,
+    section_randomness=0.0,
+    compartment_randomness=0.0,
+    n_th_child=0,
+    total_children=0,
+    overwrite_existing=False,
+):
     # Note that in the following, all values are without physical units
 
     # The new direction is based on the direction of the parent section
     if parent is None:
         section_dir = np.array([0, 0, 0])
     else:
-        section_dir = np.hstack([np.asarray(parent.end_x[-1] - parent.start_x[0]),
-                                np.asarray(parent.end_y[-1] - parent.start_y[0]),
-                                np.asarray(parent.end_z[-1] - parent.start_z[0])])
+        section_dir = np.hstack(
+            [
+                np.asarray(parent.end_x[-1] - parent.start_x[0]),
+                np.asarray(parent.end_y[-1] - parent.start_y[0]),
+                np.asarray(parent.end_z[-1] - parent.start_z[0]),
+            ]
+        )
         parent_dir_norm = np.sqrt(np.sum(section_dir**2))
         if parent_dir_norm != 0:
             section_dir /= parent_dir_norm
@@ -200,10 +215,12 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
         section = orig_morphology.copy_section()
     elif isinstance(orig_morphology, Soma):
         # No perturbation for the soma
-        section = Soma(diameter=orig_morphology.diameter,
-                       x=section_dir[0]*meter,
-                       y=section_dir[1]*meter,
-                       z=section_dir[2]*meter)
+        section = Soma(
+            diameter=orig_morphology.diameter,
+            x=section_dir[0] * meter,
+            y=section_dir[1] * meter,
+            z=section_dir[2] * meter,
+        )
     else:
         if np.sum(section_dir**2) == 0:
             # We don't have any direction to base this section on (most common
@@ -212,17 +229,19 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
             # circle around (0, 0, 0)
             section_dir = np.array([1, 0, 0])
             rotation_axis = np.array([0, 0, 1])
-            angle_increment = 2*np.pi/total_children
-            rotation_angle = np.pi/2 + angle_increment * n_th_child
+            angle_increment = 2 * np.pi / total_children
+            rotation_angle = np.pi / 2 + angle_increment * n_th_child
             section_dir = _rotate(section_dir, rotation_axis, rotation_angle)
         else:
-            if section_randomness == 0 and section_dir[2] == 0:  # If we are in the x-y plane, stay there
+            if (
+                section_randomness == 0 and section_dir[2] == 0
+            ):  # If we are in the x-y plane, stay there
                 rotation_axis = np.array([0, 0, 1])
             else:
                 rotation_axis = np.array([-section_dir[1], section_dir[2], 0])
             if section_randomness == 0:
-                angle_increment = np.pi/(total_children + 1)
-                rotation_angle = -np.pi/2 + angle_increment * (n_th_child + 1)
+                angle_increment = np.pi / (total_children + 1)
+                rotation_angle = -np.pi / 2 + angle_increment * (n_th_child + 1)
                 section_dir = _rotate(section_dir, rotation_axis, rotation_angle)
         if section_randomness > 0:
             # Rotate randomly
@@ -233,10 +252,10 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
 
         # For a soma, we let child sections begin at the surface of the sphere
         if isinstance(parent, Soma):
-            origin = parent.diameter/2*section_dir
+            origin = parent.diameter / 2 * section_dir
         else:
-            origin = (0, 0, 0)*um
-        coordinates = np.zeros((orig_morphology.n + 1, 3))*meter
+            origin = (0, 0, 0) * um
+        coordinates = np.zeros((orig_morphology.n + 1, 3)) * meter
         start_coords = origin
         coordinates[0, :] = origin
         # Perturb individual compartments as well
@@ -244,39 +263,52 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
             compartment_dir = _perturb(section_dir, compartment_randomness)
             compartment_dir_norm = np.sqrt(np.sum(compartment_dir**2))
             compartment_dir /= compartment_dir_norm
-            current_coords = start_coords + length*compartment_dir
+            current_coords = start_coords + length * compartment_dir
             coordinates[idx + 1, :] = current_coords
             start_coords = current_coords
 
         if isinstance(orig_morphology, Cylinder) and compartment_randomness == 0:
-            section = Cylinder(n=orig_morphology.n,
-                               diameter=orig_morphology.diameter[0],
-                               x=coordinates[[0, -1], 0],
-                               y=coordinates[[0, -1], 1],
-                               z=coordinates[[0, -1], 2],
-                               type=orig_morphology.type)
+            section = Cylinder(
+                n=orig_morphology.n,
+                diameter=orig_morphology.diameter[0],
+                x=coordinates[[0, -1], 0],
+                y=coordinates[[0, -1], 1],
+                z=coordinates[[0, -1], 2],
+                type=orig_morphology.type,
+            )
         elif isinstance(orig_morphology, Section):
-            section = Section(n=orig_morphology.n,
-                              diameter=np.hstack([orig_morphology.start_diameter[0],
-                                                  orig_morphology.end_diameter])*meter,
-                              x=coordinates[:, 0],
-                              y=coordinates[:, 1],
-                              z=coordinates[:, 2],
-                              type=orig_morphology.type)
+            section = Section(
+                n=orig_morphology.n,
+                diameter=np.hstack(
+                    [orig_morphology.start_diameter[0], orig_morphology.end_diameter]
+                )
+                * meter,
+                x=coordinates[:, 0],
+                y=coordinates[:, 1],
+                z=coordinates[:, 2],
+                type=orig_morphology.type,
+            )
         else:
-            raise NotImplementedError(f'Do not know how to deal with section of type {type(orig_morphology)}.')
+            raise NotImplementedError(
+                f"Do not know how to deal with section of type {type(orig_morphology)}."
+            )
     if parent is None:
         root = section
     else:
         parent.children.add(name, section)
 
     for idx, child in enumerate(orig_morphology.children):
-        _add_coordinates(child, root=root, parent=section,
-                         name=orig_morphology.children.name(child),
-                         n_th_child=idx, total_children=len(orig_morphology.children),
-                         section_randomness=section_randomness,
-                         compartment_randomness=compartment_randomness,
-                         overwrite_existing=overwrite_existing)
+        _add_coordinates(
+            child,
+            root=root,
+            parent=section,
+            name=orig_morphology.children.name(child),
+            n_th_child=idx,
+            total_children=len(orig_morphology.children),
+            section_randomness=section_randomness,
+            compartment_randomness=compartment_randomness,
+            overwrite_existing=overwrite_existing,
+        )
     return section
 
 
@@ -286,6 +318,7 @@ class Children(object):
     used like a dictionary (mapping names to `Morphology` objects), but iterates
     over the values (sub trees) instead of over the keys (names).
     """
+
     def __init__(self, owner):
         self._owner = owner
         self._counter = 0
@@ -339,8 +372,7 @@ class Children(object):
             name already exists (uses e.g. ``"dend2"`` instead ``"dend"``).
             Defaults to ``False`` and will raise an error instead.
         """
-        if (name in self._named_children and
-                    self._named_children[name] is not subtree):
+        if name in self._named_children and self._named_children[name] is not subtree:
             if automatic_name:
                 basename = name
                 counter = 1
@@ -348,7 +380,7 @@ class Children(object):
                     counter += 1
                     name = basename + str(counter)
             else:
-                raise AttributeError(f'The name {name} is already used for a subtree.')
+                raise AttributeError(f"The name {name} is already used for a subtree.")
 
         if subtree not in self._children:
             self._counter += 1
@@ -379,10 +411,10 @@ class Children(object):
 
     def __repr__(self):
         n = len(self._children)
-        s = f'<{int(n)} children'
+        s = f"<{int(n)} children"
         if n > 0:
             name_dict = {self.name(sec): sec for sec in self._children}
-            s += f': {name_dict!r}'
+            s += f": {name_dict!r}"
         return f"{s}>"
 
 
@@ -403,13 +435,14 @@ class Morphology(object, metaclass=abc.ABCMeta):
     @check_units(n=1)
     def __init__(self, n, type=None):
         if isinstance(n, str):
-            raise TypeError("Need the number of compartments, not a string. "
-                            "If you want to load a morphology from a file, "
-                            "use 'Morphology.from_file' instead.")
+            raise TypeError(
+                "Need the number of compartments, not a string. "
+                "If you want to load a morphology from a file, "
+                "use 'Morphology.from_file' instead."
+            )
         self._n = int(n)
         if self._n != n:
-            raise TypeError("The number of compartments n has to be an integer "
-                            "value.")
+            raise TypeError("The number of compartments n has to be an integer value.")
         if n <= 0:
             raise ValueError("The number of compartments n has to be at least 1.")
         self.type = type
@@ -427,17 +460,26 @@ class Morphology(object, metaclass=abc.ABCMeta):
         ```neuron[5]``` returns compartment number 5.
         """
         if isinstance(item, slice):  # neuron[10*um:20*um] or neuron[1:3]
-            using_lengths = all([arg is None or have_same_dimensions(arg, meter)
-                                 for arg in [item.start, item.stop]])
-            using_ints = all([arg is None or int(arg) == float(arg)
-                              for arg in [item.start, item.stop]])
+            using_lengths = all(
+                [
+                    arg is None or have_same_dimensions(arg, meter)
+                    for arg in [item.start, item.stop]
+                ]
+            )
+            using_ints = all(
+                [
+                    arg is None or int(arg) == float(arg)
+                    for arg in [item.start, item.stop]
+                ]
+            )
             if not (using_lengths or using_ints):
                 raise TypeError("Index slice has to use lengths or integers")
 
             if using_lengths:
                 if item.step is not None:
-                    raise TypeError("Cannot provide a step argument when "
-                                    "slicing with lengths")
+                    raise TypeError(
+                        "Cannot provide a step argument when slicing with lengths"
+                    )
                 l = np.cumsum(np.asarray(self.length))  # coordinate on the section
                 # We use a special handling for values very close to the points
                 # between the compartments to avoid non-intuitive rounding
@@ -466,11 +508,14 @@ class Morphology(object, metaclass=abc.ABCMeta):
                 if step != 1:
                     raise TypeError("Can only slice a contiguous segment")
         elif isinstance(item, Quantity) and have_same_dimensions(item, meter):
-            l = np.hstack([0, np.cumsum(np.asarray(self.length))])  # coordinate on the section
+            l = np.hstack(
+                [0, np.cumsum(np.asarray(self.length))]
+            )  # coordinate on the section
             if float(item) < 0 or float(item) > (1 + 1e-12) * l[-1]:
                 raise IndexError(
                     f"Invalid index {item}, has to be in the interval "
-                    f"[{0 * meter!s}, {l[-1] * meter!s}].")
+                    f"[{0 * meter!s}, {l[-1] * meter!s}]."
+                )
             diff = np.abs(float(item) - l)
             if min(diff) < 1e-12 * l[-1]:
                 i = np.argmin(diff)
@@ -486,8 +531,9 @@ class Morphology(object, metaclass=abc.ABCMeta):
             j = i + 1
         elif isinstance(item, str):
             item = str(item)  # convert int to string
-            if (len(item) > 1) and all([c in 'LR123456789' for c in
-                                     item]):  # binary string of the form LLLRLR or 1213 (or mixed)
+            if (len(item) > 1) and all(
+                [c in "LR123456789" for c in item]
+            ):  # binary string of the form LLLRLR or 1213 (or mixed)
                 return self._children[item[0]][item[1:]]
             elif item in self._children:
                 return self._children[item]
@@ -504,7 +550,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
         Ex.: ``neuron['axon']`` or ``neuron['11213']``
         """
         item = str(item)  # convert int to string
-        if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
+        if (len(item) > 1) and all([c in "LR123456789" for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
             self.children[item[0]][item[1:]] = child
         else:
@@ -515,7 +561,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
         Remove the subtree ``item``.
         """
         item = str(item)  # convert int to string
-        if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
+        if (len(item) > 1) and all([c in "LR123456789" for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
             del self._children[item[0]][item[1:]]
         else:
@@ -527,7 +573,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
 
         Ex.: ``axon = neuron.axon``
         """
-        if item.startswith('_'):
+        if item.startswith("_"):
             return super(object, self).__getattr__(item)
         else:
             return self[item]
@@ -538,7 +584,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
 
         Ex.: ``neuron.axon = Soma(diameter=10*um)``
         """
-        if isinstance(child, Morphology) and not item.startswith('_'):
+        if isinstance(child, Morphology) and not item.startswith("_"):
             self[item] = child
         else:  # If it is not a subtree, then it's a normal class attribute
             object.__setattr__(self, item, child)
@@ -549,13 +595,13 @@ class Morphology(object, metaclass=abc.ABCMeta):
         """
         del self[item]
 
-    def _indices(self, item=None, index_var='_idx'):
+    def _indices(self, item=None, index_var="_idx"):
         """
         Return compartment indices for the main section, relative to the
         original morphology.
         """
-        if index_var != '_idx':
-            raise AssertionError(f'Unexpected index {index_var}')
+        if index_var != "_idx":
+            raise AssertionError(f"Unexpected index {index_var}")
         if not (item is None or item == slice(None)):
             if isinstance(item, slice):
                 # So that this always returns an array of values, even if it is
@@ -582,10 +628,12 @@ class Morphology(object, metaclass=abc.ABCMeta):
         """
         return Topology(self)
 
-    def generate_coordinates(self,
-                             section_randomness=0.0,
-                             compartment_randomness=0.0,
-                             overwrite_existing=False):
+    def generate_coordinates(
+        self,
+        section_randomness=0.0,
+        compartment_randomness=0.0,
+        overwrite_existing=False,
+    ):
         r"""
         Create a new `Morphology`, with coordinates filled in place where the
         previous morphology did not have any. This is mostly useful for
@@ -627,11 +675,14 @@ class Morphology(object, metaclass=abc.ABCMeta):
             The same morphology, but with coordinates
         """
         # Convert to radians
-        section_randomness *= np.pi/180
-        compartment_randomness *= np.pi/180
-        return _add_coordinates(self, section_randomness=section_randomness,
-                                compartment_randomness=compartment_randomness,
-                                overwrite_existing=overwrite_existing)
+        section_randomness *= np.pi / 180
+        compartment_randomness *= np.pi / 180
+        return _add_coordinates(
+            self,
+            section_randomness=section_randomness,
+            compartment_randomness=compartment_randomness,
+            overwrite_existing=overwrite_existing,
+        )
 
     @abstractmethod
     def copy_section(self):
@@ -658,10 +709,12 @@ class Morphology(object, metaclass=abc.ABCMeta):
         This is not well-defined, use `Morphology.n` or
         `Morphology.total_compartments` instead.
         """
-        raise TypeError("The 'length' of a Morphology is ambiguous, use its "
-                        "'n' attribute for the number of compartments in this "
-                        "section or the 'total_compartments' attribute for the "
-                        "total number of compartments in the whole sub-tree.")
+        raise TypeError(
+            "The 'length' of a Morphology is ambiguous, use its "
+            "'n' attribute for the number of compartments in this "
+            "section or the 'total_compartments' attribute for the "
+            "total number of compartments in the whole sub-tree."
+        )
 
     @property
     def total_compartments(self):
@@ -953,30 +1006,33 @@ class Morphology(object, metaclass=abc.ABCMeta):
         if self.x_ is None:
             return None
         else:
-            return np.vstack([np.hstack([self.start_x_[0], self.end_x_[:]]),
-                              np.hstack([self.start_y_[0], self.end_y_[:]]),
-                              np.hstack([self.start_z_[0], self.end_z_[:]])]).T
-
+            return np.vstack(
+                [
+                    np.hstack([self.start_x_[0], self.end_x_[:]]),
+                    np.hstack([self.start_y_[0], self.end_y_[:]]),
+                    np.hstack([self.start_z_[0], self.end_z_[:]]),
+                ]
+            ).T
 
     @staticmethod
-    def _create_section(compartments, name, parent, sections,
-                        spherical_soma):
-
-        if (spherical_soma and
-                    len(compartments) == 1 and
-                    compartments[0].comp_name == 'soma'):
+    def _create_section(compartments, name, parent, sections, spherical_soma):
+        if (
+            spherical_soma
+            and len(compartments) == 1
+            and compartments[0].comp_name == "soma"
+        ):
             soma = compartments[0]
-            section = Soma(diameter=soma.diameter * um,
-                           x=soma.x * um, y=soma.y * um, z=soma.z * um)
+            section = Soma(
+                diameter=soma.diameter * um, x=soma.x * um, y=soma.y * um, z=soma.z * um
+            )
         else:
-            sec_x, sec_y, sec_z, sec_diameter = zip(*[(c.x, c.y, c.z,
-                                                       c.diameter)
-                                                      for c in compartments])
+            sec_x, sec_y, sec_z, sec_diameter = zip(
+                *[(c.x, c.y, c.z, c.diameter) for c in compartments]
+            )
             # Add a point for the end of the parent_idx compartment
             if parent is not None:
                 n = len(compartments)
-                if (parent.comp_name is not None and
-                            parent.comp_name.lower() == 'soma'):
+                if parent.comp_name is not None and parent.comp_name.lower() == "soma":
                     # For a Soma, we don't use its diameter
                     start_diameter = sec_diameter[0]
                 else:
@@ -985,7 +1041,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
                 sec_x = np.array(sec_x) - parent.x
                 sec_y = np.array(sec_y) - parent.y
                 sec_z = np.array(sec_z) - parent.z
-                start_x = start_y = start_z = 0.
+                start_x = start_y = start_z = 0.0
             else:
                 n = len(compartments) - 1
                 start_diameter = sec_diameter[0]
@@ -997,12 +1053,11 @@ class Morphology(object, metaclass=abc.ABCMeta):
                 sec_y = sec_y[1:]
                 sec_z = sec_z[1:]
 
-            diameter = np.hstack([start_diameter, sec_diameter])*um
-            x = np.hstack([start_x, sec_x])*um
-            y = np.hstack([start_y, sec_y])*um
-            z = np.hstack([start_z, sec_z])*um
-            section = Section(n=n, diameter=diameter, x=x, y=y, z=z,
-                              type=name)
+            diameter = np.hstack([start_diameter, sec_diameter]) * um
+            x = np.hstack([start_x, sec_x]) * um
+            y = np.hstack([start_y, sec_y]) * um
+            z = np.hstack([start_z, sec_z]) * um
+            section = Section(n=n, diameter=diameter, x=x, y=y, z=z, type=name)
 
         # Add the section as a child to its parent
         if parent is not None:
@@ -1012,8 +1067,9 @@ class Morphology(object, metaclass=abc.ABCMeta):
         return section
 
     @staticmethod
-    def _compartments_to_sections(compartment, spherical_soma,
-                                  current_compartments=None, sections=None):
+    def _compartments_to_sections(
+        compartment, spherical_soma, current_compartments=None, sections=None
+    ):
         # Merge all unbranched compartments of the same type into a single
         # section
         if sections is None:
@@ -1026,27 +1082,35 @@ class Morphology(object, metaclass=abc.ABCMeta):
         # We have to create a new section, if we are either
         # 1. at a leaf of the tree or at a branching point, or
         # 2. if the compartment type changes
-        if (len(compartment.children) != 1 or
-                    compartment.comp_name != compartment.children[0].comp_name):
+        if (
+            len(compartment.children) != 1
+            or compartment.comp_name != compartment.children[0].comp_name
+        ):
             parent = current_compartments[0].parent
-            section = Morphology._create_section(current_compartments,
-                                                 compartment.comp_name,
-                                                 parent=parent,
-                                                 sections=sections,
-                                                 spherical_soma=spherical_soma)
+            section = Morphology._create_section(
+                current_compartments,
+                compartment.comp_name,
+                parent=parent,
+                sections=sections,
+                spherical_soma=spherical_soma,
+            )
             sections[current_compartments[-1].index] = section
             # If we are at a branching point, recurse into all subtrees
             for child in compartment.children:
-                Morphology._compartments_to_sections(child,
-                                                     spherical_soma=spherical_soma,
-                                                     current_compartments=None,
-                                                     sections=sections)
+                Morphology._compartments_to_sections(
+                    child,
+                    spherical_soma=spherical_soma,
+                    current_compartments=None,
+                    sections=sections,
+                )
         else:
             # A single child of the same type, continue (recursive call)
-            Morphology._compartments_to_sections(compartment.children[0],
-                                                 spherical_soma=spherical_soma,
-                                                 current_compartments=current_compartments,
-                                                 sections=sections)
+            Morphology._compartments_to_sections(
+                compartment.children[0],
+                spherical_soma=spherical_soma,
+                current_compartments=current_compartments,
+                sections=sections,
+            )
 
         return sections
 
@@ -1059,38 +1123,50 @@ class Morphology(object, metaclass=abc.ABCMeta):
         # We are looking for a node with two children of the soma type (and
         # other childen of other types), where the two children don't have any
         # children of their own
-        soma_children = [c for c in compartment.children
-                         if c.comp_name == 'soma']
-        if (compartment.comp_name == 'soma' and len(soma_children) == 2 and
-                all(len(c.children) == 0 for c in soma_children)):
+        soma_children = [c for c in compartment.children if c.comp_name == "soma"]
+        if (
+            compartment.comp_name == "soma"
+            and len(soma_children) == 2
+            and all(len(c.children) == 0 for c in soma_children)
+        ):
             # We've found a 3-point soma to replace
             soma_c = [compartment] + soma_children
-            if not all(abs(c.diameter - soma_c[0].diameter) < 1e-15
-                       for c in soma_c):
-                indices = ', '.join(str(c.index) for c in soma_c)
-                raise ValueError(f"Found a '3-point-soma' (lines: {indices}), but not "
-                                 f"all the diameters are "
-                                 f"identical.")
+            if not all(abs(c.diameter - soma_c[0].diameter) < 1e-15 for c in soma_c):
+                indices = ", ".join(str(c.index) for c in soma_c)
+                raise ValueError(
+                    f"Found a '3-point-soma' (lines: {indices}), but not "
+                    "all the diameters are "
+                    "identical."
+                )
             diameter = soma_c[0].diameter
             point_0 = np.array([soma_c[0].x, soma_c[0].y, soma_c[0].z])
             point_1 = np.array([soma_c[1].x, soma_c[1].y, soma_c[1].z])
             point_2 = np.array([soma_c[2].x, soma_c[2].y, soma_c[2].z])
             length_1 = np.sqrt(np.sum((point_1 - point_0) ** 2))
             length_2 = np.sqrt(np.sum((point_2 - point_0) ** 2))
-            if (np.abs(length_1 - diameter / 2) > 0.01 or
-                        np.abs(length_2 - diameter / 2) > 0.01):
-                raise ValueError(f"Cannot replace '3-point-soma' by a single "
-                                 f"point, the second and third points should "
-                                 f"be positioned one radius away from the "
-                                 f"first point. Distances are {length_1:.3d}um and "
-                                 f"{length_2:.3f}um, respectively, while the "
-                                 f"radius is {diameter / 2:.3f}um.")
-            children = [c for c in compartment.children
-                        if not c in soma_c]
-            compartment = Node(index=compartment.index, comp_name='soma',
-                               x=point_0[0], y=point_0[1], z=point_0[2],
-                               diameter=diameter, parent=compartment.parent,
-                               children=children)
+            if (
+                np.abs(length_1 - diameter / 2) > 0.01
+                or np.abs(length_2 - diameter / 2) > 0.01
+            ):
+                raise ValueError(
+                    "Cannot replace '3-point-soma' by a single "
+                    "point, the second and third points should "
+                    "be positioned one radius away from the "
+                    f"first point. Distances are {length_1:.3d}um and "
+                    f"{length_2:.3f}um, respectively, while the "
+                    f"radius is {diameter / 2:.3f}um."
+                )
+            children = [c for c in compartment.children if not c in soma_c]
+            compartment = Node(
+                index=compartment.index,
+                comp_name="soma",
+                x=point_0[0],
+                y=point_0[1],
+                z=point_0[2],
+                diameter=diameter,
+                parent=compartment.parent,
+                children=children,
+            )
             all_compartments[compartment.index] = compartment
             del all_compartments[soma_children[0].index]
             del all_compartments[soma_children[1].index]
@@ -1098,8 +1174,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
         # Recurse further down the tree
         all_compartments[compartment.index] = compartment
         for child in compartment.children:
-            Morphology._replace_three_point_soma(child,
-                                                 all_compartments)
+            Morphology._replace_three_point_soma(child, all_compartments)
 
     @staticmethod
     def from_points(points, spherical_soma=True):
@@ -1132,21 +1207,28 @@ class Morphology(object, metaclass=abc.ABCMeta):
         compartments = OrderedDict()
         for counter, point in enumerate(points):
             if len(point) != 7:
-                raise ValueError(f'Each point needs to be described by 7 values, got {len(point)} instead.')
+                raise ValueError(
+                    "Each point needs to be described by 7 values, got"
+                    f" {len(point)} instead."
+                )
             index, name, x, y, z, diameter, parent_idx = point
 
             if index in compartments:
-                raise ValueError(f'Two compartments with index {int(index)}')
+                raise ValueError(f"Two compartments with index {int(index)}")
             if parent_idx == index:
-                raise ValueError(f'Compartment {int(index)} lists itself as the parent compartment.')
+                raise ValueError(
+                    f"Compartment {int(index)} lists itself as the parent compartment."
+                )
 
             if counter == 0 and parent_idx == -1:
                 parent = None  # The first compartment does not have a parent
             elif parent_idx not in compartments:
-                raise ValueError(f"Did not find the compartment {parent_idx} (parent "
-                                 f"compartment of compartment {index}). Make sure "
-                                 f"that parent compartments are listed before "
-                                 f"their children.")
+                raise ValueError(
+                    f"Did not find the compartment {parent_idx} (parent "
+                    f"compartment of compartment {index}). Make sure "
+                    "that parent compartments are listed before "
+                    "their children."
+                )
             else:
                 parent = compartments[parent_idx]
             children = []
@@ -1156,11 +1238,13 @@ class Morphology(object, metaclass=abc.ABCMeta):
                 parent.children.append(node)
 
         if spherical_soma:
-            Morphology._replace_three_point_soma(list(compartments.values())[0],
-                                                 compartments)
+            Morphology._replace_three_point_soma(
+                list(compartments.values())[0], compartments
+            )
 
-        sections = Morphology._compartments_to_sections(list(compartments.values())[0],
-                                                        spherical_soma)
+        sections = Morphology._compartments_to_sections(
+            list(compartments.values())[0], spherical_soma
+        )
 
         # Go through all the sections again and add standard names for all
         # sections (potentially in addition to the name they already have):
@@ -1173,9 +1257,9 @@ class Morphology(object, metaclass=abc.ABCMeta):
                 children = parent.children
                 nth_child = children_counter[parent]
                 if len(children) <= 2:
-                    name = 'L' if nth_child == 1 else 'R'
+                    name = "L" if nth_child == 1 else "R"
                 else:
-                    name = f'{int(nth_child)}'
+                    name = f"{int(nth_child)}"
                 children.add(name, section)
 
         # There should only be one section without parents
@@ -1220,28 +1304,34 @@ class Morphology(object, metaclass=abc.ABCMeta):
         swc_types = defaultdict(lambda: None)
         # The following names will be translated into names, all other will be
         # ignored
-        swc_types.update({'1': 'soma', '2': 'axon', '3': 'dend', '4': 'apic'})
+        swc_types.update({"1": "soma", "2": "axon", "3": "dend", "4": "apic"})
 
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             points = []
             for line_no, line in enumerate(f):
                 line = line.strip()
-                if line.startswith('#') or len(line) == 0:
+                if line.startswith("#") or len(line) == 0:
                     # Ignore comments or empty lines
                     continue
                 splitted = line.split()
                 if len(splitted) != 7:
-                    raise ValueError(f"Each line of an SWC file has to contain "
-                                     f"7 space-separated entries, but line "
-                                     f"{line_no + 1} contains {len(splitted)}.")
+                    raise ValueError(
+                        "Each line of an SWC file has to contain "
+                        "7 space-separated entries, but line "
+                        f"{line_no + 1} contains {len(splitted)}."
+                    )
                 index, comp_type, x, y, z, radius, parent = splitted
-                points.append((int(index),
-                               swc_types[comp_type],
-                               float(x),
-                               float(y),
-                               float(z),
-                               2*float(radius),
-                               int(parent)))
+                points.append(
+                    (
+                        int(index),
+                        swc_types[comp_type],
+                        float(x),
+                        float(y),
+                        float(z),
+                        2 * float(radius),
+                        int(parent),
+                    )
+                )
 
         return Morphology.from_points(points, spherical_soma=spherical_soma)
 
@@ -1264,18 +1354,19 @@ class Morphology(object, metaclass=abc.ABCMeta):
             The morphology stored in the given file.
         """
         _, ext = os.path.splitext(filename)
-        if ext.lower() == '.swc':
-            return Morphology.from_swc_file(filename,
-                                            spherical_soma=spherical_soma)
+        if ext.lower() == ".swc":
+            return Morphology.from_swc_file(filename, spherical_soma=spherical_soma)
         else:
-            raise NotImplementedError("Currently, SWC is the only supported "
-                                      "file format.")
+            raise NotImplementedError(
+                "Currently, SWC is the only supported file format."
+            )
 
 
 class SubMorphology(object):
     """
     A view on a subset of a section in a morphology.
     """
+
     def __init__(self, morphology, i, j):
         self._morphology = morphology
         self.indices = MorphologyIndexWrapper(self)
@@ -1315,21 +1406,21 @@ class SubMorphology(object):
         """
         The membrane surface area of each compartment in this sub-section.
         """
-        return self._morphology.area[self._i:self._j]
+        return self._morphology.area[self._i : self._j]
 
     @property
     def volume(self):
         """
         The volume of each compartment in this sub-section.
         """
-        return self._morphology.volume[self._i:self._j]
+        return self._morphology.volume[self._i : self._j]
 
     @property
     def length(self):
         """
         The length of each compartment in this sub-section.
         """
-        return self._morphology.length[self._i:self._j]
+        return self._morphology.length[self._i : self._j]
 
     @property
     def r_length_1(self):
@@ -1339,7 +1430,7 @@ class SubMorphology(object):
         Dividing this value by the Intracellular resistivity gives the
         conductance.
         """
-        return self._morphology.r_length_1[self._i:self._j]
+        return self._morphology.r_length_1[self._i : self._j]
 
     @property
     def r_length_2(self):
@@ -1348,7 +1439,7 @@ class SubMorphology(object):
         midpoint and the end of each compartment in this sub-section. Dividing
         this value by the Intracellular resistivity gives the conductance.
         """
-        return self._morphology.r_length_2[self._i:self._j]
+        return self._morphology.r_length_2[self._i : self._j]
 
     # At-midpoint attributes
     @property
@@ -1356,7 +1447,7 @@ class SubMorphology(object):
         """
         The diameter at the middle of each compartment in this sub-section.
         """
-        return self._morphology.diameter[self._i:self._j]
+        return self._morphology.diameter[self._i : self._j]
 
     @property
     def distance(self):
@@ -1364,7 +1455,7 @@ class SubMorphology(object):
         The total distance between the midpoint of each compartment in this
         sub-section and the root of the morphology.
         """
-        return self._morphology.distance[self._i:self._j]
+        return self._morphology.distance[self._i : self._j]
 
     @property
     def start_x(self):
@@ -1539,7 +1630,7 @@ class Soma(Morphology):
     """
 
     @check_units(diameter=meter, x=meter, y=meter, z=meter)
-    def __init__(self, diameter, x=None, y=None, z=None, type='soma'):
+    def __init__(self, diameter, x=None, y=None, z=None, type="soma"):
         Morphology.__init__(self, n=1, type=type)
         if diameter.shape != () and len(diameter) != 1:
             raise TypeError("Diameter has to be a scalar value.")
@@ -1556,16 +1647,15 @@ class Soma(Morphology):
         self._z = np.atleast_1d(np.asarray(z)) if z is not None else default_value
 
     def __repr__(self):
-        s = f'{self.__class__.__name__}(diameter={self.diameter[0]!r}'
+        s = f"{self.__class__.__name__}(diameter={self.diameter[0]!r}"
         if self._x is not None:
-            s += f', x={self.x[0]!r}, y={self.y[0]!r}, z={self.z[0]!r}'
-        if self.type != 'soma':
-            s += f', type={self.type!r}'
+            s += f", x={self.x[0]!r}, y={self.y[0]!r}, z={self.z[0]!r}"
+        if self.type != "soma":
+            s += f", type={self.type!r}"
         return f"{s})"
 
     def copy_section(self):
-        return Soma(self.diameter, x=self.x, y=self.y, z=self.z,
-                    type=self.type)
+        return Soma(self.diameter, x=self.x, y=self.y, z=self.z, type=self.type)
 
     # Note that the per-compartment properties should always return 1D arrays,
     # i.e. for the soma arrays of length 1 instead of scalar values
@@ -1574,14 +1664,14 @@ class Soma(Morphology):
         """
         The membrane surface area of this section (as an array of length 1).
         """
-        return np.pi * self.diameter ** 2
+        return np.pi * self.diameter**2
 
     @property
     def volume(self):
         """
         The volume of this section (as an array of length 1).
         """
-        return (np.pi * self.diameter ** 3)/6
+        return (np.pi * self.diameter**3) / 6
 
     @property
     def length(self):
@@ -1599,7 +1689,7 @@ class Soma(Morphology):
         value for a `Soma`, corresponding to a section with very low
         intracellular resistance.
         """
-        return [1]*meter
+        return [1] * meter
 
     @property
     def r_length_2(self):
@@ -1609,7 +1699,7 @@ class Soma(Morphology):
         value for a `Soma`, corresponding to a section with very low
         intracellular resistance.
         """
-        return [1]*meter
+        return [1] * meter
 
     @property
     def diameter(self):
@@ -1625,7 +1715,7 @@ class Soma(Morphology):
         of the morphology. The `Soma` is most likely the root of the
         morphology, and therefore the `distance` is 0.
         """
-        dist = self._parent.distance[-1:] if self._parent is not None else [0]*um
+        dist = self._parent.distance[-1:] if self._parent is not None else [0] * um
         return dist
 
     @property
@@ -1769,66 +1859,102 @@ class Section(Morphology):
     type : str, optional
         The type (e.g. ``"axon"``) of this `Section`.
     """
-    @check_units(n=1, length=meter, diameter=meter, start_diameter=meter,
-                 x=meter, y=meter, z=meter)
-    def __init__(self, diameter, n=1, length=None, x=None, y=None, z=None,
-                 start_diameter=None, origin=None, type=None):
+
+    @check_units(
+        n=1,
+        length=meter,
+        diameter=meter,
+        start_diameter=meter,
+        x=meter,
+        y=meter,
+        z=meter,
+    )
+    def __init__(
+        self,
+        diameter,
+        n=1,
+        length=None,
+        x=None,
+        y=None,
+        z=None,
+        start_diameter=None,
+        origin=None,
+        type=None,
+    ):
         n = int(n)
         Morphology.__init__(self, n=n, type=type)
 
-        if diameter.ndim != 1 or len(diameter) != n+1:
+        if diameter.ndim != 1 or len(diameter) != n + 1:
             raise TypeError(
-                f"The diameter argument has to be a one-dimensional array of length "
-                f"{int(n + 1)}")
-        self._diameter = Quantity(diameter, copy=True).reshape((n+1, ))
+                "The diameter argument has to be a one-dimensional array of length "
+                f"{int(n + 1)}"
+            )
+        self._diameter = Quantity(diameter, copy=True).reshape((n + 1,))
 
-        if ((x is not None or y is not None or z is not None) and
-                length is not None):
-            raise TypeError("Cannot specify coordinates and length at the same "
-                            "time.")
+        if (x is not None or y is not None or z is not None) and length is not None:
+            raise TypeError("Cannot specify coordinates and length at the same time.")
 
         if length is not None:
             # Length
             if length.ndim != 1 or len(length) != n:
                 raise TypeError(
-                    f"The length argument has to be a one-dimensional array of length "
-                    f"{int(n)}")
-            self._length = Quantity(length, copy=True).reshape((n, ))
+                    "The length argument has to be a one-dimensional array of length "
+                    f"{int(n)}"
+                )
+            self._length = Quantity(length, copy=True).reshape((n,))
             self._x = self._y = self._z = None
         else:
             # Coordinates
             if x is None and y is None and z is None:
-                raise TypeError("No length specified, need to specify at least "
-                                "one out of x, y, or z.")
-            for name, value in [('x', x), ('y', y), ('z', z)]:
+                raise TypeError(
+                    "No length specified, need to specify at least "
+                    "one out of x, y, or z."
+                )
+            for name, value in [("x", x), ("y", y), ("z", z)]:
                 if value is not None and (value.ndim != 1 or len(value) != n + 1):
-                    raise TypeError(f"'{name}' needs to be a 1-dimensional array "
-                                    f"of length {n + 1}.")
-            self._x = np.asarray(x).reshape((n+1, )) if x is not None else np.zeros(n + 1)
-            self._y = np.asarray(y).reshape((n+1, )) if y is not None else np.zeros(n + 1)
-            self._z = np.asarray(z).reshape((n+1, )) if z is not None else np.zeros(n + 1)
+                    raise TypeError(
+                        f"'{name}' needs to be a 1-dimensional array of length {n + 1}."
+                    )
+            self._x = (
+                np.asarray(x).reshape((n + 1,)) if x is not None else np.zeros(n + 1)
+            )
+            self._y = (
+                np.asarray(y).reshape((n + 1,)) if y is not None else np.zeros(n + 1)
+            )
+            self._z = (
+                np.asarray(z).reshape((n + 1,)) if z is not None else np.zeros(n + 1)
+            )
 
-            length = np.sqrt((self.end_x - self.start_x) ** 2 +
-                             (self.end_y - self.start_y) ** 2 +
-                             (self.end_z - self.start_z) ** 2)
+            length = np.sqrt(
+                (self.end_x - self.start_x) ** 2
+                + (self.end_y - self.start_y) ** 2
+                + (self.end_z - self.start_z) ** 2
+            )
             self._length = length
 
     def __repr__(self):
-        if all(np.abs(self.end_diameter - self.end_diameter[0]) < self.end_diameter[0]*1e-12):
+        if all(
+            np.abs(self.end_diameter - self.end_diameter[0])
+            < self.end_diameter[0] * 1e-12
+        ):
             # Constant diameter
             diam = self.end_diameter[0]
         else:
-            diam = np.hstack([np.asarray(self.start_diameter[0]),
-                              np.asarray(self.end_diameter)])*meter
-        s = f'{self.__class__.__name__}(diameter={diam!r}'
+            diam = (
+                np.hstack(
+                    [np.asarray(self.start_diameter[0]), np.asarray(self.end_diameter)]
+                )
+                * meter
+            )
+        s = f"{self.__class__.__name__}(diameter={diam!r}"
         if self.n != 1:
-            s += f', n={self.n}'
+            s += f", n={self.n}"
         if self._x is not None:
-            s += f', x={self._x!r}, y={self._y!r}, z={self._z!r}'
+            s += f", x={self._x!r}, y={self._y!r}, z={self._z!r}"
         else:
-            s += f', length={sum(self._length)!r}'
+            s += f", length={sum(self._length)!r}"
         if self.type is not None:
-            s += f', type={self.type!r}'
+            s += f", type={self.type!r}"
         return f"{s})"
 
     def copy_section(self):
@@ -1836,10 +1962,17 @@ class Section(Morphology):
             x, y, z = None, None, None
             length = self.length
         else:
-            x, y, z = self._x*meter, self._y*meter, self._z*meter
+            x, y, z = self._x * meter, self._y * meter, self._z * meter
             length = None
-        return Section(diameter=self._diameter, n=self.n, x=x, y=y, z=z,
-                       length=length, type=self.type)
+        return Section(
+            diameter=self._diameter,
+            n=self.n,
+            x=x,
+            y=y,
+            z=z,
+            length=length,
+            type=self.type,
+        )
 
     @property
     def area(self):
@@ -1854,7 +1987,12 @@ class Section(Morphology):
         """
         d_1 = self.start_diameter
         d_2 = self.end_diameter
-        return np.pi/2*(d_1 + d_2)*np.sqrt(((d_1 - d_2)**2)/4 + self._length**2)
+        return (
+            np.pi
+            / 2
+            * (d_1 + d_2)
+            * np.sqrt(((d_1 - d_2) ** 2) / 4 + self._length**2)
+        )
 
     @property
     def volume(self):
@@ -1868,7 +2006,7 @@ class Section(Morphology):
         """
         d_1 = self.start_diameter
         d_2 = self.end_diameter
-        return np.pi * self._length * (d_1**2 + d_1*d_2 + d_2**2)/12
+        return np.pi * self._length * (d_1**2 + d_1 * d_2 + d_2**2) / 12
 
     @property
     def length(self):
@@ -1899,7 +2037,7 @@ class Section(Morphology):
         d_1 = self.start_diameter
         d_2 = self.end_diameter
         # Diameter at the center
-        return 0.5*(d_1 + d_2)
+        return 0.5 * (d_1 + d_2)
 
     @property
     def distance(self):
@@ -1925,8 +2063,8 @@ class Section(Morphology):
         Intracellular resistivity gives the conductance.
         """
         d_1 = self.start_diameter
-        d_2 = (self.start_diameter + self.end_diameter)*0.5
-        return np.pi/2 * (d_1 * d_2)/self._length
+        d_2 = (self.start_diameter + self.end_diameter) * 0.5
+        return np.pi / 2 * (d_1 * d_2) / self._length
 
     @property
     def r_length_2(self):
@@ -1935,9 +2073,9 @@ class Section(Morphology):
         midpoint and the end of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
         """
-        d_1 = (self.start_diameter + self.end_diameter)*0.5
+        d_1 = (self.start_diameter + self.end_diameter) * 0.5
         d_2 = self.end_diameter
-        return np.pi/2 * (d_1 * d_2)/self._length
+        return np.pi / 2 * (d_1 * d_2) / self._length
 
     @property
     def start_x_(self):
@@ -1994,8 +2132,8 @@ class Section(Morphology):
         if self._x is None:
             return None
         start_x = self.start_x_
-        diff_x = (self.end_x_ - start_x)
-        return start_x + 0.5*diff_x
+        diff_x = self.end_x_ - start_x
+        return start_x + 0.5 * diff_x
 
     @property
     def y_(self):
@@ -2007,8 +2145,8 @@ class Section(Morphology):
         if self._y is None:
             return None
         start_y = self.start_y_
-        diff_y = (self.end_y_ - start_y)
-        return start_y + 0.5*diff_y
+        diff_y = self.end_y_ - start_y
+        return start_y + 0.5 * diff_y
 
     @property
     def z_(self):
@@ -2020,8 +2158,8 @@ class Section(Morphology):
         if self._z is None:
             return None
         start_z = self.start_z_
-        diff_z = (self.end_z_ - start_z)
-        return start_z + 0.5*diff_z
+        diff_z = self.end_z_ - start_z
+        return start_z + 0.5 * diff_z
 
     @property
     def end_x_(self):
@@ -2097,9 +2235,9 @@ class Cylinder(Section):
     type : str, optional
         The type (e.g. ``"axon"``) of this `Cylinder`.
     """
+
     @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
-    def __init__(self, diameter, n=1, length=None, x=None, y=None, z=None,
-                 type=None):
+    def __init__(self, diameter, n=1, length=None, x=None, y=None, z=None, type=None):
         n = int(n)
         Morphology.__init__(self, n=n, type=type)
 
@@ -2109,55 +2247,79 @@ class Cylinder(Section):
         diameter = np.ones(n) * diameter
         self._diameter = diameter
 
-        if ((x is not None or y is not None or z is not None) and
-                    length is not None):
-            raise TypeError("Cannot specify coordinates and length at the same "
-                            "time.")
+        if (x is not None or y is not None or z is not None) and length is not None:
+            raise TypeError("Cannot specify coordinates and length at the same time.")
 
         if length is not None:
             # Length
             if length.shape != () and (length.ndim > 1 or len(length) != 1):
                 raise TypeError("The length argument has to be a single value.")
-            self._length = np.ones(n) * (length/n)  # length was total length
+            self._length = np.ones(n) * (length / n)  # length was total length
             self._x = self._y = self._z = None
         else:
             # Coordinates
             if x is None and y is None and z is None:
-                raise TypeError("No length specified, need to specify at least "
-                                "one out of x, y, or z.")
-            for name, value in [('x', x), ('y', y), ('z', z)]:
+                raise TypeError(
+                    "No length specified, need to specify at least "
+                    "one out of x, y, or z."
+                )
+            for name, value in [("x", x), ("y", y), ("z", z)]:
                 if value is not None and (value.ndim != 1 or len(value) != 2):
                     raise TypeError(
                         f"{name} needs to be a 1-dimensional array of length 2 (start "
-                        f"and end point)")
-            self._x = np.asarray(np.linspace(x[0], x[1], n+1)) if x is not None else np.zeros(n+1)
-            self._y = np.asarray(np.linspace(y[0], y[1], n+1)) if y is not None else np.zeros(n+1)
-            self._z = np.asarray(np.linspace(z[0], z[1], n+1)) if z is not None else np.zeros(n+1)
-            length = np.sqrt((self.end_x - self.start_x) ** 2 +
-                             (self.end_y - self.start_y) ** 2 +
-                             (self.end_z - self.start_z) ** 2)
+                        "and end point)"
+                    )
+            self._x = (
+                np.asarray(np.linspace(x[0], x[1], n + 1))
+                if x is not None
+                else np.zeros(n + 1)
+            )
+            self._y = (
+                np.asarray(np.linspace(y[0], y[1], n + 1))
+                if y is not None
+                else np.zeros(n + 1)
+            )
+            self._z = (
+                np.asarray(np.linspace(z[0], z[1], n + 1))
+                if z is not None
+                else np.zeros(n + 1)
+            )
+            length = np.sqrt(
+                (self.end_x - self.start_x) ** 2
+                + (self.end_y - self.start_y) ** 2
+                + (self.end_z - self.start_z) ** 2
+            )
             self._length = length
 
     def __repr__(self):
-        s = f'{self.__class__.__name__}(diameter={self.diameter[0]!r}'
+        s = f"{self.__class__.__name__}(diameter={self.diameter[0]!r}"
         if self.n != 1:
-            s += f', n={self.n}'
+            s += f", n={self.n}"
         if self._x is not None:
-            s += f', x={self._x[[0, -1]]!r}, y={self._y[[0, -1]]!r}, z={self._z[[0, -1]]!r}'
+            s += (
+                f", x={self._x[[0, -1]]!r}, y={self._y[[0, -1]]!r},"
+                f" z={self._z[[0, -1]]!r}"
+            )
         else:
-            s += f', length={sum(self._length)!r}'
+            s += f", length={sum(self._length)!r}"
         if self.type is not None:
-            s += f', type={self.type!r}'
+            s += f", type={self.type!r}"
         return f"{s})"
 
     def copy_section(self):
         if self.x is None:
-            return Cylinder(self.diameter[0], n=self.n, length=self.length,
-                            type=self.type)
+            return Cylinder(
+                self.diameter[0], n=self.n, length=self.length, type=self.type
+            )
         else:
-            return Cylinder(self.diameter[0], n=self.n,
-                            x=self._x[[0, -1]], y=self._y[[0, -1]], z=self._z[[0, -1]],
-                            type=self.type)
+            return Cylinder(
+                self.diameter[0],
+                n=self.n,
+                x=self._x[[0, -1]],
+                y=self._y[[0, -1]],
+                z=self._z[[0, -1]],
+                type=self.type,
+            )
 
     # Overwrite the properties that differ from `Section`
     @property
@@ -2202,7 +2364,7 @@ class Cylinder(Section):
         where :math:`l` is the length of the compartment, and :math:`d` is its
         diameter.
         """
-        return np.pi * (self._diameter/2)**2 * self.length
+        return np.pi * (self._diameter / 2) ** 2 * self.length
 
     @property
     def r_length_1(self):
@@ -2211,7 +2373,7 @@ class Cylinder(Section):
         start and the midpoint of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
         """
-        return np.pi/2 * (self._diameter**2)/self.length
+        return np.pi / 2 * (self._diameter**2) / self.length
 
     @property
     def r_length_2(self):
@@ -2220,4 +2382,4 @@ class Cylinder(Section):
         midpoint and the end of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
         """
-        return np.pi/2 * (self._diameter**2)/self.length
+        return np.pi / 2 * (self._diameter**2) / self.length

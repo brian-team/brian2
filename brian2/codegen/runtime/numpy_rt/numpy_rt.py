@@ -9,8 +9,12 @@ import numpy as np
 
 from brian2.core.base import BrianObjectException
 from brian2.core.preferences import prefs, BrianPreference
-from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AuxiliaryVariable, Subexpression)
+from brian2.core.variables import (
+    DynamicArrayVariable,
+    ArrayVariable,
+    AuxiliaryVariable,
+    Subexpression,
+)
 from brian2.core.functions import Function
 
 from ...codeobject import CodeObject, constant_or_scalar, check_compiler_kwds
@@ -19,20 +23,20 @@ from ...templates import Templater
 from ...generators.numpy_generator import NumpyCodeGenerator
 from ...targets import codegen_targets
 
-__all__ = ['NumpyCodeObject']
+__all__ = ["NumpyCodeObject"]
 
 # Preferences
 prefs.register_preferences(
-    'codegen.runtime.numpy',
-    'Numpy runtime codegen preferences',
-    discard_units = BrianPreference(
+    "codegen.runtime.numpy",
+    "Numpy runtime codegen preferences",
+    discard_units=BrianPreference(
         default=False,
         docs="""
         Whether to change the namespace of user-specifed functions to remove
         units.
-        """
-        )
-    )
+        """,
+    ),
+)
 
 
 class LazyArange(Iterable):
@@ -71,6 +75,7 @@ class LazyArange(Iterable):
     >>> len(ar[np.array([1, 2, 3])])
     3
     """
+
     def __init__(self, stop, start=0, indices=None):
         self.start = start
         self.stop = stop
@@ -92,8 +97,9 @@ class LazyArange(Iterable):
                     start = 0
                 if stop is None:
                     stop = len(self)
-                return LazyArange(start=self.start+start,
-                                  stop=min([self.start+stop, self.stop]))
+                return LazyArange(
+                    start=self.start + start, stop=min([self.start + stop, self.stop])
+                )
             else:
                 raise NotImplementedError("Cannot slice LazyArange with indices")
         elif isinstance(item, np.ndarray):
@@ -148,27 +154,49 @@ class LazyArange(Iterable):
 class NumpyCodeObject(CodeObject):
     """
     Execute code using Numpy
-    
+
     Default for Brian because it works on all platforms.
     """
-    templater = Templater('brian2.codegen.runtime.numpy_rt', '.py_',
-                          env_globals={'constant_or_scalar': constant_or_scalar})
-    generator_class = NumpyCodeGenerator
-    class_name = 'numpy'
 
-    def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, compiler_kwds,
-                 name='numpy_code_object*'):
-        check_compiler_kwds(compiler_kwds, [],
-                            'numpy')
+    templater = Templater(
+        "brian2.codegen.runtime.numpy_rt",
+        ".py_",
+        env_globals={"constant_or_scalar": constant_or_scalar},
+    )
+    generator_class = NumpyCodeGenerator
+    class_name = "numpy"
+
+    def __init__(
+        self,
+        owner,
+        code,
+        variables,
+        variable_indices,
+        template_name,
+        template_source,
+        compiler_kwds,
+        name="numpy_code_object*",
+    ):
+        check_compiler_kwds(compiler_kwds, [], "numpy")
         from brian2.devices.device import get_device
+
         self.device = get_device()
-        self.namespace = {'_owner': owner,
-                          # TODO: This should maybe go somewhere else
-                          'logical_not': np.logical_not}
-        CodeObject.__init__(self, owner, code, variables, variable_indices,
-                            template_name, template_source,
-                            compiler_kwds=compiler_kwds, name=name)
+        self.namespace = {
+            "_owner": owner,
+            # TODO: This should maybe go somewhere else
+            "logical_not": np.logical_not,
+        }
+        CodeObject.__init__(
+            self,
+            owner,
+            code,
+            variables,
+            variable_indices,
+            template_name,
+            template_source,
+            compiler_kwds=compiler_kwds,
+            name=name,
+        )
         self.variables_to_namespace()
 
     @classmethod
@@ -190,7 +218,7 @@ class NumpyCodeObject(CodeObject):
                 continue
 
             try:
-                if not hasattr(var, 'get_value'):
+                if not hasattr(var, "get_value"):
                     raise TypeError()
                 value = var.get_value()
             except TypeError:
@@ -210,10 +238,12 @@ class NumpyCodeObject(CodeObject):
                 self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                dyn_array_name = self.generator_class.get_array_name(var,
-                                                                    access_data=False)
-                self.namespace[dyn_array_name] = self.device.get_value(var,
-                                                                       access_data=False)
+                dyn_array_name = self.generator_class.get_array_name(
+                    var, access_data=False
+                )
+                self.namespace[dyn_array_name] = self.device.get_value(
+                    var, access_data=False
+                )
 
             # Also provide the Variable object itself in the namespace (can be
             # necessary for resize operations, for example)
@@ -223,11 +253,13 @@ class NumpyCodeObject(CodeObject):
             # namespace with their current value at each time step: dynamic
             # arrays that change in size during runs (i.e. not synapses but
             # e.g. the structures used in monitors)
-            if (isinstance(var, DynamicArrayVariable) and
-                    var.needs_reference_update):
-                self.nonconstant_values.append((self.generator_class.get_array_name(var,
-                                                                                   self.variables),
-                                                var.get_value))
+            if isinstance(var, DynamicArrayVariable) and var.needs_reference_update:
+                self.nonconstant_values.append(
+                    (
+                        self.generator_class.get_array_name(var, self.variables),
+                        var.get_value,
+                    )
+                )
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace
@@ -235,10 +267,10 @@ class NumpyCodeObject(CodeObject):
             self.namespace[name] = func()
 
     def compile_block(self, block):
-        code = getattr(self.code, block, '').strip()
-        if not code or 'EMPTY_CODE_BLOCK' in code:
+        code = getattr(self.code, block, "").strip()
+        if not code or "EMPTY_CODE_BLOCK" in code:
             return None
-        return compile(code, '(string)', 'exec')
+        return compile(code, "(string)", "exec")
 
     def run_block(self, block):
         compiled_code = self.compiled_code[block]
@@ -248,17 +280,19 @@ class NumpyCodeObject(CodeObject):
             exec(compiled_code, self.namespace)
         except Exception as exc:
             code = getattr(self.code, block)
-            message = (f"An exception occured during the execution of the "
-                       f"'{block}' block of code object {self.name}.\n")
-            lines = code.split('\n')
-            message += 'The error was raised in the following line:\n'
+            message = (
+                "An exception occured during the execution of the "
+                f"'{block}' block of code object {self.name}.\n"
+            )
+            lines = code.split("\n")
+            message += "The error was raised in the following line:\n"
             _, _, tb = sys.exc_info()
             tb = tb.tb_next  # Line in the code object's code
             message += f"{lines[tb.tb_lineno - 1]}\n"
             raise BrianObjectException(message, self.owner) from exc
         # output variables should land in the variable name _return_values
-        if '_return_values' in self.namespace:
-            return self.namespace['_return_values']
+        if "_return_values" in self.namespace:
+            return self.namespace["_return_values"]
 
 
 codegen_targets.add(NumpyCodeObject)

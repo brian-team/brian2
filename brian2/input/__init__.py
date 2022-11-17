@@ -8,5 +8,10 @@ from .poissoninput import *
 from .spikegeneratorgroup import *
 from .timedarray import *
 
-__all__ = ['BinomialFunction', 'PoissonGroup', 'PoissonInput',
-           'SpikeGeneratorGroup', 'TimedArray']
+__all__ = [
+    "BinomialFunction",
+    "PoissonGroup",
+    "PoissonInput",
+    "SpikeGeneratorGroup",
+    "TimedArray",
+]
