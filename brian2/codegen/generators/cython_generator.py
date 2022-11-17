@@ -16,6 +16,7 @@ from .base import CodeGenerator
 __all__ = ['CythonCodeGenerator']
 
 
+# fmt: off
 data_type_conversion_table = [
     # canonical         C++            Numpy
     ('float32',        'float',       'float32'),
@@ -26,6 +27,7 @@ data_type_conversion_table = [
     ('uint8',          'char',        'uint8'),
     ('uint64',         'uint64_t',    'uint64'),
     ]
+# fmt: on
 
 cpp_dtype = dict((canonical, cpp) for canonical, cpp, np in data_type_conversion_table)
 numpy_dtype = dict((canonical, np) for canonical, cpp, np in data_type_conversion_table)

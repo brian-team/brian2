@@ -398,6 +398,7 @@ def test_tree_cables_coordinates():
 @pytest.mark.codegen_independent
 def test_tree_cables_from_points():
     # The coordinates should be identical to the previous test
+    # fmt: off
     points = [ # cable
               (1,  None, 0,                  0,                0,              10, -1),
               (2,  None, 10,                 0,                0,              10,  1),
@@ -434,7 +435,8 @@ def test_tree_cables_from_points():
               (29, 'R' , 100+80/np.sqrt(2),  -50/np.sqrt(2),   -30/np.sqrt(2), 2,   28),
               (30, 'R' , 100+90/np.sqrt(2),  -50/np.sqrt(2),   -40/np.sqrt(2), 1,   29),
               (31, 'R' , 100+100/np.sqrt(2),  -50/np.sqrt(2),  -50/np.sqrt(2), 0,   30),
-              ]
+    ]
+    # fmt: on
     cable = Morphology.from_points(points)
 
     # Check that the names are used
@@ -579,6 +581,7 @@ def test_tree_soma_coordinates():
 @pytest.mark.codegen_independent
 def test_tree_soma_from_points():
     # The coordinates should be identical to the previous test
+    # fmt: on
     points = [ # soma
               (1,  'soma', 100,                0,                0,              30, -1),
               # soma.L
@@ -594,6 +597,7 @@ def test_tree_soma_from_points():
               (10, 'R'   , 100+40/np.sqrt(2),  -40/np.sqrt(2),   0,              5 ,  9),
               (11, 'R'   , 100+50/np.sqrt(2),  -50/np.sqrt(2),   0,              5 ,  10),
               ]
+    # fmt: on
     cable = Morphology.from_points(points)
     _check_tree_soma(cable, coordinates=True, use_cylinders=False)
 
@@ -601,6 +605,7 @@ def test_tree_soma_from_points():
 @pytest.mark.codegen_independent
 def test_tree_soma_from_points_3_point_soma():
     # The coordinates should be identical to the previous test
+    # fmt: off
     points = [ # soma
               (1,  'soma', 100,                0,                0,              30, -1),
               (2,  'soma', 100,               15,                0,              30,  1),
@@ -617,7 +622,8 @@ def test_tree_soma_from_points_3_point_soma():
               (11, 'R'   , 100+30/np.sqrt(2),  -30/np.sqrt(2),   0,              5 ,  10),
               (12, 'R'   , 100+40/np.sqrt(2),  -40/np.sqrt(2),   0,              5 ,  11),
               (13, 'R'   , 100+50/np.sqrt(2),  -50/np.sqrt(2),   0,              5 ,  12),
-              ]
+    ]
+    # fmt: on
     cable = Morphology.from_points(points)
     _check_tree_soma(cable, coordinates=True, use_cylinders=False)
     # The first compartment should be a spherical soma!
@@ -627,6 +633,7 @@ def test_tree_soma_from_points_3_point_soma():
 @pytest.mark.codegen_independent
 def test_tree_soma_from_points_3_point_soma_incorrect():
     # Inconsistent diameters
+    # fmt: off
     points = [ # soma
               (1,  'soma', 100,                0,                0,              30, -1),
               (2,  'soma', 100,               15,                0,              28,  1),
@@ -637,11 +644,13 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
               (6,  'L'   , 100+60/np.sqrt(2),  60/np.sqrt(2),    0,              4 ,  5),
               (7,  'L'   , 100+80/np.sqrt(2),  80/np.sqrt(2),    0,              2 ,  6),
               (8,  'L'   , 100+100/np.sqrt(2), 100/np.sqrt(2),   0,              0 ,  7)
-              ]
+    ]
+    # fmt: on
     with pytest.raises(ValueError):
          Morphology.from_points(points)
 
     # Inconsistent coordinates
+    # fmt: off
     points = [  # soma
         (1, 'soma', 100, 0, 0, 30, -1),
         (2, 'soma', 100, 15, 0, 30, 1),
@@ -653,6 +662,7 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
         (7, 'L', 100 + 80 / np.sqrt(2), 80 / np.sqrt(2), 0, 2, 6),
         (8, 'L', 100 + 100 / np.sqrt(2), 100 / np.sqrt(2), 0, 0, 7)
     ]
+    # fmt: on
     with pytest.raises(ValueError):
          Morphology.from_points(points)
 
@@ -822,26 +832,27 @@ def test_from_points_minimal():
 @pytest.mark.codegen_independent
 def test_from_points_incorrect():
     # The coordinates should be identical to the previous test
+    # fmt: off
     points = [
-              (1,  None, 0,                  0,                0,              10, -1),
-              (2,  None, 10,                 0,                0,              10,  1),
-              (2,  None, 20,                 0,                0,              10,  2),
-              ]
+              (1,  None, 0,  0, 0, 10, -1),
+              (2,  None, 10, 0, 0, 10,  1),
+              (2,  None, 20, 0, 0, 10,  2),
+    ]
     points2 = [
-              (1,  None, 0,                  0,                0,              10, -1),
-              (2,  None, 10,                 0,                0,              10,  1),
-              (3,  None, 20,                 0,                0,              10,  3),
-              ]
+              (1,  None, 0,  0, 0, 10, -1),
+              (2,  None, 10, 0, 0, 10,  1),
+              (3,  None, 20, 0, 0, 10,  3),
+    ]
     points3 = [
-              (1,  None, 0,                  0,                0,              10, -1),
-              (2,  None, 10,                 0,                0,              10,  1),
-              (3,  None, 20,                 0,                0,              10,  4),
-              ]
+              (1,  None, 0,  0, 0, 10, -1),
+              (2,  None, 10, 0, 0, 10,  1),
+              (3,  None, 20, 0, 0, 10,  4),
+    ]
     points4 = [
-              (1,  0,                  0,                0,              10, -1),
-              (2,  10,                 0,                0,              10,  1),
-              (3,  20,                 0,                0,              10,  2),
-              ]
+              (1,  0,    0,  0, 10, -1),
+              (2,  10,   0,  0, 10,  1),
+              (3,  20,   0,  0, 10,  2),
+    ]
     with pytest.raises(ValueError):
          Morphology.from_points(points)
     with pytest.raises(ValueError):
