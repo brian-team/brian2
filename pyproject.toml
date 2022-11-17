@@ -1,0 +1,4 @@
+[tool.black]
+target-version = ['py37']
+include = '^/brian2/.*\.pyi?$'
+preview = true
