@@ -7,4 +7,5 @@ repos:
     rev: '22.10.0'
     hooks:
       - id: black
+        exclude: '^brian2/_version.py$'
         files: '^brian2/.*\.pyi?$'

@@ -1,4 +1,5 @@
 [tool.black]
 target-version = ['py37']
 include = '^/brian2/.*\.pyi?$'
+extend-exclude = '^/brian2/_version.py$'
 preview = true
