@@ -104,7 +104,10 @@ def do_animation(fig, axes, K_values, theta_values):
     return ani
 
 if __name__ == '__main__':
-    fig, axs = plt.subplots(2, 2, layout='tight')
+    fig, axs = plt.subplots(2, 2)
+    # Manual adjustments instead of layout='tight', to avoid jumps in saved animation
+    fig.subplots_adjust(left=0.025, bottom=0.025, right=0.975,  top=0.975,
+                        wspace=0, hspace=0)
     K_values = [0, 1, 2, 4]
     theta_values = []
     for K in K_values:
