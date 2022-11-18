@@ -28,7 +28,6 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_BEFORE_BUILD: pip install "cython>=0.29" oldest-supported-numpy setuptools
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_ARCHS: auto64
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014

@@ -1,3 +1,12 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "Cython",
+    "oldest-supported-numpy",
+]
+build-backend = "setuptools.build_meta"
+
 [tool.black]
 target-version = ['py37']
 include = '^/brian2/.*\.pyi?$'
