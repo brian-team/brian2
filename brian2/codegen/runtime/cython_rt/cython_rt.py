@@ -3,8 +3,12 @@ import platform
 import numpy
 
 from brian2.core.base import BrianObjectException
-from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AuxiliaryVariable, Subexpression)
+from brian2.core.variables import (
+    DynamicArrayVariable,
+    ArrayVariable,
+    AuxiliaryVariable,
+    Subexpression,
+)
 from brian2.core.functions import Function
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
@@ -13,29 +17,32 @@ from brian2.utils.stringtools import get_identifiers
 from ...codeobject import constant_or_scalar, check_compiler_kwds
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
-from ...generators.cython_generator import (CythonCodeGenerator, get_cpp_dtype,
-                                            get_numpy_dtype)
+from ...generators.cython_generator import (
+    CythonCodeGenerator,
+    get_cpp_dtype,
+    get_numpy_dtype,
+)
 from ...targets import codegen_targets
 from ...cpp_prefs import get_compiler_and_args
 from .extension_manager import cython_extension_manager
 
-__all__ = ['CythonCodeObject']
+__all__ = ["CythonCodeObject"]
 
 
 logger = get_logger(__name__)
 
 # Preferences
 prefs.register_preferences(
-    'codegen.runtime.cython',
-    'Cython runtime codegen preferences',
-    multiprocess_safe = BrianPreference(
+    "codegen.runtime.cython",
+    "Cython runtime codegen preferences",
+    multiprocess_safe=BrianPreference(
         default=True,
         docs="""
         Whether to use a lock file to prevent simultaneous write access
         to cython .pyx and .so files.
-        """
-        ),
-    cache_dir = BrianPreference(
+        """,
+    ),
+    cache_dir=BrianPreference(
         default=None,
         validator=lambda x: x is None or isinstance(x, str),
         docs="""
@@ -43,9 +50,9 @@ prefs.register_preferences(
         will be stored in a ``brian_extensions`` subdirectory
         where Cython inline stores its temporary files
         (the result of ``get_cython_cache_dir()``).
-        """
-        ),
-    delete_source_files = BrianPreference(
+        """,
+    ),
+    delete_source_files=BrianPreference(
         default=True,
         docs="""
         Whether to delete source files after compiling. The Cython
@@ -53,54 +60,83 @@ prefs.register_preferences(
         are not used anymore when the compiled library file exists.
         They are therefore deleted by default, but keeping them around
         can be useful for debugging.
-        """
-        )
-    )
+        """,
+    ),
+)
 
 
 class CythonCodeObject(NumpyCodeObject):
     """
     Execute code using Cython.
     """
-    templater = Templater('brian2.codegen.runtime.cython_rt', '.pyx',
-                          env_globals={'cpp_dtype': get_cpp_dtype,
-                                       'numpy_dtype': get_numpy_dtype,
-                                       'dtype': numpy.dtype,
-                                       'constant_or_scalar': constant_or_scalar})
-    generator_class = CythonCodeGenerator
-    class_name = 'cython'
 
-    def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, compiler_kwds,
-                 name='cython_code_object*'):
-        check_compiler_kwds(compiler_kwds, ['libraries', 'include_dirs',
-                                            'library_dirs',
-                                            'runtime_library_dirs',
-                                            'sources'],
-                            'Cython')
-        super(CythonCodeObject, self).__init__(owner, code, variables,
-                                               variable_indices,
-                                               template_name, template_source,
-                                               compiler_kwds={}, # do not pass the actual args
-                                               name=name)
+    templater = Templater(
+        "brian2.codegen.runtime.cython_rt",
+        ".pyx",
+        env_globals={
+            "cpp_dtype": get_cpp_dtype,
+            "numpy_dtype": get_numpy_dtype,
+            "dtype": numpy.dtype,
+            "constant_or_scalar": constant_or_scalar,
+        },
+    )
+    generator_class = CythonCodeGenerator
+    class_name = "cython"
+
+    def __init__(
+        self,
+        owner,
+        code,
+        variables,
+        variable_indices,
+        template_name,
+        template_source,
+        compiler_kwds,
+        name="cython_code_object*",
+    ):
+        check_compiler_kwds(
+            compiler_kwds,
+            [
+                "libraries",
+                "include_dirs",
+                "library_dirs",
+                "runtime_library_dirs",
+                "sources",
+            ],
+            "Cython",
+        )
+        super(CythonCodeObject, self).__init__(
+            owner,
+            code,
+            variables,
+            variable_indices,
+            template_name,
+            template_source,
+            compiler_kwds={},  # do not pass the actual args
+            name=name,
+        )
         self.compiler, self.extra_compile_args = get_compiler_and_args()
-        self.define_macros = list(prefs['codegen.cpp.define_macros'])
-        self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
+        self.define_macros = list(prefs["codegen.cpp.define_macros"])
+        self.extra_link_args = list(prefs["codegen.cpp.extra_link_args"])
         self.headers = []  # not actually used
 
-        self.include_dirs = (list(prefs['codegen.cpp.include_dirs']) +
-                             compiler_kwds.get('include_dirs', []))
-        self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
+        self.include_dirs = list(prefs["codegen.cpp.include_dirs"]) + compiler_kwds.get(
+            "include_dirs", []
+        )
+        self.include_dirs = list(prefs["codegen.cpp.include_dirs"])
 
-        self.library_dirs = (list(prefs['codegen.cpp.library_dirs']) +
-                             compiler_kwds.get('library_dirs', []))
+        self.library_dirs = list(prefs["codegen.cpp.library_dirs"]) + compiler_kwds.get(
+            "library_dirs", []
+        )
 
-        self.runtime_library_dirs = (list(prefs['codegen.cpp.runtime_library_dirs']) +
-                                     compiler_kwds.get('runtime_library_dirs', []))
+        self.runtime_library_dirs = list(
+            prefs["codegen.cpp.runtime_library_dirs"]
+        ) + compiler_kwds.get("runtime_library_dirs", [])
 
-        self.libraries = (list(prefs['codegen.cpp.libraries']) +
-                          compiler_kwds.get('libraries', []))
-        self.sources = compiler_kwds.get('sources', [])
+        self.libraries = list(prefs["codegen.cpp.libraries"]) + compiler_kwds.get(
+            "libraries", []
+        )
+        self.sources = compiler_kwds.get("sources", [])
 
     @classmethod
     def is_available(cls):
@@ -111,30 +147,36 @@ class CythonCodeObject(NumpyCodeObject):
             def main():
                 cdef int x
                 x = 0"""
-            compiled = cython_extension_manager.create_extension(code,
-                                                                 compiler=compiler,
-                                                                 extra_compile_args=extra_compile_args,
-                                                                 extra_link_args=prefs['codegen.cpp.extra_link_args'],
-                                                                 include_dirs=prefs['codegen.cpp.include_dirs'],
-                                                                 library_dirs=prefs['codegen.cpp.library_dirs'],
-                                                                 runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'])
+            compiled = cython_extension_manager.create_extension(
+                code,
+                compiler=compiler,
+                extra_compile_args=extra_compile_args,
+                extra_link_args=prefs["codegen.cpp.extra_link_args"],
+                include_dirs=prefs["codegen.cpp.include_dirs"],
+                library_dirs=prefs["codegen.cpp.library_dirs"],
+                runtime_library_dirs=prefs["codegen.cpp.runtime_library_dirs"],
+            )
             compiled.main()
             return True
         except Exception as ex:
-            msg = (f"Cannot use Cython, a test compilation failed: {str(ex)} " 
-                   f"({ex.__class__.__name__})")
-            if platform.system() != 'Windows':
-                msg += ("\nCertain compiler configurations (e.g. clang in a conda "
-                        "environment on OS X) are known to be problematic. Note that "
-                        "you can switch the compiler by setting the 'CC' and 'CXX' "
-                        "environment variables. For example, you may want to try "
-                        "'CC=gcc' and 'CXX=g++'.")
-            logger.warn(msg, 'failed_compile_test')
+            msg = (
+                f"Cannot use Cython, a test compilation failed: {str(ex)} "
+                f"({ex.__class__.__name__})"
+            )
+            if platform.system() != "Windows":
+                msg += (
+                    "\nCertain compiler configurations (e.g. clang in a conda "
+                    "environment on OS X) are known to be problematic. Note that "
+                    "you can switch the compiler by setting the 'CC' and 'CXX' "
+                    "environment variables. For example, you may want to try "
+                    "'CC=gcc' and 'CXX=g++'."
+                )
+            logger.warn(msg, "failed_compile_test")
             return False
 
     def compile_block(self, block):
-        code = getattr(self.code, block, '').strip()
-        if not code or 'EMPTY_CODE_BLOCK' in code:
+        code = getattr(self.code, block, "").strip()
+        if not code or "EMPTY_CODE_BLOCK" in code:
             return None
         return cython_extension_manager.create_extension(
             code,
@@ -147,17 +189,19 @@ class CythonCodeObject(NumpyCodeObject):
             runtime_library_dirs=self.runtime_library_dirs,
             compiler=self.compiler,
             owner_name=f"{self.owner.name}_{self.template_name}",
-            sources=self.sources
-            )
-        
+            sources=self.sources,
+        )
+
     def run_block(self, block):
         compiled_code = self.compiled_code[block]
         if compiled_code:
             try:
                 return compiled_code.main(self.namespace)
             except Exception as exc:
-                message = (f"An exception occured during the execution of the "
-                           f"'{block}' block of code object '{self.name}'.\n")
+                message = (
+                    "An exception occured during the execution of the "
+                    f"'{block}' block of code object '{self.name}'.\n"
+                )
                 raise BrianObjectException(message, self.owner) from exc
 
     def _insert_func_namespace(self, func):
@@ -170,7 +214,6 @@ class CythonCodeObject(NumpyCodeObject):
                 self._insert_func_namespace(dep)
 
     def variables_to_namespace(self):
-
         # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
         # constant variables here and add the names of non-constant variables
@@ -192,8 +235,7 @@ class CythonCodeObject(NumpyCodeObject):
                 continue
 
             if isinstance(var, ArrayVariable):
-                self.namespace[self.device.get_array_name(var,
-                                                            self.variables)] = value
+                self.namespace[self.device.get_array_name(var, self.variables)] = value
                 self.namespace[f"_num{name}"] = var.get_len()
                 if var.scalar and var.constant:
                     self.namespace[name] = value.item()
@@ -201,10 +243,12 @@ class CythonCodeObject(NumpyCodeObject):
                 self.namespace[name] = value
 
             if isinstance(var, DynamicArrayVariable):
-                dyn_array_name = self.generator_class.get_array_name(var,
-                                                                    access_data=False)
-                self.namespace[dyn_array_name] = self.device.get_value(var,
-                                                                       access_data=False)
+                dyn_array_name = self.generator_class.get_array_name(
+                    var, access_data=False
+                )
+                self.namespace[dyn_array_name] = self.device.get_value(
+                    var, access_data=False
+                )
 
             # Also provide the Variable object itself in the namespace (can be
             # necessary for resize operations, for example)
@@ -217,16 +261,16 @@ class CythonCodeObject(NumpyCodeObject):
         # will pass something into the namespace unnecessarily.
         all_identifiers = get_identifiers(self.code.run)
         # Filter out all unneeded objects
-        self.namespace = {k: v for k, v in self.namespace.items()
-                          if k in all_identifiers}
+        self.namespace = {
+            k: v for k, v in self.namespace.items() if k in all_identifiers
+        }
 
         # There is one type of objects that we have to inject into the
         # namespace with their current value at each time step: dynamic
         # arrays that change in size during runs, where the size change is not
         # initiated by the template itself
         for name, var in self.variables.items():
-            if (isinstance(var, DynamicArrayVariable) and
-                    var.needs_reference_update):
+            if isinstance(var, DynamicArrayVariable) and var.needs_reference_update:
                 array_name = self.device.get_array_name(var, self.variables)
                 if array_name in self.namespace:
                     self.nonconstant_values.append((array_name, var.get_value))

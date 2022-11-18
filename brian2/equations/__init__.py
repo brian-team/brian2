@@ -5,4 +5,4 @@ for example for the reset and threshold definition of a neuron.
 from .codestrings import Expression, Statements
 from .equations import Equations
 
-__all__ = ['Equations', 'Expression', 'Statements']
+__all__ = ["Equations", "Expression", "Statements"]

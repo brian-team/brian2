@@ -16,6 +16,7 @@ from numpy.core import round, abs, max, min
 
 import numpy
 import brian2.units.unitsafefunctions as brian2_functions
+
 __all__ = []
 __all__.extend(numpy.__all__)
 __all__.extend(brian2_functions.__all__)

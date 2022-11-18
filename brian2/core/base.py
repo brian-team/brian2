@@ -12,9 +12,10 @@ from brian2.core.names import Nameable
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units
 
-__all__ = ['BrianObject',
-           'BrianObjectException',
-           ]
+__all__ = [
+    "BrianObject",
+    "BrianObjectException",
+]
 
 logger = get_logger(__name__)
 
@@ -25,7 +26,7 @@ class BrianObject(Nameable):
 
     See the documentation for `Network` for an explanation of which
     objects get updated in which order.
-    
+
     Parameters
     ----------
     dt : `Quantity`, optional
@@ -51,50 +52,69 @@ class BrianObject(Nameable):
         not provided (of the form ``brianobject_1``, etc.).
     Notes
     -----
-        
+
     The set of all `BrianObject` objects is stored in ``BrianObject.__instances__()``.
-    """    
+    """
+
     @check_units(dt=second)
-    def __init__(self, dt=None, clock=None, when='start', order=0,
-                 namespace=None, name='brianobject*'):
+    def __init__(
+        self,
+        dt=None,
+        clock=None,
+        when="start",
+        order=0,
+        namespace=None,
+        name="brianobject*",
+    ):
         # Setup traceback information for this object
         creation_stack = []
         bases = []
-        for modulename in ['brian2']:
+        for modulename in ["brian2"]:
             if modulename in sys.modules:
                 base, _ = os.path.split(sys.modules[modulename].__file__)
                 bases.append(base)
         for fname, linenum, funcname, line in traceback.extract_stack():
             if all(base not in fname for base in bases):
-                s = (f"  File '{fname}', line {linenum}, in {funcname}\n" 
-                     f"    {line}")
+                s = f"  File '{fname}', line {linenum}, in {funcname}\n    {line}"
                 creation_stack.append(s)
-        creation_stack = [''] + creation_stack
+        creation_stack = [""] + creation_stack
         #: A string indicating where this object was created (traceback with any parts of Brian code removed)
-        self._creation_stack = ("Object was created here (most recent call only, full details in "
-                                "debug log):\n" + creation_stack[-1])
-        self._full_creation_stack = "Object was created here:\n"+"\n".join(creation_stack)
+        self._creation_stack = (
+            "Object was created here (most recent call only, full details in "
+            "debug log):\n"
+            + creation_stack[-1]
+        )
+        self._full_creation_stack = "Object was created here:\n" + "\n".join(
+            creation_stack
+        )
 
         if dt is not None and clock is not None:
             raise ValueError("Can only specify either a dt or a clock, not both.")
 
         if not isinstance(when, str):
             from brian2.core.clocks import Clock
+
             # Give some helpful error messages for users coming from the alpha
             # version
             if isinstance(when, Clock):
-                raise TypeError(("Do not use the 'when' argument for "
-                                 "specifying a clock, either provide a "
-                                 "timestep for the 'dt' argument or a Clock "
-                                 "object for 'clock'."))
+                raise TypeError(
+                    "Do not use the 'when' argument for "
+                    "specifying a clock, either provide a "
+                    "timestep for the 'dt' argument or a Clock "
+                    "object for 'clock'."
+                )
             if isinstance(when, tuple):
-                raise TypeError("Use the separate keyword arguments, 'dt' (or "
-                                "'clock'), 'when', and 'order' instead of "
-                                "providing a tuple for 'when'. Only use the "
-                                "'when' argument for the scheduling slot.")
+                raise TypeError(
+                    "Use the separate keyword arguments, 'dt' (or "
+                    "'clock'), 'when', and 'order' instead of "
+                    "providing a tuple for 'when'. Only use the "
+                    "'when' argument for the scheduling slot."
+                )
             # General error
-            raise TypeError("The 'when' argument has to be a string "
-                            "specifying the scheduling slot (e.g. 'start').")
+            raise TypeError(
+                "The 'when' argument has to be a string "
+                "specifying the scheduling slot (e.g. 'start')."
+            )
 
         Nameable.__init__(self, name)
 
@@ -102,13 +122,15 @@ class BrianObject(Nameable):
         self._clock = clock
         if clock is None:
             from brian2.core.clocks import Clock, defaultclock
+
             if dt is not None:
-                self._clock = Clock(dt=dt, name=self.name+'_clock*')
+                self._clock = Clock(dt=dt, name=self.name + "_clock*")
             else:
                 self._clock = defaultclock
 
-        if getattr(self._clock, '_is_proxy', False):
+        if getattr(self._clock, "_is_proxy", False):
             from brian2.devices.device import get_device
+
             self._clock = get_device().defaultclock
 
         #: Used to remember the `Network` in which this object has been included
@@ -117,38 +139,42 @@ class BrianObject(Nameable):
 
         #: The ID string determining when the object should be updated in `Network.run`.
         self.when = when
-        
+
         #: The order in which objects with the same clock and ``when`` should be updated
         self.order = order
 
         self._dependencies = set()
         self._contained_objects = []
         self._code_objects = []
-        
+
         self._active = True
-        
+
         #: The scope key is used to determine which objects are collected by magic
         self._scope_key = self._scope_current_key
 
         # Make sure that keys in the namespace are valid
         if namespace is None:
             # Do not overwrite namespace if already set (e.g. in StateMonitor)
-            namespace = getattr(self, 'namespace', {})
+            namespace = getattr(self, "namespace", {})
         for key in namespace:
-            if key.startswith('_'):
-                raise ValueError("Names starting with underscores are "
-                                 "reserved for internal use an cannot be "
-                                 "defined in the namespace argument.")
+            if key.startswith("_"):
+                raise ValueError(
+                    "Names starting with underscores are "
+                    "reserved for internal use an cannot be "
+                    "defined in the namespace argument."
+                )
         #: The group-specific namespace
         self.namespace = namespace
 
-        logger.diagnostic(f"Created BrianObject with name {self.name}, "
-                          f"clock={self._clock}, "
-                          f"when={self.when}, order={self.order}")
+        logger.diagnostic(
+            f"Created BrianObject with name {self.name}, "
+            f"clock={self._clock}, "
+            f"when={self.when}, order={self.order}"
+        )
 
     #: Global key value for ipython cell restrict magic
     _scope_current_key = 0
-    
+
     #: Whether or not `MagicNetwork` is invalidated when a new `BrianObject` of this type is added
     invalidates_magic_network = True
 
@@ -170,6 +196,7 @@ class BrianObject(Nameable):
             The object that this object depends on.
         """
         from brian2.groups.subgroup import Subgroup
+
         if isinstance(obj, Subgroup):
             self._dependencies.add(obj.source.id)
         else:
@@ -183,11 +210,11 @@ class BrianObject(Nameable):
         """
         for codeobj in self._code_objects:
             codeobj.before_run()
-    
+
     def after_run(self):
         """
         Optional method to do work after a run is finished.
-        
+
         Called by `Network.after_run` after the main simulation loop terminated.
         """
         for codeobj in self._code_objects:
@@ -197,8 +224,9 @@ class BrianObject(Nameable):
         for codeobj in self._code_objects:
             codeobj()
 
-    contained_objects = property(fget=lambda self:self._contained_objects,
-                                 doc="""
+    contained_objects = property(
+        fget=lambda self: self._contained_objects,
+        doc="""
          The list of objects contained within the `BrianObject`.
          
          When a `BrianObject` is added to a `Network`, its contained objects will
@@ -207,57 +235,68 @@ class BrianObject(Nameable):
          
          Note that this attribute cannot be set directly, you need to modify
          the underlying list, e.g. ``obj.contained_objects.extend([A, B])``.
-         """)
+         """,
+    )
 
-    code_objects = property(fget=lambda self:self._code_objects,
-                                 doc="""
+    code_objects = property(
+        fget=lambda self: self._code_objects,
+        doc="""
          The list of `CodeObject` contained within the `BrianObject`.
          
          TODO: more details.
                   
          Note that this attribute cannot be set directly, you need to modify
          the underlying list, e.g. ``obj.code_objects.extend([A, B])``.
-         """)
+         """,
+    )
 
-    updaters = property(fget=lambda self:self._updaters,
-                                 doc="""
+    updaters = property(
+        fget=lambda self: self._updaters,
+        doc="""
          The list of `Updater` that define the runtime behaviour of this object.
          
          TODO: more details.
                   
          Note that this attribute cannot be set directly, you need to modify
          the underlying list, e.g. ``obj.updaters.extend([A, B])``.
-         """)
-    
-    clock = property(fget=lambda self: self._clock,
-                     doc="""
+         """,
+    )
+
+    clock = property(
+        fget=lambda self: self._clock,
+        doc="""
                      The `Clock` determining when the object should be updated.
                      
                      Note that this cannot be changed after the object is
                      created.
-                     """)
-    
+                     """,
+    )
+
     def _set_active(self, val):
         val = bool(val)
         self._active = val
         for obj in self.contained_objects:
             obj.active = val
 
-    active = property(fget=lambda self:self._active,
-                      fset=_set_active,
-                      doc="""
+    active = property(
+        fget=lambda self: self._active,
+        fset=_set_active,
+        doc="""
                         Whether or not the object should be run.
                         
                         Inactive objects will not have their `update`
                         method called in `Network.run`. Note that setting or
                         unsetting the `active` attribute will set or unset
                         it for all `contained_objects`. 
-                        """)
+                        """,
+    )
 
     def __repr__(self):
         classname = self.__class__.__name__
-        description = (f"{classname}(clock={self._clock}, when={self.when}, "
-                       f"order={self.order}, name={self.name!r})")
+        description = (
+            f"{classname}(clock={self._clock}, when={self.when}, "
+            f"order={self.order}, name={self.name!r})"
+        )
         return description
 
     # This is a repeat from Nameable.name, but we want to get the documentation
@@ -274,18 +313,21 @@ def weakproxy_with_fallback(obj):
     except TypeError:
         return obj
 
+
 def device_override(name):
     """
     Decorates a function/method to allow it to be overridden by the current `Device`.
 
     The ``name`` is the function name in the `Device` to use as an override if it exists.
-    
+
     The returned function has an additional attribute ``original_function``
     which is a reference to the original, undecorated function.
     """
+
     def device_override_decorator(func):
         def device_override_decorated_function(*args, **kwds):
             from brian2.devices.device import get_device
+
             curdev = get_device()
             if hasattr(curdev, name):
                 return getattr(curdev, name)(*args, **kwds)
@@ -319,19 +361,24 @@ class BrianObjectException(Exception):
     original_exception : Exception
         The original exception that was raised.
     """
+
     def __init__(self, message, brianobj):
         self._brian_message = message
         self._brian_objname = brianobj.name
         self._brian_objcreate = brianobj._creation_stack
-        logger.diagnostic(f"Error was encountered with object "
-                          f"'{self._brian_objname}':\n"
-                          f"{brianobj._full_creation_stack}")
+        logger.diagnostic(
+            "Error was encountered with object "
+            f"'{self._brian_objname}':\n"
+            f"{brianobj._full_creation_stack}"
+        )
 
     def __str__(self):
-        return (f"Error encountered with object named '{self._brian_objname}'.\n"
-                f"{self._brian_objcreate}\n\n"
-                f"{self._brian_message} "
-                f"(See above for original error message and traceback.)")
+        return (
+            f"Error encountered with object named '{self._brian_objname}'.\n"
+            f"{self._brian_objcreate}\n\n"
+            f"{self._brian_message} "
+            "(See above for original error message and traceback.)"
+        )
 
 
 def brian_object_exception(message, brianobj, original_exception):
@@ -345,5 +392,7 @@ def brian_object_exception(message, brianobj, original_exception):
     See `BrianObjectException` for arguments and notes.
     """
 
-    raise NotImplementedError("The brian_object_exception function is no longer used. "
-                              "Raise a BrianObjectException directly.")
+    raise NotImplementedError(
+        "The brian_object_exception function is no longer used. "
+        "Raise a BrianObjectException directly."
+    )

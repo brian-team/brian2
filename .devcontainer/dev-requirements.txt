@@ -3,3 +3,5 @@ scipy >= 0.13.3
 matplotlib >= 2.0
 jupyterlab
 ipympl
+pre-commit == 2.20.*
+black == 22.10.0

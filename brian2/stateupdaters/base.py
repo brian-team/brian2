@@ -11,7 +11,7 @@ import time
 from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger
 
-__all__ = ['StateUpdateMethod']
+__all__ = ["StateUpdateMethod"]
 
 logger = get_logger(__name__)
 
@@ -66,13 +66,18 @@ def extract_method_options(method_options, default_options):
         if key not in default_options:
             if len(default_options):
                 keys = sorted(default_options.keys())
-                options = ('Available options are: ' +
-                           ', '.join(f"'{key}'" for key in keys) + '.')
+                options = (
+                    "Available options are: "
+                    + ", ".join(f"'{key}'" for key in keys)
+                    + "."
+                )
             else:
-                options = 'This state updater does not accept any options.'
-            raise KeyError(f"method_options specifies '{key}', but this "
-                           f"is not an option for this state updater. "
-                           f"{options}")
+                options = "This state updater does not accept any options."
+            raise KeyError(
+                f"method_options specifies '{key}', but this "
+                "is not an option for this state updater. "
+                f"{options}"
+            )
     filled_options = dict(default_options)
     filled_options.update(method_options)
     return filled_options
@@ -91,7 +96,7 @@ class StateUpdateMethod(object, metaclass=ABCMeta):
         a run)  For convenience, this arguments are optional -- this allows to
         directly see what code a state updater generates for a set of equations
         by simply writing ``euler(eqs)``, for example.
-        
+
         Parameters
         ----------
         equations : `Equations`
@@ -125,18 +130,23 @@ class StateUpdateMethod(object, metaclass=ABCMeta):
         # 'euler', for example
         name = name.lower()
         if name in StateUpdateMethod.stateupdaters:
-            raise ValueError(f"A stateupdater with the name '{name}' "
-                             f"has already been registered")
+            raise ValueError(
+                f"A stateupdater with the name '{name}' has already been registered"
+            )
 
         if not isinstance(stateupdater, StateUpdateMethod):
-            raise ValueError(f"Given stateupdater of type {type(stateupdater)} does "
-                             f"not seem to be a valid stateupdater.")
+            raise ValueError(
+                f"Given stateupdater of type {type(stateupdater)} does "
+                "not seem to be a valid stateupdater."
+            )
 
         StateUpdateMethod.stateupdaters[name] = stateupdater
 
     @staticmethod
     @cached
-    def apply_stateupdater(equations, variables, method, method_options=None, group_name=None):
+    def apply_stateupdater(
+        equations, variables, method, method_options=None, group_name=None
+    ):
         """
         apply_stateupdater(equations, variables, method, method_options=None, group_name=None)
 
@@ -145,7 +155,7 @@ class StateUpdateMethod(object, metaclass=ABCMeta):
         is used directly. If a `method` is a list of names, all the
         methods will be tried until one that doesn't raise an
         `UnsupportedEquationsException` is found.
-        
+
         Parameters
         ----------
         equations : `Equations`
@@ -162,71 +172,89 @@ class StateUpdateMethod(object, metaclass=ABCMeta):
         abstract_code : str
             The code integrating the given equations.
         """
-        if (isinstance(method, Iterable) and
-                not isinstance(method, str)):
+        if isinstance(method, Iterable) and not isinstance(method, str):
             the_method = None
             start_time = time.time()
             for one_method in method:
                 try:
                     one_method_start_time = time.time()
-                    code = StateUpdateMethod.apply_stateupdater(equations,
-                                                                variables,
-                                                                one_method,
-                                                                group_name=group_name)
+                    code = StateUpdateMethod.apply_stateupdater(
+                        equations, variables, one_method, group_name=group_name
+                    )
                     the_method = one_method
                     one_method_time = time.time() - one_method_start_time
                     break
                 except UnsupportedEquationsException:
                     pass
                 except TypeError:
-                    raise TypeError(f"Each element in the list of methods has "
-                                    f"to be a string or a callable, got "
-                                    f"{type(one_method)}.")
+                    raise TypeError(
+                        "Each element in the list of methods has "
+                        "to be a string or a callable, got "
+                        f"{type(one_method)}."
+                    )
             total_time = time.time() - start_time
             if the_method is None:
-                raise ValueError("No stateupdater that is suitable for the "
-                                 "given equations has been found.")
+                raise ValueError(
+                    "No stateupdater that is suitable for the "
+                    "given equations has been found."
+                )
 
             # If only one method was tried
             if method[0] == the_method:
                 timing = f"took {one_method_time:.2f}s"
             else:
-                timing = (f"took {one_method_time:.2f}s, trying other methods took "
-                          f"{total_time - one_method_time:.2f}s")
+                timing = (
+                    f"took {one_method_time:.2f}s, trying other methods took "
+                    f"{total_time - one_method_time:.2f}s"
+                )
 
             if group_name is not None:
-                msg_text = (f"No numerical integration method specified for group "
-                            f"'{group_name}', using method '{the_method}' ({timing}).")
+                msg_text = (
+                    "No numerical integration method specified for group "
+                    f"'{group_name}', using method '{the_method}' ({timing})."
+                )
             else:
-                msg_text = (f"No numerical integration method specified, "
-                            f"using method '{the_method}' ({timing}).")
-            logger.info(msg_text, 'method_choice')
+                msg_text = (
+                    "No numerical integration method specified, "
+                    f"using method '{the_method}' ({timing})."
+                )
+            logger.info(msg_text, "method_choice")
         else:
-            if hasattr(method, '__call__'):
+            if hasattr(method, "__call__"):
                 # if this is a standard state updater, i.e. if it has a
                 # can_integrate method, check this method and raise a warning if it
                 # claims not to be applicable.
                 stateupdater = method
-                method = getattr(stateupdater, '__name__', repr(stateupdater))  # For logging, get a nicer name
+                method = getattr(
+                    stateupdater, "__name__", repr(stateupdater)
+                )  # For logging, get a nicer name
             elif isinstance(method, str):
                 method = method.lower()  # normalize name to lower case
                 stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
                 if stateupdater is None:
-                    raise ValueError("No state updater with the name '{method}' "
-                                     "is known.")
+                    raise ValueError(
+                        "No state updater with the name '{method}' is known."
+                    )
             else:
-                raise TypeError(f"method argument has to be a string, a "
-                                f"callable, or an iterable of such objects. "
-                                f"Got {type(method)}")
+                raise TypeError(
+                    "method argument has to be a string, a "
+                    "callable, or an iterable of such objects. "
+                    f"Got {type(method)}"
+                )
             start_time = time.time()
             code = stateupdater(equations, variables, method_options)
             method_time = time.time() - start_time
-            timing = 'took %.2fs' % method_time
+            timing = "took %.2fs" % method_time
             if group_name is not None:
-                logger.debug(f"Group {group_name}: using numerical integration "
-                             f"method {method} ({timing})", 'method_choice')
+                logger.debug(
+                    f"Group {group_name}: using numerical integration "
+                    f"method {method} ({timing})",
+                    "method_choice",
+                )
             else:
-                logger.debug(f"Using numerical integration method: {method} "
-                             "f({timing})", 'method_choice')
+                logger.debug(
+                    f"Using numerical integration method: {method} f({{timing}})",
+                    "method_choice",
+                )
 
         return code

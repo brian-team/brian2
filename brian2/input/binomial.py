@@ -9,12 +9,12 @@ from brian2.core.functions import Function, DEFAULT_FUNCTIONS
 from brian2.units.fundamentalunits import check_units
 from brian2.utils.stringtools import replace
 
-__all__ = ['BinomialFunction']
+__all__ = ["BinomialFunction"]
 
 
 def _pre_calc_constants_approximated(n, p):
-    loc = n*p
-    scale = np.sqrt(n*p*(1-p))
+    loc = n * p
+    scale = np.sqrt(n * p * (1 - p))
     return loc, scale
 
 
@@ -26,7 +26,7 @@ def _pre_calc_constants(n, p):
         P = p
     q = 1.0 - P
     qn = np.exp(n * np.log(q))
-    bound = min(n, n*P + 10.0*np.sqrt(n*P*q + 1))
+    bound = min(n, n * P + 10.0 * np.sqrt(n * P * q + 1))
     return reverse, q, P, qn, bound
 
 
@@ -39,10 +39,11 @@ def _generate_cython_code(n, p, use_normal, name):
         cdef float %NAME%(const int vectorisation_idx):
             return _randn(vectorisation_idx) * %SCALE% + %LOC%
         """
-        cython_code = replace(cython_code, {'%SCALE%': f'{scale:.15f}',
-                                            '%LOC%': f'{loc:.15f}',
-                                            '%NAME%': name})
-        dependencies = {'_randn': DEFAULT_FUNCTIONS['randn']}
+        cython_code = replace(
+            cython_code,
+            {"%SCALE%": f"{scale:.15f}", "%LOC%": f"{loc:.15f}", "%NAME%": name},
+        )
+        dependencies = {"_randn": DEFAULT_FUNCTIONS["randn"]}
     else:
         reverse, q, P, qn, bound = _pre_calc_constants(n, p)
         # The following code is an almost exact copy of numpy's
@@ -64,14 +65,19 @@ def _generate_cython_code(n, p, use_normal, name):
                     px = ((%N%-X+1) * %P% * px)/(X*%Q%)
             return %RETURN_VALUE%
         """
-        cython_code = replace(cython_code, {'%N%': f'{int(n)}',
-                                            '%P%': f'{p:.15f}',
-                                            '%Q%': f'{q:.15f}',
-                                            '%QN%': f'{qn:.15f}',
-                                            '%BOUND%': f'{bound:.15f}',
-                                            '%RETURN_VALUE%': f'{int(n)}-X' if reverse else 'X',
-                                            '%NAME%': name})
-        dependencies = {'_rand': DEFAULT_FUNCTIONS['rand']}
+        cython_code = replace(
+            cython_code,
+            {
+                "%N%": f"{int(n)}",
+                "%P%": f"{p:.15f}",
+                "%Q%": f"{q:.15f}",
+                "%QN%": f"{qn:.15f}",
+                "%BOUND%": f"{bound:.15f}",
+                "%RETURN_VALUE%": f"{int(n)}-X" if reverse else "X",
+                "%NAME%": name,
+            },
+        )
+        dependencies = {"_rand": DEFAULT_FUNCTIONS["rand"]}
 
     return cython_code, dependencies
 
@@ -87,10 +93,11 @@ def _generate_cpp_code(n, p, use_normal, name):
             return _randn(vectorisation_idx) * %SCALE% + %LOC%;
         }
         """
-        cpp_code = replace(cpp_code, {'%SCALE%': f'{scale:.15f}',
-                                      '%LOC%': f'{loc:.15f}',
-                                      '%NAME%': name})
-        dependencies = {'_randn': DEFAULT_FUNCTIONS['randn']}
+        cpp_code = replace(
+            cpp_code,
+            {"%SCALE%": f"{scale:.15f}", "%LOC%": f"{loc:.15f}", "%NAME%": name},
+        )
+        dependencies = {"_randn": DEFAULT_FUNCTIONS["randn"]}
     else:
         reverse, q, P, qn, bound = _pre_calc_constants(n, p)
         # The following code is an almost exact copy of numpy's
@@ -119,16 +126,21 @@ def _generate_cpp_code(n, p, use_normal, name):
             return %RETURN_VALUE%;
         }
         """
-        cpp_code = replace(cpp_code, {'%N%': f'{int(n)}',
-                                      '%P%': f'{P:.15f}',
-                                      '%Q%': f'{q:.15f}',
-                                      '%QN%': f'{qn:.15f}',
-                                      '%BOUND%': f'{bound:.15f}',
-                                      '%RETURN_VALUE%': f'{int(n)}-X' if reverse else 'X',
-                                      '%NAME%': name})
-        dependencies = {'_rand': DEFAULT_FUNCTIONS['rand']}
+        cpp_code = replace(
+            cpp_code,
+            {
+                "%N%": f"{int(n)}",
+                "%P%": f"{P:.15f}",
+                "%Q%": f"{q:.15f}",
+                "%QN%": f"{qn:.15f}",
+                "%BOUND%": f"{bound:.15f}",
+                "%RETURN_VALUE%": f"{int(n)}-X" if reverse else "X",
+                "%NAME%": name,
+            },
+        )
+        dependencies = {"_rand": DEFAULT_FUNCTIONS["rand"]}
 
-    return {'support_code': cpp_code}, dependencies
+    return {"support_code": cpp_code}, dependencies
 
 
 class BinomialFunction(Function, Nameable):
@@ -153,26 +165,27 @@ class BinomialFunction(Function, Nameable):
     #: The key has to be the name of the target, the value a function
     #: that takes three parameters (n, p, use_normal) and returns a tuple of
     #: (code, dependencies)
-    implementations = {
-        'cpp': _generate_cpp_code,
-        'cython': _generate_cython_code
-    }
+    implementations = {"cpp": _generate_cpp_code, "cython": _generate_cython_code}
+
     @check_units(n=1, p=1)
-    def __init__(self, n, p, approximate=True, name='_binomial*'):
+    def __init__(self, n, p, approximate=True, name="_binomial*"):
         Nameable.__init__(self, name)
 
-        #Python implementation
-        use_normal = approximate and (n*p > 5) and n*(1-p) > 5
+        # Python implementation
+        use_normal = approximate and (n * p > 5) and n * (1 - p) > 5
         if use_normal:
-            loc = n*p
-            scale = np.sqrt(n*p*(1-p))
+            loc = n * p
+            scale = np.sqrt(n * p * (1 - p))
+
             def sample_function(vectorisation_idx):
                 try:
                     N = len(vectorisation_idx)
                 except TypeError:
                     N = int(vectorisation_idx)
                 return np.random.normal(loc, scale, size=N)
+
         else:
+
             def sample_function(vectorisation_idx):
                 try:
                     N = len(vectorisation_idx)
@@ -180,15 +193,19 @@ class BinomialFunction(Function, Nameable):
                     N = int(vectorisation_idx)
                 return np.random.binomial(n, p, size=N)
 
-        Function.__init__(self, pyfunc=lambda: sample_function(1),
-                          arg_units=[], return_unit=1, stateless=False,
-                          auto_vectorise=True)
+        Function.__init__(
+            self,
+            pyfunc=lambda: sample_function(1),
+            arg_units=[],
+            return_unit=1,
+            stateless=False,
+            auto_vectorise=True,
+        )
 
-        self.implementations.add_implementation('numpy', sample_function)
+        self.implementations.add_implementation("numpy", sample_function)
 
         for target, func in BinomialFunction.implementations.items():
-            code, dependencies = func(n=n, p=p, use_normal=use_normal,
-                                      name=self.name)
-            self.implementations.add_implementation(target, code,
-                                                    dependencies=dependencies,
-                                                    name=self.name)
+            code, dependencies = func(n=n, p=p, use_normal=use_normal, name=self.name)
+            self.implementations.add_implementation(
+                target, code, dependencies=dependencies, name=self.name
+            )

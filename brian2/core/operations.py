@@ -1,17 +1,16 @@
-
 import inspect
 
 from brian2.core.base import BrianObject
 
-__all__ = ['NetworkOperation', 'network_operation']
+__all__ = ["NetworkOperation", "network_operation"]
 
 
 class NetworkOperation(BrianObject):
     """Object with function that is called every time step.
-    
+
     Parameters
     ----------
-    
+
     function : function
         The function to call every time step, should take either no arguments
         in which case it is called as ``function()`` or one argument, in which
@@ -28,22 +27,34 @@ class NetworkOperation(BrianObject):
     order : int, optional
         The priority of this operation for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.
-        
+
     See Also
     --------
-    
+
     network_operation, Network, BrianObject
     """
+
     add_to_magic_network = True
-    def __init__(self, function, dt=None, clock=None, when='start', order=0, name='networkoperation*'):
-        BrianObject.__init__(self, dt=dt, clock=clock, when=when, order=order, name=name)
+
+    def __init__(
+        self,
+        function,
+        dt=None,
+        clock=None,
+        when="start",
+        order=0,
+        name="networkoperation*",
+    ):
+        BrianObject.__init__(
+            self, dt=dt, clock=clock, when=when, order=order, name=name
+        )
 
         #: The function to be called each time step
         self.function = function
 
         is_method = inspect.ismethod(function)
 
-        if hasattr(function, '__code__'):
+        if hasattr(function, "__code__"):
             argcount = function.__code__.co_argcount
             if is_method:
                 if argcount == 2:
@@ -51,29 +62,35 @@ class NetworkOperation(BrianObject):
                 elif argcount == 1:
                     self._has_arg = False
                 else:
-                    raise TypeError(f"Method '{function.__name__}' cannot be used as a "
-                                    f"network operation, it needs to have either "
-                                    f"only 'self' or 'self, t' as arguments, but it "
-                                    f"has {argcount} arguments.")
+                    raise TypeError(
+                        f"Method '{function.__name__}' cannot be used as a "
+                        "network operation, it needs to have either "
+                        "only 'self' or 'self, t' as arguments, but it "
+                        f"has {argcount} arguments."
+                    )
             else:
-                if argcount >= 1 and function.__code__.co_varnames[0] == 'self':
-                    raise TypeError("The first argument of the function "
-                                    "'{function.__name__}' is 'self', suggesting it "
-                                    "is an instance method and not a function. Did "
-                                    "you use @network_operation on a class method? "
-                                    "This will not work, explicitly create a "
-                                    "NetworkOperation object instead -- see "
-                                    "the documentation for more "
-                                    "details.")
+                if argcount >= 1 and function.__code__.co_varnames[0] == "self":
+                    raise TypeError(
+                        "The first argument of the function "
+                        "'{function.__name__}' is 'self', suggesting it "
+                        "is an instance method and not a function. Did "
+                        "you use @network_operation on a class method? "
+                        "This will not work, explicitly create a "
+                        "NetworkOperation object instead -- see "
+                        "the documentation for more "
+                        "details."
+                    )
                 if argcount == 1:
                     self._has_arg = True
                 elif argcount == 0:
                     self._has_arg = False
                 else:
-                    raise TypeError(f"Function '{function.__name__}' cannot be used as "
-                                    f"a network operation, it needs to have either "
-                                    f"only 't' as an argument or have no arguments, "
-                                    f"but it has {argcount} arguments.")
+                    raise TypeError(
+                        f"Function '{function.__name__}' cannot be used as "
+                        "a network operation, it needs to have either "
+                        "only 't' as an argument or have no arguments, "
+                        f"but it has {argcount} arguments."
+                    )
         else:
             self._has_arg = False
 
@@ -87,12 +104,12 @@ class NetworkOperation(BrianObject):
 def network_operation(*args, **kwds):
     """
     network_operation(when=None)
-    
+
     Decorator to make a function get called every time step of a simulation.
-    
+
     The function being decorated should either have no arguments, or a single
     argument which will be called with the current time ``t``.
-    
+
     Parameters
     ----------
     dt : `Quantity`, optional
@@ -110,7 +127,7 @@ def network_operation(*args, **kwds):
 
     Examples
     --------
-    
+
     Print something each time step:
     >>> from brian2 import *
     >>> @network_operation
@@ -118,15 +135,15 @@ def network_operation(*args, **kwds):
     ...   print('something')
     ...
     >>> net = Network(f)
-    
+
     Print the time each time step:
-    
+
     >>> @network_operation
     ... def f(t):
     ...   print('The time is', t)
     ...
     >>> net = Network(f)
-    
+
     Specify a dt, etc.:
 
     >>> @network_operation(dt=0.5*ms, when='end')
@@ -134,23 +151,23 @@ def network_operation(*args, **kwds):
     ...   print('This will happen at the end of each timestep.')
     ...
     >>> net = Network(f)
-    
+
     Notes
     -----
-    
+
     Converts the function into a `NetworkOperation`.
-    
+
     If using the form::
-    
+
         @network_operations(when='end')
         def f():
             ...
-            
+
     Then the arguments to network_operation must be keyword arguments.
-    
+
     See Also
     --------
-    
+
     NetworkOperation, Network, BrianObject
     """
     # Notes on this decorator:
@@ -189,6 +206,7 @@ def network_operation(*args, **kwds):
     class do_network_operation(object):
         def __init__(self, **kwds):
             self.kwds = kwds
+
         def __call__(self, f):
             new_network_operation = NetworkOperation(f, **self.kwds)
             # Depending on whether we were called as @network_operation or
@@ -201,7 +219,8 @@ def network_operation(*args, **kwds):
             new_network_operation.__doc__ = f.__doc__
             new_network_operation.__dict__.update(f.__dict__)
             return new_network_operation
-    if len(args)==1 and callable(args[0]):
+
+    if len(args) == 1 and callable(args[0]):
         # We're in case (1), the user has written:
         # @network_operation
         # def f():

@@ -9,7 +9,7 @@ from brian2.units.allunits import second, hertz
 from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.groups.group import CodeRunner, Group
 
-__all__ = ['PopulationRateMonitor']
+__all__ = ["PopulationRateMonitor"]
 
 
 logger = get_logger(__name__)
@@ -38,45 +38,60 @@ class PopulationRateMonitor(Group, CodeRunner):
     each time step of the source clock. Any binning/smoothing of the firing
     rates has to be done manually afterwards.
     """
+
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, name='ratemonitor*', codeobj_class=None,
-                 dtype=np.float64):
 
+    def __init__(
+        self, source, name="ratemonitor*", codeobj_class=None, dtype=np.float64
+    ):
         #: The group we are recording from
         self.source = source
 
         self.codeobj_class = codeobj_class
-        CodeRunner.__init__(self, group=self, code='', template='ratemonitor',
-                            clock=source.clock, when='end', order=0, name=name)
+        CodeRunner.__init__(
+            self,
+            group=self,
+            code="",
+            template="ratemonitor",
+            clock=source.clock,
+            when="end",
+            order=0,
+            name=name,
+        )
 
         self.add_dependency(source)
 
         self.variables = Variables(self)
         # Handle subgroups correctly
-        start = getattr(source, 'start', 0)
-        stop = getattr(source, 'stop', len(source))
-        self.variables.add_constant('_source_start', start)
-        self.variables.add_constant('_source_stop', stop)
-        self.variables.add_reference('_spikespace', source)
-        self.variables.add_dynamic_array('rate', size=0, dimensions=hertz.dim,
-                                         read_only=True, dtype=dtype)
-        self.variables.add_dynamic_array('t', size=0, dimensions=second.dim,
-                                         read_only=True,
-                                         dtype=self._clock.variables['t'].dtype)
-        self.variables.add_reference('_num_source_neurons', source, 'N')
-        self.variables.add_array('N', dtype=np.int32, size=1,
-                                 scalar=True, read_only=True)
-        self.variables.create_clock_variables(self._clock,
-                                              prefix='_clock_')
+        start = getattr(source, "start", 0)
+        stop = getattr(source, "stop", len(source))
+        self.variables.add_constant("_source_start", start)
+        self.variables.add_constant("_source_stop", stop)
+        self.variables.add_reference("_spikespace", source)
+        self.variables.add_dynamic_array(
+            "rate", size=0, dimensions=hertz.dim, read_only=True, dtype=dtype
+        )
+        self.variables.add_dynamic_array(
+            "t",
+            size=0,
+            dimensions=second.dim,
+            read_only=True,
+            dtype=self._clock.variables["t"].dtype,
+        )
+        self.variables.add_reference("_num_source_neurons", source, "N")
+        self.variables.add_array(
+            "N", dtype=np.int32, size=1, scalar=True, read_only=True
+        )
+        self.variables.create_clock_variables(self._clock, prefix="_clock_")
         self._enable_group_attributes()
 
     def resize(self, new_size):
         # Note that this does not set N, this has to be done in the template
         # since we use a restricted pointer to access it (which promises that
         # we only change the value through this pointer)
-        self.variables['rate'].resize(new_size)
-        self.variables['t'].resize(new_size)
+        self.variables["rate"].resize(new_size)
+        self.variables["t"].resize(new_size)
 
     def reinit(self):
         """
@@ -85,7 +100,7 @@ class PopulationRateMonitor(Group, CodeRunner):
         raise NotImplementedError()
 
     @check_units(width=second)
-    def smooth_rate(self, window='gaussian', width=None):
+    def smooth_rate(self, window="gaussian", width=None):
         """
         smooth_rate(self, window='gaussian', width=None)
 
@@ -126,19 +141,24 @@ class PopulationRateMonitor(Group, CodeRunner):
             raise TypeError("Can only specify a width for a predefined window")
 
         if isinstance(window, str):
-            if window == 'gaussian':
-                width_dt = int(np.round(2*width / self.clock.dt))
+            if window == "gaussian":
+                width_dt = int(np.round(2 * width / self.clock.dt))
                 # Rounding only for the size of the window, not for the standard
                 # deviation of the Gaussian
-                window = np.exp(-np.arange(-width_dt,
-                                           width_dt + 1)**2 *
-                                1. / (2 * (width/self.clock.dt) ** 2))
-            elif window == 'flat':
-                width_dt = int(width / 2 / self.clock.dt)*2 + 1
+                window = np.exp(
+                    -np.arange(-width_dt, width_dt + 1) ** 2
+                    * 1.0
+                    / (2 * (width / self.clock.dt) ** 2)
+                )
+            elif window == "flat":
+                width_dt = int(width / 2 / self.clock.dt) * 2 + 1
                 used_width = width_dt * self.clock.dt
-                if abs(used_width - width) > 1e-6*self.clock.dt:
-                    logger.info(f'width adjusted from {width} to {used_width}',
-                                'adjusted_width', once=True)
+                if abs(used_width - width) > 1e-6 * self.clock.dt:
+                    logger.info(
+                        f"width adjusted from {width} to {used_width}",
+                        "adjusted_width",
+                        once=True,
+                    )
                 window = np.ones(width_dt)
             else:
                 raise NotImplementedError(f'Unknown pre-defined window "{window}"')
@@ -148,14 +168,13 @@ class PopulationRateMonitor(Group, CodeRunner):
             except TypeError:
                 raise TypeError(f"Cannot use a window of type {type(window)}")
             if window.ndim != 1:
-                raise TypeError("The provided window has to be "
-                                "one-dimensional.")
+                raise TypeError("The provided window has to be one-dimensional.")
             if len(window) % 2 != 1:
-                raise TypeError("The window has to have an odd number of "
-                                "values.")
-        return Quantity(np.convolve(self.rate_,
-                                    window * 1. / sum(window),
-                                    mode='same'), dim=hertz.dim)
+                raise TypeError("The window has to have an odd number of values.")
+        return Quantity(
+            np.convolve(self.rate_, window * 1.0 / sum(window), mode="same"),
+            dim=hertz.dim,
+        )
 
     def __repr__(self):
         classname = self.__class__.__name__

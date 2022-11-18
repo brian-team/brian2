@@ -1,4 +1,3 @@
-
 import numpy as np
 from numpy.testing import assert_equal
 import pytest
@@ -37,7 +36,7 @@ def create_one_to_one(N, dt):
 @pytest.mark.codegen_independent
 def test_spikequeue():
     N = 100
-    dt = float(0.1*ms)
+    dt = float(0.1 * ms)
     synapses, delays = create_one_to_one(N, dt)
     queue = SpikeQueue(source_start=0, source_end=N)
     queue.prepare(delays[:], dt, synapses)
@@ -53,14 +52,14 @@ def test_spikequeue():
 
     queue = SpikeQueue(source_start=0, source_end=N)
     queue.prepare(delays[:], dt, synapses)
-    queue.push(np.arange(N*N, dtype=np.int32))
+    queue.push(np.arange(N * N, dtype=np.int32))
     for i in range(N):
-        assert_equal(queue.peek(), i*N + np.arange(N))
+        assert_equal(queue.peek(), i * N + np.arange(N))
         queue.advance()
     for i in range(N):
         assert_equal(queue.peek(), np.array([]))
         queue.advance()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_spikequeue()

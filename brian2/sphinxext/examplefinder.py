@@ -3,16 +3,16 @@ Automatically find examples of a Brian object or function.
 """
 
 
-
 import os, re
 from collections import defaultdict
 from .generate_examples import GlobDirectoryWalker
 from brian2.utils.stringtools import get_identifiers
 
-__all__ = ['auto_find_examples']
+__all__ = ["auto_find_examples"]
 
 the_examples_map = defaultdict(list)
 the_tutorials_map = defaultdict(list)
+
 
 def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=[]):
     if the_map:
@@ -26,26 +26,34 @@ def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=[]):
     for exclude in path_exclusions:
         fnames = [fname for fname in fnames if exclude not in fname]
     shortfnames = [os.path.relpath(fname, rootdir) for fname in fnames]
-    exnames = [fname.replace('/', '.').replace('\\', '.').replace(pattern, '') for fname in shortfnames]
+    exnames = [
+        fname.replace("/", ".").replace("\\", ".").replace(pattern, "")
+        for fname in shortfnames
+    ]
     for fname, shortfname, exname in zip(fnames, shortfnames, exnames):
-        with open(fname, 'r') as f:
+        with open(fname, "r") as f:
             ex = f.read()
         ids = get_identifiers(ex)
         for id in ids:
-            the_map[id].append((shortfname.replace('\\', '/'), exname))
+            the_map[id].append((shortfname.replace("\\", "/"), exname))
     return the_map
 
 
 def get_examples_map():
-    return get_map('BRIAN2_DOCS_EXAMPLE_DIR', '../../examples', '.py', the_examples_map)
+    return get_map("BRIAN2_DOCS_EXAMPLE_DIR", "../../examples", ".py", the_examples_map)
 
 
 def get_tutorials_map():
-    return get_map('BRIAN2_DOCS_TUTORIALS_DIR', '../../tutorials', '.ipynb', the_tutorials_map,
-                   path_exclusions=['.ipynb_checkpoints'])
+    return get_map(
+        "BRIAN2_DOCS_TUTORIALS_DIR",
+        "../../tutorials",
+        ".ipynb",
+        the_tutorials_map,
+        path_exclusions=[".ipynb_checkpoints"],
+    )
 
 
-def auto_find_examples(obj, headersymbol='='):
+def auto_find_examples(obj, headersymbol="="):
     """
     Returns a restructured text section listing all the examples and
     tutorials making use of the specified object (as determined by
@@ -57,19 +65,20 @@ def auto_find_examples(obj, headersymbol='='):
     examples = sorted(the_examples_map[name])
     tutorials_map = get_tutorials_map()
     tutorials = sorted(the_tutorials_map[name])
-    if len(examples+tutorials)==0:
-        return ''
-    txt = 'Tutorials and examples using this'
+    if len(examples + tutorials) == 0:
+        return ""
+    txt = "Tutorials and examples using this"
     txt = f"{txt}\n{headersymbol * len(txt)}\n\n"
     for tutname, tutloc in tutorials:
-        tutname = tutname.replace('.ipynb', '')
-        txt += f'* Tutorial :doc:`{tutname} </resources/tutorials/{tutloc}>`\n'
+        tutname = tutname.replace(".ipynb", "")
+        txt += f"* Tutorial :doc:`{tutname} </resources/tutorials/{tutloc}>`\n"
     for exname, exloc in examples:
-        exname = exname.replace('.py', '')
-        txt += f'* Example :doc:`{exname} </examples/{exloc}>`\n'
+        exname = exname.replace(".py", "")
+        txt += f"* Example :doc:`{exname} </examples/{exloc}>`\n"
     return f"{txt}\n"
-    
-    
-if __name__=='__main__':
+
+
+if __name__ == "__main__":
     from brian2 import NeuronGroup, SpatialNeuron
+
     print(auto_find_examples(NeuronGroup))

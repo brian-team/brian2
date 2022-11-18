@@ -60,6 +60,11 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
    :alt: Join the chat at https://gitter.im/brian-team/brian2
    :target: https://gitter.im/brian-team/brian2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :alt: code style: black
+   :target: https://github.com/psf/black
+
 Quickstart
 ----------
 Try out Brian on the `mybinder <https://mybinder.org/>`_ service:

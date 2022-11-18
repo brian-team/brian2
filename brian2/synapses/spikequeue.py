@@ -11,7 +11,7 @@ import numpy as np
 from brian2.utils.logger import get_logger
 from brian2.utils.arrays import calc_repeats
 
-__all__=['SpikeQueue']
+__all__ = ["SpikeQueue"]
 
 logger = get_logger(__name__)
 
@@ -21,7 +21,7 @@ INITIAL_MAXSPIKESPER_DT = 1
 class SpikeQueue(object):
     """
     Data structure saving the spikes and taking care of delays.
-    
+
     Parameters
     ----------
 
@@ -31,13 +31,13 @@ class SpikeQueue(object):
         The end of the source indices (for subgroups)
     Notes
     -----
-    **Data structure** 
-    
+    **Data structure**
+
     A spike queue is implemented as a 2D array `X` that is circular in the time
     direction (rows) and dynamic in the events direction (columns). The
     row index corresponding to the current timestep is `currentime`.
     Each element contains the target synapse index.
-    
+
     **Offsets**
 
     Offsets are used to solve the problem of inserting multiple synaptic events
@@ -45,8 +45,8 @@ class SpikeQueue(object):
     events with the same delay, these events are given an offset between 0 and
     n-1, corresponding to their relative position in the data structure.
     """
-    def __init__(self, source_start, source_end):
 
+    def __init__(self, source_start, source_end):
         #: The start of the source indices (for subgroups)
         self._source_start = source_start
 
@@ -55,7 +55,9 @@ class SpikeQueue(object):
 
         self.dtype = np.int32  # TODO: Ths is fixed for now
         self.X = np.zeros((1, 1), dtype=self.dtype)  # target synapses
-        self.X_flat = self.X.reshape(1, )
+        self.X_flat = self.X.reshape(
+            1,
+        )
         #: The current time (in time steps)
         self.currenttime = 0
         #: number of events in each time step
@@ -98,29 +100,37 @@ class SpikeQueue(object):
         self._delays = delays
 
         # Prepare the data structure used in propagation
-        synapse_sources = synapse_sources[:]        
+        synapse_sources = synapse_sources[:]
         ss = np.ravel(synapse_sources)
         # mergesort to retain relative order, keeps the output lists in sorted order
-        I = np.argsort(ss, kind='mergesort')
+        I = np.argsort(ss, kind="mergesort")
         ss_sorted = ss[I]
-        splitinds = np.searchsorted(ss_sorted, np.arange(self._source_start, self. _source_end+1))
-        self._neurons_to_synapses = [I[splitinds[j]:splitinds[j+1]] for j in range(len(splitinds)-1)]
+        splitinds = np.searchsorted(
+            ss_sorted, np.arange(self._source_start, self._source_end + 1)
+        )
+        self._neurons_to_synapses = [
+            I[splitinds[j] : splitinds[j + 1]] for j in range(len(splitinds) - 1)
+        ]
         max_events = max(map(len, self._neurons_to_synapses))
 
         n_steps = max_delays + 1
-        
+
         # Adjust the maximum delay and number of events per timestep if necessary
         # Check if delays are homogeneous
-        self._homogeneous = (max_delays == min_delays)
+        self._homogeneous = max_delays == min_delays
 
         # Resize
-        if (n_steps > self.X.shape[0]) or (max_events > self.X.shape[1]): # Resize
+        if (n_steps > self.X.shape[0]) or (max_events > self.X.shape[1]):  # Resize
             # Choose max_delay if is is larger than the maximum delay
             n_steps = max(n_steps, self.X.shape[0])
             max_events = max(max_events, self.X.shape[1])
-            self.X = np.zeros((n_steps, max_events), dtype=self.dtype) # target synapses
-            self.X_flat = self.X.reshape(n_steps*max_events,)
-            self.n = np.zeros(n_steps, dtype=int) # number of events in each time step
+            self.X = np.zeros(
+                (n_steps, max_events), dtype=self.dtype
+            )  # target synapses
+            self.X_flat = self.X.reshape(
+                n_steps * max_events,
+            )
+            self.n = np.zeros(n_steps, dtype=int)  # number of events in each time step
 
         # Re-insert the spikes into the data structure
         if spikes is not None:
@@ -144,7 +154,7 @@ class SpikeQueue(object):
         for idx, n in enumerate(self.n):
             t = (idx - self.currenttime) % len(self.n)
             for target in self.X[idx, :n]:
-                spikes[counter,:] = np.array([t, target])
+                spikes[counter, :] = np.array([t, target])
                 counter += 1
         return spikes
 
@@ -183,7 +193,9 @@ class SpikeQueue(object):
             # Restore the previous shape
             n_steps, max_events = X_shape
             self.X = np.zeros((n_steps, max_events), dtype=self.dtype)
-            self.X_flat = self.X.reshape(n_steps*max_events,)
+            self.X_flat = self.X.reshape(
+                n_steps * max_events,
+            )
             self.n = np.zeros(n_steps, dtype=int)
             self._store_spikes(spikes)
 
@@ -192,16 +204,16 @@ class SpikeQueue(object):
         """
         Advances by one timestep
         """
-        self.n[self.currenttime]=0 # erase
-        self.currenttime=(self.currenttime+1) % len(self.n)
-        
+        self.n[self.currenttime] = 0  # erase
+        self.currenttime = (self.currenttime + 1) % len(self.n)
+
     def peek(self):
         """
         Returns the all the synaptic events corresponding to the current time,
         as an array of synapse indexes.
-        """      
-        return self.X[self.currenttime, :self.n[self.currenttime]]    
-    
+        """
+        return self.X[self.currenttime, : self.n[self.currenttime]]
+
     def push(self, sources):
         """
         Push spikes to the queue.
@@ -223,11 +235,12 @@ class SpikeQueue(object):
             else:
                 stop_idx = len(sources) + 1
             sources = sources[start_idx:stop_idx]
-            if len(sources)==0:
+            if len(sources) == 0:
                 return
             synapse_indices = self._neurons_to_synapses
-            indices = np.concatenate([synapse_indices[source - start]
-                                      for source in sources]).astype(np.int32)
+            indices = np.concatenate(
+                [synapse_indices[source - start] for source in sources]
+            ).astype(np.int32)
             if self._homogeneous:  # homogeneous delays
                 self._insert_homogeneous(self._delays[0], indices)
             else:  # vectorise over synaptic events
@@ -256,11 +269,11 @@ class SpikeQueue(object):
         # It's an overestimation for the current time, but I believe a good one
         # for future events
         m = max(self.n) + len(target)
-        if (m >= self.X.shape[1]): # overflow
-            self._resize(m+1)
+        if m >= self.X.shape[1]:  # overflow
+            self._resize(m + 1)
 
-        self.X_flat[timesteps*self.X.shape[1]+offset+self.n[timesteps]] = target
-        self.n[timesteps] += offset+1 # that's a trick (to update stack size)
+        self.X_flat[timesteps * self.X.shape[1] + offset + self.n[timesteps]] = target
+        self.n[timesteps] += offset + 1  # that's a trick (to update stack size)
 
     def _insert_homogeneous(self, delay, target):
         """
@@ -276,11 +289,13 @@ class SpikeQueue(object):
         """
         timestep = (self.currenttime + delay) % len(self.n)
         nevents = len(target)
-        m = self.n[timestep]+nevents+1 # If overflow, then at least one self.n is bigger than the size
-        if (m >= self.X.shape[1]):
+        m = (
+            self.n[timestep] + nevents + 1
+        )  # If overflow, then at least one self.n is bigger than the size
+        if m >= self.X.shape[1]:
             self._resize(m + 1)  # was m previously (not enough)
-        k = timestep*self.X.shape[1] + self.n[timestep]
-        self.X_flat[k:k+nevents] = target
+        k = timestep * self.X.shape[1] + self.n[timestep]
+        self.X_flat[k : k + nevents] = target
         self.n[timestep] += nevents
 
     def _resize(self, maxevents):
@@ -296,10 +311,12 @@ class SpikeQueue(object):
         """
         # old and new sizes
         old_maxevents = self.X.shape[1]
-        new_maxevents = int(2**np.ceil(np.log2(maxevents))) # maybe 2 is too large
+        new_maxevents = int(2 ** np.ceil(np.log2(maxevents)))  # maybe 2 is too large
         # new array
         newX = np.zeros((self.X.shape[0], new_maxevents), dtype=self.X.dtype)
-        newX[:, :old_maxevents] = self.X[:, :old_maxevents] # copy old data
+        newX[:, :old_maxevents] = self.X[:, :old_maxevents]  # copy old data
 
         self.X = newX
-        self.X_flat = self.X.reshape(self.X.shape[0]*new_maxevents,)
+        self.X_flat = self.X.reshape(
+            self.X.shape[0] * new_maxevents,
+        )

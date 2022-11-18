@@ -4,30 +4,31 @@ A collection of tools for string formatting tasks.
 import re
 import string
 
-__all__ = ['indent',
-           'deindent',
-           'word_substitute',
-           'replace',
-           'get_identifiers',
-           'strip_empty_lines',
-           'stripped_deindented_lines',
-           'strip_empty_leading_and_trailing_lines',
-           'code_representation',
-           'SpellChecker'
-           ]
+__all__ = [
+    "indent",
+    "deindent",
+    "word_substitute",
+    "replace",
+    "get_identifiers",
+    "strip_empty_lines",
+    "stripped_deindented_lines",
+    "strip_empty_leading_and_trailing_lines",
+    "code_representation",
+    "SpellChecker",
+]
 
 
 def indent(text, numtabs=1, spacespertab=4, tab=None):
     """
     Indents a given multiline string.
-    
+
     By default, indentation is done using spaces rather than tab characters.
     To use tab characters, specify the tab character explictly, e.g.::
-    
+
         indent(text, tab='\t')
-        
+
     Note that in this case ``spacespertab`` is ignored.
-    
+
     Examples
     --------
     >>> multiline = '''def f(x):
@@ -49,27 +50,28 @@ def indent(text, numtabs=1, spacespertab=4, tab=None):
     ####    return x*x
     """
     if tab is None:
-        tab = ' '*spacespertab
-    indent = tab*numtabs
-    indentedstring = indent+text.replace('\n', f"\n{indent}")
+        tab = " " * spacespertab
+    indent = tab * numtabs
+    indentedstring = indent + text.replace("\n", f"\n{indent}")
     return indentedstring
+
 
 def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     """
     Returns a copy of the string with the common indentation removed.
-    
+
     Note that all tab characters are replaced with ``spacespertab`` spaces.
-        
+
     If the ``docstring`` flag is set, the first line is treated differently and
     is assumed to be already correctly tabulated.
-    
+
     If the ``numtabs`` option is given, the amount of indentation to remove is
     given explicitly and not the common indentation.
-    
+
     Examples
     --------
     Normal strings, e.g. function definitions:
-    
+
     >>> multiline = '''    def f(x):
     ...          return x**2'''
     >>> print(multiline)
@@ -84,9 +86,9 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     >>> print(deindent(multiline, numtabs=1, spacespertab=2))
       def f(x):
            return x**2
-    
+
     Docstrings:
-    
+
     >>> docstring = '''First docstring line.
     ...     This line determines the indentation.'''
     >>> print(docstring)
@@ -96,40 +98,45 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     First docstring line.
     This line determines the indentation.
     """
-    text = text.replace('\t', ' '*spacespertab)
-    lines = text.split('\n')
+    text = text.replace("\t", " " * spacespertab)
+    lines = text.split("\n")
     # if it's a docstring, we search for the common tabulation starting from
     # line 1, otherwise we use all lines
     if docstring:
         start = 1
     else:
         start = 0
-    if docstring and len(lines)<2: # nothing to do
+    if docstring and len(lines) < 2:  # nothing to do
         return text
     # Find the minimum indentation level
     if numtabs is not None:
-        indentlevel = numtabs*spacespertab
+        indentlevel = numtabs * spacespertab
     else:
-        lineseq = [len(line)-len(line.lstrip()) for line in lines[start:] if len(line.strip())]
-        if len(lineseq)==0:
+        lineseq = [
+            len(line) - len(line.lstrip())
+            for line in lines[start:]
+            if len(line.strip())
+        ]
+        if len(lineseq) == 0:
             indentlevel = 0
         else:
             indentlevel = min(lineseq)
     # remove the common indentation
     lines[start:] = [line[indentlevel:] for line in lines[start:]]
-    return '\n'.join(lines)
+    return "\n".join(lines)
+
 
 def word_substitute(expr, substitutions):
     """
     Applies a dict of word substitutions.
-    
+
     The dict ``substitutions`` consists of pairs ``(word, rep)`` where each
     word ``word`` appearing in ``expr`` is replaced by ``rep``. Here a 'word'
     means anything matching the regexp ``\\bword\\b``.
-    
+
     Examples
     --------
-    
+
     >>> expr = 'a*_b+c5+8+f(A)'
     >>> print(word_substitute(expr, {'a':'banana', 'f':'func'}))
     banana*_b+c5+8+func(A)
@@ -149,7 +156,7 @@ def replace(s, substitutions):
     return s
 
 
-KEYWORDS = {'and', 'or', 'not', 'True', 'False'}
+KEYWORDS = {"and", "or", "not", "True", "False"}
 
 
 def get_identifiers(expr, include_numbers=False):
@@ -180,11 +187,15 @@ def get_identifiers(expr, include_numbers=False):
     >>> print(sorted(list(ids)))
     ['.3e-10', '17', '3', '8', 'A', '_b', 'a', 'c5', 'f', 'tau_2']
     """
-    identifiers = set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr))
+    identifiers = set(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", expr))
     if include_numbers:
         # only the number, not a + or -
-        numbers = set(re.findall(r'(?<=[^A-Za-z_])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?|^[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?',
-                                 expr))
+        numbers = set(
+            re.findall(
+                r"(?<=[^A-Za-z_])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?|^[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?",
+                expr,
+            )
+        )
     else:
         numbers = set()
     return (identifiers - KEYWORDS) | numbers
@@ -193,27 +204,31 @@ def get_identifiers(expr, include_numbers=False):
 def strip_empty_lines(s):
     """
     Removes all empty lines from the multi-line string `s`.
-    
+
     Examples
     --------
-    
+
     >>> multiline = '''A string with
-    ... 
+    ...
     ... an empty line.'''
     >>> print(strip_empty_lines(multiline))
     A string with
     an empty line.
     """
-    return '\n'.join(line for line in s.split('\n') if line.strip())
+    return "\n".join(line for line in s.split("\n") if line.strip())
+
 
 def strip_empty_leading_and_trailing_lines(s):
     """
     Removes all empty leading and trailing lines in the multi-line string `s`.
     """
-    lines = s.split('\n')
-    while lines and not lines[0].strip():  del lines[0]
-    while lines and not lines[-1].strip(): del lines[-1]
-    return '\n'.join(lines)
+    lines = s.split("\n")
+    while lines and not lines[0].strip():
+        del lines[0]
+    while lines and not lines[-1].strip():
+        del lines[-1]
+    return "\n".join(lines)
+
 
 def stripped_deindented_lines(code):
     """
@@ -221,13 +236,14 @@ def stripped_deindented_lines(code):
     """
     code = deindent(code)
     code = strip_empty_lines(code)
-    lines = code.split('\n')
+    lines = code.split("\n")
     return lines
+
 
 def code_representation(code):
     """
     Returns a string representation for several different formats of code
-    
+
     Formats covered include:
     - A single string
     - A list of statements/strings
@@ -244,16 +260,16 @@ def code_representation(code):
         code = code.copy()
     for k, v in code.items():
         if isinstance(v, (list, tuple)):
-            v = '\n'.join([str(line) for line in v])
+            v = "\n".join([str(line) for line in v])
             code[k] = v
     if len(code) == 1 and list(code.keys())[0] is None:
         return strip_empty_leading_and_trailing_lines(list(code.values())[0])
     output = []
     for k, v in code.items():
-        msg = f'Key {k}:\n'
+        msg = f"Key {k}:\n"
         msg += indent(str(v))
         output.append(msg)
-    return strip_empty_leading_and_trailing_lines('\n'.join(output))
+    return strip_empty_leading_and_trailing_lines("\n".join(output))
 
 
 # The below is adapted from Peter Norvig's spelling corrector
@@ -271,22 +287,23 @@ class SpellChecker(object):
         The allowed characters. Defaults to the characters allowed for
         identifiers, i.e. ascii characters, digits and the underscore.
     """
-    def __init__(self, words,
-                 alphabet=f"{string.ascii_lowercase + string.digits}_"):
+
+    def __init__(self, words, alphabet=f"{string.ascii_lowercase + string.digits}_"):
         self.words = words
         self.alphabet = alphabet
 
     def edits1(self, word):
-       s = [(word[:i], word[i:]) for i in range(len(word) + 1)]
-       deletes    = [a + b[1:] for a, b in s if b]
-       transposes = [a + b[1] + b[0] + b[2:] for a, b in s if len(b)>1]
-       replaces   = [a + c + b[1:] for a, b in s for c in self.alphabet if b]
-       inserts    = [a + c + b     for a, b in s for c in self.alphabet]
-       return set(deletes + transposes + replaces + inserts)
+        s = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+        deletes = [a + b[1:] for a, b in s if b]
+        transposes = [a + b[1] + b[0] + b[2:] for a, b in s if len(b) > 1]
+        replaces = [a + c + b[1:] for a, b in s for c in self.alphabet if b]
+        inserts = [a + c + b for a, b in s for c in self.alphabet]
+        return set(deletes + transposes + replaces + inserts)
 
     def known_edits2(self, word):
-        return set(e2 for e1 in self.edits1(word)
-                   for e2 in self.edits1(e1) if e2 in self.words)
+        return set(
+            e2 for e1 in self.edits1(word) for e2 in self.edits1(e1) if e2 in self.words
+        )
 
     def known(self, words):
         return set(w for w in words if w in self.words)

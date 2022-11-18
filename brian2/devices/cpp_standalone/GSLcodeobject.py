@@ -8,9 +8,10 @@ from brian2.devices.cpp_standalone import CPPStandaloneCodeObject
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
 from brian2.codegen.generators.GSL_generator import GSLCPPCodeGenerator
 
-class GSLCPPStandaloneCodeObject(CodeObject):
 
-    templater = CPPStandaloneCodeObject.templater.derive('brian2.devices.cpp_standalone',
-                                                         templates_dir='templates_GSL')
+class GSLCPPStandaloneCodeObject(CodeObject):
+    templater = CPPStandaloneCodeObject.templater.derive(
+        "brian2.devices.cpp_standalone", templates_dir="templates_GSL"
+    )
     original_generator_class = CPPCodeGenerator
     generator_class = GSLCPPCodeGenerator

@@ -609,7 +609,7 @@ mailing list (brian-development@googlegroups.com).
 Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * Divisions involving integers now use floating point division, independent of
-  Python version and code generation target. The `//` operator can now used in
+  Python version and code generation target. The ``//`` operator can now used in
   equations and expressions to denote flooring division (:issue:`984`).
 * Simulations can now use single precision instead of double precision floats in
   simulations (:issue:`981`, :issue:`1004`). This is mostly intended for use
