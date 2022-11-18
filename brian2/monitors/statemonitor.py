@@ -9,7 +9,7 @@ from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Quantity
 from brian2.units.allunits import second
 
-__all__ = ['StateMonitor']
+__all__ = ["StateMonitor"]
 
 logger = get_logger(__name__)
 
@@ -28,24 +28,25 @@ class StateMonitorView(object):
         # with this name, it is because it hasn't been set yet and so this
         # method should raise an AttributeError to agree that it hasn't been
         # called yet.
-        if item == '_group_attribute_access_active':
+        if item == "_group_attribute_access_active":
             raise AttributeError
-        if not hasattr(self, '_group_attribute_access_active'):
+        if not hasattr(self, "_group_attribute_access_active"):
             raise AttributeError
 
         mon = self.monitor
-        if item == 't':
-            return Quantity(mon.variables['t'].get_value(), dim=second.dim)
-        elif item == 't_':
-            return mon.variables['t'].get_value()
+        if item == "t":
+            return Quantity(mon.variables["t"].get_value(), dim=second.dim)
+        elif item == "t_":
+            return mon.variables["t"].get_value()
         elif item in mon.record_variables:
             dims = mon.variables[item].dim
-            return Quantity(mon.variables[item].get_value().T[self.indices],
-                            dim=dims, copy=True)
-        elif item.endswith('_') and item[:-1] in mon.record_variables:
+            return Quantity(
+                mon.variables[item].get_value().T[self.indices], dim=dims, copy=True
+            )
+        elif item.endswith("_") and item[:-1] in mon.record_variables:
             return mon.variables[item[:-1]].get_value().T[self.indices].copy()
         else:
-            raise AttributeError(f'Unknown attribute {item}')
+            raise AttributeError(f"Unknown attribute {item}")
 
     def _calc_indices(self, item):
         """
@@ -57,7 +58,7 @@ class StateMonitorView(object):
         if np.issubdtype(dtype, np.signedinteger) and not isinstance(item, np.ndarray):
             indices = np.nonzero(self.monitor.record == item)[0]
             if len(indices) == 0:
-                raise IndexError(f'Index number {int(item)} has not been recorded')
+                raise IndexError(f"Index number {int(item)} has not been recorded")
             return indices[0]
 
         if self.monitor.record_all:
@@ -67,19 +68,21 @@ class StateMonitorView(object):
             if index in self.monitor.record:
                 indices.append(np.nonzero(self.monitor.record == index)[0][0])
             else:
-                raise IndexError(f'Index number {int(index)} has not been recorded')
+                raise IndexError(f"Index number {int(index)} has not been recorded")
         return np.array(indices)
 
     def __repr__(self):
         classname = self.__class__.__name__
-        return (f"<{classname}, giving access to elements {self.item!r} recorded by " 
-                f"{self.monitor.name}>")
+        return (
+            f"<{classname}, giving access to elements {self.item!r} recorded by "
+            f"{self.monitor.name}>"
+        )
 
 
 class StateMonitor(Group, CodeRunner):
     """
     Record values of state variables during a run
-    
+
     To extract recorded values after a run, use the ``t`` attribute for the
     array of times at which values were recorded, and variable name attribute
     for the values. The values will have shape ``(len(indices), len(t))``,
@@ -123,9 +126,9 @@ class StateMonitor(Group, CodeRunner):
 
     Examples
     --------
-    
+
     Record all variables, first 5 indices::
-    
+
         eqs = '''
         dV/dt = (2-V)/(10*ms) : 1
         '''
@@ -154,14 +157,26 @@ class StateMonitor(Group, CodeRunner):
     yet at this stage. Consider using an explicit array of indices instead,
     i.e. something like ``record=np.arange(n_synapses)``.
     """
+
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, variables, record, dt=None, clock=None,
-                 when='start', order=0, name='statemonitor*', codeobj_class=None):
+
+    def __init__(
+        self,
+        source,
+        variables,
+        record,
+        dt=None,
+        clock=None,
+        when="start",
+        order=0,
+        name="statemonitor*",
+        codeobj_class=None,
+    ):
         self.source = source
         # Make the monitor use the explicitly defined namespace of its source
         # group (if it exists)
-        self.namespace = getattr(source, 'namespace', None)
+        self.namespace = getattr(source, "namespace", None)
         self.codeobj_class = codeobj_class
 
         # run by default on source clock at the end
@@ -178,11 +193,11 @@ class StateMonitor(Group, CodeRunner):
 
         # record should always be an array of ints
         self.record_all = False
-        if hasattr(record, '_indices'):
+        if hasattr(record, "_indices"):
             # The ._indices method always returns absolute indices
             # If the source is already a subgroup of another group, we therefore
             # have to shift the indices to become relative to the subgroup
-            record = record._indices() - getattr(source, '_offset', 0)
+            record = record._indices() - getattr(source, "_offset", 0)
         if record is True:
             self.record_all = True
             try:
@@ -190,14 +205,16 @@ class StateMonitor(Group, CodeRunner):
             except NotImplementedError:
                 # In standalone mode, this is not possible for synaptic
                 # variables because the number of synapses is not defined yet
-                raise NotImplementedError("Cannot determine the actual "
-                                          "indices to record for record=True. "
-                                          "This can occur for example in "
-                                          "standalone mode when trying to "
-                                          "record a synaptic variable. "
-                                          "Consider providing an explicit "
-                                          "array of indices for the record "
-                                          "argument.")
+                raise NotImplementedError(
+                    "Cannot determine the actual "
+                    "indices to record for record=True. "
+                    "This can occur for example in "
+                    "standalone mode when trying to "
+                    "record a synaptic variable. "
+                    "Consider providing an explicit "
+                    "array of indices for the record "
+                    "argument."
+                )
         elif record is False:
             record = np.array([], dtype=np.int32)
         elif isinstance(record, numbers.Number):
@@ -211,85 +228,115 @@ class StateMonitor(Group, CodeRunner):
 
         if not self.record_all:
             try:
-                if len(record) and (np.max(record) >= len(source) or np.min(record) < 0):
+                if len(record) and (
+                    np.max(record) >= len(source) or np.min(record) < 0
+                ):
                     # Check whether the values in record make sense
-                    error_message = (f"The indices to record from contain values outside of the range "
-                                     f"[0, {len(source)-1}] allowed for the group '{source.name}'")
+                    error_message = (
+                        "The indices to record from contain values outside of the"
+                        f" range [0, {len(source)-1}] allowed for the group"
+                        f" '{source.name}'"
+                    )
                     raise IndexError(error_message)
             except NotImplementedError:
-                logger.warn("Cannot check whether the indices to record from are valid. This can happen "
-                            "in standalone mode when recording from synapses that have been created with "
-                            "a connection pattern. You can avoid this situation by using synaptic indices "
-                            "in the connect call.", name_suffix='cannot_check_statemonitor_indices')
+                logger.warn(
+                    "Cannot check whether the indices to record from are valid. This"
+                    " can happen in standalone mode when recording from synapses that"
+                    " have been created with a connection pattern. You can avoid this"
+                    " situation by using synaptic indices in the connect call.",
+                    name_suffix="cannot_check_statemonitor_indices",
+                )
 
         # Some dummy code so that code generation takes care of the indexing
         # and subexpressions
-        code = [f'_to_record_{v} = _source_{v}'
-                for v in variables]
-        code = '\n'.join(code)
+        code = [f"_to_record_{v} = _source_{v}" for v in variables]
+        code = "\n".join(code)
 
-        CodeRunner.__init__(self, group=self, template='statemonitor',
-                            code=code, name=name,
-                            clock=clock,
-                            dt=dt,
-                            when=when,
-                            order=order,
-                            check_units=False)
+        CodeRunner.__init__(
+            self,
+            group=self,
+            template="statemonitor",
+            code=code,
+            name=name,
+            clock=clock,
+            dt=dt,
+            when=when,
+            order=order,
+            check_units=False,
+        )
 
         self.add_dependency(source)
 
         # Setup variables
         self.variables = Variables(self)
 
-        self.variables.add_dynamic_array('t', size=0, dimensions=second.dim,
-                                         constant=False,
-                                         dtype=self._clock.variables['t'].dtype)
-        self.variables.add_array('N', dtype=np.int32, size=1, scalar=True,
-                                 read_only=True)
-        self.variables.add_array('_indices', size=len(self.record),
-                                 dtype=self.record.dtype, constant=True,
-                                 read_only=True, values=self.record)
-        self.variables.create_clock_variables(self._clock,
-                                              prefix='_clock_')
+        self.variables.add_dynamic_array(
+            "t",
+            size=0,
+            dimensions=second.dim,
+            constant=False,
+            dtype=self._clock.variables["t"].dtype,
+        )
+        self.variables.add_array(
+            "N", dtype=np.int32, size=1, scalar=True, read_only=True
+        )
+        self.variables.add_array(
+            "_indices",
+            size=len(self.record),
+            dtype=self.record.dtype,
+            constant=True,
+            read_only=True,
+            values=self.record,
+        )
+        self.variables.create_clock_variables(self._clock, prefix="_clock_")
         for varname in variables:
             var = source.variables[varname]
             if var.scalar and len(self.record) > 1:
-                logger.warn(('Variable %s is a shared variable but it will be '
-                             'recorded once for every target.' % varname),
-                            once=True)
+                logger.warn(
+                    "Variable %s is a shared variable but it will be "
+                    "recorded once for every target." % varname,
+                    once=True,
+                )
             index = source.variables.indices[varname]
-            self.variables.add_reference(f'_source_{varname}',
-                                         source, varname, index=index)
-            if not index in ('_idx', '0') and index not in variables:
+            self.variables.add_reference(
+                f"_source_{varname}", source, varname, index=index
+            )
+            if not index in ("_idx", "0") and index not in variables:
                 self.variables.add_reference(index, source)
-            self.variables.add_dynamic_array(varname,
-                                             size=(0, len(self.record)),
-                                             resize_along_first=True,
-                                             dimensions=var.dim,
-                                             dtype=var.dtype,
-                                             constant=False,
-                                             read_only=True)
+            self.variables.add_dynamic_array(
+                varname,
+                size=(0, len(self.record)),
+                resize_along_first=True,
+                dimensions=var.dim,
+                dtype=var.dtype,
+                constant=False,
+                read_only=True,
+            )
 
         for varname in variables:
             var = self.source.variables[varname]
-            self.variables.add_auxiliary_variable(f"_to_record_{varname}",
-                                                  dimensions=var.dim,
-                                                  dtype=var.dtype,
-                                                  scalar=var.scalar)
+            self.variables.add_auxiliary_variable(
+                f"_to_record_{varname}",
+                dimensions=var.dim,
+                dtype=var.dtype,
+                scalar=var.scalar,
+            )
 
-        self.recorded_variables = dict([(varname, self.variables[varname])
-                                        for varname in variables])
+        self.recorded_variables = dict(
+            [(varname, self.variables[varname]) for varname in variables]
+        )
         recorded_names = [varname for varname in variables]
 
         self.needed_variables = recorded_names
-        self.template_kwds = {'_recorded_variables': self.recorded_variables}
-        self.written_readonly_vars = {self.variables[varname]
-                                      for varname in self.record_variables}
+        self.template_kwds = {"_recorded_variables": self.recorded_variables}
+        self.written_readonly_vars = {
+            self.variables[varname] for varname in self.record_variables
+        }
         self._enable_group_attributes()
 
     def resize(self, new_size):
-        self.variables['N'].set_value(new_size)
-        self.variables['t'].resize(new_size)
+        self.variables["N"].set_value(new_size)
+        self.variables["t"].resize(new_size)
 
         for var in self.recorded_variables.values():
             var.resize((new_size, self.n_indices))
@@ -304,17 +351,16 @@ class StateMonitor(Group, CodeRunner):
         elif isinstance(item, Sequence):
             index_array = np.array(item)
             if not np.issubdtype(index_array.dtype, np.signedinteger):
-                raise TypeError("Index has to be an integer or a sequence "
-                                "of integers")
+                raise TypeError("Index has to be an integer or a sequence of integers")
             return StateMonitorView(self, item)
-        elif hasattr(item, '_indices'):
+        elif hasattr(item, "_indices"):
             # objects that support the indexing interface will return absolute
             # indices but here we need relative ones
             # TODO: How to we prevent the use of completely unrelated objects here?
-            source_offset = getattr(self.source, '_offset', 0)
+            source_offset = getattr(self.source, "_offset", 0)
             return StateMonitorView(self, item._indices() - source_offset)
         else:
-            raise TypeError(f'Cannot use object of type {type(item)} as an index')
+            raise TypeError(f"Cannot use object of type {type(item)} as an index")
 
     def __getattr__(self, item):
         # We do this because __setattr__ and __getattr__ are not active until
@@ -323,15 +369,14 @@ class StateMonitor(Group, CodeRunner):
         # with this name, it is because it hasn't been set yet and so this
         # method should raise an AttributeError to agree that it hasn't been
         # called yet.
-        if item == '_group_attribute_access_active':
+        if item == "_group_attribute_access_active":
             raise AttributeError
-        if not hasattr(self, '_group_attribute_access_active'):
+        if not hasattr(self, "_group_attribute_access_active"):
             raise AttributeError
         if item in self.record_variables:
             var_dim = self.variables[item].dim
-            return Quantity(self.variables[item].get_value().T,
-                            dim=var_dim, copy=True)
-        elif item.endswith('_') and item[:-1] in self.record_variables:
+            return Quantity(self.variables[item].get_value().T, dim=var_dim, copy=True)
+        elif item.endswith("_") and item[:-1] in self.record_variables:
             return self.variables[item[:-1]].get_value().T
         else:
             return Group.__getattr__(self, item)
@@ -374,6 +419,8 @@ class StateMonitor(Group, CodeRunner):
         [[ 1.     0.98   0.961  0.942  0.923  0.905]]
         """
         if self.codeobj is None:
-            raise TypeError("Can only record a single time step after the "
-                            "network has been run once.")
+            raise TypeError(
+                "Can only record a single time step after the "
+                "network has been run once."
+            )
         self.codeobj()

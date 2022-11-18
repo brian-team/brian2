@@ -9,9 +9,14 @@ import numbers
 
 import numpy as np
 
-from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
-                                           fail_for_dimension_mismatch,
-                                           Dimension, get_unit_for_display)
+from brian2.units.fundamentalunits import (
+    Quantity,
+    get_unit,
+    DIMENSIONLESS,
+    fail_for_dimension_mismatch,
+    Dimension,
+    get_unit_for_display,
+)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.utils.caching import CacheKey
@@ -19,17 +24,18 @@ from brian2.utils.caching import CacheKey
 from .base import weakproxy_with_fallback, device_override
 from .preferences import prefs
 
-__all__ = ['Variable',
-           'Constant',
-           'ArrayVariable',
-           'DynamicArrayVariable',
-           'Subexpression',
-           'AuxiliaryVariable',
-           'VariableView',
-           'Variables',
-           'LinkedVariable',
-           'linked_var'
-           ]
+__all__ = [
+    "Variable",
+    "Constant",
+    "ArrayVariable",
+    "DynamicArrayVariable",
+    "Subexpression",
+    "AuxiliaryVariable",
+    "VariableView",
+    "Variables",
+    "LinkedVariable",
+    "linked_var",
+]
 
 
 logger = get_logger(__name__)
@@ -49,7 +55,7 @@ def get_dtype(obj):
     dtype : `numpy.dtype`
         The type of the given object.
     """
-    if hasattr(obj, 'dtype'):
+    if hasattr(obj, "dtype"):
         return obj.dtype
     else:
         return np.obj2sctype(type(obj))
@@ -58,10 +64,10 @@ def get_dtype(obj):
 def get_dtype_str(val):
     """
     Returns canonical string representation of the dtype of a value or dtype
-    
+
     Returns
     -------
-    
+
     dtype_str : str
         The numpy dtype name
     """
@@ -70,24 +76,26 @@ def get_dtype_str(val):
     if isinstance(val, type):
         return get_dtype_str(val())
 
-    is_bool = (val is True or
-               val is False or
-               val is np.True_ or
-               val is np.False_)
+    is_bool = val is True or val is False or val is np.True_ or val is np.False_
     if is_bool:
-        return 'bool'
-    if hasattr(val, 'dtype'):
+        return "bool"
+    if hasattr(val, "dtype"):
         return get_dtype_str(val.dtype)
     if isinstance(val, numbers.Number):
         return get_dtype_str(np.array(val).dtype)
-    
-    return f'unknown[{str(val)}, {val.__class__.__name__}]'
+
+    return f"unknown[{str(val)}, {val.__class__.__name__}]"
 
 
 def variables_by_owner(variables, owner):
-    owner_name = getattr(owner, 'name', None)
-    return dict([(varname, var) for varname, var in variables.items()
-                 if getattr(var.owner, 'name', None) is owner_name])
+    owner_name = getattr(owner, "name", None)
+    return dict(
+        [
+            (varname, var)
+            for varname, var in variables.items()
+            if getattr(var.owner, "name", None) is owner_name
+        ]
+    )
 
 
 class Variable(CacheKey):
@@ -95,7 +103,7 @@ class Variable(CacheKey):
     An object providing information about model variables (including implicit
     variables such as ``t`` or ``xi``). This class should never be
     instantiated outside of testing code, use one of its subclasses instead.
-    
+
     Parameters
     ----------
     name : 'str'
@@ -129,11 +137,20 @@ class Variable(CacheKey):
         ``isinstance(var, ArrayVariable)``. Defaults to ``False``.
     """
 
-    _cache_irrelevant_attributes = {'owner'}
+    _cache_irrelevant_attributes = {"owner"}
 
-    def __init__(self, name, dimensions=DIMENSIONLESS, owner=None, dtype=None,
-                 scalar=False, constant=False, read_only=False, dynamic=False,
-                 array=False):
+    def __init__(
+        self,
+        name,
+        dimensions=DIMENSIONLESS,
+        owner=None,
+        dtype=None,
+        scalar=False,
+        constant=False,
+        read_only=False,
+        dynamic=False,
+        array=False,
+    ):
         assert isinstance(dimensions, Dimension)
 
         #: The variable's dimensions.
@@ -196,13 +213,13 @@ class Variable(CacheKey):
         Return the value associated with the variable (without units). This
         is the way variables are accessed in generated code.
         """
-        raise TypeError(f'Cannot get value for variable {self}')
+        raise TypeError(f"Cannot get value for variable {self}")
 
     def set_value(self, value):
         """
         Set the value associated with the variable.
         """
-        raise TypeError(f'Cannot set value for variable {self}')
+        raise TypeError(f"Cannot set value for variable {self}")
 
     def get_value_with_unit(self):
         """
@@ -272,23 +289,26 @@ class Variable(CacheKey):
         return self.get_len()
 
     def __repr__(self):
-        description = ('<{classname}(dimensions={dimensions}, '
-                       ' dtype={dtype}, scalar={scalar}, constant={constant},'
-                       ' read_only={read_only})>')
-        return description.format(classname=self.__class__.__name__,
-                                  dimensions=repr(self.dim),
-                                  dtype=getattr(self.dtype, '__name__',
-                                                repr(self.dtype)),
-                                  scalar=repr(self.scalar),
-                                  constant=repr(self.constant),
-                                  read_only=repr(self.read_only))
-
+        description = (
+            "<{classname}(dimensions={dimensions}, "
+            " dtype={dtype}, scalar={scalar}, constant={constant},"
+            " read_only={read_only})>"
+        )
+        return description.format(
+            classname=self.__class__.__name__,
+            dimensions=repr(self.dim),
+            dtype=getattr(self.dtype, "__name__", repr(self.dtype)),
+            scalar=repr(self.scalar),
+            constant=repr(self.constant),
+            read_only=repr(self.read_only),
+        )
 
 
 # ------------------------------------------------------------------------------
 # Concrete classes derived from `Variable` -- these are the only ones ever
 # instantiated.
 # ------------------------------------------------------------------------------
+
 
 class Constant(Variable):
     """
@@ -311,12 +331,12 @@ class Constant(Variable):
         specific group, e.g. the ``N`` constant for a `NeuronGroup`. External
         constants will have ``None`` (the default value).
     """
+
     def __init__(self, name, value, dimensions=DIMENSIONLESS, owner=None):
         # Determine the type of the value
-        is_bool = (value is True or
-                   value is False or
-                   value is np.True_ or
-                   value is np.False_)
+        is_bool = (
+            value is True or value is False or value is np.True_ or value is np.False_
+        )
 
         if is_bool:
             dtype = bool
@@ -324,7 +344,7 @@ class Constant(Variable):
             dtype = get_dtype(value)
 
         # Use standard Python types if possible for numpy scalars
-        if getattr(value, 'shape', None) == () and hasattr(value, 'dtype'):
+        if getattr(value, "shape", None) == () and hasattr(value, "dtype"):
             numpy_type = value.dtype
             if np.can_cast(numpy_type, np.int_):
                 value = int(value)
@@ -340,9 +360,15 @@ class Constant(Variable):
         #: The constant's value
         self.value = value
 
-        super(Constant, self).__init__(dimensions=dimensions, name=name, owner=owner,
-                                       dtype=dtype, scalar=True, constant=True,
-                                       read_only=True)
+        super(Constant, self).__init__(
+            dimensions=dimensions,
+            name=name,
+            owner=owner,
+            dtype=dtype,
+            scalar=True,
+            constant=True,
+            read_only=True,
+        )
 
     def get_value(self):
         return self.value
@@ -369,13 +395,16 @@ class AuxiliaryVariable(Variable):
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
         defined for every neuron (``False``). Defaults to ``False``.
     """
+
     def __init__(self, name, dimensions=DIMENSIONLESS, dtype=None, scalar=False):
-        super(AuxiliaryVariable, self).__init__(dimensions=dimensions,
-                                                name=name, dtype=dtype,
-                                                scalar=scalar)
+        super(AuxiliaryVariable, self).__init__(
+            dimensions=dimensions, name=name, dtype=dtype, scalar=scalar
+        )
 
     def get_value(self):
-        raise TypeError(f'Cannot get the value for an auxiliary variable ({self.name}).')
+        raise TypeError(
+            f"Cannot get the value for an auxiliary variable ({self.name})."
+        )
 
 
 class ArrayVariable(Variable):
@@ -422,16 +451,32 @@ class ArrayVariable(Variable):
         corresponding pre- and post-synaptic indices are not). Defaults to
         ``False``.
     """
-    def __init__(self, name, owner, size, device, dimensions=DIMENSIONLESS,
-                 dtype=None, constant=False, scalar=False, read_only=False,
-                 dynamic=False, unique=False):
-        super(ArrayVariable, self).__init__(dimensions=dimensions, name=name,
-                                            owner=owner,
-                                            dtype=dtype, scalar=scalar,
-                                            constant=constant,
-                                            read_only=read_only,
-                                            dynamic=dynamic,
-                                            array=True)
+
+    def __init__(
+        self,
+        name,
+        owner,
+        size,
+        device,
+        dimensions=DIMENSIONLESS,
+        dtype=None,
+        constant=False,
+        scalar=False,
+        read_only=False,
+        dynamic=False,
+        unique=False,
+    ):
+        super(ArrayVariable, self).__init__(
+            dimensions=dimensions,
+            name=name,
+            owner=owner,
+            dtype=dtype,
+            scalar=scalar,
+            constant=constant,
+            read_only=read_only,
+            dynamic=dynamic,
+            array=True,
+        )
 
         #: Wether all values in this arrays are necessarily unique (only
         #: relevant for index variables).
@@ -444,8 +489,7 @@ class ArrayVariable(Variable):
         self.size = size
 
         if scalar and size != 1:
-            raise ValueError(f"Scalar variables need to have size 1, not "
-                             f"size {size}.")
+            raise ValueError(f"Scalar variables need to have size 1, not size {size}.")
 
         #: Another variable, on which the write is conditioned (e.g. a variable
         #: denoting the absence of refractoriness)
@@ -453,9 +497,11 @@ class ArrayVariable(Variable):
 
     def set_conditional_write(self, var):
         if not var.is_boolean:
-            raise TypeError(f"A variable can only be conditionally writeable "
-                            f"depending on a boolean variable, '{var.name}' is not "
-                            f"boolean.")
+            raise TypeError(
+                "A variable can only be conditionally writeable "
+                f"depending on a boolean variable, '{var.name}' is not "
+                "boolean."
+            )
         self.conditional_write = var
 
     def get_value(self):
@@ -468,12 +514,10 @@ class ArrayVariable(Variable):
         return self.size
 
     def get_addressable_value(self, name, group):
-        return VariableView(name=name, variable=self, group=group,
-                            dimensions=None)
+        return VariableView(name=name, variable=self, group=group, dimensions=None)
 
     def get_addressable_value_with_unit(self, name, group):
-        return VariableView(name=name, variable=self, group=group,
-                            dimensions=self.dim)
+        return VariableView(name=name, variable=self, group=group, dimensions=self.dim)
 
 
 class DynamicArrayVariable(ArrayVariable):
@@ -524,16 +568,26 @@ class DynamicArrayVariable(ArrayVariable):
         corresponding pre- and post-synaptic indices are not). Defaults to
         ``False``.
     """
+
     # The size of a dynamic variable can of course change and changes in
     # size should not invalidate the cache
-    _cache_irrelevant_attributes = (ArrayVariable._cache_irrelevant_attributes |
-                                    {'size'})
+    _cache_irrelevant_attributes = ArrayVariable._cache_irrelevant_attributes | {"size"}
 
-    def __init__(self, name, owner, size, device, dimensions=DIMENSIONLESS,
-                 dtype=None, constant=False, needs_reference_update=False,
-                 resize_along_first=False, scalar=False, read_only=False,
-                 unique=False):
-
+    def __init__(
+        self,
+        name,
+        owner,
+        size,
+        device,
+        dimensions=DIMENSIONLESS,
+        dtype=None,
+        constant=False,
+        needs_reference_update=False,
+        resize_along_first=False,
+        scalar=False,
+        read_only=False,
+        unique=False,
+    ):
         if isinstance(size, int):
             ndim = 1
         else:
@@ -543,8 +597,7 @@ class DynamicArrayVariable(ArrayVariable):
         self.ndim = ndim
 
         if constant and needs_reference_update:
-            raise ValueError("A variable cannot be constant and "
-                             "need reference updates")
+            raise ValueError("A variable cannot be constant and need reference updates")
         #: Whether this variable needs an update of the reference to the
         #: underlying data whenever it is passed to a code object
         self.needs_reference_update = needs_reference_update
@@ -552,24 +605,28 @@ class DynamicArrayVariable(ArrayVariable):
         #: Whether this array will be only resized along the first dimension
         self.resize_along_first = resize_along_first
 
-        super(DynamicArrayVariable, self).__init__(dimensions=dimensions,
-                                                   owner=owner,
-                                                   name=name,
-                                                   size=size,
-                                                   device=device,
-                                                   constant=constant,
-                                                   dtype=dtype,
-                                                   scalar=scalar,
-                                                   dynamic=True,
-                                                   read_only=read_only,
-                                                   unique=unique)
-
+        super(DynamicArrayVariable, self).__init__(
+            dimensions=dimensions,
+            owner=owner,
+            name=name,
+            size=size,
+            device=device,
+            constant=constant,
+            dtype=dtype,
+            scalar=scalar,
+            dynamic=True,
+            read_only=read_only,
+            unique=unique,
+        )
 
     @property
     def dimensions(self):
-        logger.warn('The DynamicArrayVariable.dimensions attribute is '
-                    'deprecated, use .ndim instead', 'deprecated_dimensions',
-                    once=True)
+        logger.warn(
+            "The DynamicArrayVariable.dimensions attribute is "
+            "deprecated, use .ndim instead",
+            "deprecated_dimensions",
+            once=True,
+        )
         return self.ndim
 
     def resize(self, new_size):
@@ -615,12 +672,26 @@ class Subexpression(Variable):
         Whether this is an expression only referring to scalar variables.
         Defaults to ``False``
     """
-    def __init__(self, name, owner, expr, device, dimensions=DIMENSIONLESS,
-                 dtype=None, scalar=False):
-        super(Subexpression, self).__init__(dimensions=dimensions, owner=owner,
-                                            name=name, dtype=dtype,
-                                            scalar=scalar,
-                                            constant=False, read_only=True)
+
+    def __init__(
+        self,
+        name,
+        owner,
+        expr,
+        device,
+        dimensions=DIMENSIONLESS,
+        dtype=None,
+        scalar=False,
+    ):
+        super(Subexpression, self).__init__(
+            dimensions=dimensions,
+            owner=owner,
+            name=name,
+            dtype=dtype,
+            scalar=scalar,
+            constant=False,
+            read_only=True,
+        )
 
         #: The `Device` responsible for memory access
         self.device = device
@@ -632,25 +703,30 @@ class Subexpression(Variable):
         self.identifiers = get_identifiers(expr)
 
     def get_addressable_value(self, name, group):
-        return VariableView(name=name, variable=self, group=group,
-                            dimensions=DIMENSIONLESS)
+        return VariableView(
+            name=name, variable=self, group=group, dimensions=DIMENSIONLESS
+        )
 
     def get_addressable_value_with_unit(self, name, group):
-        return VariableView(name=name, variable=self, group=group,
-                            dimensions=self.dim)
+        return VariableView(name=name, variable=self, group=group, dimensions=self.dim)
 
     def __contains__(self, var):
         return var in self.identifiers
 
     def __repr__(self):
-        description = ('<{classname}(name={name}, dimensions={dimensions}, dtype={dtype}, '
-                       'expr={expr}, owner=<{owner}>)>')
-        return description.format(classname=self.__class__.__name__,
-                                  name=repr(self.name),
-                                  dimensions=repr(self.dim),
-                                  dtype=repr(self.dtype),
-                                  expr=repr(self.expr),
-                                  owner=self.owner.name)
+        description = (
+            "<{classname}(name={name}, dimensions={dimensions}, dtype={dtype}, "
+            "expr={expr}, owner=<{owner}>)>"
+        )
+        return description.format(
+            classname=self.__class__.__name__,
+            name=repr(self.name),
+            dimensions=repr(self.dim),
+            dtype=repr(self.dtype),
+            expr=repr(self.expr),
+            owner=self.owner.name,
+        )
+
 
 # ------------------------------------------------------------------------------
 # Classes providing views on variables and storing variables information
@@ -674,6 +750,7 @@ class LinkedVariable(object):
         An indexing array (or the name of a state variable), providing a mapping
         from the entries in the link source to the link target.
     """
+
     def __init__(self, group, name, variable, index=None):
         self.group = group
         self.name = name
@@ -708,17 +785,21 @@ def linked_var(group_or_variable, name=None, index=None):
     """
     if isinstance(group_or_variable, VariableView):
         if name is not None:
-            raise ValueError("Cannot give a variable and a variable name at "
-                             "the same time.")
-        return LinkedVariable(group_or_variable.group,
-                              group_or_variable.name,
-                              group_or_variable.variable, index=index)
+            raise ValueError(
+                "Cannot give a variable and a variable name at the same time."
+            )
+        return LinkedVariable(
+            group_or_variable.group,
+            group_or_variable.name,
+            group_or_variable.variable,
+            index=index,
+        )
     elif name is None:
         raise ValueError("Need to provide a variable name")
     else:
-        return LinkedVariable(group_or_variable,
-                              name,
-                              group_or_variable.variables[name], index=index)
+        return LinkedVariable(
+            group_or_variable, name, group_or_variable.variables[name], index=index
+        )
 
 
 class VariableView(object):
@@ -740,11 +821,12 @@ class VariableView(object):
         when a variable is accessed without units (e.g. when accessing
         ``G.var_``).
     """
+
     def __init__(self, name, variable, group, dimensions=None):
         self.name = name
         self.variable = variable
         self.index_var_name = group.variables.indices[name]
-        if self.index_var_name in ('_idx', '0'):
+        if self.index_var_name in ("_idx", "0"):
             self.index_var = self.index_var_name
         else:
             self.index_var = group.variables[self.index_var_name]
@@ -788,27 +870,30 @@ class VariableView(object):
             defined, the implicit namespace of local variables is used).
         """
         from brian2.core.namespace import get_local_namespace  # avoids circular import
+
         if isinstance(item, str):
             # Check whether the group still exists to give a more meaningful
             # error message if it does not
             try:
                 self.group.name
             except ReferenceError:
-                raise ReferenceError(f"Cannot use string expressions, the "
-                                     f"group '{self.group_name}', providing the "
-                                     f"context for the expression, no longer exists. "
-                                     f"Consider holding an explicit reference "
-                                     f"to it to keep it alive.")
+                raise ReferenceError(
+                    "Cannot use string expressions, the "
+                    f"group '{self.group_name}', providing the "
+                    "context for the expression, no longer exists. "
+                    "Consider holding an explicit reference "
+                    "to it to keep it alive."
+                )
             if namespace is None:
-                namespace = get_local_namespace(level=level+1)
-            values = self.get_with_expression(item,
-                                              run_namespace=namespace)
+                namespace = get_local_namespace(level=level + 1)
+            values = self.get_with_expression(item, run_namespace=namespace)
         else:
             if isinstance(self.variable, Subexpression):
                 if namespace is None:
                     namespace = get_local_namespace(level=level + 1)
-                values = self.get_subexpression_with_index_array(item,
-                                                                 run_namespace=namespace)
+                values = self.get_subexpression_with_index_array(
+                    item, run_namespace=namespace
+                )
             else:
                 values = self.get_with_index_array(item)
 
@@ -841,9 +926,10 @@ class VariableView(object):
             defined, the implicit namespace of local variables is used).
         """
         from brian2.core.namespace import get_local_namespace  # avoids circular import
+
         variable = self.variable
         if variable.read_only:
-            raise TypeError(f'Variable {self.name} is read-only.')
+            raise TypeError(f"Variable {self.name} is read-only.")
 
         # Check whether the group allows writing to the variable (e.g. for
         # synaptic variables, writing is only allowed after a connect)
@@ -857,22 +943,22 @@ class VariableView(object):
         # The second part is equivalent to item == slice(None) but formulating
         # it this way prevents a FutureWarning if one of the elements is a
         # numpy array
-        if isinstance(item, slice) and (item.start is None and
-                                        item.stop is None and
-                                        item.step is None):
-            item = 'True'
+        if isinstance(item, slice) and (
+            item.start is None and item.stop is None and item.step is None
+        ):
+            item = "True"
 
         check_units = self.dim is not None
 
         if namespace is None:
-            namespace = get_local_namespace(level=level+1)
+            namespace = get_local_namespace(level=level + 1)
 
         # Both index and values are strings, use a single code object do deal
         # with this situation
         if isinstance(value, str) and isinstance(item, str):
-            self.set_with_expression_conditional(item, value,
-                                                 check_units=check_units,
-                                                 run_namespace=namespace)
+            self.set_with_expression_conditional(
+                item, value, check_units=check_units, run_namespace=namespace
+            )
         elif isinstance(item, str):
             try:
                 float(value)  # only checks for the exception
@@ -885,32 +971,31 @@ class VariableView(object):
                     # was scalar already apparently
                     pass
             except (TypeError, ValueError):
-                if item != 'True':
-                    raise TypeError("When setting a variable based on a string "
-                                    "index, the value has to be a string or a "
-                                    "scalar.")
+                if item != "True":
+                    raise TypeError(
+                        "When setting a variable based on a string "
+                        "index, the value has to be a string or a "
+                        "scalar."
+                    )
 
-            if item == 'True':
+            if item == "True":
                 # We do not want to go through code generation for runtime
-                    self.set_with_index_array(slice(None), value,
-                                              check_units=check_units)
+                self.set_with_index_array(slice(None), value, check_units=check_units)
             else:
-                self.set_with_expression_conditional(item,
-                                                     repr(value),
-                                                     check_units=check_units,
-                                                     run_namespace=namespace)
+                self.set_with_expression_conditional(
+                    item, repr(value), check_units=check_units, run_namespace=namespace
+                )
         elif isinstance(value, str):
-            self.set_with_expression(item, value,
-                                     check_units=check_units,
-                                     run_namespace=namespace)
+            self.set_with_expression(
+                item, value, check_units=check_units, run_namespace=namespace
+            )
         else:  # No string expressions involved
-            self.set_with_index_array(item, value,
-                                      check_units=check_units)
+            self.set_with_index_array(item, value, check_units=check_units)
 
     def __setitem__(self, item, value):
         self.set_item(item, value, level=1)
 
-    @device_override('variableview_set_with_expression')
+    @device_override("variableview_set_with_expression")
     def set_with_expression(self, item, code, run_namespace, check_units=True):
         """
         Sets a variable using a string expression. Is called by
@@ -938,15 +1023,17 @@ class VariableView(object):
         #   group.v[subgroup] =  'i'
         # the index 'i' is the index of 'group' ("absolute index") and not of
         # subgroup ("relative index")
-        if hasattr(item, 'variables') or (isinstance(item, tuple)
-                                          and any(hasattr(one_item, 'variables')
-                                                  for one_item in item)):
+        if hasattr(item, "variables") or (
+            isinstance(item, tuple)
+            and any(hasattr(one_item, "variables") for one_item in item)
+        ):
             # Determine the variables that are used in the expression
             from brian2.codegen.translation import get_identifiers_recursively
-            identifiers = get_identifiers_recursively([code],
-                                                      self.group.variables)
-            variables = self.group.resolve_all(identifiers, run_namespace,
-                                               user_identifiers=set())
+
+            identifiers = get_identifiers_recursively([code], self.group.variables)
+            variables = self.group.resolve_all(
+                identifiers, run_namespace, user_identifiers=set()
+            )
             if not isinstance(item, tuple):
                 index_groups = [item]
             else:
@@ -954,46 +1041,59 @@ class VariableView(object):
 
             for varname, var in variables.items():
                 for index_group in index_groups:
-                    if not hasattr(index_group, 'variables'):
+                    if not hasattr(index_group, "variables"):
                         continue
-                    if varname in index_group.variables or var.name in index_group.variables:
-                        indexed_var = index_group.variables.get(varname,
-                                                                index_group.variables.get(var.name))
+                    if (
+                        varname in index_group.variables
+                        or var.name in index_group.variables
+                    ):
+                        indexed_var = index_group.variables.get(
+                            varname, index_group.variables.get(var.name)
+                        )
                         if not indexed_var is var:
-                            logger.warn(f"The string expression used for setting "
-                                        f"'{self.name}' refers to '{varname}' which "
-                                        f"might be ambiguous. It will be "
-                                        f"interpreted as referring to "
-                                        f"'{varname}' in '{self.group.name}', not as "
-                                        f"a variable of a group used for "
-                                        f"indexing.",
-                                        'ambiguous_string_expression')
+                            logger.warn(
+                                "The string expression used for setting "
+                                f"'{self.name}' refers to '{varname}' which "
+                                "might be ambiguous. It will be "
+                                "interpreted as referring to "
+                                f"'{varname}' in '{self.group.name}', not as "
+                                "a variable of a group used for "
+                                "indexing.",
+                                "ambiguous_string_expression",
+                            )
                             break  # no need to warn more than once for a variable
 
         indices = np.atleast_1d(self.indexing(item))
         abstract_code = f"{self.name} = {code}"
         variables = Variables(self.group)
-        variables.add_array('_group_idx', size=len(indices), dtype=np.int32,
-                            values=indices)
+        variables.add_array(
+            "_group_idx", size=len(indices), dtype=np.int32, values=indices
+        )
 
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         from brian2.codegen.codeobject import create_runner_codeobj
         from brian2.devices.device import get_device
+
         device = get_device()
 
-        codeobj = create_runner_codeobj(self.group,
-                                        abstract_code,
-                                        'group_variable_set',
-                                        additional_variables=variables,
-                                        check_units=check_units,
-                                        run_namespace=run_namespace,
-                                        codeobj_class=device.code_object_class(fallback_pref='codegen.string_expression_target'))
+        codeobj = create_runner_codeobj(
+            self.group,
+            abstract_code,
+            "group_variable_set",
+            additional_variables=variables,
+            check_units=check_units,
+            run_namespace=run_namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.string_expression_target"
+            ),
+        )
         codeobj()
 
-    @device_override('variableview_set_with_expression_conditional')
-    def set_with_expression_conditional(self, cond, code, run_namespace,
-                                        check_units=True):
+    @device_override("variableview_set_with_expression_conditional")
+    def set_with_expression_conditional(
+        self, cond, code, run_namespace, check_units=True
+    ):
         """
         Sets a variable using a string expression and string condition. Is
         called by `VariableView.set_item` for statements such as
@@ -1012,29 +1112,35 @@ class VariableView(object):
             Whether to check the units of the expression.
         """
         variable = self.variable
-        if variable.scalar and cond != 'True':
-            raise IndexError(f"Cannot conditionally set the scalar variable "
-                             f"'{self.name}'.")
+        if variable.scalar and cond != "True":
+            raise IndexError(
+                f"Cannot conditionally set the scalar variable '{self.name}'."
+            )
         abstract_code_cond = f"_cond = {cond}"
         abstract_code = f"{self.name} = {code}"
         variables = Variables(None)
-        variables.add_auxiliary_variable('_cond', dtype=bool)
+        variables.add_auxiliary_variable("_cond", dtype=bool)
         from brian2.codegen.codeobject import create_runner_codeobj
+
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         from brian2.devices.device import get_device
+
         device = get_device()
-        codeobj = create_runner_codeobj(self.group,
-                                        {'condition': abstract_code_cond,
-                                         'statement': abstract_code},
-                                        'group_variable_set_conditional',
-                                        additional_variables=variables,
-                                        check_units=check_units,
-                                        run_namespace=run_namespace,
-                                        codeobj_class=device.code_object_class(fallback_pref='codegen.string_expression_target'))
+        codeobj = create_runner_codeobj(
+            self.group,
+            {"condition": abstract_code_cond, "statement": abstract_code},
+            "group_variable_set_conditional",
+            additional_variables=variables,
+            check_units=check_units,
+            run_namespace=run_namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.string_expression_target"
+            ),
+        )
         codeobj()
 
-    @device_override('variableview_get_with_expression')
+    @device_override("variableview_get_with_expression")
     def get_with_expression(self, code, run_namespace):
         """
         Gets a variable using a string expression. Is called by
@@ -1054,51 +1160,65 @@ class VariableView(object):
         """
         variable = self.variable
         if variable.scalar:
-            raise IndexError(f"Cannot access the variable '{self.name}' with a "
-                             f"string expression, it is a scalar variable.")
+            raise IndexError(
+                f"Cannot access the variable '{self.name}' with a "
+                "string expression, it is a scalar variable."
+            )
         # Add the recorded variable under a known name to the variables
         # dictionary. Important to deal correctly with
         # the type of the variable in C++
         variables = Variables(None)
-        variables.add_auxiliary_variable('_variable', dimensions=variable.dim,
-                                         dtype=variable.dtype,
-                                         scalar=variable.scalar)
-        variables.add_auxiliary_variable('_cond', dtype=bool)
+        variables.add_auxiliary_variable(
+            "_variable",
+            dimensions=variable.dim,
+            dtype=variable.dtype,
+            scalar=variable.scalar,
+        )
+        variables.add_auxiliary_variable("_cond", dtype=bool)
 
         abstract_code = f"_variable = {self.name}\n"
         abstract_code += f"_cond = {code}"
         from brian2.codegen.codeobject import create_runner_codeobj
         from brian2.devices.device import get_device
+
         device = get_device()
-        codeobj = create_runner_codeobj(self.group,
-                                        abstract_code,
-                                        'group_variable_get_conditional',
-                                        additional_variables=variables,
-                                        run_namespace=run_namespace,
-                                        codeobj_class=device.code_object_class(fallback_pref='codegen.string_expression_target')
-                                        )
+        codeobj = create_runner_codeobj(
+            self.group,
+            abstract_code,
+            "group_variable_get_conditional",
+            additional_variables=variables,
+            run_namespace=run_namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.string_expression_target"
+            ),
+        )
         return codeobj()
 
-    @device_override('variableview_get_with_index_array')
+    @device_override("variableview_get_with_index_array")
     def get_with_index_array(self, item):
         variable = self.variable
         if variable.scalar:
             if not (isinstance(item, slice) and item == slice(None)):
-                raise IndexError(f"Illegal index for variable '{self.name}', it is a "
-                                 f"scalar variable.")
+                raise IndexError(
+                    f"Illegal index for variable '{self.name}', it is a "
+                    "scalar variable."
+                )
             indices = 0
-        elif (isinstance(item, slice) and item == slice(None)
-              and self.index_var == '_idx'):
+        elif (
+            isinstance(item, slice) and item == slice(None) and self.index_var == "_idx"
+        ):
             indices = slice(None)
         # Quick fix for matplotlib calling 1-d variables as var[:, np.newaxis]
         # The test is a bit verbose, but we need to avoid comparisons that raise errors
         # (e.g. comparing an array to slice(None))
-        elif (isinstance(item, tuple) and
-              len(item) == 2 and
-              isinstance(item[0], slice) and
-              item[0] == slice(None) and
-              item[1] is None):
-            if self.index_var == '_idx':
+        elif (
+            isinstance(item, tuple)
+            and len(item) == 2
+            and isinstance(item[0], slice)
+            and item[0] == slice(None)
+            and item[1] is None
+        ):
+            if self.index_var == "_idx":
                 return variable.get_value()[item]
             else:
                 return variable.get_value()[self.index_var.get_value()][item]
@@ -1107,13 +1227,15 @@ class VariableView(object):
 
         return variable.get_value()[indices]
 
-    @device_override('variableview_get_subexpression_with_index_array')
+    @device_override("variableview_get_subexpression_with_index_array")
     def get_subexpression_with_index_array(self, item, run_namespace):
         variable = self.variable
         if variable.scalar:
             if not (isinstance(item, slice) and item == slice(None)):
-                raise IndexError(f"Illegal index for variable '{self.name}', it is a "
-                                 f"scalar variable.")
+                raise IndexError(
+                    f"Illegal index for variable '{self.name}', it is a "
+                    "scalar variable."
+                )
             indices = np.array(0)
         else:
             indices = self.indexing(item, self.index_var)
@@ -1121,42 +1243,51 @@ class VariableView(object):
         # For "normal" variables, we can directly access the underlying data
         # and use the usual slicing syntax. For subexpressions, however, we
         # have to evaluate code for the given indices
-        variables = Variables(None, default_index='_group_index')
-        variables.add_auxiliary_variable('_variable',
-                                         dimensions=variable.dim,
-                                         dtype=variable.dtype,
-                                         scalar=variable.scalar)
+        variables = Variables(None, default_index="_group_index")
+        variables.add_auxiliary_variable(
+            "_variable",
+            dimensions=variable.dim,
+            dtype=variable.dtype,
+            scalar=variable.scalar,
+        )
         if indices.shape == ():
             single_index = True
             indices = np.array([indices])
         else:
             single_index = False
-        variables.add_array('_group_idx', size=len(indices), dtype=np.int32)
-        variables['_group_idx'].set_value(indices)
+        variables.add_array("_group_idx", size=len(indices), dtype=np.int32)
+        variables["_group_idx"].set_value(indices)
         # Force the use of this variable as a replacement for the original
         # index variable
-        using_orig_index = [varname for varname, index in self.group.variables.indices.items()
-                            if index == self.index_var_name and index != '0']
+        using_orig_index = [
+            varname
+            for varname, index in self.group.variables.indices.items()
+            if index == self.index_var_name and index != "0"
+        ]
         for varname in using_orig_index:
-            variables.indices[varname] = '_idx'
+            variables.indices[varname] = "_idx"
 
         abstract_code = f"_variable = {self.name}\n"
         from brian2.codegen.codeobject import create_runner_codeobj
         from brian2.devices.device import get_device
+
         device = get_device()
-        codeobj = create_runner_codeobj(self.group,
-                                        abstract_code,
-                                        'group_variable_get',
-                                        # Setting the user code to an empty
-                                        # string suppresses warnings if the
-                                        # subexpression refers to variable
-                                        # names that are also present in the
-                                        # local namespace
-                                        user_code='',
-                                        needed_variables=['_group_idx'],
-                                        additional_variables=variables,
-                                        run_namespace=run_namespace,
-                                        codeobj_class=device.code_object_class(fallback_pref='codegen.string_expression_target')
+        codeobj = create_runner_codeobj(
+            self.group,
+            abstract_code,
+            "group_variable_get",
+            # Setting the user code to an empty
+            # string suppresses warnings if the
+            # subexpression refers to variable
+            # names that are also present in the
+            # local namespace
+            user_code="",
+            needed_variables=["_group_idx"],
+            additional_variables=variables,
+            run_namespace=run_namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.string_expression_target"
+            ),
         )
         result = codeobj()
         if single_index and not variable.scalar:
@@ -1164,19 +1295,22 @@ class VariableView(object):
         else:
             return result
 
-    @device_override('variableview_set_with_index_array')
+    @device_override("variableview_set_with_index_array")
     def set_with_index_array(self, item, value, check_units):
         variable = self.variable
         if check_units:
-            fail_for_dimension_mismatch(variable.dim, value,
-                                        f'Incorrect unit for setting variable {self.name}')
+            fail_for_dimension_mismatch(
+                variable.dim, value, f"Incorrect unit for setting variable {self.name}"
+            )
         if variable.scalar:
             if not (isinstance(item, slice) and item == slice(None)):
-                raise IndexError("Illegal index for variable '{self.name}', it is a "
-                                 "scalar variable.")
+                raise IndexError(
+                    "Illegal index for variable '{self.name}', it is a scalar variable."
+                )
             indices = 0
-        elif (isinstance(item, slice) and item == slice(None)
-              and self.index_var == '_idx'):
+        elif (
+            isinstance(item, slice) and item == slice(None) and self.index_var == "_idx"
+        ):
             indices = slice(None)
         else:
             indices = self.indexing(item, self.index_var)
@@ -1184,9 +1318,11 @@ class VariableView(object):
             q = Quantity(value, copy=False)
             if len(q.shape):
                 if not len(q.shape) == 1 or len(q) != 1 and len(q) != len(indices):
-                    raise ValueError(f"Provided values do not match the size "
-                                     f"of the indices, "
-                                     f"{len(q)} != {len(indices)}.")
+                    raise ValueError(
+                        "Provided values do not match the size "
+                        "of the indices, "
+                        f"{len(q)} != {len(indices)}."
+                    )
         variable.get_value()[indices] = value
 
     # Allow some basic calculations directly on the ArrayView object
@@ -1197,10 +1333,12 @@ class VariableView(object):
             self[:]
         except ValueError:
             var = self.variable.name
-            raise ValueError(f"Cannot get the values for variable {var}. If it "
-                             f"is a subexpression referring to external "
-                             f"variables, use 'group.{var}[:]' instead of "
-                             f"'group.{var}'")
+            raise ValueError(
+                f"Cannot get the values for variable {var}. If it "
+                "is a subexpression referring to external "
+                f"variables, use 'group.{var}[:]' instead of "
+                f"'group.{var}'"
+            )
         return np.asanyarray(self[:], dtype=dtype)
 
     def __array_prepare__(self, array, context=None):
@@ -1209,8 +1347,7 @@ class VariableView(object):
         else:
             this = self[:]
             if isinstance(this, Quantity):
-                return Quantity.__array_prepare__(this, array,
-                                                  context=context)
+                return Quantity.__array_prepare__(this, array, context=context)
             else:
                 return array
 
@@ -1220,8 +1357,7 @@ class VariableView(object):
         else:
             this = self[:]
             if isinstance(this, Quantity):
-                return Quantity.__array_wrap__(self[:], out_arr,
-                                               context=context)
+                return Quantity.__array_wrap__(self[:], out_arr, context=context)
             else:
                 return out_arr
 
@@ -1278,15 +1414,19 @@ class VariableView(object):
 
     def __rpow__(self, other):
         if self.dim is not DIMENSIONLESS:
-            raise TypeError(f"Cannot use '{self.name}' as an exponent, it has "
-                            f"dimensions {get_unit_for_display(self.unit)}.")
+            raise TypeError(
+                f"Cannot use '{self.name}' as an exponent, it has "
+                f"dimensions {get_unit_for_display(self.unit)}."
+            )
         return other ** self.get_item(slice(None), level=1)
 
     def __iadd__(self, other):
         if isinstance(other, str):
-            raise TypeError("In-place modification with strings not "
-                            "supported. Use group.var = 'var + expression' "
-                            "instead of group.var += 'expression'.")
+            raise TypeError(
+                "In-place modification with strings not "
+                "supported. Use group.var = 'var + expression' "
+                "instead of group.var += 'expression'."
+            )
         elif isinstance(self.variable, Subexpression):
             raise TypeError("Cannot assign to a subexpression.")
         else:
@@ -1296,9 +1436,11 @@ class VariableView(object):
 
     def __isub__(self, other):
         if isinstance(other, str):
-            raise TypeError("In-place modification with strings not "
-                             "supported. Use group.var = 'var - expression' "
-                             "instead of group.var -= 'expression'.")
+            raise TypeError(
+                "In-place modification with strings not "
+                "supported. Use group.var = 'var - expression' "
+                "instead of group.var -= 'expression'."
+            )
         elif isinstance(self.variable, Subexpression):
             raise TypeError("Cannot assign to a subexpression.")
         else:
@@ -1308,9 +1450,11 @@ class VariableView(object):
 
     def __imul__(self, other):
         if isinstance(other, str):
-            raise TypeError("In-place modification with strings not "
-                            "supported. Use group.var = 'var * expression' "
-                            "instead of group.var *= 'expression'.")
+            raise TypeError(
+                "In-place modification with strings not "
+                "supported. Use group.var = 'var * expression' "
+                "instead of group.var *= 'expression'."
+            )
         elif isinstance(self.variable, Subexpression):
             raise TypeError("Cannot assign to a subexpression.")
         else:
@@ -1320,9 +1464,11 @@ class VariableView(object):
 
     def __idiv__(self, other):
         if isinstance(other, str):
-            raise TypeError("In-place modification with strings not "
-                            "supported. Use group.var = 'var / expression' "
-                            "instead of group.var /= 'expression'.")
+            raise TypeError(
+                "In-place modification with strings not "
+                "supported. Use group.var = 'var / expression' "
+                "instead of group.var /= 'expression'."
+            )
         elif isinstance(self.variable, Subexpression):
             raise TypeError("Cannot assign to a subexpression.")
         else:
@@ -1332,9 +1478,11 @@ class VariableView(object):
 
     def __ifloordiv__(self, other):
         if isinstance(other, str):
-            raise TypeError("In-place modification with strings not "
-                            "supported. Use group.var = 'var // expression' "
-                            "instead of group.var //= 'expression'.")
+            raise TypeError(
+                "In-place modification with strings not "
+                "supported. Use group.var = 'var // expression' "
+                "instead of group.var //= 'expression'."
+            )
         elif isinstance(self.variable, Subexpression):
             raise TypeError("Cannot assign to a subexpression.")
         else:
@@ -1344,9 +1492,11 @@ class VariableView(object):
 
     def __imod__(self, other):
         if isinstance(other, str):
-            raise TypeError("In-place modification with strings not "
-                            "supported. Use group.var = 'var // expression' "
-                            "instead of group.var //= 'expression'.")
+            raise TypeError(
+                "In-place modification with strings not "
+                "supported. Use group.var = 'var // expression' "
+                "instead of group.var //= 'expression'."
+            )
         elif isinstance(self.variable, Subexpression):
             raise TypeError("Cannot assign to a subexpression.")
         else:
@@ -1356,9 +1506,11 @@ class VariableView(object):
 
     def __ipow__(self, other):
         if isinstance(other, str):
-            raise TypeError(("In-place modification with strings not "
-                             "supported. Use group.var = 'var ** expression' "
-                             "instead of group.var **= 'expression'."))
+            raise TypeError(
+                "In-place modification with strings not "
+                "supported. Use group.var = 'var ** expression' "
+                "instead of group.var **= 'expression'."
+            )
         elif isinstance(self.variable, Subexpression):
             raise TypeError("Cannot assign to a subexpression.")
         else:
@@ -1389,22 +1541,23 @@ class VariableView(object):
     def __repr__(self):
         varname = self.name
         if self.dim is None:
-            varname += '_'
+            varname += "_"
 
         if self.variable.scalar:
             dim = self.dim if self.dim is not None else DIMENSIONLESS
-            values = repr(Quantity(self.variable.get_value().item(),
-                                   dim=dim))
+            values = repr(Quantity(self.variable.get_value().item(), dim=dim))
         else:
             try:
                 # This will fail for subexpressions that refer to external
                 # parameters
                 values = repr(self[:])
             except KeyError:
-                values = (f"[Subexpression refers to external parameters. Use "
-                          f"'group.{self.variable.name}[:]']")
+                values = (
+                    "[Subexpression refers to external parameters. Use "
+                    f"'group.{self.variable.name}[:]']"
+                )
 
-        return f'<{self.group_name}.{varname}: {values}>'
+        return f"<{self.group_name}.{varname}: {values}>"
 
     # Get access to some basic properties of the underlying array
     @property
@@ -1435,7 +1588,7 @@ class Variables(Mapping):
         and `DynamicArrayVariable`). Defaults to ``'_idx'``.
     """
 
-    def __init__(self, owner, default_index='_idx'):
+    def __init__(self, owner, default_index="_idx"):
         #: A reference to the `Group` owning these variables
         self.owner = weakproxy_with_fallback(owner)
         # The index that is used for arrays if no index is given explicitly
@@ -1443,6 +1596,7 @@ class Variables(Mapping):
 
         # We do the import here to avoid a circular dependency.
         from brian2.devices.device import get_device
+
         self.device = get_device()
 
         self._variables = {}
@@ -1462,9 +1616,10 @@ class Variables(Mapping):
 
     def _add_variable(self, name, var, index=None):
         if name in self._variables:
-            raise KeyError(f"The name '{name}' is already present in the variables"
-                           f" dictionary.")
-        #TODO: do some check for the name, part of it has to be device-specific
+            raise KeyError(
+                f"The name '{name}' is already present in the variables dictionary."
+            )
+        # TODO: do some check for the name, part of it has to be device-specific
         self._variables[name] = var
 
         if isinstance(var, ArrayVariable):
@@ -1472,17 +1627,27 @@ class Variables(Mapping):
             # later code generation in standalone).
             self.device.add_array(var)
 
-        if getattr(var, 'scalar', False):
-            if index not in (None, '0'):
+        if getattr(var, "scalar", False):
+            if index not in (None, "0"):
                 raise ValueError("Cannot set an index for a scalar variable")
-            self.indices[name] = '0'
+            self.indices[name] = "0"
 
         if index is not None:
             self.indices[name] = index
 
-    def add_array(self, name, size, dimensions=DIMENSIONLESS, values=None,
-                  dtype=None, constant=False, read_only=False, scalar=False,
-                  unique=False, index=None):
+    def add_array(
+        self,
+        name,
+        size,
+        dimensions=DIMENSIONLESS,
+        values=None,
+        dtype=None,
+        constant=False,
+        read_only=False,
+        scalar=False,
+        unique=False,
+        index=None,
+    ):
         """
         Add an array (initialized with zeros).
 
@@ -1520,13 +1685,18 @@ class Variables(Mapping):
             # We want a basic Python type for the size instead of something
             # like numpy.int64
             size = int(size)
-        var = ArrayVariable(name=name, dimensions=dimensions, owner=self.owner,
-                            device=self.device, size=size,
-                            dtype=dtype,
-                            constant=constant,
-                            scalar=scalar,
-                            read_only=read_only,
-                            unique=unique)
+        var = ArrayVariable(
+            name=name,
+            dimensions=dimensions,
+            owner=self.owner,
+            device=self.device,
+            size=size,
+            dtype=dtype,
+            constant=constant,
+            scalar=scalar,
+            read_only=read_only,
+            unique=unique,
+        )
         self._add_variable(name, var, index)
         # This could be avoided, but we currently need it so that standalone
         # allocates the memory
@@ -1538,13 +1708,24 @@ class Variables(Mapping):
                 self.device.fill_with_array(var, values)
             else:
                 if len(values) != size:
-                    raise ValueError(f"Size of the provided values does not match "
-                                     f"size: {len(values)} != {size}")
+                    raise ValueError(
+                        "Size of the provided values does not match "
+                        f"size: {len(values)} != {size}"
+                    )
                 self.device.fill_with_array(var, values)
 
-    def add_arrays(self, names, size, dimensions=DIMENSIONLESS,
-                   dtype=None, constant=False, read_only=False, scalar=False,
-                   unique=False, index=None):
+    def add_arrays(
+        self,
+        names,
+        size,
+        dimensions=DIMENSIONLESS,
+        dtype=None,
+        constant=False,
+        read_only=False,
+        scalar=False,
+        unique=False,
+        index=None,
+    ):
         """
         Adds several arrays (initialized with zeros) with the same attributes
         (size, units, etc.).
@@ -1577,15 +1758,33 @@ class Variables(Mapping):
             See `ArrayVariable`. Defaults to ``False``.
         """
         for name in names:
-            self.add_array(name, dimensions=dimensions, size=size, dtype=dtype,
-                           constant=constant, read_only=read_only,
-                           scalar=scalar, unique=unique, index=index)
+            self.add_array(
+                name,
+                dimensions=dimensions,
+                size=size,
+                dtype=dtype,
+                constant=constant,
+                read_only=read_only,
+                scalar=scalar,
+                unique=unique,
+                index=index,
+            )
 
-    def add_dynamic_array(self, name, size, dimensions=DIMENSIONLESS,
-                          values=None, dtype=None, constant=False,
-                          needs_reference_update=False,
-                          resize_along_first=False, read_only=False,
-                          unique=False, scalar=False, index=None):
+    def add_dynamic_array(
+        self,
+        name,
+        size,
+        dimensions=DIMENSIONLESS,
+        values=None,
+        dtype=None,
+        constant=False,
+        needs_reference_update=False,
+        resize_along_first=False,
+        read_only=False,
+        unique=False,
+        scalar=False,
+        index=None,
+    ):
         """
         Add a dynamic array.
 
@@ -1623,14 +1822,20 @@ class Variables(Mapping):
         unique : bool, optional
             See `DynamicArrayVariable`. Defaults to ``False``.
         """
-        var = DynamicArrayVariable(name=name, dimensions=dimensions, owner=self.owner,
-                                   device=self.device,
-                                   size=size, dtype=dtype,
-                                   constant=constant,
-                                   needs_reference_update=needs_reference_update,
-                                   resize_along_first=resize_along_first,
-                                   scalar=scalar,
-                                   read_only=read_only, unique=unique)
+        var = DynamicArrayVariable(
+            name=name,
+            dimensions=dimensions,
+            owner=self.owner,
+            device=self.device,
+            size=size,
+            dtype=dtype,
+            constant=constant,
+            needs_reference_update=needs_reference_update,
+            resize_along_first=resize_along_first,
+            scalar=scalar,
+            read_only=read_only,
+            unique=unique,
+        )
         self._add_variable(name, var, index)
         if np.prod(size) > 0:
             self.device.resize(var, size)
@@ -1638,13 +1843,24 @@ class Variables(Mapping):
             self.device.init_with_zeros(var, dtype)
         elif values is not None:
             if len(values) != size:
-                raise ValueError(f"Size of the provided values does not match "
-                                 f"size: {len(values)} != {size}")
+                raise ValueError(
+                    "Size of the provided values does not match "
+                    f"size: {len(values)} != {size}"
+                )
             if np.prod(size) > 0:
                 self.device.fill_with_array(var, values)
 
-    def add_arange(self, name, size, start=0, dtype=np.int32, constant=True,
-                   read_only=True, unique=True, index=None):
+    def add_arange(
+        self,
+        name,
+        size,
+        start=0,
+        dtype=np.int32,
+        constant=True,
+        read_only=True,
+        unique=True,
+        index=None,
+    ):
         """
         Add an array, initialized with a range of integers.
 
@@ -1672,9 +1888,16 @@ class Variables(Mapping):
         unique : bool, optional
             See `ArrayVariable`. Defaults to ``True`` here.
         """
-        self.add_array(name=name, dimensions=DIMENSIONLESS, size=size, dtype=dtype,
-                       constant=constant, read_only=read_only, unique=unique,
-                       index=index)
+        self.add_array(
+            name=name,
+            dimensions=DIMENSIONLESS,
+            size=size,
+            dtype=dtype,
+            constant=constant,
+            read_only=read_only,
+            unique=unique,
+            index=index,
+        )
         self.device.init_with_arange(self._variables[name], start, dtype=dtype)
 
     def add_constant(self, name, value, dimensions=DIMENSIONLESS):
@@ -1691,12 +1914,12 @@ class Variables(Mapping):
             The physical dimensions of the variable. Note that the variable
             itself (as referenced by value) should never have units attached.
         """
-        var = Constant(name=name, dimensions=dimensions, owner=self.owner,
-                       value=value)
+        var = Constant(name=name, dimensions=dimensions, owner=self.owner, value=value)
         self._add_variable(name, var)
 
-    def add_subexpression(self, name, expr, dimensions=DIMENSIONLESS,
-                          dtype=None, scalar=False, index=None):
+    def add_subexpression(
+        self, name, expr, dimensions=DIMENSIONLESS, dtype=None, scalar=False, index=None
+    ):
         """
         Add a named subexpression.
 
@@ -1718,12 +1941,20 @@ class Variables(Mapping):
             The index to use for this variable. Defaults to
             `Variables.default_index`.
         """
-        var = Subexpression(name=name, dimensions=dimensions, expr=expr, owner=self.owner,
-                            dtype=dtype, device=self.device, scalar=scalar)
+        var = Subexpression(
+            name=name,
+            dimensions=dimensions,
+            expr=expr,
+            owner=self.owner,
+            dtype=dtype,
+            device=self.device,
+            scalar=scalar,
+        )
         self._add_variable(name, var, index=index)
 
-    def add_auxiliary_variable(self, name, dimensions=DIMENSIONLESS,
-                               dtype=None, scalar=False):
+    def add_auxiliary_variable(
+        self, name, dimensions=DIMENSIONLESS, dtype=None, scalar=False
+    ):
         """
         Add an auxiliary variable (most likely one that is added automatically
         to abstract code, e.g. ``_cond`` for a threshold condition),
@@ -1742,10 +1973,10 @@ class Variables(Mapping):
             Whether the variable is a scalar value (``True``) or vector-valued,
             e.g. defined for every neuron (``False``). Defaults to ``False``.
         """
-        var = AuxiliaryVariable(name=name, dimensions=dimensions, dtype=dtype,
-                                scalar=scalar)
+        var = AuxiliaryVariable(
+            name=name, dimensions=dimensions, dtype=dtype, scalar=scalar
+        )
         self._add_variable(name, var)
-
 
     def add_referred_subexpression(self, name, group, subexpr, index):
         identifiers = subexpr.identifiers
@@ -1755,47 +1986,49 @@ class Variables(Mapping):
                 # external variable --> nothing to do
                 continue
             subexpr_var = subexpr.owner.variables[identifier]
-            if hasattr(subexpr_var, 'owner'):
-                new_name = f'_{name}_{subexpr.owner.name}_{identifier}'
+            if hasattr(subexpr_var, "owner"):
+                new_name = f"_{name}_{subexpr.owner.name}_{identifier}"
             else:
-                new_name = f'_{name}_{identifier}'
+                new_name = f"_{name}_{identifier}"
             substitutions[identifier] = new_name
 
             subexpr_var_index = group.variables.indices[identifier]
             if subexpr_var_index == group.variables.default_index:
                 subexpr_var_index = index
-            elif subexpr_var_index == '0':
+            elif subexpr_var_index == "0":
                 pass  # nothing to do for a shared variable
             elif subexpr_var_index == index:
                 pass  # The same index as the main subexpression
             elif index != self.default_index:
                 index_var = self._variables.get(index, None)
                 if isinstance(index_var, DynamicArrayVariable):
-                    raise TypeError(f"Cannot link to subexpression '{name}': it refers "
-                                    f"to the variable '{identifier}' which is indexed "
-                                    f"with the dynamic index '{subexpr_var_index}'.")
+                    raise TypeError(
+                        f"Cannot link to subexpression '{name}': it refers "
+                        f"to the variable '{identifier}' which is indexed "
+                        f"with the dynamic index '{subexpr_var_index}'."
+                    )
             else:
                 self.add_reference(subexpr_var_index, group)
 
             self.indices[new_name] = subexpr_var_index
 
             if isinstance(subexpr_var, Subexpression):
-                self.add_referred_subexpression(new_name,
-                                                group,
-                                                subexpr_var,
-                                                subexpr_var_index)
+                self.add_referred_subexpression(
+                    new_name, group, subexpr_var, subexpr_var_index
+                )
             else:
-                self.add_reference(new_name,
-                                   group,
-                                   identifier,
-                                   subexpr_var_index)
+                self.add_reference(new_name, group, identifier, subexpr_var_index)
 
         new_expr = word_substitute(subexpr.expr, substitutions)
-        new_subexpr = Subexpression(name, self.owner, new_expr,
-                                    dimensions=subexpr.dim,
-                                    device=subexpr.device,
-                                    dtype=subexpr.dtype,
-                                    scalar=subexpr.scalar)
+        new_subexpr = Subexpression(
+            name,
+            self.owner,
+            new_expr,
+            dimensions=subexpr.dim,
+            device=subexpr.device,
+            dtype=subexpr.dtype,
+            scalar=subexpr.scalar,
+        )
         self._variables[name] = new_subexpr
 
     def add_reference(self, name, group, varname=None, index=None):
@@ -1820,22 +2053,27 @@ class Variables(Mapping):
         if varname is None:
             varname = name
         if varname not in group.variables:
-            raise KeyError(f"Group {group.name} does not have a variable "
-                           f"{varname}.")
+            raise KeyError(f"Group {group.name} does not have a variable {varname}.")
         if index is None:
             if group.variables[varname].scalar:
-                index = '0'
+                index = "0"
             else:
                 index = self.default_index
 
-        if (self.owner is not None and self.owner.name != group.name and
-                    index in self.owner.variables):
-            if ((not self.owner.variables[index].read_only or
-                 isinstance(self.owner.variables[index], DynamicArrayVariable)) and
-                    group.variables.indices[varname] != group.variables.default_index):
-                raise TypeError(f"Cannot link variable '{name}' to '{varname}' in "
-                                f"group '{group.name}' -- need to precalculate "
-                                f"direct indices but index {index} can change")
+        if (
+            self.owner is not None
+            and self.owner.name != group.name
+            and index in self.owner.variables
+        ):
+            if (
+                not self.owner.variables[index].read_only
+                or isinstance(self.owner.variables[index], DynamicArrayVariable)
+            ) and group.variables.indices[varname] != group.variables.default_index:
+                raise TypeError(
+                    f"Cannot link variable '{name}' to '{varname}' in "
+                    f"group '{group.name}' -- need to precalculate "
+                    f"direct indices but index {index} can change"
+                )
 
         # We don't overwrite existing names with references
         if name not in self._variables:
@@ -1877,13 +2115,15 @@ class Variables(Mapping):
             An arbitrary Python object that needs to be accessed directly from
             a `CodeObject`.
         """
-        if not name.startswith('_'):
-            raise ValueError("This method is only meant for internally used "
-                             "objects, the name therefore has to start with "
-                             "an underscore")
+        if not name.startswith("_"):
+            raise ValueError(
+                "This method is only meant for internally used "
+                "objects, the name therefore has to start with "
+                "an underscore"
+            )
         self._variables[name] = obj
 
-    def create_clock_variables(self, clock, prefix=''):
+    def create_clock_variables(self, clock, prefix=""):
         """
         Convenience function to add the ``t`` and ``dt`` attributes of a
         `clock`.
@@ -1897,6 +2137,6 @@ class Variables(Mapping):
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         """
-        self.add_reference(f"{prefix}t", clock, 't')
-        self.add_reference(f"{prefix}dt", clock, 'dt')
-        self.add_reference(f"{prefix}t_in_timesteps", clock, 'timestep')
+        self.add_reference(f"{prefix}t", clock, "t")
+        self.add_reference(f"{prefix}dt", clock, "dt")
+        self.add_reference(f"{prefix}t_in_timesteps", clock, "timestep")

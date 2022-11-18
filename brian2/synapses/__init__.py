@@ -4,4 +4,4 @@ Package providing synapse support.
 
 from .synapses import *
 
-__all__ = ['Synapses']
+__all__ = ["Synapses"]

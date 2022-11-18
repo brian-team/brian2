@@ -7,6 +7,7 @@ Instead edit the template:
 
     dev/tools/static_codegen/units_template.py
 """
+# fmt: off
 import itertools
 
 from .fundamentalunits import (Unit, get_or_create_dimension,
@@ -7913,13 +7914,15 @@ class _Celsius(object):
     `celsius` can lead to ambiguities when mixed with temperatures in `kelvin`,
     so its use is no longer supported. See github issue #817 for details.
     """
-    error_text = ('The unit "celsius" is no longer supported to avoid '
-                  'ambiguities when mixed with absolute temperatures defined '
-                  'in Kelvin. Directly use "kelvin" when you are only '
-                  'interested in temperature differences, and add the '
-                  '"zero_celsius" constant from the brian2.units.constants '
-                  'module if you want to convert a temperature from Celsius to '
-                  'Kelvin.')
+    error_text = (
+        "The unit 'celsius' is no longer supported to avoid"
+        "ambiguities when mixed with absolute temperatures defined"
+        "in Kelvin. Directly use 'kelvin' when you are only"
+        "interested in temperature differences, and add the"
+        "'zero_celsius' constant from the brian2.units.constants"
+        "module if you want to convert a temperature from Celsius to"
+        "Kelvin."
+    )
 
     def __mul__(self, other):
         raise TypeError(_Celsius.error_text)
@@ -7950,3 +7953,4 @@ for unit in itertools.chain(powered_units, scaled_units, base_units):
     standard_unit_register.add(unit)
 for unit in additional_units:
     additional_unit_register.add(unit)
+# fmt: on

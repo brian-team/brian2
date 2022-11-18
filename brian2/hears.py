@@ -21,10 +21,13 @@ try:
     import brian as b1
     import brian.hears as b1h
 except ImportError:
-    raise ImportError("brian2.hears is deprecated and will be removed in a future release, please use the brian2hears "                        
-                      "package available at https://brian2hears.readthedocs.io/. If you really want to keep "
-                      "using it, note: brian2.hears is a bridge between Brian 2 and the version of Brian Hears from "
-                      "Brian 1, you need to have Brian 1 installed to use it.")
+    raise ImportError(
+        "brian2.hears is deprecated and will be removed in a future release, please use"
+        " the brian2hears package available at https://brian2hears.readthedocs.io/. If"
+        " you really want to keep using it, note: brian2.hears is a bridge between"
+        " Brian 2 and the version of Brian Hears from Brian 1, you need to have Brian 1"
+        " installed to use it."
+    )
 
 from brian2.core.clocks import Clock
 from brian2.core.operations import network_operation
@@ -38,14 +41,18 @@ from inspect import isclass, ismethod
 
 logger = get_logger(__name__)
 
-logger.warn("brian2.hears is deprecated and will be removed in a future release, please use the brian2hears "                        
-            "package available at https://brian2hears.readthedocs.io/. If you really want to keep using it, note "
-            "that it is a bridge between Brian 2 and Brian Hears from Brian 1. "
-            "This is not guaranteed to work in all cases that brian.hears works. "
-            "See the limitations in the online documentation.")
+logger.warn(
+    "brian2.hears is deprecated and will be removed in a future release, please use the"
+    " brian2hears package available at https://brian2hears.readthedocs.io/. If you"
+    " really want to keep using it, note that it is a bridge between Brian 2 and Brian"
+    " Hears from Brian 1. This is not guaranteed to work in all cases that brian.hears"
+    " works. See the limitations in the online documentation."
+)
+
 
 def convert_unit_b1_to_b2(val):
     return Quantity.with_dimensions(float(val), arg.dim._dims)
+
 
 def convert_unit_b2_to_b1(val):
     return b1.Quantity.with_dimensions(float(val), arg.dim._dims)
@@ -54,16 +61,16 @@ def convert_unit_b2_to_b1(val):
 def modify_arg(arg):
     """
     Modify arguments to make them compatible with Brian 1.
-    
+
     - Arrays of units are replaced with straight arrays
     - Single values are replaced with Brian 1 equivalents
     - Slices are handled so we can use e.g. sound[:20*ms]
-    
+
     The second part was necessary because some functions/classes test if an object is an array or not to see if it
     is a sequence, but because brian2.Quantity derives from ndarray this was causing problems.
     """
     if isinstance(arg, Quantity):
-        if len(arg.shape)==0:
+        if len(arg.shape) == 0:
             arg = b1.Quantity.with_dimensions(float(arg), arg.dim._dims)
         else:
             arg = asarray(arg)
@@ -71,11 +78,13 @@ def modify_arg(arg):
         arg = slice(modify_arg(arg.start), modify_arg(arg.stop), modify_arg(arg.step))
     return arg
 
+
 def wrap_units(f):
     """
     Wrap a function to convert units into a form that Brian 1 can handle. Also, check the output argument, if it is
     a ``b1h.Sound`` wrap it.
     """
+
     def new_f(*args, **kwds):
         newargs = []
         newkwds = {}
@@ -84,12 +93,14 @@ def wrap_units(f):
         for k, v in kwds.items():
             newkwds[k] = modify_arg(v)
         rv = f(*newargs, **newkwds)
-        if rv.__class__==b1h.Sound:
+        if rv.__class__ == b1h.Sound:
             rv.__class__ = BridgeSound
         elif isinstance(rv, b1.Quantity):
             rv = Quantity.with_dimensions(float(rv), rv.dim._dims)
         return rv
+
     return new_f
+
 
 def wrap_units_property(p):
     fget = p.fget
@@ -104,10 +115,12 @@ def wrap_units_property(p):
     new_p = property(fget, fset, fdel)
     return new_p
 
+
 def wrap_units_class(_C):
     """
     Wrap a class to convert units into a form that Brian 1 can handle in all methods
     """
+
     class new_class(_C):
         for _k in _C.__dict__:
             _v = getattr(_C, _k)
@@ -115,22 +128,28 @@ def wrap_units_class(_C):
                 continue
             if ismethod(_v):
                 _v = wrap_units(_v)
-                exec(f'{_k} = _v')
+                exec(f"{_k} = _v")
             elif isinstance(_v, property):
                 _v = wrap_units_property(_v)
-                exec(f'{_k} = _v')
+                exec(f"{_k} = _v")
         del _k
         del _v
+
     return new_class
 
 
 WrappedSound = wrap_units_class(b1h.Sound)
+
+
 class BridgeSound(WrappedSound):
     """
     We add a new method slice because slicing with units can't work with Brian 2 units.
     """
+
     def slice(self, *args):
         return self.__getitem__(slice(*args))
+
+
 Sound = BridgeSound
 
 
@@ -142,42 +161,45 @@ class FilterbankGroup(NeuronGroup):
         filterbank.buffer_init()
 
         # Sanitize the clock - does it have the right dt value?
-        if 'clock' in kwds:
-            if int(1/kwds['clock'].dt)!=int(filterbank.samplerate):
+        if "clock" in kwds:
+            if int(1 / kwds["clock"].dt) != int(filterbank.samplerate):
                 raise ValueError("Clock should have 1/dt=samplerate")
-            kwds['clock'] = Clock(dt=float(kwds['clock'].dt)*second)
+            kwds["clock"] = Clock(dt=float(kwds["clock"].dt) * second)
         else:
-            kwds['clock'] = Clock(dt=1*second/float(filterbank.samplerate))        
-        
-        buffersize = kwds.pop('buffersize', 32)
+            kwds["clock"] = Clock(dt=1 * second / float(filterbank.samplerate))
+
+        buffersize = kwds.pop("buffersize", 32)
         if not isinstance(buffersize, int):
-            buffersize = int(buffersize*self.samplerate)
+            buffersize = int(buffersize * self.samplerate)
         self.buffersize = buffersize
         self.buffer_pointer = buffersize
         self.buffer_start = -buffersize
-        
+
         NeuronGroup.__init__(self, filterbank.nchannels, *args, **kwds)
-        
-        @network_operation(clock=self.clock, when='start')
+
+        @network_operation(clock=self.clock, when="start")
         def apply_filterbank_output():
-            if self.buffer_pointer>=self.buffersize:
+            if self.buffer_pointer >= self.buffersize:
                 self.buffer_pointer = 0
                 self.buffer_start += self.buffersize
-                self.buffer = self.filterbank.buffer_fetch(self.buffer_start, self.buffer_start+self.buffersize)
+                self.buffer = self.filterbank.buffer_fetch(
+                    self.buffer_start, self.buffer_start + self.buffersize
+                )
             setattr(self, targetvar, self.buffer[self.buffer_pointer, :])
             self.buffer_pointer += 1
-        
+
         self.contained_objects.append(apply_filterbank_output)
-        
+
     def reinit(self):
         NeuronGroup.reinit(self)
         self.filterbank.buffer_init()
         self.buffer_pointer = self.buffersize
         self.buffer_start = -self.buffersize
 
-handled_explicitly = {'Sound', 'FilterbankGroup'}
 
-__all__ = [k for k in b1h.__dict__ if not k.startswith('_')]
+handled_explicitly = {"Sound", "FilterbankGroup"}
+
+__all__ = [k for k in b1h.__dict__ if not k.startswith("_")]
 for k in __all__:
     if k in handled_explicitly:
         continue
@@ -187,8 +209,11 @@ for k in __all__:
             curobj = wrap_units_class(curobj)
         else:
             curobj = wrap_units(curobj)
-    exec(f'{k} = curobj')
+    exec(f"{k} = curobj")
 
-__all__.extend(['convert_unit_b1_to_b2',
-                'convert_unit_b2_to_b1',
-                ])
+__all__.extend(
+    [
+        "convert_unit_b1_to_b2",
+        "convert_unit_b2_to_b1",
+    ]
+)

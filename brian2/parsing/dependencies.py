@@ -1,10 +1,10 @@
-
 import ast
 
 from brian2.utils.stringtools import deindent
 from collections import namedtuple
 
-__all__ = ['abstract_code_dependencies']
+__all__ = ["abstract_code_dependencies"]
+
 
 def get_read_write_funcs(parsed_code):
     allids = set([])
@@ -23,32 +23,32 @@ def get_read_write_funcs(parsed_code):
         elif node.__class__ is ast.Call:
             funcs.add(node.func.id)
 
-    read = read-funcs
-    
+    read = read - funcs
+
     # check that there's no funky stuff going on with functions
     if funcs.intersection(write):
         raise SyntaxError("Cannot assign to functions in abstract code")
-    
+
     return allids, read, write, funcs
 
 
 def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
     """
     Analyses identifiers used in abstract code blocks
-    
+
     Parameters
     ----------
-    
+
     code : str
         The abstract code block.
     known_vars : set
         The set of known variable names.
     known_funcs : set
         The set of known function names.
-    
+
     Returns
     -------
-    
+
     results : namedtuple with the following fields
         ``all``
             The set of all identifiers that appear in this code block,
@@ -95,14 +95,14 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
         known_vars = set(known_vars)
     if not isinstance(known_funcs, set):
         known_funcs = set(known_funcs)
-    
+
     code = deindent(code, docstring=True)
-    parsed_code = ast.parse(code, mode='exec')
-    
+    parsed_code = ast.parse(code, mode="exec")
+
     # Get the list of all variables that are read from and written to,
     # ignoring the order
-    allids, read, write, funcs = get_read_write_funcs(parsed_code) 
-    
+    allids, read, write, funcs = get_read_write_funcs(parsed_code)
+
     # Now check if there are any values that are unknown and read before
     # they are written to
     defined = known_vars.copy()
@@ -110,11 +110,11 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
     undefined_read = set([])
     for line in parsed_code.body:
         _, cur_read, cur_write, _ = get_read_write_funcs(line)
-        undef = cur_read-defined
+        undef = cur_read - defined
         undefined_read |= undef
-        newly_defined |= (cur_write-defined)-undefined_read
+        newly_defined |= (cur_write - defined) - undefined_read
         defined |= cur_write
-    
+
     # Return the results as a named tuple
     results = dict(
         all=allids,
@@ -125,10 +125,10 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
         known_read=read.intersection(known_vars),
         known_write=write.intersection(known_vars),
         known_funcs=funcs.intersection(known_funcs),
-        unknown_read=read-known_vars,
-        unknown_write=write-known_vars,
-        unknown_funcs=funcs-known_funcs,
+        unknown_read=read - known_vars,
+        unknown_write=write - known_vars,
+        unknown_funcs=funcs - known_funcs,
         undefined_read=undefined_read,
         newly_defined=newly_defined,
-        )
-    return namedtuple('AbstractCodeDependencies', list(results.keys()))(**results)
+    )
+    return namedtuple("AbstractCodeDependencies", list(results.keys()))(**results)

@@ -23,9 +23,12 @@ def assert_allclose(actual, desired, rtol=4.5e8, atol=0, **kwds):
         The absolute tolerance
     """
     assert have_same_dimensions(actual, desired)
-    eps = np.finfo(prefs['core.default_float_dtype']).eps
-    rtol = eps*rtol
-    numpy_allclose(np.asarray(actual), np.asarray(desired), rtol=rtol, atol=atol, **kwds)
+    eps = np.finfo(prefs["core.default_float_dtype"]).eps
+    rtol = eps * rtol
+    numpy_allclose(
+        np.asarray(actual), np.asarray(desired), rtol=rtol, atol=atol, **kwds
+    )
+
 
 def exc_isinstance(exc_info, expected_exception, raise_not_implemented=False):
     """
@@ -52,7 +55,7 @@ def exc_isinstance(exc_info, expected_exception, raise_not_implemented=False):
     """
     if exc_info is None:
         return False
-    if hasattr(exc_info, 'value'):
+    if hasattr(exc_info, "value"):
         exc_info = exc_info.value
 
     if isinstance(exc_info, expected_exception):
@@ -60,5 +63,8 @@ def exc_isinstance(exc_info, expected_exception, raise_not_implemented=False):
     elif raise_not_implemented and isinstance(exc_info, NotImplementedError):
         raise exc_info
 
-    return exc_isinstance(exc_info.__cause__, expected_exception,
-                          raise_not_implemented=raise_not_implemented)
+    return exc_isinstance(
+        exc_info.__cause__,
+        expected_exception,
+        raise_not_implemented=raise_not_implemented,
+    )

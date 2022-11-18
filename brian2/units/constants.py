@@ -27,31 +27,41 @@ Molar mass constant  :math:`M_u`        ``molar_mass_constant`` :math:`1\times 1
 
 import numpy as np
 
-from .allunits import (amp, coulomb, farad, gram, joule, kelvin, kilogram,
-                       meter, mole, newton)
+from .allunits import (
+    amp,
+    coulomb,
+    farad,
+    gram,
+    joule,
+    kelvin,
+    kilogram,
+    meter,
+    mole,
+    newton,
+)
 from .fundamentalunits import Unit
 
 Unit.automatically_register_units = False
 
 #: Avogadro constant (http://physics.nist.gov/cgi-bin/cuu/Value?na)
-avogadro_constant = 6.022140857e23/mole
+avogadro_constant = 6.022140857e23 / mole
 #: Boltzmann constant (physics.nist.gov/cgi-bin/cuu/Value?k)
-boltzmann_constant = 1.38064852e-23*joule/kelvin
+boltzmann_constant = 1.38064852e-23 * joule / kelvin
 #: electric constant (http://physics.nist.gov/cgi-bin/cuu/Value?ep0)
-electric_constant = 8.854187817e-12*farad/meter
+electric_constant = 8.854187817e-12 * farad / meter
 #: Electron rest mass (physics.nist.gov/cgi-bin/cuu/Value?me)
-electron_mass = 9.10938356e-31*kilogram
+electron_mass = 9.10938356e-31 * kilogram
 #: Elementary charge (physics.nist.gov/cgi-bin/cuu/Value?e)
-elementary_charge = 1.6021766208e-19*coulomb
+elementary_charge = 1.6021766208e-19 * coulomb
 #: Faraday constant (http://physics.nist.gov/cgi-bin/cuu/Value?f)
-faraday_constant = 96485.33289*coulomb/mole
+faraday_constant = 96485.33289 * coulomb / mole
 #: gas constant (http://physics.nist.gov/cgi-bin/cuu/Value?r)
-gas_constant = 8.3144598*joule/mole/kelvin
+gas_constant = 8.3144598 * joule / mole / kelvin
 #: Magnetic constant (http://physics.nist.gov/cgi-bin/cuu/Value?mu0)
-magnetic_constant = 4*np.pi*1e-7*newton/amp**2
+magnetic_constant = 4 * np.pi * 1e-7 * newton / amp**2
 #: Molar mass constant (http://physics.nist.gov/cgi-bin/cuu/Value?mu)
-molar_mass_constant = 1*gram/mole
+molar_mass_constant = 1 * gram / mole
 #: zero degree Celsius
-zero_celsius = 273.15*kelvin
+zero_celsius = 273.15 * kelvin
 
 Unit.automatically_register_units = True
