@@ -48,7 +48,7 @@ def main(rootpath, destdir):
         if not os.path.basename(fname) == ".gitignore"
     ]
 
-    print("Documenting %d examples" % len(examplesfnames))
+    print(f"Documenting {len(examplesfnames)} examples")
 
     examplespaths = []
     examplesbasenames = []
@@ -150,12 +150,12 @@ def main(rootpath, destdir):
         output += "\n".join(["    " + line for line in afterdoccode.split("\n")])
         output += "\n\n"
 
-        eximgpattern = os.path.join(eximgpath, "%s.*.png" % exname)
-        images = glob.glob(eximgpattern)
+        eximgpattern = os.path.join(eximgpath, f"{exname}.*")
+        images = glob.glob(eximgpattern + ".png") + glob.glob(eximgpattern + ".gif")
         for image in sorted(images):
             _, image = os.path.split(image)
             print("Found example image file", image)
-            output += ".. image:: ../resources/examples_images/%s\n\n" % image
+            output += f".. image:: ../resources/examples_images/{image}\n\n"
 
         with codecs.open(os.path.join(destdir, exname + ".rst"), "w", "utf-8") as f:
             f.write(output)
