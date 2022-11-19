@@ -4,6 +4,7 @@ Brian AST representation
 This is a standard Python AST representation with additional information added.
 """
 
+# isort:skip_file
 
 import ast
 import weakref
