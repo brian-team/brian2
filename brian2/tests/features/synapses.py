@@ -1,9 +1,10 @@
 """
 Check that the features of `Synapses` are available and correct.
 """
+import numpy
+
 from brian2 import *
 from brian2.tests.features import FeatureTest, InaccuracyError
-import numpy
 
 
 class SynapsesPre(FeatureTest):

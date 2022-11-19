@@ -1,12 +1,11 @@
-from brian2.core.network import schedule_propagation_offset
-
 import pytest
-from numpy.testing import assert_equal, assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 
 from brian2 import *
-from brian2.utils.logger import catch_logs
+from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
+from brian2.utils.logger import catch_logs
 
 
 @pytest.mark.codegen_independent

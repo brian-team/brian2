@@ -1,6 +1,7 @@
+import pytest
+
 from brian2 import *
 from brian2.codegen.templates import Templater
-import pytest
 
 
 @pytest.mark.codegen_independent

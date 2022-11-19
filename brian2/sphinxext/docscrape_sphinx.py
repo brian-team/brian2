@@ -1,8 +1,12 @@
-import re, inspect, textwrap, pydoc
+import inspect
+import pydoc
+import re
+import textwrap
+
 import sphinx
 from sphinx.pycode import ModuleAnalyzer
 
-from .docscrape import NumpyDocString, FunctionDoc, ClassDoc
+from .docscrape import ClassDoc, FunctionDoc, NumpyDocString
 
 
 class SphinxDocString(NumpyDocString):

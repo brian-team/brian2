@@ -7,13 +7,13 @@ import collections
 import inspect
 import itertools
 
-from brian2.utils.logger import get_logger
+from brian2.core.functions import DEFAULT_CONSTANTS, DEFAULT_FUNCTIONS
 from brian2.units.fundamentalunits import (
-    standard_unit_register,
     additional_unit_register,
+    standard_unit_register,
 )
 from brian2.units.stdunits import stdunits
-from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
+from brian2.utils.logger import get_logger
 
 __all__ = [
     "get_local_namespace",

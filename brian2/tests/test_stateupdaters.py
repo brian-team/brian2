@@ -1,14 +1,14 @@
-import re
 import logging
+import re
 
-from numpy.testing import assert_equal
 import pytest
+from numpy.testing import assert_equal
 
 from brian2 import *
-from brian2.utils.logger import catch_logs
-from brian2.core.variables import ArrayVariable, Variable, Constant
+from brian2.core.variables import ArrayVariable, Constant, Variable
 from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.tests.utils import assert_allclose, exc_isinstance
+from brian2.utils.logger import catch_logs
 
 
 @pytest.mark.codegen_independent
@@ -957,9 +957,9 @@ def test_check_for_invalid_values_linear_integrator():
 
 
 if __name__ == "__main__":
-    from brian2 import prefs
-
     import time
+
+    from brian2 import prefs
 
     start = time.time()
 

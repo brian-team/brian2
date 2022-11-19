@@ -5,7 +5,7 @@ import pytest
 from numpy.testing import assert_equal
 
 from brian2 import *
-from brian2.devices.device import reinit_and_delete, set_device, reset_device
+from brian2.devices.device import reinit_and_delete, reset_device, set_device
 from brian2.tests.utils import assert_allclose
 from brian2.utils.logger import catch_logs
 

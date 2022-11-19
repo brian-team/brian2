@@ -1,7 +1,7 @@
 import ast
+from collections import namedtuple
 
 from brian2.utils.stringtools import deindent
-from collections import namedtuple
 
 __all__ = ["abstract_code_dependencies"]
 

@@ -2,15 +2,15 @@
 All Brian objects should derive from `BrianObject`.
 """
 import functools
-import weakref
-import traceback
 import os
 import sys
+import traceback
+import weakref
 
-from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units
+from brian2.utils.logger import get_logger
 
 __all__ = [
     "BrianObject",

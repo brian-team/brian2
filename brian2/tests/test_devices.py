@@ -1,19 +1,19 @@
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
+from numpy.testing import assert_equal
 
-from brian2.groups.neurongroup import NeuronGroup
 from brian2.core.magic import run
-from brian2.units import ms
 from brian2.devices.device import (
     Device,
+    RuntimeDevice,
     all_devices,
-    set_device,
     get_device,
     reset_device,
     runtime_device,
-    RuntimeDevice,
+    set_device,
 )
+from brian2.groups.neurongroup import NeuronGroup
+from brian2.units import ms
 
 
 class ATestDevice(Device):

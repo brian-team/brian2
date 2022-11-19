@@ -7,31 +7,29 @@ https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 
 
 import glob
+import hashlib
 import importlib.util
 import os
 import shutil
 import sys
 import time
-
-import hashlib
-
-from distutils.core import Distribution, Extension
 from distutils.command.build_ext import build_ext
+from distutils.core import Distribution, Extension
 
 import numpy
 
 try:
     import Cython
-    import Cython.Compiler as Cython_Compiler
     import Cython.Build as Cython_Build
+    import Cython.Compiler as Cython_Compiler
     from Cython.Utils import get_cython_cache_dir as base_cython_cache_dir
 except ImportError:
     Cython = None
 
-from brian2.utils.logger import std_silent, get_logger
-from brian2.utils.stringtools import deindent
-from brian2.utils.filelock import FileLock
 from brian2.core.preferences import prefs
+from brian2.utils.filelock import FileLock
+from brian2.utils.logger import get_logger, std_silent
+from brian2.utils.stringtools import deindent
 
 __all__ = ["cython_extension_manager"]
 

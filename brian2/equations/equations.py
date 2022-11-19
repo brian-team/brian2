@@ -1,80 +1,79 @@
 """
 Differential equations for Brian models.
 """
-from collections import namedtuple
-from collections.abc import Mapping, Hashable
 import keyword
 import re
 import string
+from collections import namedtuple
+from collections.abc import Hashable, Mapping
 
+import sympy
 from pyparsing import (
-    Group,
-    ZeroOrMore,
-    OneOrMore,
-    Optional,
-    Word,
     CharsNotIn,
     Combine,
-    Suppress,
-    restOfLine,
+    Group,
     LineEnd,
+    OneOrMore,
+    Optional,
     ParseException,
+    Suppress,
+    Word,
+    ZeroOrMore,
+    restOfLine,
 )
-import sympy
 
-from brian2.utils.stringtools import get_identifiers
-from brian2.core.namespace import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, DEFAULT_UNITS
-from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
-from brian2.units.fundamentalunits import (
-    Unit,
-    Quantity,
-    get_unit,
-    get_unit_for_display,
-    DIMENSIONLESS,
-    DimensionMismatchError,
-    get_dimensions,
-)
+from brian2.core.namespace import DEFAULT_CONSTANTS, DEFAULT_FUNCTIONS, DEFAULT_UNITS
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.units.allunits import (
-    metre,
-    meter,
-    second,
     amp,
     ampere,
-    kelvin,
-    mole,
-    candle,
-    kilogram,
-    radian,
-    steradian,
-    hertz,
-    newton,
-    pascal,
-    joule,
-    watt,
-    coulomb,
-    volt,
-    farad,
-    ohm,
-    siemens,
-    weber,
-    tesla,
-    henry,
-    lumen,
-    lux,
     becquerel,
+    candle,
+    coulomb,
+    farad,
     gray,
-    sievert,
+    henry,
+    hertz,
+    joule,
     katal,
+    kelvin,
     kgram,
     kgramme,
+    kilogram,
+    lumen,
+    lux,
+    meter,
+    metre,
+    mole,
+    newton,
+    ohm,
+    pascal,
+    radian,
+    second,
+    siemens,
+    sievert,
+    steradian,
+    tesla,
+    volt,
+    watt,
+    weber,
 )
-from brian2.utils.caching import cached, CacheKey
+from brian2.units.fundamentalunits import (
+    DIMENSIONLESS,
+    DimensionMismatchError,
+    Quantity,
+    Unit,
+    get_dimensions,
+    get_unit,
+    get_unit_for_display,
+)
+from brian2.utils.caching import CacheKey, cached
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 from brian2.utils.topsort import topsort
 
 from .codestrings import Expression
 from .unitcheck import check_dimensions
-
 
 __all__ = ["Equations"]
 

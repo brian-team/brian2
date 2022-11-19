@@ -29,15 +29,16 @@ except ImportError:
         " installed to use it."
     )
 
+from inspect import isclass, ismethod
+
+from numpy import array, asarray, ndarray
+
 from brian2.core.clocks import Clock
 from brian2.core.operations import network_operation
 from brian2.groups.neurongroup import NeuronGroup
-from brian2.utils.logger import get_logger
-from brian2.units.fundamentalunits import Quantity
 from brian2.units import second
-
-from numpy import asarray, array, ndarray
-from inspect import isclass, ismethod
+from brian2.units.fundamentalunits import Quantity
+from brian2.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

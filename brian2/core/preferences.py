@@ -3,13 +3,13 @@ Brian global preferences are stored as attributes of a `BrianGlobalPreferences`
 object ``prefs``.
 """
 
-import re
 import os
+import re
 from collections.abc import MutableMapping
 from io import StringIO
 
+from brian2.units.fundamentalunits import Quantity, have_same_dimensions
 from brian2.utils.stringtools import deindent, indent
-from brian2.units.fundamentalunits import have_same_dimensions, Quantity
 
 __all__ = ["PreferenceError", "BrianPreference", "prefs", "brian_prefs"]
 

@@ -4,16 +4,15 @@ Utility functions for handling the units in `Equations`.
 
 import re
 
+from brian2.core.variables import Variable
+from brian2.parsing.expressions import parse_expression_dimensions
+from brian2.parsing.statements import parse_statement
 from brian2.units.fundamentalunits import (
-    get_unit,
     Unit,
     fail_for_dimension_mismatch,
     get_dimensions,
+    get_unit,
 )
-
-from brian2.parsing.expressions import parse_expression_dimensions
-from brian2.parsing.statements import parse_statement
-from brian2.core.variables import Variable
 
 __all__ = ["check_dimensions", "check_units_statements"]
 

@@ -1,10 +1,10 @@
 from pyparsing import (
     CharsNotIn,
     Optional,
+    ParseException,
+    Regex,
     Suppress,
     Word,
-    Regex,
-    ParseException,
     alphas,
     nums,
 )

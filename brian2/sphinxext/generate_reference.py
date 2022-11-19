@@ -7,8 +7,8 @@
 
 
 import inspect
-import sys
 import os
+import sys
 from os import path
 
 from .examplefinder import auto_find_examples

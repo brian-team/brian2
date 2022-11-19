@@ -3,15 +3,15 @@ Base class for generating code in different programming languages, gives the
 methods which should be overridden to implement a new language.
 """
 
-from brian2.core.variables import ArrayVariable
-from brian2.core.functions import Function
-from brian2.utils.stringtools import get_identifiers
-from brian2.utils.logger import get_logger
-from brian2.codegen.translation import make_statements
 from brian2.codegen.permutation_analysis import (
-    check_for_order_independence,
     OrderDependenceError,
+    check_for_order_independence,
 )
+from brian2.codegen.translation import make_statements
+from brian2.core.functions import Function
+from brian2.core.variables import ArrayVariable
+from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 
 __all__ = ["CodeGenerator"]
 

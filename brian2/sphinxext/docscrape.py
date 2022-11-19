@@ -4,9 +4,9 @@
 
 
 import inspect
-import textwrap
-import re
 import pydoc
+import re
+import textwrap
 from warnings import warn
 
 from sphinx.pycode import ModuleAnalyzer

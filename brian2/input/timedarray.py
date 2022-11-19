@@ -7,18 +7,17 @@ import numpy as np
 
 from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function
+from brian2.core.names import Nameable
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
+    Quantity,
     check_units,
     get_dimensions,
-    Quantity,
     get_unit,
 )
-from brian2.core.names import Nameable
 from brian2.utils.caching import CacheKey
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import replace
-
 
 __all__ = ["TimedArray"]
 

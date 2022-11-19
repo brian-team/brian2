@@ -4,17 +4,17 @@ Unit-aware replacements for numpy functions.
 
 from functools import wraps
 
-import pkg_resources
 import numpy as np
+import pkg_resources
 
 from .fundamentalunits import (
+    DIMENSIONLESS,
     Quantity,
-    wrap_function_dimensionless,
-    wrap_function_remove_dimensions,
+    check_units,
     fail_for_dimension_mismatch,
     is_dimensionless,
-    DIMENSIONLESS,
-    check_units,
+    wrap_function_dimensionless,
+    wrap_function_remove_dimensions,
 )
 
 __all__ = [

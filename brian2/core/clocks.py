@@ -7,12 +7,12 @@ __docformat__ = "restructuredtext en"
 
 import numpy as np
 
-from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.variables import Variables
 from brian2.groups.group import VariableOwner
-from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second
+from brian2.units.fundamentalunits import Quantity, check_units
+from brian2.utils.logger import get_logger
 
 __all__ = ["Clock", "defaultclock"]
 

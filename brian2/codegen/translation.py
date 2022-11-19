@@ -21,18 +21,18 @@ from collections.abc import Mapping
 import numpy as np
 import sympy
 
-from brian2.core.preferences import prefs
-from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
-from brian2.parsing.bast import brian_ast
-from brian2.utils.caching import cached
 from brian2.core.functions import Function
-from brian2.utils.stringtools import deindent, strip_empty_lines, get_identifiers
-from brian2.utils.topsort import topsort
+from brian2.core.preferences import prefs
+from brian2.core.variables import AuxiliaryVariable, Subexpression, Variable
+from brian2.parsing.bast import brian_ast
 from brian2.parsing.statements import parse_statement
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
+from brian2.utils.caching import cached
+from brian2.utils.stringtools import deindent, get_identifiers, strip_empty_lines
+from brian2.utils.topsort import topsort
 
-from .statements import Statement
 from .optimisation import optimise_statements
+from .statements import Statement
 
 __all__ = ["analyse_identifiers", "get_identifiers_recursively"]
 

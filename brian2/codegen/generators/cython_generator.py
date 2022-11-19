@@ -1,21 +1,20 @@
 import itertools
 
 from brian2.codegen.cpp_prefs import C99Check
-from brian2.devices.device import all_devices
-from brian2.utils.stringtools import word_substitute, deindent, indent
-from brian2.parsing.rendering import NodeRenderer
-from brian2.parsing.bast import brian_dtype_from_dtype
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import (
-    Constant,
     AuxiliaryVariable,
-    get_dtype_str,
-    Variable,
+    Constant,
     Subexpression,
+    Variable,
+    get_dtype_str,
 )
+from brian2.devices.device import all_devices
+from brian2.parsing.bast import brian_dtype_from_dtype
+from brian2.parsing.rendering import NodeRenderer
+from brian2.utils.stringtools import deindent, indent, word_substitute
 
 from .base import CodeGenerator
-
 
 __all__ = ["CythonCodeGenerator"]
 

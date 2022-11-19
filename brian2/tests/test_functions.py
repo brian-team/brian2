@@ -4,14 +4,14 @@ import pytest
 from numpy.testing import assert_equal
 
 from brian2 import *
+from brian2.codegen.codeobject import CodeObject
 from brian2.codegen.cpp_prefs import compiler_supports_c99
+from brian2.codegen.generators import CodeGenerator
 from brian2.core.functions import timestep
 from brian2.devices import RuntimeDevice
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
-from brian2.utils.logger import catch_logs
 from brian2.tests.utils import assert_allclose, exc_isinstance
-from brian2.codegen.generators import CodeGenerator
-from brian2.codegen.codeobject import CodeObject
+from brian2.utils.logger import catch_logs
 
 
 @pytest.mark.codegen_independent
@@ -1113,11 +1113,12 @@ def test_multiple_stateless_function_calls():
 
 
 if __name__ == "__main__":
-    from brian2 import prefs
-
     # prefs.codegen.target = 'numpy'
     import time
+
     from _pytest.outcomes import Skipped
+
+    from brian2 import prefs
 
     for f in [
         test_constants_sympy,

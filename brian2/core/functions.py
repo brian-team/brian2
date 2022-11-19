@@ -1,26 +1,26 @@
-from collections.abc import Mapping
 import inspect
 import types
+from collections.abc import Mapping
 from typing import Callable
 
 import numpy as np
 import sympy
-from sympy.codegen import cfunctions as sympy_cfunctions
-from numpy.random import randn, rand
+from numpy.random import rand, randn
 from sympy import Function as sympy_Function
 from sympy import S
+from sympy.codegen import cfunctions as sympy_cfunctions
 
 import brian2.units.unitsafefunctions as unitsafe
 from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
+from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
-    fail_for_dimension_mismatch,
-    Quantity,
-    get_dimensions,
     DIMENSIONLESS,
+    Quantity,
+    fail_for_dimension_mismatch,
+    get_dimensions,
     is_dimensionless,
 )
-from brian2.units.allunits import second
 
 __all__ = ["DEFAULT_FUNCTIONS", "Function", "implementation", "declare_types"]
 

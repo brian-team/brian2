@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_equal
 
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D

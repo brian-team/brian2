@@ -1,36 +1,35 @@
 import itertools
-import warnings
 import pickle
+import warnings
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_equal
 
 import brian2
 from brian2.core.preferences import prefs
+from brian2.tests.utils import assert_allclose
+from brian2.units.allunits import *
 from brian2.units.fundamentalunits import (
+    DIMENSIONLESS,
     UFUNCS_DIMENSIONLESS,
     UFUNCS_DIMENSIONLESS_TWOARGS,
     UFUNCS_INTEGERS,
     UFUNCS_LOGICAL,
+    DimensionMismatchError,
     Quantity,
     Unit,
-    have_same_dimensions,
+    check_units,
+    fail_for_dimension_mismatch,
     get_dimensions,
+    get_or_create_dimension,
+    get_unit,
+    have_same_dimensions,
+    in_unit,
     is_dimensionless,
     is_scalar_type,
-    DimensionMismatchError,
-    check_units,
-    in_unit,
-    get_unit,
-    get_or_create_dimension,
-    DIMENSIONLESS,
-    fail_for_dimension_mismatch,
 )
-from brian2.units.allunits import *
-from brian2.units.stdunits import ms, mV, kHz, nS, cm, Hz, mM, nA
-from brian2.tests.utils import assert_allclose
-
+from brian2.units.stdunits import Hz, cm, kHz, mM, ms, mV, nA, nS
 
 # To work around an issue in matplotlib 1.3.1 (see
 # https://github.com/matplotlib/matplotlib/pull/2591), we make `ravel`
@@ -249,8 +248,8 @@ def test_str_repr():
     Test that str representations do not raise any errors and that repr
     fullfills eval(repr(x)) == x. Also test generating LaTeX representations via sympy.
     """
-    from numpy import array  # necessary for evaluating repr
     import sympy
+    from numpy import array  # necessary for evaluating repr
 
     units_which_should_exist = [
         metre,
@@ -566,7 +565,7 @@ def test_binary_operations():
     DimensionMismatchErrors when they should.
     Does not test for the actual result.
     """
-    from operator import add, sub, lt, le, gt, ge, eq, ne
+    from operator import add, eq, ge, gt, le, lt, ne, sub
 
     def assert_operations_work(a, b):
         try:
@@ -799,7 +798,7 @@ def test_unit_discarding_functions():
     """
     Test functions that discard units.
     """
-    from brian2.units.unitsafefunctions import zeros_like, ones_like
+    from brian2.units.unitsafefunctions import ones_like, zeros_like
 
     values = [3 * mV, np.array([1, 2]) * mV, np.arange(12).reshape(3, 4) * mV]
     for value in values:
@@ -817,20 +816,20 @@ def test_unitsafe_functions():
     Test the unitsafe functions wrapping their numpy counterparts.
     """
     from brian2.units.unitsafefunctions import (
-        sin,
-        sinh,
-        arcsin,
-        arcsinh,
-        cos,
-        cosh,
         arccos,
         arccosh,
-        tan,
-        tanh,
+        arcsin,
+        arcsinh,
         arctan,
         arctanh,
-        log,
+        cos,
+        cosh,
         exp,
+        log,
+        sin,
+        sinh,
+        tan,
+        tanh,
     )
 
     # All functions with their numpy counterparts
@@ -883,7 +882,7 @@ def test_special_case_numpy_functions():
     """
     Test a couple of functions/methods that need special treatment.
     """
-    from brian2.units.unitsafefunctions import ravel, diagonal, trace, dot, where
+    from brian2.units.unitsafefunctions import diagonal, dot, ravel, trace, where
 
     quadratic_matrix = np.reshape(np.arange(9), (3, 3)) * mV
 

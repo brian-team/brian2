@@ -1,13 +1,13 @@
-from collections.abc import Sequence
 import numbers
+from collections.abc import Sequence
 
 import numpy as np
 
 from brian2.core.variables import Variables, get_dtype
-from brian2.groups.group import Group, CodeRunner
-from brian2.utils.logger import get_logger
-from brian2.units.fundamentalunits import Quantity
+from brian2.groups.group import CodeRunner, Group
 from brian2.units.allunits import second
+from brian2.units.fundamentalunits import Quantity
+from brian2.utils.logger import get_logger
 
 __all__ = ["StateMonitor"]
 

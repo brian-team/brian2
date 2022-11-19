@@ -1,9 +1,9 @@
-import os
+import codecs
 import fnmatch
+import glob
+import os
 import shutil
 from collections import defaultdict
-import glob
-import codecs
 
 
 class GlobDirectoryWalker:

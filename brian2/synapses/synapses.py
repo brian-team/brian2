@@ -1,56 +1,55 @@
 """
 Module providing the `Synapses` class and related helper classes/functions.
 """
-from collections import defaultdict
-from collections.abc import Sequence, MutableMapping, Mapping
 import functools
-import weakref
-import re
 import numbers
+import re
+import weakref
+from collections import defaultdict
+from collections.abc import Mapping, MutableMapping, Sequence
 
 import numpy as np
 
-from brian2.core.base import weakproxy_with_fallback
-from brian2.core.base import device_override
-from brian2.core.namespace import get_local_namespace
-from brian2.core.variables import DynamicArrayVariable, Variables
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.codegen.translation import get_identifiers_recursively
+from brian2.core.base import device_override, weakproxy_with_fallback
+from brian2.core.namespace import get_local_namespace
+from brian2.core.spikesource import SpikeSource
+from brian2.core.variables import DynamicArrayVariable, Variables
 from brian2.devices.device import get_device
 from brian2.equations.equations import (
-    Equations,
     DIFFERENTIAL_EQUATION,
-    SUBEXPRESSION,
     PARAMETER,
-    check_subexpressions,
+    SUBEXPRESSION,
     EquationError,
+    Equations,
+    check_subexpressions,
 )
-from brian2.groups.group import Group, CodeRunner, get_dtype
+from brian2.groups.group import CodeRunner, Group, get_dtype
 from brian2.groups.neurongroup import (
-    extract_constant_subexpressions,
     SubexpressionUpdater,
     check_identifier_pre_post,
+    extract_constant_subexpressions,
 )
+from brian2.parsing.bast import brian_ast
 from brian2.parsing.expressions import (
     is_boolean_expression,
     parse_expression_dimensions,
 )
+from brian2.parsing.rendering import NodeRenderer
 from brian2.stateupdaters.base import StateUpdateMethod, UnsupportedEquationsException
-from brian2.stateupdaters.exact import linear, independent
+from brian2.stateupdaters.exact import independent, linear
+from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
+from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
-    Quantity,
     DIMENSIONLESS,
     DimensionMismatchError,
+    Quantity,
     fail_for_dimension_mismatch,
 )
-from brian2.units.allunits import second
+from brian2.utils.arrays import calc_repeats
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.utils.arrays import calc_repeats
-from brian2.core.spikesource import SpikeSource
-from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
-from brian2.parsing.bast import brian_ast
-from brian2.parsing.rendering import NodeRenderer
 
 MAX_SYNAPSES = 2147483647
 

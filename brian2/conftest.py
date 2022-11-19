@@ -6,11 +6,11 @@ import re
 import numpy as np
 import pytest
 
-from brian2.devices import reinit_devices, get_device
-from brian2.units import ms
 from brian2.core.clocks import defaultclock
-from brian2.core.functions import Function, DEFAULT_FUNCTIONS
+from brian2.core.functions import DEFAULT_FUNCTIONS, Function
+from brian2.devices import get_device, reinit_devices
 from brian2.devices.device import reinit_and_delete, set_device
+from brian2.units import ms
 
 
 def pytest_ignore_collect(path, config):

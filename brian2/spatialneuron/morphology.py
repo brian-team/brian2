@@ -4,15 +4,15 @@ This module defines classes to load and build neuronal morphologies.
 """
 import abc
 import numbers
+import os
 from abc import abstractmethod
 from collections import OrderedDict, defaultdict, namedtuple
-import os
 
-from brian2.units.allunits import meter
-from brian2.utils.logger import get_logger
-from brian2.units.stdunits import um
-from brian2.units.fundamentalunits import have_same_dimensions, Quantity, check_units
 from brian2 import numpy as np
+from brian2.units.allunits import meter
+from brian2.units.fundamentalunits import Quantity, check_units, have_same_dimensions
+from brian2.units.stdunits import um
+from brian2.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

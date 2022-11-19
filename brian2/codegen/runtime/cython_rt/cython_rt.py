@@ -3,27 +3,27 @@ import platform
 import numpy
 
 from brian2.core.base import BrianObjectException
+from brian2.core.functions import Function
+from brian2.core.preferences import BrianPreference, prefs
 from brian2.core.variables import (
-    DynamicArrayVariable,
     ArrayVariable,
     AuxiliaryVariable,
+    DynamicArrayVariable,
     Subexpression,
 )
-from brian2.core.functions import Function
-from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 
-from ...codeobject import constant_or_scalar, check_compiler_kwds
-from ..numpy_rt import NumpyCodeObject
-from ...templates import Templater
+from ...codeobject import check_compiler_kwds, constant_or_scalar
+from ...cpp_prefs import get_compiler_and_args
 from ...generators.cython_generator import (
     CythonCodeGenerator,
     get_cpp_dtype,
     get_numpy_dtype,
 )
 from ...targets import codegen_targets
-from ...cpp_prefs import get_compiler_and_args
+from ...templates import Templater
+from ..numpy_rt import NumpyCodeObject
 from .extension_manager import cython_extension_manager
 
 __all__ = ["CythonCodeObject"]

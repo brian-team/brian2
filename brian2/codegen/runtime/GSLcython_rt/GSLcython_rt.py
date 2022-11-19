@@ -8,9 +8,9 @@ from distutils.errors import CompileError
 
 from brian2.core.preferences import prefs
 
-from ..cython_rt import CythonCodeObject
-from ...generators.GSL_generator import GSLCythonCodeGenerator
 from ...generators.cython_generator import CythonCodeGenerator
+from ...generators.GSL_generator import GSLCythonCodeGenerator
+from ..cython_rt import CythonCodeObject
 
 __all__ = ["GSLCythonCodeObject", "IntegrationError"]
 

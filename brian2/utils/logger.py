@@ -9,13 +9,12 @@ Preferences
 import atexit
 import logging
 import logging.handlers
-from logging.handlers import RotatingFileHandler
 import os
 import shutil
 import sys
 import tempfile
 import time
-
+from logging.handlers import RotatingFileHandler
 from warnings import warn
 
 import numpy
@@ -27,7 +26,7 @@ except ImportError:
 import sympy
 
 import brian2
-from brian2.core.preferences import prefs, BrianPreference
+from brian2.core.preferences import BrianPreference, prefs
 
 from .environment import running_from_ipython
 

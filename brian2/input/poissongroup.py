@@ -4,13 +4,13 @@ Implementation of `PoissonGroup`.
 import numpy as np
 
 from brian2.core.spikesource import SpikeSource
-from brian2.core.variables import Variables, Subexpression
+from brian2.core.variables import Subexpression, Variables
+from brian2.groups.group import Group
+from brian2.groups.neurongroup import Thresholder
+from brian2.groups.subgroup import Subgroup
 from brian2.parsing.expressions import parse_expression_dimensions
 from brian2.units.fundamentalunits import check_units, fail_for_dimension_mismatch
 from brian2.units.stdunits import Hz
-from brian2.groups.group import Group
-from brian2.groups.subgroup import Subgroup
-from brian2.groups.neurongroup import Thresholder
 from brian2.utils.stringtools import get_identifiers
 
 __all__ = ["PoissonGroup"]

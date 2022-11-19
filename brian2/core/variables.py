@@ -3,25 +3,25 @@ Classes used to specify the type of a function, variable or common
 sub-expression.
 """
 import collections
-from collections.abc import Mapping
 import functools
 import numbers
+from collections.abc import Mapping
 
 import numpy as np
 
 from brian2.units.fundamentalunits import (
-    Quantity,
-    get_unit,
     DIMENSIONLESS,
-    fail_for_dimension_mismatch,
     Dimension,
+    Quantity,
+    fail_for_dimension_mismatch,
+    get_unit,
     get_unit_for_display,
 )
+from brian2.utils.caching import CacheKey
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.utils.caching import CacheKey
 
-from .base import weakproxy_with_fallback, device_override
+from .base import device_override, weakproxy_with_fallback
 from .preferences import prefs
 
 __all__ = [

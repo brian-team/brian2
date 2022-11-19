@@ -4,8 +4,8 @@ Tests the brian2.parsing package
 
 from collections import namedtuple
 
-import pytest
 import numpy as np
+import pytest
 
 from brian2 import Function
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
@@ -13,35 +13,31 @@ from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
-from brian2.units.fundamentalunits import Dimension, DIMENSIONLESS
-from brian2.utils.stringtools import get_identifiers, deindent
-from brian2.utils.logger import std_silent
-from brian2.parsing.rendering import (
-    NodeRenderer,
-    NumpyNodeRenderer,
-    CPPNodeRenderer,
-)
 from brian2.parsing.dependencies import abstract_code_dependencies
 from brian2.parsing.expressions import (
+    _get_value_from_expression,
     is_boolean_expression,
     parse_expression_dimensions,
-    _get_value_from_expression,
 )
-from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.parsing.functions import (
     abstract_code_from_function,
     extract_abstract_code_functions,
     substitute_abstract_code_functions,
 )
-from brian2.units import (
-    volt,
-    amp,
-    DimensionMismatchError,
-    have_same_dimensions,
-    Unit,
-    get_unit,
-)
+from brian2.parsing.rendering import CPPNodeRenderer, NodeRenderer, NumpyNodeRenderer
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.tests.utils import assert_allclose
+from brian2.units import (
+    DimensionMismatchError,
+    Unit,
+    amp,
+    get_unit,
+    have_same_dimensions,
+    volt,
+)
+from brian2.units.fundamentalunits import DIMENSIONLESS, Dimension
+from brian2.utils.logger import std_silent
+from brian2.utils.stringtools import deindent, get_identifiers
 
 
 # a simple Group for testing

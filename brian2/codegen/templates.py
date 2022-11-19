@@ -5,15 +5,14 @@ import re
 from collections.abc import Mapping
 
 from jinja2 import (
+    ChoiceLoader,
     Environment,
     PackageLoader,
-    ChoiceLoader,
     StrictUndefined,
     TemplateNotFound,
 )
 
-from brian2.utils.stringtools import indent, strip_empty_lines, get_identifiers
-
+from brian2.utils.stringtools import get_identifiers, indent, strip_empty_lines
 
 __all__ = ["Templater"]
 
