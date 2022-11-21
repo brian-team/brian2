@@ -11,6 +11,9 @@ explicit rather than abbreviated and consistent across Brian. See Romain's paper
 <http://briansimulator.org/WordPress/wp-content/uploads/2012/05/On-the-design-of-script-languages-for-neural-simulation.pdf>`__ 
 for a discussion.
 
+Code style
+~~~~~~~~~~
+
 We use the `PEP-8 coding conventions <https://www.python.org/dev/peps/pep-0008/>`__
 for our code, and use the `black formatting tool <https://black.readthedocs.io>`__ to
 enforce a consistent code style. To make sure your code is formatted in the same way,
@@ -45,12 +48,26 @@ The code style includes the following conventions in particular:
   that starts an indexing or slicing.
 * Avoid using a backslash for continuing lines whenever possible, instead use
   Python's implicit line joining inside parentheses, brackets and braces.
-* imports should be on different lines (e.g. do not use ``import sys, os``) and
-  should be grouped in the following order, using blank lines between each group:
+
+Imports
+~~~~~~~
+Imports should be on different lines (e.g. do not use ``import sys, os``) and should be
+grouped in the following order, using blank lines between each group:
   
   	1. standard library imports
   	2. third-party library imports (e.g. numpy, scipy, sympy, ...)
   	3. brian imports
+
+This rule is enforced by using the `isort <https://pycqa.github.io/isort/>`__ tool,
+which is integrated with ``pre-commit`` in the same way as ``black``, described above.
+
+.. note::
+
+    In rare cases, where logical grouping makes more sense that ``isort``'s ordering,
+    or when the order of imports matters, you can skip sorting imports in a file by
+    including the comment ``# isort:skip_file``.
+
+Additional rules for imports:
 
 * Use absolute imports for everything outside of "your" package, e.g. if you
   are working in `brian2.equations`, import functions from the stringtools
