@@ -3,14 +3,10 @@ Brian AST representation
 
 This is a standard Python AST representation with additional information added.
 """
-
-# isort:skip_file
-
 import ast
 import weakref
 
 import numpy
-from builtins import all as logical_all  # defensive programming against numpy import
 
 from brian2.parsing.rendering import NodeRenderer, get_node_value
 from brian2.utils.logger import get_logger
@@ -205,7 +201,7 @@ class BrianASTRenderer(object):
             node.stateless = getattr(funcvar, "stateless", False)
             node.auto_vectorise = getattr(funcvar, "auto_vectorise", False)
             if node.stateless and not node.auto_vectorise:
-                node.scalar = logical_all(subnode.scalar for subnode in node.args)
+                node.scalar = all(subnode.scalar for subnode in node.args)
             # check that argument types are valid
             node_arg_types = [subnode.dtype for subnode in node.args]
             for subnode, argtype in zip(node.args, funcvar._arg_types):
@@ -259,9 +255,9 @@ class BrianASTRenderer(object):
         for subnode in node.values:
             if subnode.dtype != "boolean":
                 raise TypeError("Boolean operator acting on non-booleans")
-        node.scalar = logical_all(subnode.scalar for subnode in node.values)
+        node.scalar = all(subnode.scalar for subnode in node.values)
         node.complexity = 1 + sum(subnode.complexity for subnode in node.values)
-        node.stateless = logical_all(subnode.stateless for subnode in node.values)
+        node.stateless = all(subnode.stateless for subnode in node.values)
         return node
 
     def render_Compare(self, node):
@@ -274,7 +270,7 @@ class BrianASTRenderer(object):
         node.comparators = comparators
         node.dtype = "boolean"
         comparators = [node.left] + node.comparators
-        node.scalar = logical_all(subnode.scalar for subnode in comparators)
+        node.scalar = all(subnode.scalar for subnode in comparators)
         node.complexity = 1 + sum(subnode.complexity for subnode in comparators)
         node.stateless = node.left.stateless and all(
             c.stateless for c in node.comparators
