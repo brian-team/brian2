@@ -2,6 +2,9 @@
 '''
 Brian2 setup script
 '''
+
+# isort:skip_file
+
 import io
 import sys
 import os

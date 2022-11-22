@@ -1,16 +1,22 @@
-
-from pyparsing import (CharsNotIn, Optional, Suppress, Word, Regex,
-                       ParseException, alphas, nums)
+from pyparsing import (
+    CharsNotIn,
+    Optional,
+    ParseException,
+    Regex,
+    Suppress,
+    Word,
+    alphas,
+    nums,
+)
 
 from brian2.utils.caching import cached
 
-VARIABLE = Word(f"{alphas}_",
-                  f"{alphas + nums}_").setResultsName('variable')
+VARIABLE = Word(f"{alphas}_", f"{alphas + nums}_").setResultsName("variable")
 
-OP = Regex(r'(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=').setResultsName('operation')
-EXPR = CharsNotIn('#').setResultsName('expression')
-COMMENT = CharsNotIn('#').setResultsName('comment')
-STATEMENT = VARIABLE + OP + EXPR + Optional(Suppress('#') + COMMENT)
+OP = Regex(r"(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=").setResultsName("operation")
+EXPR = CharsNotIn("#").setResultsName("expression")
+COMMENT = CharsNotIn("#").setResultsName("comment")
+STATEMENT = VARIABLE + OP + EXPR + Optional(Suppress("#") + COMMENT)
 
 
 @cached
@@ -19,18 +25,18 @@ def parse_statement(code):
     parse_statement(code)
 
     Parses a single line of code into "var op expr".
-    
+
     Parameters
     ----------
     code : str
         A string containing a single statement of the form
         ``var op expr # comment``, where the ``# comment`` part is optional.
-    
+
     Returns
     -------
     var, op, expr, comment : str, str, str, str
         The four parts of the statement.
-        
+
     Examples
     --------
     >>> parse_statement('v = -65*mV  # reset the membrane potential')
@@ -41,14 +47,21 @@ def parse_statement(code):
     try:
         parsed = STATEMENT.parseString(code, parseAll=True)
     except ParseException as p_exc:
-        raise ValueError("Parsing the statement failed: \n" + str(p_exc.line) +
-                         "\n" + " " * (p_exc.column - 1) + "^\n" + str(p_exc))
-    if len(parsed['expression'].strip()) == 0:
-        raise ValueError(f"Empty expression in the RHS of the statement:"
-                         f"'{code}' ")
-    parsed_statement = (parsed['variable'].strip(),
-                        parsed['operation'],
-                        parsed['expression'].strip(),
-                        parsed.get('comment', '').strip())
+        raise ValueError(
+            "Parsing the statement failed: \n"
+            + str(p_exc.line)
+            + "\n"
+            + " " * (p_exc.column - 1)
+            + "^\n"
+            + str(p_exc)
+        )
+    if len(parsed["expression"].strip()) == 0:
+        raise ValueError(f"Empty expression in the RHS of the statement:'{code}' ")
+    parsed_statement = (
+        parsed["variable"].strip(),
+        parsed["operation"],
+        parsed["expression"].strip(),
+        parsed.get("comment", "").strip(),
+    )
 
     return parsed_statement

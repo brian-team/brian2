@@ -3,15 +3,15 @@ Module defining `PopulationRateMonitor`.
 """
 import numpy as np
 
-from brian2.utils.logger import get_logger
-from brian2.core.variables import Variables
 from brian2.core.names import Nameable
-from brian2.units.allunits import second, hertz
-from brian2.units.fundamentalunits import Quantity, check_units
+from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
 from brian2.groups.subgroup import Subgroup
+from brian2.units.allunits import hertz, second
+from brian2.units.fundamentalunits import Quantity, check_units
+from brian2.utils.logger import get_logger
 
-__all__ = ['PopulationRateMonitor']
+__all__ = ["PopulationRateMonitor"]
 
 
 logger = get_logger(__name__)
@@ -40,10 +40,13 @@ class PopulationRateMonitor(Group, CodeRunner):
     each time step of the source clock. Any binning/smoothing of the firing
     rates has to be done manually afterwards.
     """
+
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, name='ratemonitor*', codeobj_class=None,
-                 dtype=np.float64):
+
+    def __init__(
+        self, source, name="ratemonitor*", codeobj_class=None, dtype=np.float64
+    ):
         Nameable.__init__(self, name=name)
         #: The group we are recording from
         self.source = source
@@ -55,33 +58,49 @@ class PopulationRateMonitor(Group, CodeRunner):
         # Handle subgroups correctly
         subgroup = isinstance(source, Subgroup)
         contiguous = not subgroup or source.contiguous
-        self.variables.add_arange('_source_idx', size=len(source))
+        self.variables.add_arange("_source_idx", size=len(source))
         needed_variables = {}
         if subgroup:
             if contiguous:
-                self.variables.add_constant('_source_start', source.start)
-                self.variables.add_constant('_source_stop', source.stop)
-                needed_variables = {'_source_start', '_source_stop'}
+                self.variables.add_constant("_source_start", source.start)
+                self.variables.add_constant("_source_stop", source.stop)
+                needed_variables = {"_source_start", "_source_stop"}
             else:
-                self.variables.add_reference('_source_indices', source,
-                                             '_sub_idx', index='_source_idx')
-                needed_variables = {'_source_indices'}
-        self.variables.add_dynamic_array('rate', size=0, dimensions=hertz.dim,
-                                         read_only=True, dtype=dtype)
-        CodeRunner.__init__(self, group=self, code='', template='ratemonitor',
-                            clock=source.clock, when='end', order=0, name=name,
-                            needed_variables=needed_variables,
-                            template_kwds={'subgroup': subgroup,
-                                           'contiguous': contiguous,
-                                           'source_N': source.N})
-        self.variables.create_clock_variables(self._clock,
-                                              prefix='_clock_')
-        self.variables.add_dynamic_array('t', size=0, dimensions=second.dim,
-                                         read_only=True,
-                                         dtype=self._clock.variables['t'].dtype)
-        self.variables.add_array('N', dtype=np.int32, size=1,
-                                 scalar=True, read_only=True)
-        self.variables.add_reference('_spikespace', source)
+                self.variables.add_reference(
+                    "_source_indices", source, "_sub_idx", index="_source_idx"
+                )
+                needed_variables = {"_source_indices"}
+        self.variables.add_dynamic_array(
+            "rate", size=0, dimensions=hertz.dim, read_only=True, dtype=dtype
+        )
+        CodeRunner.__init__(
+            self,
+            group=self,
+            code="",
+            template="ratemonitor",
+            clock=source.clock,
+            when="end",
+            order=0,
+            name=name,
+            needed_variables=needed_variables,
+            template_kwds={
+                "subgroup": subgroup,
+                "contiguous": contiguous,
+                "source_N": source.N,
+            },
+        )
+        self.variables.create_clock_variables(self._clock, prefix="_clock_")
+        self.variables.add_dynamic_array(
+            "t",
+            size=0,
+            dimensions=second.dim,
+            read_only=True,
+            dtype=self._clock.variables["t"].dtype,
+        )
+        self.variables.add_array(
+            "N", dtype=np.int32, size=1, scalar=True, read_only=True
+        )
+        self.variables.add_reference("_spikespace", source)
 
         self.add_dependency(source)
         self._enable_group_attributes()
@@ -90,8 +109,8 @@ class PopulationRateMonitor(Group, CodeRunner):
         # Note that this does not set N, this has to be done in the template
         # since we use a restricted pointer to access it (which promises that
         # we only change the value through this pointer)
-        self.variables['rate'].resize(new_size)
-        self.variables['t'].resize(new_size)
+        self.variables["rate"].resize(new_size)
+        self.variables["t"].resize(new_size)
 
     def reinit(self):
         """
@@ -100,7 +119,7 @@ class PopulationRateMonitor(Group, CodeRunner):
         raise NotImplementedError()
 
     @check_units(width=second)
-    def smooth_rate(self, window='gaussian', width=None):
+    def smooth_rate(self, window="gaussian", width=None):
         """
         smooth_rate(self, window='gaussian', width=None)
 
@@ -141,19 +160,24 @@ class PopulationRateMonitor(Group, CodeRunner):
             raise TypeError("Can only specify a width for a predefined window")
 
         if isinstance(window, str):
-            if window == 'gaussian':
-                width_dt = int(np.round(2*width / self.clock.dt))
+            if window == "gaussian":
+                width_dt = int(np.round(2 * width / self.clock.dt))
                 # Rounding only for the size of the window, not for the standard
                 # deviation of the Gaussian
-                window = np.exp(-np.arange(-width_dt,
-                                           width_dt + 1)**2 *
-                                1. / (2 * (width/self.clock.dt) ** 2))
-            elif window == 'flat':
-                width_dt = int(width / 2 / self.clock.dt)*2 + 1
+                window = np.exp(
+                    -np.arange(-width_dt, width_dt + 1) ** 2
+                    * 1.0
+                    / (2 * (width / self.clock.dt) ** 2)
+                )
+            elif window == "flat":
+                width_dt = int(width / 2 / self.clock.dt) * 2 + 1
                 used_width = width_dt * self.clock.dt
-                if abs(used_width - width) > 1e-6*self.clock.dt:
-                    logger.info(f'width adjusted from {width} to {used_width}',
-                                'adjusted_width', once=True)
+                if abs(used_width - width) > 1e-6 * self.clock.dt:
+                    logger.info(
+                        f"width adjusted from {width} to {used_width}",
+                        "adjusted_width",
+                        once=True,
+                    )
                 window = np.ones(width_dt)
             else:
                 raise NotImplementedError(f'Unknown pre-defined window "{window}"')
@@ -163,14 +187,13 @@ class PopulationRateMonitor(Group, CodeRunner):
             except TypeError:
                 raise TypeError(f"Cannot use a window of type {type(window)}")
             if window.ndim != 1:
-                raise TypeError("The provided window has to be "
-                                "one-dimensional.")
+                raise TypeError("The provided window has to be one-dimensional.")
             if len(window) % 2 != 1:
-                raise TypeError("The window has to have an odd number of "
-                                "values.")
-        return Quantity(np.convolve(self.rate_,
-                                    window * 1. / sum(window),
-                                    mode='same'), dim=hertz.dim)
+                raise TypeError("The window has to have an odd number of values.")
+        return Quantity(
+            np.convolve(self.rate_, window * 1.0 / sum(window), mode="same"),
+            dim=hertz.dim,
+        )
 
     def __repr__(self):
         classname = self.__class__.__name__

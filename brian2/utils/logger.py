@@ -9,16 +9,16 @@ Preferences
 import atexit
 import logging
 import logging.handlers
-from logging.handlers import RotatingFileHandler
 import os
 import shutil
 import sys
 import tempfile
 import time
-
+from logging.handlers import RotatingFileHandler
 from warnings import warn
 
 import numpy
+
 try:
     import scipy
 except ImportError:
@@ -26,36 +26,42 @@ except ImportError:
 import sympy
 
 import brian2
-from brian2.core.preferences import prefs, BrianPreference
+from brian2.core.preferences import BrianPreference, prefs
 
 from .environment import running_from_ipython
 
-__all__ = ['get_logger', 'BrianLogger', 'std_silent']
+__all__ = ["get_logger", "BrianLogger", "std_silent"]
 
-#===============================================================================
+# ===============================================================================
 # Logging preferences
-#===============================================================================
+# ===============================================================================
+
 
 def log_level_validator(log_level):
-    log_levels = ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'DIAGNOSTIC')
+    log_levels = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "DIAGNOSTIC")
     return log_level.upper() in log_levels
+
 
 #: Our new log level for more detailed debug output (mostly useful for debugging
 #: Brian itself, not for user scripts)
 DIAGNOSTIC = 5
 
 #: Translation from string representation to number
-LOG_LEVELS = {'CRITICAL': logging.CRITICAL,
-              'ERROR': logging.ERROR,
-              'WARNING': logging.WARNING,
-              'INFO': logging.INFO,
-              'DEBUG': logging.DEBUG,
-              'DIAGNOSTIC': DIAGNOSTIC}
-logging.addLevelName(DIAGNOSTIC, 'DIAGNOSTIC')
+LOG_LEVELS = {
+    "CRITICAL": logging.CRITICAL,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+    "DIAGNOSTIC": DIAGNOSTIC,
+}
+logging.addLevelName(DIAGNOSTIC, "DIAGNOSTIC")
 
-if 'logging' not in prefs.pref_register:
+if "logging" not in prefs.pref_register:
     # Duplicate import of this module can happen when the documentation is built
-    prefs.register_preferences('logging', 'Logging system preferences',
+    prefs.register_preferences(
+        "logging",
+        "Logging system preferences",
         delete_log_on_exit=BrianPreference(
             default=True,
             docs="""
@@ -66,9 +72,9 @@ if 'logging' not in prefs.pref_register:
             uncaught exception occurred. If set to ``False``, all log files will be
             kept.
             """,
-            ),
+        ),
         file_log_level=BrianPreference(
-            default='DEBUG',
+            default="DEBUG",
             docs="""
             What log level to use for the log written to the log file.
             
@@ -76,15 +82,17 @@ if 'logging' not in prefs.pref_register:
             level should be used for logging. Has to be one of CRITICAL, ERROR,
             WARNING, INFO, DEBUG or DIAGNOSTIC.
             """,
-            validator=log_level_validator),
+            validator=log_level_validator,
+        ),
         console_log_level=BrianPreference(
-            default='INFO',
+            default="INFO",
             docs="""
             What log level to use for the log written to the console.
             
             Has to be one of CRITICAL, ERROR, WARNING, INFO, DEBUG or DIAGNOSTIC.
             """,
-            validator=log_level_validator),
+            validator=log_level_validator,
+        ),
         file_log=BrianPreference(
             default=True,
             docs="""
@@ -93,7 +101,8 @@ if 'logging' not in prefs.pref_register:
             If set to ``True`` (the default), logging information will be written
             to a file. The log level can be set via the `logging.file_log_level`
             preference.
-            """),
+            """,
+        ),
         file_log_max_size=BrianPreference(
             default=10000000,
             docs="""
@@ -107,7 +116,8 @@ if 'logging' not in prefs.pref_register:
             already exists when rotating, it will be overwritten.
             If set to ``0``, no log rotation will be applied.
             The default setting rotates the log file after 10MB.
-            """),
+            """,
+        ),
         save_script=BrianPreference(
             default=True,
             docs="""
@@ -118,7 +128,8 @@ if 'logging' not in prefs.pref_register:
             run (unless `logging.delete_log_on_exit` is ``False``) but is kept after
             an uncaught exception occured. This can be helpful for debugging,
             in particular when several simulations are running in parallel.
-            """),
+            """,
+        ),
         std_redirection=BrianPreference(
             default=True,
             docs="""
@@ -130,8 +141,8 @@ if 'logging' not in prefs.pref_register:
             `logging.std_redirection_to_file` is set to ``True`` as well, then the
             output is saved to a file and if an error occurs the name of this file
             will be printed.
-            """
-            ),
+            """,
+        ),
         std_redirection_to_file=BrianPreference(
             default=True,
             docs="""
@@ -147,31 +158,34 @@ if 'logging' not in prefs.pref_register:
     
             The value of this preference is ignore if `logging.std_redirection` is
             set to ``False``.
-            """
-            ),
+            """,
+        ),
         display_brian_error_message=BrianPreference(
             default=True,
             docs="""
             Whether to display a text for uncaught errors, mentioning the location
             of the log file, the mailing list and the github issues.
             
-            Defaults to ``True``."""
-            )
-        )
+            Defaults to ``True``.""",
+        ),
+    )
 
-#===============================================================================
+# ===============================================================================
 # Initial setup
-#===============================================================================
+# ===============================================================================
+
 
 def _encode(text):
-    """ Small helper function to encode unicode strings as UTF-8. """ 
-    return text.encode('UTF-8')
+    """Small helper function to encode unicode strings as UTF-8."""
+    return text.encode("UTF-8")
 
 
-UNHANDLED_ERROR_MESSAGE = ('Brian 2 encountered an unexpected error. '
-'If you think this is a bug in Brian 2, please report this issue either to the '
-'discourse forum at <http://brian.discourse.group/>, '
-'or to the issue tracker at <https://github.com/brian-team/brian2/issues>.')
+UNHANDLED_ERROR_MESSAGE = (
+    "Brian 2 encountered an unexpected error. "
+    "If you think this is a bug in Brian 2, please report this issue either to the "
+    "discourse forum at <http://brian.discourse.group/>, "
+    "or to the issue tracker at <https://github.com/brian-team/brian2/issues>."
+)
 
 
 def brian_excepthook(exc_type, exc_obj, exc_tb):
@@ -182,16 +196,15 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
     # Do not catch Ctrl+C
     if exc_type == KeyboardInterrupt:
         return
-    logger = logging.getLogger('brian2')
+    logger = logging.getLogger("brian2")
     BrianLogger.exception_occured = True
 
-    if not prefs['logging.display_brian_error_message']:
+    if not prefs["logging.display_brian_error_message"]:
         # Put the exception message in the log file, but do not log to the
         # console
         if BrianLogger.console_handler is not None:
             logger.removeHandler(BrianLogger.console_handler)
-        logger.exception("An exception occured",
-                         exc_info=(exc_type, exc_obj, exc_tb))
+        logger.exception("An exception occured", exc_info=(exc_type, exc_obj, exc_tb))
         if BrianLogger.console_handler is not None:
             logger.addHandler(BrianLogger.console_handler)
         # Run the default except hook
@@ -199,20 +212,26 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
 
     message = UNHANDLED_ERROR_MESSAGE
     if BrianLogger.tmp_log is not None:
-        message += (f" Please include this file with debug information in your "
-                    f"report: {BrianLogger.tmp_log} ")
+        message += (
+            " Please include this file with debug information in your "
+            f"report: {BrianLogger.tmp_log} "
+        )
     if BrianLogger.tmp_script is not None:
-        message += (f" Additionally, you can also include a copy "
-                    f"of the script that was run, available "
-                    f"at: {BrianLogger.tmp_script}")
-    if hasattr(std_silent, 'dest_fname_stdout'):
+        message += (
+            " Additionally, you can also include a copy "
+            "of the script that was run, available "
+            f"at: {BrianLogger.tmp_script}"
+        )
+    if hasattr(std_silent, "dest_fname_stdout"):
         stdout = std_silent.dest_fname_stdout
         stderr = std_silent.dest_fname_stderr
-        message += (f" You can also include a copy of the "
-                    f"redirected std stream outputs, available at "
-                    f"'{stdout}' and '{stderr}'.")
+        message += (
+            " You can also include a copy of the "
+            "redirected std stream outputs, available at "
+            f"'{stdout}' and '{stderr}'."
+        )
 
-    message += ' Thanks!'  # very important :)
+    message += " Thanks!"  # very important :)
     logger.error(message, exc_info=(exc_type, exc_obj, exc_tb))
 
 
@@ -222,24 +241,24 @@ def clean_up_logging():
     occured.
     """
     logging.shutdown()
-    if not BrianLogger.exception_occured and prefs['logging.delete_log_on_exit']:
+    if not BrianLogger.exception_occured and prefs["logging.delete_log_on_exit"]:
         if BrianLogger.tmp_log is not None:
             try:
                 os.remove(BrianLogger.tmp_log)
             except (IOError, OSError) as exc:
-                warn(f'Could not delete log file: {exc}')
+                warn(f"Could not delete log file: {exc}")
             # Remove log files that have been rotated (currently only one)
             rotated_log = f"{BrianLogger.tmp_log}.1"
             if os.path.exists(rotated_log):
                 try:
                     os.remove(rotated_log)
                 except (IOError, OSError) as exc:
-                    warn(f'Could not delete log file: {exc}')
+                    warn(f"Could not delete log file: {exc}")
         if BrianLogger.tmp_script is not None:
             try:
                 os.remove(BrianLogger.tmp_script)
             except (IOError, OSError) as exc:
-                warn(f'Could not delete copy of script file: {exc}')
+                warn(f"Could not delete copy of script file: {exc}")
         std_silent.close()
 
 
@@ -251,7 +270,7 @@ class HierarchyFilter(object):
     A class for suppressing all log messages in a subtree of the name hierarchy.
     Does exactly the opposite as the `logging.Filter` class, which allows
     messages in a certain name hierarchy to *pass*.
-    
+
     Parameters
     ----------
     name : str
@@ -261,7 +280,7 @@ class HierarchyFilter(object):
 
     def __init__(self, name):
         self.orig_filter = logging.Filter(name)
-    
+
     def filter(self, record):
         """
         Filter out all messages in a subtree of the name hierarchy.
@@ -273,22 +292,22 @@ class HierarchyFilter(object):
 class NameFilter(object):
     """
     A class for suppressing log messages ending with a certain name.
-    
+
     Parameters
     ----------
     name : str
         The name to suppress. See `BrianLogger.suppress_name` for details.
     """
-    
+
     def __init__(self, name):
         self.name = name
-    
+
     def filter(self, record):
         """
         Filter out all messages ending with a certain name.
         """
         # The last part of the name
-        record_name = record.name.split('.')[-1]
+        record_name = record.name.split(".")[-1]
         return self.name != record_name
 
 
@@ -296,7 +315,7 @@ class BrianLogger(object):
     """
     Convenience object for logging. Call `get_logger` to get an instance of
     this class.
-    
+
     Parameters
     ----------
     name : str
@@ -328,13 +347,14 @@ class BrianLogger(object):
     #: The pid of the process that initialized the logger – used to switch off file logging in
     #: multiprocessing contexts
     _pid = None
+
     def __init__(self, name):
         self.name = name
 
     def _log(self, log_level, msg, name_suffix, once):
         """
         Log an entry.
-        
+
         Parameters
         ----------
         log_level : {'debug', 'info', 'warn', 'error'}
@@ -349,21 +369,21 @@ class BrianLogger(object):
         name = self.name
         if name_suffix:
             name += f".{name_suffix}"
-        
+
         # Switch off file logging when using multiprocessing
         if BrianLogger.tmp_log is not None and BrianLogger._pid != os.getpid():
             BrianLogger.tmp_log = None
-            logging.getLogger('brian2').removeHandler(BrianLogger.file_handler)
+            logging.getLogger("brian2").removeHandler(BrianLogger.file_handler)
             BrianLogger.file_handler = None
 
         if once:
-            # Check whether this exact message has already been displayed 
+            # Check whether this exact message has already been displayed
             log_tuple = (name, log_level, msg)
             if log_tuple in BrianLogger._log_messages:
                 return
             else:
                 BrianLogger._log_messages.add(log_tuple)
-        
+
         the_logger = logging.getLogger(name)
         the_logger.log(LOG_LEVELS[log_level], msg)
 
@@ -381,12 +401,12 @@ class BrianLogger(object):
             Whether this message should be logged only once and not repeated
             if sent another time.
         """
-        self._log('DIAGNOSTIC', msg, name_suffix, once)
+        self._log("DIAGNOSTIC", msg, name_suffix, once)
 
     def debug(self, msg, name_suffix=None, once=False):
         """
         Log a debug message.
-        
+
         Parameters
         ----------
         msg : str
@@ -395,14 +415,14 @@ class BrianLogger(object):
             A suffix to add to the name, e.g. a class or function name.
         once : bool, optional
             Whether this message should be logged only once and not repeated
-            if sent another time. 
+            if sent another time.
         """
-        self._log('DEBUG', msg, name_suffix, once)
+        self._log("DEBUG", msg, name_suffix, once)
 
     def info(self, msg, name_suffix=None, once=False):
         """
         Log an info message.
-        
+
         Parameters
         ----------
         msg : str
@@ -411,14 +431,14 @@ class BrianLogger(object):
             A suffix to add to the name, e.g. a class or function name.
         once : bool, optional
             Whether this message should be logged only once and not repeated
-            if sent another time. 
+            if sent another time.
         """
-        self._log('INFO', msg, name_suffix, once)
+        self._log("INFO", msg, name_suffix, once)
 
     def warn(self, msg, name_suffix=None, once=False):
         """
         Log a warn message.
-        
+
         Parameters
         ----------
         msg : str
@@ -427,14 +447,14 @@ class BrianLogger(object):
             A suffix to add to the name, e.g. a class or function name.
         once : bool, optional
             Whether this message should be logged only once and not repeated
-            if sent another time. 
+            if sent another time.
         """
-        self._log('WARNING', msg, name_suffix, once)
+        self._log("WARNING", msg, name_suffix, once)
 
     def error(self, msg, name_suffix=None, once=False):
         """
         Log an error message.
-        
+
         Parameters
         ----------
         msg : str
@@ -443,15 +463,15 @@ class BrianLogger(object):
             A suffix to add to the name, e.g. a class or function name.
         once : bool, optional
             Whether this message should be logged only once and not repeated
-            if sent another time. 
+            if sent another time.
         """
-        self._log('ERROR', msg, name_suffix, once)
+        self._log("ERROR", msg, name_suffix, once)
 
     @staticmethod
     def _suppress(filterobj, filter_log_file):
         """
         Apply a filter object to log messages.
-        
+
         Parameters
         ----------
         filterobj : `logging.Filter`
@@ -460,7 +480,7 @@ class BrianLogger(object):
             Whether the filter also applies to log messages in the log file.
         """
         BrianLogger.console_handler.addFilter(filterobj)
-        
+
         if filter_log_file:
             BrianLogger.file_handler.addFilter(filterobj)
 
@@ -468,7 +488,7 @@ class BrianLogger(object):
     def suppress_hierarchy(name, filter_log_file=False):
         """
         Suppress all log messages in a given hiearchy.
-        
+
         Parameters
         ----------
         name : str
@@ -481,16 +501,16 @@ class BrianLogger(object):
             ``False`` meaning that suppressed messages are not displayed on
             the console but are still saved to the log file.
         """
-        
+
         suppress_filter = HierarchyFilter(name)
-        
+
         BrianLogger._suppress(suppress_filter, filter_log_file)
 
     @staticmethod
     def suppress_name(name, filter_log_file=False):
         """
         Suppress all log messages with a given name.
-        
+
         Parameters
         ----------
         name : str
@@ -505,7 +525,7 @@ class BrianLogger(object):
             the console but are still saved to the log file.
         """
         suppress_filter = NameFilter(name)
-        
+
         BrianLogger._suppress(suppress_filter, filter_log_file)
 
     @staticmethod
@@ -526,23 +546,23 @@ class BrianLogger(object):
     def log_level_info():
         """
         Set the log level to "info".
-        """        
+        """
         BrianLogger.console_handler.setLevel(logging.INFO)
 
     @staticmethod
     def log_level_warn():
         """
         Set the log level to "warn".
-        """        
+        """
         BrianLogger.console_handler.setLevel(logging.WARN)
 
     @staticmethod
     def log_level_error():
         """
         Set the log level to "error".
-        """        
+        """
         BrianLogger.console_handler.setLevel(logging.ERROR)
-    
+
     @staticmethod
     def initialize():
         """
@@ -550,71 +570,79 @@ class BrianLogger(object):
         automatically when Brian is imported.
         """
         # get the main logger
-        logger = logging.getLogger('brian2')
+        logger = logging.getLogger("brian2")
         logger.propagate = False
-        logger.setLevel(LOG_LEVELS['DIAGNOSTIC'])
+        logger.setLevel(LOG_LEVELS["DIAGNOSTIC"])
 
         # Log to a file
-        if prefs['logging.file_log']:
+        if prefs["logging.file_log"]:
             try:
                 # Temporary filename used for logging
-                with tempfile.NamedTemporaryFile(prefix='brian_debug_',
-                                                 suffix='.log',
-                                                 delete=False) as tmp_f:
+                with tempfile.NamedTemporaryFile(
+                    prefix="brian_debug_", suffix=".log", delete=False
+                ) as tmp_f:
                     BrianLogger.tmp_log = tmp_f.name
                 # Remove any previously existing file handler
                 if BrianLogger.file_handler is not None:
                     BrianLogger.file_handler.close()
                     logger.removeHandler(BrianLogger.file_handler)
                 # Rotate log file after prefs['logging.file_log_max_size'] bytes and keep one copy
-                BrianLogger.file_handler = RotatingFileHandler(BrianLogger.tmp_log,
-                                                               mode='a',
-                                                               maxBytes=prefs['logging.file_log_max_size'],
-                                                               backupCount=1)
+                BrianLogger.file_handler = RotatingFileHandler(
+                    BrianLogger.tmp_log,
+                    mode="a",
+                    maxBytes=prefs["logging.file_log_max_size"],
+                    backupCount=1,
+                )
                 BrianLogger.file_handler.setLevel(
-                    LOG_LEVELS[prefs['logging.file_log_level'].upper()])
-                BrianLogger.file_handler.setFormatter(logging.Formatter(
-                    '%(asctime)s %(levelname)-10s %(name)s: %(message)s'))
+                    LOG_LEVELS[prefs["logging.file_log_level"].upper()]
+                )
+                BrianLogger.file_handler.setFormatter(
+                    logging.Formatter(
+                        "%(asctime)s %(levelname)-10s %(name)s: %(message)s"
+                    )
+                )
                 logger.addHandler(BrianLogger.file_handler)
                 BrianLogger._pid = os.getpid()
             except IOError as ex:
-                warn(f'Could not create log file: {ex}')
+                warn(f"Could not create log file: {ex}")
 
         # Save a copy of the script
         BrianLogger.tmp_script = None
-        if prefs['logging.save_script']:
-            if (len(sys.argv[0]) and not running_from_ipython() and
-                    os.path.isfile(sys.argv[0])):
+        if prefs["logging.save_script"]:
+            if (
+                len(sys.argv[0])
+                and not running_from_ipython()
+                and os.path.isfile(sys.argv[0])
+            ):
                 try:
                     tmp_file = tempfile.NamedTemporaryFile(
-                        prefix='brian_script_',
-                        suffix='.py',
-                        delete=False)
+                        prefix="brian_script_", suffix=".py", delete=False
+                    )
                     with tmp_file:
                         # Timestamp
-                        tmp_file.write(_encode(f'# {time.asctime()}\n'))
+                        tmp_file.write(_encode(f"# {time.asctime()}\n"))
                         # Command line arguments
-                        tmp_file.write(
-                            _encode(f"# Run as: {' '.join(sys.argv)}\n\n"))
+                        tmp_file.write(_encode(f"# Run as: {' '.join(sys.argv)}\n\n"))
                         # The actual script file
                         # TODO: We are copying the script file as it is, this might clash
                         # with the encoding we used for the comments added above
-                        with open(os.path.abspath(sys.argv[0]),
-                                  'rb') as script_file:
+                        with open(os.path.abspath(sys.argv[0]), "rb") as script_file:
                             shutil.copyfileobj(script_file, tmp_file)
                         BrianLogger.tmp_script = tmp_file.name
                 except IOError as ex:
-                    warn(
-                        f'Could not copy script file to temp directory: {ex}')
+                    warn(f"Could not copy script file to temp directory: {ex}")
 
         if BrianLogger.console_handler is not None:
             logger.removeHandler(BrianLogger.console_handler)
 
         # create console handler with a higher log level
         BrianLogger.console_handler = logging.StreamHandler()
-        BrianLogger.console_handler.setLevel(LOG_LEVELS[prefs['logging.console_log_level']])
+        BrianLogger.console_handler.setLevel(
+            LOG_LEVELS[prefs["logging.console_log_level"]]
+        )
         BrianLogger.console_handler.setFormatter(
-            logging.Formatter('%(levelname)-10s %(message)s [%(name)s]'))
+            logging.Formatter("%(levelname)-10s %(message)s [%(name)s]")
+        )
 
         # add the handler to the logger
         logger.addHandler(BrianLogger.console_handler)
@@ -626,30 +654,33 @@ class BrianLogger(object):
         # duplicated warning messages in the ipython notebook, but not doing so
         # would mean that they are not displayed at all in the standard ipython
         # interface...
-        warn_logger = logging.getLogger('py.warnings')
+        warn_logger = logging.getLogger("py.warnings")
         warn_logger.addHandler(BrianLogger.console_handler)
         if BrianLogger.file_handler is not None:
             warn_logger.addHandler(BrianLogger.file_handler)
 
         # Put some standard info into the log file
-        logger.log(logging.DEBUG,
-                   f'Logging to file: {BrianLogger.tmp_log}, copy of main script saved as: {BrianLogger.tmp_script}')
-        logger.log(logging.DEBUG, f'Python interpreter: {sys.executable}')
-        logger.log(logging.DEBUG, f'Platform: {sys.platform}')
-        version_infos = {'brian': brian2.__version__,
-                         'numpy': numpy.__version__,
-                         'scipy': scipy.__version__ if scipy else 'not installed',
-                         'sympy': sympy.__version__,
-                         'python': sys.version,
-                         }
+        logger.log(
+            logging.DEBUG,
+            f"Logging to file: {BrianLogger.tmp_log}, copy of main script saved as:"
+            f" {BrianLogger.tmp_script}",
+        )
+        logger.log(logging.DEBUG, f"Python interpreter: {sys.executable}")
+        logger.log(logging.DEBUG, f"Platform: {sys.platform}")
+        version_infos = {
+            "brian": brian2.__version__,
+            "numpy": numpy.__version__,
+            "scipy": scipy.__version__ if scipy else "not installed",
+            "sympy": sympy.__version__,
+            "python": sys.version,
+        }
         for _name, _version in version_infos.items():
-            logger.log(logging.DEBUG,
-                       f'{_name} version is: {str(_version)}')
+            logger.log(logging.DEBUG, f"{_name} version is: {str(_version)}")
         # Handle uncaught exceptions
         sys.excepthook = brian_excepthook
 
 
-def get_logger(module_name='brian2'):
+def get_logger(module_name="brian2"):
     """
     Get an object that can be used for logging.
 
@@ -674,12 +705,12 @@ class catch_logs(object):
     this is probably the only real use case for testing. Note that while this
     context manager is active, *all* log messages are suppressed. Using this
     context manager returns a list of (log level, name, message) tuples.
-    
+
     Parameters
     ----------
     log_level : int or str, optional
         The log level above which messages are caught.
-    
+
     Examples
     --------
     >>> logger = get_logger('brian2.logtest')
@@ -688,26 +719,27 @@ class catch_logs(object):
     >>> with catch_logs() as l:
     ...    logger.warn('a caught warning')
     ...    print('l contains: %s' % l)
-    ... 
+    ...
     l contains: [('WARNING', 'brian2.logtest', 'a caught warning')]
 
     """
+
     _entered = False
-    
+
     def __init__(self, log_level=logging.WARN):
         self.log_list = []
         self.handler = LogCapture(self.log_list, log_level)
         self._entered = False
-    
+
     def __enter__(self):
         if self._entered:
-            raise RuntimeError(f'Cannot enter {self!r} twice')
+            raise RuntimeError(f"Cannot enter {self!r} twice")
         self._entered = True
         return self.log_list
-    
+
     def __exit__(self, *exc_info):
         if not self._entered:
-            raise RuntimeError(f'Cannot exit {self!r} without entering first')
+            raise RuntimeError(f"Cannot exit {self!r} without entering first")
         self.handler.uninstall()
 
 
@@ -717,7 +749,8 @@ class LogCapture(logging.Handler):
     `~brian2.utils.logger.catch_logs` to allow testing in a similar
     way as with `warnings.catch_warnings`.
     """
-    captured_loggers = ['brian2', 'py.warnings']
+
+    captured_loggers = ["brian2", "py.warnings"]
 
     def __init__(self, log_list, log_level=logging.WARN):
         logging.Handler.__init__(self, level=log_level)
@@ -732,7 +765,7 @@ class LogCapture(logging.Handler):
         # Append a tuple consisting of (level, name, msg) to the list of
         # warnings
         self.log_list.append((record.levelname, record.name, record.msg))
-    
+
     def install(self):
         """
         Install this handler to catch all warnings. Temporarily disconnect all
@@ -743,7 +776,7 @@ class LogCapture(logging.Handler):
             for handler in self.handlers[logger_name]:
                 the_logger.removeHandler(handler)
             the_logger.addHandler(self)
-    
+
     def uninstall(self):
         """
         Uninstall this handler and re-connect the previously installed
@@ -763,23 +796,26 @@ class std_silent(object):
     Context manager that temporarily silences stdout and stderr but keeps the
     output saved in a temporary file and writes it if an exception is raised.
     """
+
     dest_stdout = None
     dest_stderr = None
 
     def __init__(self, alwaysprint=False):
-        self.alwaysprint = alwaysprint or not prefs['logging.std_redirection']
-        self.redirect_to_file = prefs['logging.std_redirection_to_file']
-        if (not self.alwaysprint and
-                self.redirect_to_file and
-                    std_silent.dest_stdout is None):
-            std_silent.dest_fname_stdout = tempfile.NamedTemporaryFile(prefix='brian_stdout_',
-                                                                       suffix='.log',
-                                                                       delete=False).name
-            std_silent.dest_fname_stderr = tempfile.NamedTemporaryFile(prefix='brian_stderr_',
-                                                                       suffix='.log',
-                                                                       delete=False).name
-            std_silent.dest_stdout = open(std_silent.dest_fname_stdout, 'w')
-            std_silent.dest_stderr = open(std_silent.dest_fname_stderr, 'w')
+        self.alwaysprint = alwaysprint or not prefs["logging.std_redirection"]
+        self.redirect_to_file = prefs["logging.std_redirection_to_file"]
+        if (
+            not self.alwaysprint
+            and self.redirect_to_file
+            and std_silent.dest_stdout is None
+        ):
+            std_silent.dest_fname_stdout = tempfile.NamedTemporaryFile(
+                prefix="brian_stdout_", suffix=".log", delete=False
+            ).name
+            std_silent.dest_fname_stderr = tempfile.NamedTemporaryFile(
+                prefix="brian_stderr_", suffix=".log", delete=False
+            ).name
+            std_silent.dest_stdout = open(std_silent.dest_fname_stdout, "w")
+            std_silent.dest_stderr = open(std_silent.dest_fname_stderr, "w")
 
     def __enter__(self):
         if not self.alwaysprint and self.redirect_to_file:
@@ -795,9 +831,9 @@ class std_silent(object):
             std_silent.dest_stdout.flush()
             std_silent.dest_stderr.flush()
             if exc_type is not None:
-                with open(std_silent.dest_fname_stdout, 'r') as f:
+                with open(std_silent.dest_fname_stdout, "r") as f:
                     out = f.read()
-                with open(std_silent.dest_fname_stderr, 'r') as f:
+                with open(std_silent.dest_fname_stderr, "r") as f:
                     err = f.read()
             os.dup2(self.orig_out_fd, 1)
             os.dup2(self.orig_err_fd, 2)
@@ -806,12 +842,12 @@ class std_silent(object):
             if exc_type is not None:
                 sys.stdout.write(out)
                 sys.stderr.write(err)
-    
+
     @classmethod
     def close(cls):
         if std_silent.dest_stdout is not None:
             std_silent.dest_stdout.close()
-            if prefs['logging.delete_log_on_exit']:
+            if prefs["logging.delete_log_on_exit"]:
                 try:
                     os.remove(std_silent.dest_fname_stdout)
                 except (IOError, OSError):
@@ -821,7 +857,7 @@ class std_silent(object):
                     pass
         if std_silent.dest_stderr is not None:
             std_silent.dest_stderr.close()
-            if prefs['logging.delete_log_on_exit']:
+            if prefs["logging.delete_log_on_exit"]:
                 try:
                     os.remove(std_silent.dest_fname_stderr)
                 except (IOError, OSError):

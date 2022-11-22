@@ -2,19 +2,21 @@
 # their subcategories
 
 from brian2.core.preferences import prefs
-prefs.register_preferences('codegen.generators',
-                           ('Codegen generator preferences (see subcategories '
-                            'for individual languages)'))
+
+prefs.register_preferences(
+    "codegen.generators",
+    "Codegen generator preferences (see subcategories for individual languages)",
+)
 
 from .base import *
 from .cpp_generator import *
 from .numpy_generator import *
+
 try:
     from .cython_generator import *
 except ImportError:
-    pass # todo: raise a warning?
+    pass  # todo: raise a warning?
 try:
     from .GSL_generator import *
 except ImportError:
     pass
-

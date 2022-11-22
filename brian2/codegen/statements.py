@@ -2,10 +2,11 @@
 Module providing the `Statement` class.
 """
 
+
 class Statement(object):
     """
     A single line mathematical statement.
-    
+
     The structure is ``var op expr``.
 
     Parameters
@@ -34,7 +35,7 @@ class Statement(object):
     Notes
     -----
     Will compute the following attribute:
-    
+
     ``inplace``
         True or False depending if the operation is in-place or not.
 
@@ -61,8 +62,18 @@ class Statement(object):
     simplified. It is optional to use this (e.g. the numpy codegen does
     not, but the cython one does).
     """
-    def __init__(self, var, op, expr, comment, dtype,
-                 constant=False, subexpression=False, scalar=False):
+
+    def __init__(
+        self,
+        var,
+        op,
+        expr,
+        comment,
+        dtype,
+        constant=False,
+        subexpression=False,
+        scalar=False,
+    ):
         self.var = var.strip()
         self.op = op.strip()
         self.expr = expr
@@ -71,9 +82,9 @@ class Statement(object):
         self.constant = constant
         self.subexpression = subexpression
         self.scalar = scalar
-        if constant and self.op!=':=':
+        if constant and self.op != ":=":
             raise ValueError(f"Should not set constant flag for operation {self.op}")
-        if op.endswith('=') and op!='=' and op!=':=':
+        if op.endswith("=") and op != "=" and op != ":=":
             self.inplace = True
         else:
             self.inplace = False
@@ -83,13 +94,13 @@ class Statement(object):
     def __str__(self):
         s = f"{self.var} {self.op} {str(self.expr)}"
         if self.constant:
-            s += ' (constant)'
+            s += " (constant)"
         if self.subexpression:
-            s += ' (subexpression)'
+            s += " (subexpression)"
         if self.inplace:
-            s += ' (in-place)'
+            s += " (in-place)"
         if len(self.comment):
             s += f" # {self.comment}"
         return s
-    __repr__ = __str__
 
+    __repr__ = __str__

@@ -3,14 +3,17 @@ Implementation of `PoissonInput`.
 """
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner
-from brian2.units.fundamentalunits import (check_units, have_same_dimensions,
-                                           DimensionMismatchError,
-                                           get_dimensions)
+from brian2.units.fundamentalunits import (
+    DimensionMismatchError,
+    check_units,
+    get_dimensions,
+    have_same_dimensions,
+)
 from brian2.units.stdunits import Hz
 
 from .binomial import BinomialFunction
 
-__all__ = ['PoissonInput']
+__all__ = ["PoissonInput"]
 
 
 class PoissonInput(CodeRunner):
@@ -48,17 +51,17 @@ class PoissonInput(CodeRunner):
         the same time step and in the same scheduling slot. Defaults to 0.
 
     """
+
     @check_units(N=1, rate=Hz)
-    def __init__(self, target, target_var, N, rate, weight, when='synapses',
-                 order=0):
+    def __init__(self, target, target_var, N, rate, weight, when="synapses", order=0):
         if target_var not in target.variables:
-            raise KeyError(f'{target_var} is not a variable of {target.name}')
+            raise KeyError(f"{target_var} is not a variable of {target.name}")
 
         self._weight = weight
         self._target_var = target_var
 
         if isinstance(weight, str):
-            weight = f'({weight})'
+            weight = f"({weight})"
         else:
             weight_dims = get_dimensions(weight)
             target_dims = target.variables[target_var].dim
@@ -66,47 +69,51 @@ class PoissonInput(CodeRunner):
             # but doing an explicit check here allows for a clearer error
             # message
             if not have_same_dimensions(weight_dims, target_dims):
-                raise DimensionMismatchError(f"The provided weight does not "
-                                             f"have the same unit as the "
-                                             f"target variable '{target_var}'",
-                                             weight_dims,
-                                             target_dims)
+                raise DimensionMismatchError(
+                    "The provided weight does not "
+                    "have the same unit as the "
+                    f"target variable '{target_var}'",
+                    weight_dims,
+                    target_dims,
+                )
             weight = repr(weight)
         self._N = N
         self._rate = rate
-        binomial_sampling = BinomialFunction(N, rate*target.clock.dt,
-                                             name='poissoninput_binomial*')
+        binomial_sampling = BinomialFunction(
+            N, rate * target.clock.dt, name="poissoninput_binomial*"
+        )
 
-        code = f'{target_var} += {binomial_sampling.name}()*{weight}'
+        code = f"{target_var} += {binomial_sampling.name}()*{weight}"
         self._stored_dt = target.dt_[:]  # make a copy
         # FIXME: we need an explicit reference here for on-the-fly subgroups
         # For example: PoissonInput(group[:N], ...)
         self._group = target
-        CodeRunner.__init__(self,
-                            group=target,
-                            template='stateupdate',
-                            code=code,
-                            user_code='',
-                            when=when,
-                            order=order,
-                            name='poissoninput*',
-                            clock=target.clock
-                            )
+        CodeRunner.__init__(
+            self,
+            group=target,
+            template="stateupdate",
+            code=code,
+            user_code="",
+            when=when,
+            order=order,
+            name="poissoninput*",
+            clock=target.clock,
+        )
         self.variables = Variables(self)
         self.variables._add_variable(binomial_sampling.name, binomial_sampling)
 
-    rate = property(fget=lambda self: self._rate,
-                    doc="The rate of each input")
-    N = property(fget=lambda self: self._N,
-                 doc="The number of inputs")
-    target_var = property(fget=lambda self: self._target_var,
-                          doc="The targetted variable")
-    weight = property(fget=lambda self: self._weight,
-                      doc="The synaptic weight")
+    rate = property(fget=lambda self: self._rate, doc="The rate of each input")
+    N = property(fget=lambda self: self._N, doc="The number of inputs")
+    target_var = property(
+        fget=lambda self: self._target_var, doc="The targetted variable"
+    )
+    weight = property(fget=lambda self: self._weight, doc="The synaptic weight")
 
     def before_run(self, run_namespace):
         if self._group.dt_ != self._stored_dt:
-            raise NotImplementedError(f"The dt used for simulating {self.group.name} "
-                                      f"changed after the PoissonInput source was "
-                                      f"created.")
+            raise NotImplementedError(
+                f"The dt used for simulating {self.group.name} "
+                "changed after the PoissonInput source was "
+                "created."
+            )
         CodeRunner.before_run(self, run_namespace=run_namespace)

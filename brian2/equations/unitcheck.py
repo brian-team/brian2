@@ -4,15 +4,17 @@ Utility functions for handling the units in `Equations`.
 
 import re
 
-from brian2.units.fundamentalunits import (get_unit, Unit,
-                                           fail_for_dimension_mismatch,
-                                           get_dimensions)
-
+from brian2.core.variables import Variable
 from brian2.parsing.expressions import parse_expression_dimensions
 from brian2.parsing.statements import parse_statement
-from brian2.core.variables import Variable
+from brian2.units.fundamentalunits import (
+    Unit,
+    fail_for_dimension_mismatch,
+    get_dimensions,
+    get_unit,
+)
 
-__all__ = ['check_dimensions', 'check_units_statements']
+__all__ = ["check_dimensions", "check_units_statements"]
 
 
 def check_dimensions(expression, dimensions, variables):
@@ -39,8 +41,9 @@ def check_dimensions(expression, dimensions, variables):
     """
     expr_dims = parse_expression_dimensions(expression, variables)
     expected = repr(get_unit(dimensions))
-    err_msg = (f"Expression '{expression.strip()}' does not have the "
-               f"expected unit {expected}")
+    err_msg = (
+        f"Expression '{expression.strip()}' does not have the expected unit {expected}"
+    )
     fail_for_dimension_mismatch(expr_dims, dimensions, err_msg)
 
 
@@ -50,7 +53,7 @@ def check_units_statements(code, variables):
     use the correct unit. For newly introduced temporary variables, the unit
     is determined and used to check the following statements to ensure
     consistency.
-    
+
     Parameters
     ----------
     code : str
@@ -58,7 +61,7 @@ def check_units_statements(code, variables):
     variables : dict of `Variable` objects
         The information about all variables used in `code` (including
         `Constant` objects for external variables)
-    
+
     Raises
     ------
     KeyError
@@ -69,43 +72,50 @@ def check_units_statements(code, variables):
     variables = dict(variables)
     # Avoid a circular import
     from brian2.codegen.translation import analyse_identifiers
-    newly_defined, _, unknown = analyse_identifiers(code, variables)
-    
-    if len(unknown):
-        raise AssertionError(f"Encountered unknown identifiers, this should not "
-                             f"happen at this stage. Unknown identifiers: {unknown}")
 
-    
-    code = re.split(r'[;\n]', code)
+    newly_defined, _, unknown = analyse_identifiers(code, variables)
+
+    if len(unknown):
+        raise AssertionError(
+            "Encountered unknown identifiers, this should not "
+            f"happen at this stage. Unknown identifiers: {unknown}"
+        )
+
+    code = re.split(r"[;\n]", code)
     for line in code:
         line = line.strip()
         if not len(line):
             continue  # skip empty lines
-        
+
         varname, op, expr, comment = parse_statement(line)
-        if op in ('+=', '-=', '*=', '/=', '%='):
+        if op in ("+=", "-=", "*=", "/=", "%="):
             # Replace statements such as "w *=2" by "w = w * 2"
-            expr = f'{varname} {op[0]} {expr}'
-        elif op == '=':
+            expr = f"{varname} {op[0]} {expr}"
+        elif op == "=":
             pass
         else:
-            raise AssertionError(f'Unknown operator "{op}"') 
+            raise AssertionError(f'Unknown operator "{op}"')
 
         expr_unit = parse_expression_dimensions(expr, variables)
 
         if varname in variables:
             expected_unit = variables[varname].dim
-            fail_for_dimension_mismatch(expr_unit, expected_unit,
-                                        ('The right-hand-side of code '
-                                         'statement "%s" does not have the '
-                                         'expected unit {expected}') % line,
-                                        expected=expected_unit)
+            fail_for_dimension_mismatch(
+                expr_unit,
+                expected_unit,
+                "The right-hand-side of code "
+                'statement "%s" does not have the '
+                "expected unit {expected}" % line,
+                expected=expected_unit,
+            )
         elif varname in newly_defined:
             # note the unit for later
-            variables[varname] = Variable(name=varname,
-                                          dimensions=get_dimensions(expr_unit),
-                                          scalar=False)
+            variables[varname] = Variable(
+                name=varname, dimensions=get_dimensions(expr_unit), scalar=False
+            )
         else:
-            raise AssertionError(f"Variable '{varname}' is neither in the variables "
-                                 f"dictionary nor in the list of undefined "
-                                 f"variables.")
+            raise AssertionError(
+                f"Variable '{varname}' is neither in the variables "
+                "dictionary nor in the list of undefined "
+                "variables."
+            )

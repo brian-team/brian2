@@ -11,20 +11,21 @@ from brian2.core.functions import Function
 from brian2.core.names import Nameable
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import indent, code_representation
+from brian2.utils.stringtools import code_representation, indent
 
 from .translation import analyse_identifiers
 
-__all__ = ['CodeObject',
-           'constant_or_scalar']
+__all__ = ["CodeObject", "constant_or_scalar"]
 
 logger = get_logger(__name__)
 
 
 #: Dictionary with basic information about the current system (OS, etc.)
-sys_info = {'system': platform.system(),
-            'architecture': platform.architecture(),
-            'machine': platform.machine()}
+sys_info = {
+    "system": platform.system(),
+    "architecture": platform.architecture(),
+    "machine": platform.machine(),
+}
 
 
 def constant_or_scalar(varname, variable):
@@ -34,39 +35,48 @@ def constant_or_scalar(varname, variable):
     ``array_name[0]`` if it is a scalar array.
     """
     from brian2.devices.device import get_device  # avoid circular import
+
     if variable.array:
-        return f'{get_device().get_array_name(variable)}[0]'
+        return f"{get_device().get_array_name(variable)}[0]"
     else:
-        return f'{varname}'
+        return f"{varname}"
 
 
 class CodeObject(Nameable):
     """
     Executable code object.
-    
+
     The ``code`` can either be a string or a
     `brian2.codegen.templates.MultiTemplate`.
-    
+
     After initialisation, the code is compiled with the given namespace
     using ``code.compile(namespace)``.
-    
+
     Calling ``code(key1=val1, key2=val2)`` executes the code with the given
     variables inserted into the namespace.
     """
-    
+
     #: The `CodeGenerator` class used by this `CodeObject`
     generator_class = None
     #: A short name for this type of `CodeObject`
     class_name = None
 
-    def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, compiler_kwds,
-                 name='codeobject*'):
+    def __init__(
+        self,
+        owner,
+        code,
+        variables,
+        variable_indices,
+        template_name,
+        template_source,
+        compiler_kwds,
+        name="codeobject*",
+    ):
         Nameable.__init__(self, name=name)
-        try:    
+        try:
             owner = weakref.proxy(owner)
         except TypeError:
-            pass # if owner was already a weakproxy then this will be the error raised
+            pass  # if owner was already a weakproxy then this will be the error raised
         self.owner = owner
         self.code = code
         self.compiled_code = {}
@@ -82,7 +92,9 @@ class CodeObject(Nameable):
         Whether this target for code generation is available. Should use a
         minimal example to check whether code generation works in general.
         """
-        raise NotImplementedError(f"CodeObject class {cls.__name__} is missing an 'is_available' method.")
+        raise NotImplementedError(
+            f"CodeObject class {cls.__name__} is missing an 'is_available' method."
+        )
 
     def update_namespace(self):
         """
@@ -96,7 +108,7 @@ class CodeObject(Nameable):
         raise NotImplementedError("Implement compile_block method")
 
     def compile(self):
-        for block in ['before_run', 'run', 'after_run']:
+        for block in ["before_run", "run", "after_run"]:
             self.compiled_code[block] = self.compile_block(block)
 
     def __call__(self, **kwds):
@@ -119,7 +131,7 @@ class CodeObject(Nameable):
             A dictionary with the keys corresponding to the `output_variables`
             defined during the call of `CodeGenerator.code_object`.
         """
-        return self.run_block('before_run')
+        return self.run_block("before_run")
 
     def run(self):
         """
@@ -131,7 +143,7 @@ class CodeObject(Nameable):
             A dictionary with the keys corresponding to the `output_variables`
             defined during the call of `CodeGenerator.code_object`.
         """
-        return self.run_block('run')
+        return self.run_block("run")
 
     def after_run(self):
         """
@@ -144,7 +156,7 @@ class CodeObject(Nameable):
             A dictionary with the keys corresponding to the `output_variables`
             defined during the call of `CodeGenerator.code_object`.
         """
-        return self.run_block('after_run')
+        return self.run_block("after_run")
 
 
 def _error_msg(code, name):
@@ -152,13 +164,15 @@ def _error_msg(code, name):
     Little helper function for error messages.
     """
     error_msg = f"Error generating code for code object '{name}' "
-    code_lines = [l for l in code.split('\n') if len(l.strip())]
+    code_lines = [l for l in code.split("\n") if len(l.strip())]
     # If the abstract code is only one line, display it in full
     if len(code_lines) <= 1:
         error_msg += f"from this abstract code: '{code_lines[0]}'\n"
     else:
-        error_msg += (f"from {len(code_lines)} lines of abstract code, first line is: "
-                      f"'code_lines[0]'\n")
+        error_msg += (
+            f"from {len(code_lines)} lines of abstract code, first line is: "
+            "'code_lines[0]'\n"
+        )
     return error_msg
 
 
@@ -183,11 +197,12 @@ def check_compiler_kwds(compiler_kwds, accepted_kwds, target):
     """
     for key, value in compiler_kwds.items():
         if key not in accepted_kwds:
-            formatted_kwds = ', '.join(f"'{kw}'"
-                                       for kw in accepted_kwds)
-            raise ValueError(f"The keyword argument '{key}' is not understood by "
-                             f"the code generation target '{target}'. The valid "
-                             f"arguments are: {formatted_kwds}.")
+            formatted_kwds = ", ".join(f"'{kw}'" for kw in accepted_kwds)
+            raise ValueError(
+                f"The keyword argument '{key}' is not understood by "
+                f"the code generation target '{target}'. The valid "
+                f"arguments are: {formatted_kwds}."
+            )
 
 
 def _merge_compiler_kwds(list_of_kwds):
@@ -210,7 +225,9 @@ def _merge_compiler_kwds(list_of_kwds):
     for kwds in list_of_kwds:
         for key, values in kwds.items():
             if not isinstance(values, list):
-                raise TypeError(f"Compiler keyword argument '{key}' requires a list of values.")
+                raise TypeError(
+                    f"Compiler keyword argument '{key}' requires a list of values."
+                )
             merged_kwds[key].extend(values)
     return merged_kwds
 
@@ -236,23 +253,26 @@ def _gather_compiler_kwds(function, codeobj_class):
     all_kwds = [implementation.compiler_kwds]
     if implementation.dependencies is not None:
         for dependency in implementation.dependencies.values():
-            all_kwds.append(_gather_compiler_kwds(dependency,
-                                                  codeobj_class))
+            all_kwds.append(_gather_compiler_kwds(dependency, codeobj_class))
     return _merge_compiler_kwds(all_kwds)
 
 
-def create_runner_codeobj(group, code, template_name,
-                          run_namespace,
-                          user_code=None,
-                          variable_indices=None,
-                          name=None, check_units=True,
-                          needed_variables=None,
-                          additional_variables=None,
-                          template_kwds=None,
-                          override_conditional_write=None,
-                          codeobj_class=None
-                          ):
-    """ Create a `CodeObject` for the execution of code in the context of a
+def create_runner_codeobj(
+    group,
+    code,
+    template_name,
+    run_namespace,
+    user_code=None,
+    variable_indices=None,
+    name=None,
+    check_units=True,
+    needed_variables=None,
+    additional_variables=None,
+    template_kwds=None,
+    override_conditional_write=None,
+    codeobj_class=None,
+):
+    """Create a `CodeObject` for the execution of code in the context of a
     `Group`.
 
     Parameters
@@ -300,9 +320,9 @@ def create_runner_codeobj(group, code, template_name,
 
     if name is None:
         if group is not None:
-            name = f'{group.name}_{template_name}_codeobject*'
+            name = f"{group.name}_{template_name}_codeobject*"
         else:
-            name = f'{template_name}_codeobject*'
+            name = f"{template_name}_codeobject*"
 
     if user_code is None:
         user_code = code
@@ -311,12 +331,16 @@ def create_runner_codeobj(group, code, template_name,
         code = {None: code}
         user_code = {None: user_code}
 
-    msg = f'Creating code object (group={group.name}, template name={template_name}) for abstract code:\n'
+    msg = (
+        f"Creating code object (group={group.name}, template name={template_name}) for"
+        " abstract code:\n"
+    )
     msg += indent(code_representation(code))
     logger.diagnostic(msg)
     from brian2.devices import get_device
+
     device = get_device()
-    
+
     if override_conditional_write is None:
         override_conditional_write = set([])
     else:
@@ -328,7 +352,7 @@ def create_runner_codeobj(group, code, template_name,
         codeobj_class = device.code_object_class(codeobj_class)
 
     template = getattr(codeobj_class.templater, template_name)
-    template_variables = getattr(template, 'variables', None)
+    template_variables = getattr(template, "variables", None)
 
     all_variables = dict(group.variables)
     if additional_variables is not None:
@@ -349,11 +373,13 @@ def create_runner_codeobj(group, code, template_name,
         needed_variables = []
     # Resolve all variables (variables used in the code and variables needed by
     # the template)
-    variables = group.resolve_all(sorted(identifiers | set(needed_variables) | set(template_variables)),
-                                  # template variables are not known to the user:
-                                  user_identifiers=user_identifiers,
-                                  additional_variables=additional_variables,
-                                  run_namespace=run_namespace)
+    variables = group.resolve_all(
+        sorted(identifiers | set(needed_variables) | set(template_variables)),
+        # template variables are not known to the user:
+        user_identifiers=user_identifiers,
+        additional_variables=additional_variables,
+        run_namespace=run_namespace,
+    )
     # We raise this error only now, because there is some non-obvious code path
     # where Jinja tries to get a Synapse's "name" attribute via syn['name'],
     # which then triggers the use of the `group_get_indices` template which does
@@ -362,22 +388,28 @@ def create_runner_codeobj(group, code, template_name,
     # then make Jinja try syn.name
     if template is None:
         codeobj_class_name = codeobj_class.class_name or codeobj_class.__name__
-        raise AttributeError(f"'{codeobj_class_name}' does not provide a code "
-                             f"generation template '{template_name}'")
+        raise AttributeError(
+            f"'{codeobj_class_name}' does not provide a code "
+            f"generation template '{template_name}'"
+        )
 
     conditional_write_variables = {}
     # Add all the "conditional write" variables
     for var in variables.values():
-        cond_write_var = getattr(var, 'conditional_write', None)
+        cond_write_var = getattr(var, "conditional_write", None)
         if cond_write_var in override_conditional_write:
             continue
         if cond_write_var is not None:
-            if (cond_write_var.name in variables and
-                    not variables[cond_write_var.name] is cond_write_var):
-                logger.diagnostic(f"Variable '{cond_write_var.name}' is needed for the "
-                                  f"conditional write mechanism of variable "
-                                  f"'{var.name}'. Its name is already used for "
-                                  f"{variables[cond_write_var.name]!r}.")
+            if (
+                cond_write_var.name in variables
+                and not variables[cond_write_var.name] is cond_write_var
+            ):
+                logger.diagnostic(
+                    f"Variable '{cond_write_var.name}' is needed for the "
+                    "conditional write mechanism of variable "
+                    f"'{var.name}'. Its name is already used for "
+                    f"{variables[cond_write_var.name]!r}."
+                )
             else:
                 conditional_write_variables[cond_write_var.name] = cond_write_var
 
@@ -401,7 +433,7 @@ def create_runner_codeobj(group, code, template_name,
     # Make "conditional write" variables use the same index as the variable
     # that depends on them
     for varname, var in variables.items():
-        cond_write_var = getattr(var, 'conditional_write', None)
+        cond_write_var = getattr(var, "conditional_write", None)
         if cond_write_var is not None:
             all_variable_indices[cond_write_var.name] = all_variable_indices[varname]
 
@@ -413,33 +445,38 @@ def create_runner_codeobj(group, code, template_name,
             except KeyError as ex:
                 # if we are dealing with numpy, add the default implementation
                 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
+
                 if codeobj_class is NumpyCodeObject:
                     value.implementations.add_numpy_implementation(value.pyfunc)
                 else:
-                    raise NotImplementedError(f"Cannot use function "
-                                              f"'{varname}': {ex}") from ex
+                    raise NotImplementedError(
+                        f"Cannot use function '{varname}': {ex}"
+                    ) from ex
 
     # Gather the additional compiler arguments declared by function
     # implementations
-    all_keywords = [_gather_compiler_kwds(var, codeobj_class)
-                    for var in variables.values()
-                    if isinstance(var, Function)]
+    all_keywords = [
+        _gather_compiler_kwds(var, codeobj_class)
+        for var in variables.values()
+        if isinstance(var, Function)
+    ]
     compiler_kwds = _merge_compiler_kwds(all_keywords)
 
     # Add the indices needed by the variables
     for varname in list(variables):
         var_index = all_variable_indices[varname]
-        if not var_index in ('_idx', '0'):
+        if not var_index in ("_idx", "0"):
             variables[var_index] = all_variables[var_index]
 
-    return device.code_object(owner=group,
-                              name=name,
-                              abstract_code=code,
-                              variables=variables,
-                              template_name=template_name,
-                              variable_indices=all_variable_indices,
-                              template_kwds=template_kwds,
-                              codeobj_class=codeobj_class,
-                              override_conditional_write=override_conditional_write,
-                              compiler_kwds=compiler_kwds
-                              )
+    return device.code_object(
+        owner=group,
+        name=name,
+        abstract_code=code,
+        variables=variables,
+        template_name=template_name,
+        variable_indices=all_variable_indices,
+        template_kwds=template_kwds,
+        codeobj_class=codeobj_class,
+        override_conditional_write=override_conditional_write,
+        compiler_kwds=compiler_kwds,
+    )

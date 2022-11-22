@@ -10,13 +10,13 @@ from brian2.utils.logger import get_logger
 
 from .group import Group, Indexing
 
-__all__ = ['Subgroup']
+__all__ = ["Subgroup"]
 
 logger = get_logger(__name__)
 
 
 def to_start_stop_or_index(item, group, level=0):
-    '''
+    """
     Helper function to transform a single number, a slice or an array of
     indices to a start and stop value (if possible), or to an index of positive
     indices (interpreting negative indices correctly). This is used to allow for
@@ -57,9 +57,9 @@ def to_start_stop_or_index(item, group, level=0):
     (None, None, array([3, 5, 7]...))
     >>> to_start_stop_or_index([-3, -2, -1], group)
     (7, 10, None)
-    '''
+    """
     start = stop = None
-    indices = group.indices.get_item(item, level=level+1)
+    indices = group.indices.get_item(item, level=level + 1)
     # For convenience, allow subgroups with a single value instead of x:x+1 slice
     if indices.shape == ():
         indices = np.array([indices])
@@ -75,7 +75,7 @@ def to_start_stop_or_index(item, group, level=0):
 class Subgroup(Group, SpikeSource):
     """
     Subgroup of any `Group`
-    
+
     Parameters
     ----------
     source : SpikeSource
@@ -90,14 +90,14 @@ class Subgroup(Group, SpikeSource):
     name : str, optional
         A unique name for the group, or use ``source.name+'_subgroup_0'``, etc.
     """
+
     def __init__(self, source, start=None, stop=None, indices=None, name=None):
         if start is stop is indices is None:
             raise TypeError("Need to specify either start and stop or indices.")
         if start != stop and (start is None or stop is None):
             raise TypeError("start and stop have to be specified together.")
         if indices is not None and (start is not None):
-            raise TypeError("Cannot specify both indices and start and "
-                            "stop.")
+            raise TypeError("Cannot specify both indices and start and stop.")
         if start is not None:
             self.contiguous = True
             if start < 0:
@@ -105,21 +105,27 @@ class Subgroup(Group, SpikeSource):
             if stop <= start:
                 raise IndexError("Stop index has to be bigger than start.")
             if stop > len(source):
-                raise IndexError(f"Stop index cannot be > the size of the group "
-                                 f"({stop} > {len(source)}).")
+                raise IndexError(
+                    "Stop index cannot be > the size of the group "
+                    f"({stop} > {len(source)})."
+                )
         else:
             self.contiguous = False
             if not len(indices):
-                raise IndexError('Cannot create an empty subgroup.')
+                raise IndexError("Cannot create an empty subgroup.")
             min_index = np.min(indices)
             max_index = np.max(indices)
             if min_index < 0:
                 raise IndexError("Indices cannot contain negative values.")
             if max_index >= len(source):
-                raise IndexError(f"Indices cannot be ≥ the size of the group "
-                                 f"({max_index} ≥ {len(source)}).")
+                raise IndexError(
+                    "Indices cannot be ≥ the size of the group "
+                    f"({max_index} ≥ {len(source)})."
+                )
             if not np.all(np.diff(indices) > 0):
-                raise IndexError("indices need to be sorted and cannot contain repeated values.")
+                raise IndexError(
+                    "indices need to be sorted and cannot contain repeated values."
+                )
 
         # A Subgroup should never be constructed from another Subgroup
         # Instead, use Subgroup(source.source,
@@ -129,7 +135,7 @@ class Subgroup(Group, SpikeSource):
 
         # Store a reference to the source's equations (if any)
         self.equations = None
-        if hasattr(self.source, 'equations'):
+        if hasattr(self.source, "equations"):
             self.equations = weakproxy_with_fallback(self.source.equations)
 
         if name is None:
@@ -138,12 +144,15 @@ class Subgroup(Group, SpikeSource):
         # by the parent, we do this in slot 'thresholds' with an order
         # one higher than the parent order to ensure it takes place after the
         # parent threshold operation
-        Group.__init__(self,
-                       clock=source._clock,
-                       when='thresholds',
-                       order=source.order+1, name=name)
+        Group.__init__(
+            self,
+            clock=source._clock,
+            when="thresholds",
+            order=source.order + 1,
+            name=name,
+        )
         if self.contiguous:
-            self._N = stop-start
+            self._N = stop - start
         else:
             self._N = len(indices)
         self.start = start
@@ -154,57 +163,73 @@ class Subgroup(Group, SpikeSource):
 
         # All the variables have to go via the _sub_idx to refer to the
         # appropriate values in the source group
-        self.variables = Variables(self, default_index='_sub_idx')
+        self.variables = Variables(self, default_index="_sub_idx")
 
         # overwrite the meaning of N and i
         if self.contiguous and self.start > 0:
-            self.variables.add_constant('_offset', value=self.start)
-            self.variables.add_reference('_source_i', source, 'i')
-            self.variables.add_subexpression('i',
-                                             dtype=source.variables['i'].dtype,
-                                             expr='_source_i - _offset',
-                                             index='_idx')
+            self.variables.add_constant("_offset", value=self.start)
+            self.variables.add_reference("_source_i", source, "i")
+            self.variables.add_subexpression(
+                "i",
+                dtype=source.variables["i"].dtype,
+                expr="_source_i - _offset",
+                index="_idx",
+            )
         elif self.contiguous:
             # no need to calculate anything if this is a subgroup starting at 0
-            self.variables.add_reference('i', source)
+            self.variables.add_reference("i", source)
         else:
             # We need an array to invert the indexing, i.e. an array where you
             # can use the indices and get back 0, 1, 2, ...
             inv_idx = np.zeros(np.max(indices) + 1)
             inv_idx[indices] = np.arange(len(indices))
-            self.variables.add_array('i', size=len(inv_idx),
-                                     dtype=source.variables['i'].dtype,
-                                     values=inv_idx, constant=True,
-                                     read_only=True, unique=True)
+            self.variables.add_array(
+                "i",
+                size=len(inv_idx),
+                dtype=source.variables["i"].dtype,
+                values=inv_idx,
+                constant=True,
+                read_only=True,
+                unique=True,
+            )
 
-        self.variables.add_constant('N', value=self._N)
-        self.variables.add_constant('_source_N', value=len(source))
+        self.variables.add_constant("N", value=self._N)
+        self.variables.add_constant("_source_N", value=len(source))
         # add references for all variables in the original group
         self.variables.add_references(source, list(source.variables.keys()))
 
         # Only the variable _sub_idx itself is stored in the subgroup
         # and needs the normal index for this group
         if self.contiguous:
-            self.variables.add_arange('_sub_idx', size=self._N, start=self.start,
-                                      index='_idx')
+            self.variables.add_arange(
+                "_sub_idx", size=self._N, start=self.start, index="_idx"
+            )
         else:
-            self.variables.add_array('_sub_idx', size=self._N,
-                                     dtype=np.int32, values=indices,
-                                     index='_idx', constant=True,
-                                     read_only=True, unique=True)
+            self.variables.add_array(
+                "_sub_idx",
+                size=self._N,
+                dtype=np.int32,
+                values=indices,
+                index="_idx",
+                constant=True,
+                read_only=True,
+                unique=True,
+            )
 
         # special indexing for subgroups
-        self._indices = Indexing(self, self.variables['_sub_idx'])
+        self._indices = Indexing(self, self.variables["_sub_idx"])
 
         # Deal with special sub_indices
         for key, value in self.source.variables.indices.items():
-            if value == '0':
-                self.variables.indices[key] = '0'
-            elif value == '_idx':
+            if value == "0":
+                self.variables.indices[key] = "0"
+            elif value == "_idx":
                 continue  # nothing to do, already uses _sub_idx correctly
             else:
-                raise ValueError(f"Do not know how to deal with variable '{key}' "
-                                 f"using index '{value}' in a subgroup.")
+                raise ValueError(
+                    f"Do not know how to deal with variable '{key}' "
+                    f"using index '{value}' in a subgroup."
+                )
 
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class
@@ -219,14 +244,18 @@ class Subgroup(Group, SpikeSource):
 
     def __repr__(self):
         if self.contiguous:
-            description = '<{classname} {name} of {source} from {start} to {end}>'
+            description = "<{classname} {name} of {source} from {start} to {end}>"
             str_indices = None
         else:
-            description = '<{classname} {name} of {source} with indices {indices}>'
-            str_indices = np.array2string(self.sub_indices, threshold=10, separator=', ')
-        return description.format(classname=self.__class__.__name__,
-                                  name=repr(self.name),
-                                  source=repr(self.source.name),
-                                  start=self.start,
-                                  indices=str_indices,
-                                  end=self.stop)
+            description = "<{classname} {name} of {source} with indices {indices}>"
+            str_indices = np.array2string(
+                self.sub_indices, threshold=10, separator=", "
+            )
+        return description.format(
+            classname=self.__class__.__name__,
+            name=repr(self.name),
+            source=repr(self.source.name),
+            start=self.start,
+            indices=str_indices,
+            end=self.stop,
+        )

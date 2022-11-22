@@ -5,7 +5,7 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		"context": "..",
-		"args": { 
+		"args": {
 			// Update 'VARIANT' to pick a Python version: 3, 3.10, 3.9, 3.8, 3.7, 3.6
 			// Append -bullseye or -buster to pin to an OS version.
 			// Use -bullseye variants on local on arm64/Apple Silicon.
@@ -16,12 +16,13 @@
 	},
 
 	// Set *default* container specific settings.json values on container create.
-	"settings": { 
+	"settings": {
 		"python.defaultInterpreterPath": "/usr/local/bin/python",
 		"python.linting.enabled": true,
 		"python.linting.pylintEnabled": true,
+		"python.formatting.provider": "black",
 		"python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
-		"python.formatting.blackPath": "/usr/local/py-utils/bin/black",
+		"python.formatting.blackPath": "black",
 		"python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
 		"python.linting.banditPath": "/usr/local/py-utils/bin/bandit",
 		"python.linting.flake8Path": "/usr/local/py-utils/bin/flake8",
@@ -32,13 +33,19 @@
 		"jupyter.widgetScriptSources": [
 			"jsdelivr.com",
 			"unpkg.com"
-		]
+		],
+		"[python]": {
+			"editor.codeActionsOnSave": {
+				"source.organizeImports": true
+			}
+		}
 	},
 
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"ms-python.python",
-		"ms-python.vscode-pylance"
+		"ms-python.vscode-pylance",
+		"ms-python.vscode-isort"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -46,7 +53,7 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "pip3 install --user -r requirements.txt",
-	"postCreateCommand": "pip3 install --user -e '.[test,doc]' && pip3 freeze > .devcontainer/frozen-requirements.txt",
+	"postCreateCommand": "pre-commit install && pip3 install --user -e '.[test,doc]' && pip3 freeze > .devcontainer/frozen-requirements.txt",
 
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",

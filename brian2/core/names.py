@@ -1,11 +1,10 @@
-import uuid
 import re
+import uuid
 
-from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable
+from brian2.utils.logger import get_logger
 
-
-__all__ = ['Nameable']
+__all__ = ["Nameable"]
 
 logger = get_logger(__name__)
 
@@ -22,14 +21,14 @@ def find_name(name, names=None):
     names : Iterable, optional
         A set of names that are already taken. If not provided, will use the names
         of all Brian objects as stored in `Nameable`.
-    
+
     Returns
     -------
     unique_name : str
         A name based on ``name`` or ``name`` itself, unique with respect to the
         names in ``names``.
     """
-    if not name.endswith('*'):
+    if not name.endswith("*"):
         # explicitly given names are used as given. Network.before_run (and
         # the device in case of standalone) will check for name clashes later
         return name
@@ -38,8 +37,7 @@ def find_name(name, names=None):
 
     if names is None:
         instances = set(Nameable.__instances__())
-        allnames = set(obj().name for obj in instances
-                    if hasattr(obj(), 'name'))
+        allnames = set(obj().name for obj in instances if hasattr(obj(), "name"))
     else:
         allnames = names
 
@@ -57,14 +55,14 @@ def find_name(name, names=None):
 class Nameable(Trackable):
     """
     Base class to find a unique name for an object
-    
+
     If you specify a name explicitly, and it has already been taken, a
     `ValueError` is raised. You can also specify a name with a wildcard asterisk
     in the end, i.e. in the form ``'name*'``. It will then try ``name`` first
     but if this is already specified, it will try ``name_1``, `name__2``, etc.
     This is the default mechanism used by most core objects in Brian, e.g.
     `NeuronGroup` uses a default name of ``'neurongroup*'``.
-    
+
     Parameters
     ----------
     name : str
@@ -75,28 +73,32 @@ class Nameable(Trackable):
         the `name` argument. This situation can arise when a class derives from
         multiple classes that derive themselves from `Nameable` (e.g. `Group`
         and `CodeRunner`) and their initialisers are called explicitely.
-        
+
     Raises
     ------
     ValueError
         If the name is already taken.
-    """    
+    """
+
     def __init__(self, name):
-        if getattr(self, '_name', None) is not None and name is None:
+        if getattr(self, "_name", None) is not None and name is None:
             # name has already been specified previously
             return
 
         self.assign_id()
 
         if not isinstance(name, str):
-            raise TypeError(f"'name' argument has to be a string, is type "
-                            f"{repr(type(name))} instead")
+            raise TypeError(
+                "'name' argument has to be a string, is type "
+                f"{repr(type(name))} instead"
+            )
         if not re.match(r"[_A-Za-z][_a-zA-Z0-9]*\*?$", name):
             raise ValueError(f"Name {name} not valid variable name")
 
         self._name = find_name(name)
-        logger.diagnostic(f"Created object of class {self.__class__.__name__} "
-                          f"with name {self._name}")
+        logger.diagnostic(
+            f"Created object of class {self.__class__.__name__} with name {self._name}"
+        )
 
     def assign_id(self):
         """
@@ -107,22 +109,26 @@ class Nameable(Trackable):
         """
         self._id = uuid.uuid4()
 
-    name = property(fget=lambda self:self._name,
-                    doc="""
+    name = property(
+        fget=lambda self: self._name,
+        doc="""
                         The unique name for this object.
                         
                         Used when generating code. Should be an acceptable
                         variable name, i.e. starting with a letter
                         character and followed by alphanumeric characters and
                         ``_``.
-                        """)
+                        """,
+    )
 
-    id = property(fget=lambda self:self._id,
-                  doc="""
+    id = property(
+        fget=lambda self: self._id,
+        doc="""
                         A unique id for this object.
 
                         In contrast to names, which may be reused, the id stays
                         unique. This is used in the dependency checking to not
                         have to deal with the chore of comparing weak
                         references, weak proxies and strong references.
-                        """)
+                        """,
+    )
