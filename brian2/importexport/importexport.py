@@ -37,13 +37,17 @@ class ImportExport(object, metaclass=abc.ABCMeta):
         """
         if not isinstance(importerexporter, ImportExport):
             t = str(type(importerexporter))
-            error_msg = (f"Given importerexporter of type {t} does not seem to "
-                         f"be a valid importerexporter.")
+            error_msg = (
+                f"Given importerexporter of type {t} does not seem to "
+                "be a valid importerexporter."
+            )
             raise ValueError(error_msg)
         name = importerexporter.name
         if name in ImportExport.methods:
-            raise ValueError(f"An import/export methods with the name '{name}'"
-                             f"has already been registered")
+            raise ValueError(
+                f"An import/export methods with the name '{name}'"
+                "has already been registered"
+            )
         ImportExport.methods[name] = importerexporter
 
     @staticmethod

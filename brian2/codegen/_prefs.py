@@ -1,4 +1,3 @@
-
 """
 Module declaring general code generation preferences.
 
@@ -6,15 +5,16 @@ Preferences
 -----------
 .. document_brian_prefs:: codegen
 """
-from brian2.core.preferences import prefs, BrianPreference
+from brian2.core.preferences import BrianPreference, prefs
+
 from .codeobject import CodeObject
 
 # Preferences
 prefs.register_preferences(
-    'codegen',
-    'Code generation preferences',
+    "codegen",
+    "Code generation preferences",
     target=BrianPreference(
-        default='auto',
+        default="auto",
         docs="""
         Default target for code generation.
         
@@ -29,10 +29,11 @@ prefs.register_preferences(
         
         Or it can be a ``CodeObject`` class.
         """,
-        validator=lambda target: isinstance(target, str) or issubclass(target, CodeObject),
-        ),
+        validator=lambda target: isinstance(target, str)
+        or issubclass(target, CodeObject),
+    ),
     string_expression_target=BrianPreference(
-        default='numpy',
+        default="numpy",
         docs="""
         Default target for the evaluation of string expressions (e.g. when
         indexing state variables). Should normally not be changed from the
@@ -41,8 +42,9 @@ prefs.register_preferences(
 
         Accepts the same arguments as `codegen.target`, except for ``'auto'``
         """,
-        validator=lambda target: isinstance(target, str) or issubclass(target, CodeObject),
-        ),
+        validator=lambda target: isinstance(target, str)
+        or issubclass(target, CodeObject),
+    ),
     loop_invariant_optimisations=BrianPreference(
         default=True,
         docs="""
@@ -51,13 +53,13 @@ prefs.register_preferences(
         Can be switched off, e.g. because it complicates the code (and the same
         optimisation is already performed by the compiler) or because the
         code generation target does not deal well with it. Defaults to ``True``.
-        """
+        """,
     ),
     max_cache_dir_size=BrianPreference(
-      default=1000,
-      docs="""
-      The size of a directory (in MB) with cached code for Cython that triggers a warning.
-      Set to 0 to never get a warning.
-      """
-    )
+        default=1000,
+        docs="""
+        The size of a directory (in MB) with cached code for Cython that triggers
+        a warning. Set to 0 to never get a warning.
+        """,
+    ),
 )

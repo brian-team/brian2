@@ -7,4 +7,4 @@ sphinx >= 2.1
 sphinx-tabs
 docutils<0.17
 sympy <=1.10
-
+versioneer[toml]

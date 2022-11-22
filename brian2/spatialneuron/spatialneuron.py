@@ -3,31 +3,37 @@ Compartmental models.
 This module defines the `SpatialNeuron` class, which defines multicompartmental
 models.
 """
-import weakref
 import copy
+import weakref
 
-import sympy as sp
 import numpy as np
+import sympy as sp
 
 from brian2.core.variables import Variables
-from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
-                                        DIFFERENTIAL_EQUATION, SingleEquation,
-                                        extract_constant_subexpressions)
-from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
-from brian2.units.allunits import ohm, siemens, amp, meter, volt
-from brian2.units.fundamentalunits import (Quantity,
-                                           fail_for_dimension_mismatch,
-                                           have_same_dimensions,
-                                           DimensionMismatchError)
-from brian2.units.stdunits import uF, cm
-from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
-from brian2.utils.logger import get_logger
-from brian2.groups.neurongroup import (NeuronGroup, SubexpressionUpdater,
-                                       to_start_stop)
-from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
+from brian2.equations.equations import (
+    DIFFERENTIAL_EQUATION,
+    PARAMETER,
+    SUBEXPRESSION,
+    Equations,
+    SingleEquation,
+    extract_constant_subexpressions,
+)
+from brian2.groups.group import CodeRunner, Group, create_runner_codeobj
+from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater, to_start_stop
+from brian2.groups.subgroup import Subgroup
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
+from brian2.units.allunits import amp, meter, ohm, siemens, volt
+from brian2.units.fundamentalunits import (
+    DimensionMismatchError,
+    Quantity,
+    fail_for_dimension_mismatch,
+    have_same_dimensions,
+)
+from brian2.units.stdunits import cm, uF
+from brian2.utils.logger import get_logger
 
-__all__ = ['SpatialNeuron']
+__all__ = ["SpatialNeuron"]
 
 logger = get_logger(__name__)
 
@@ -38,6 +44,7 @@ class FlatMorphology(object):
     Note that all values are stored as numpy arrays without unit information
     (i.e. in base units).
     """
+
     def __init__(self, morphology):
         self.n = n = morphology.total_compartments  # Total number of compartments
         # Per-compartment attributes
@@ -78,13 +85,15 @@ class FlatMorphology(object):
         self._section_counter = 0
         self._insert_data(morphology)
         if self.has_coordinates and self._sections_without_coordinates:
-            logger.info('The morphology has a mix of sections with and '
-                        'without coordinates. The SpatialNeuron object '
-                        'will store NaN values for the coordinates of '
-                        'the sections that do not specify coordinates. '
-                        'Call generate_coordinates on the morphology '
-                        'before creating the SpatialNeuron object to fill '
-                        'in the missing coordinates.')
+            logger.info(
+                "The morphology has a mix of sections with and "
+                "without coordinates. The SpatialNeuron object "
+                "will store NaN values for the coordinates of "
+                "the sections that do not specify coordinates. "
+                "Call generate_coordinates on the morphology "
+                "before creating the SpatialNeuron object to fill "
+                "in the missing coordinates."
+            )
         # Do not store coordinates for morphologies that don't define them
         if not self.has_coordinates:
             self.start_x = self.start_y = self.start_z = None
@@ -96,12 +105,11 @@ class FlatMorphology(object):
         # section is very different. In practice, this should not be much of a
         # problem since most sections have 0, 1, or 2 children (e.g. SWC files
         # on neuromorpho.org are all binary trees)
-        self.morph_children_num = np.array([len(c)
-                                            for c in self.morph_children] + [0])
+        self.morph_children_num = np.array([len(c) for c in self.morph_children] + [0])
         max_children = max(self.morph_children_num)
-        morph_children = np.zeros((sections+1, max_children), dtype=np.int32)
+        morph_children = np.zeros((sections + 1, max_children), dtype=np.int32)
         for idx, section_children in enumerate(self.morph_children):
-            morph_children[idx, :len(section_children)] = section_children
+            morph_children[idx, : len(section_children)] = section_children
         self.morph_children = morph_children.reshape(-1)
 
     def _insert_data(self, section, parent_idx=-1, depth=0):
@@ -119,15 +127,15 @@ class FlatMorphology(object):
         self.r_length_2[start:end] = np.asarray(section.r_length_2)
         if section.x is None:
             self._sections_without_coordinates = True
-            self.start_x[start:end] = np.ones(n)*np.nan
-            self.start_y[start:end] = np.ones(n)*np.nan
-            self.start_z[start:end] = np.ones(n)*np.nan
-            self.x[start:end] = np.ones(n)*np.nan
-            self.y[start:end] = np.ones(n)*np.nan
-            self.z[start:end] = np.ones(n)*np.nan
-            self.end_x[start:end] = np.ones(n)*np.nan
-            self.end_y[start:end] = np.ones(n)*np.nan
-            self.end_z[start:end] = np.ones(n)*np.nan
+            self.start_x[start:end] = np.ones(n) * np.nan
+            self.start_y[start:end] = np.ones(n) * np.nan
+            self.start_z[start:end] = np.ones(n) * np.nan
+            self.x[start:end] = np.ones(n) * np.nan
+            self.y[start:end] = np.ones(n) * np.nan
+            self.z[start:end] = np.ones(n) * np.nan
+            self.end_x[start:end] = np.ones(n) * np.nan
+            self.end_y[start:end] = np.ones(n) * np.nan
+            self.end_z[start:end] = np.ones(n) * np.nan
         else:
             self.has_coordinates = True
             self.start_x[start:end] = np.asarray(section.start_x)
@@ -149,14 +157,14 @@ class FlatMorphology(object):
         self.starts[idx] = start
         self.ends[idx] = end
         # Append ourselves to the children list of our parent
-        self.morph_idxchild[idx] = len(self.morph_children[parent_idx+1])
+        self.morph_idxchild[idx] = len(self.morph_children[parent_idx + 1])
         self.morph_children[parent_idx + 1].append(idx + 1)
         self.end_distance[idx] = section.end_distance
         # Recurse down the tree
         self._offset += n
         self._section_counter += 1
         for child in section.children:
-            self._insert_data(child, parent_idx=idx, depth=depth+1)
+            self._insert_data(child, parent_idx=idx, depth=depth + 1)
 
 
 class SpatialNeuron(NeuronGroup):
@@ -226,39 +234,56 @@ class SpatialNeuron(NeuronGroup):
         A unique name for the group, otherwise use ``spatialneuron_0``, etc.
     """
 
-    def __init__(self, morphology=None, model=None, threshold=None,
-                 refractory=False, reset=None, events=None,
-                 threshold_location=None,
-                 dt=None, clock=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
-                 name='spatialneuron*', dtype=None, namespace=None,
-                 method=('exact', 'exponential_euler', 'rk2', 'heun'),
-                 method_options=None):
-
+    def __init__(
+        self,
+        morphology=None,
+        model=None,
+        threshold=None,
+        refractory=False,
+        reset=None,
+        events=None,
+        threshold_location=None,
+        dt=None,
+        clock=None,
+        order=0,
+        Cm=0.9 * uF / cm**2,
+        Ri=150 * ohm * cm,
+        name="spatialneuron*",
+        dtype=None,
+        namespace=None,
+        method=("exact", "exponential_euler", "rk2", "heun"),
+        method_options=None,
+    ):
         # #### Prepare and validate equations
         if isinstance(model, str):
             model = Equations(model)
         if not isinstance(model, Equations):
-            raise TypeError(f"model has to be a string or an Equations "
-                            f"object, is '{type(model)}' instead.")
+            raise TypeError(
+                "model has to be a string or an Equations "
+                f"object, is '{type(model)}' instead."
+            )
 
         # Insert the threshold mechanism at the specified location
         if threshold_location is not None:
-            if hasattr(threshold_location,
-                       '_indices'):  # assuming this is a method
+            if hasattr(threshold_location, "_indices"):  # assuming this is a method
                 threshold_location = threshold_location._indices()
             # for now, only a single compartment allowed
             try:
                 treshold_location = int(threshold_location)
             except TypeError:
-                raise AttributeError("Threshold can only be applied on a "
-                                     "single location")
+                raise AttributeError(
+                    "Threshold can only be applied on a single location"
+                )
             threshold = f"({threshold}) and (i == {str(threshold_location)})"
 
         # Check flags (we have point currents)
-        model.check_flags({DIFFERENTIAL_EQUATION: ('point current',),
-                           PARAMETER: ('constant', 'shared', 'linked', 'point current'),
-                           SUBEXPRESSION: ('shared', 'point current',
-                                           'constant over dt')})
+        model.check_flags(
+            {
+                DIFFERENTIAL_EQUATION: ("point current",),
+                PARAMETER: ("constant", "shared", "linked", "point current"),
+                SUBEXPRESSION: ("shared", "point current", "constant over dt"),
+            }
+        )
         #: The original equations as specified by the user (i.e. before
         #: inserting point-currents into the membrane equation, before adding
         #: all the internally used variables and constants, etc.).
@@ -271,38 +296,51 @@ class SpatialNeuron(NeuronGroup):
         model, constant_over_dt = extract_constant_subexpressions(model)
 
         # Extract membrane equation
-        if 'Im' in model:
-            if len(model['Im'].flags):
-                raise TypeError("Cannot specify any flags for the transmembrane "
-                                "current 'Im'.")
-            membrane_expr = model['Im'].expr  # the membrane equation
+        if "Im" in model:
+            if len(model["Im"].flags):
+                raise TypeError(
+                    "Cannot specify any flags for the transmembrane current 'Im'."
+                )
+            membrane_expr = model["Im"].expr  # the membrane equation
         else:
             raise TypeError("The transmembrane current 'Im' must be defined")
 
         model_equations = []
         # Insert point currents in the membrane equation
         for eq in model.values():
-            if eq.varname == 'Im':
+            if eq.varname == "Im":
                 continue  # ignore -- handled separately
-            if 'point current' in eq.flags:
-                fail_for_dimension_mismatch(eq.dim, amp,
-                                            f"Point current {eq.varname} should be in amp")
+            if "point current" in eq.flags:
+                fail_for_dimension_mismatch(
+                    eq.dim, amp, f"Point current {eq.varname} should be in amp"
+                )
                 membrane_expr = Expression(
-                    f"{str(membrane_expr.code)}+{eq.varname}/area")
-                eq = SingleEquation(eq.type, eq.varname, eq.dim, expr=eq.expr,
-                                    flags=list(set(eq.flags)-{'point current'}))
+                    f"{str(membrane_expr.code)}+{eq.varname}/area"
+                )
+                eq = SingleEquation(
+                    eq.type,
+                    eq.varname,
+                    eq.dim,
+                    expr=eq.expr,
+                    flags=list(set(eq.flags) - {"point current"}),
+                )
             model_equations.append(eq)
 
-        model_equations.append(SingleEquation(SUBEXPRESSION, 'Im',
-                                              dimensions=(amp/meter**2).dim,
-                                              expr=membrane_expr))
-        model_equations.append(SingleEquation(PARAMETER, 'v', volt.dim))
+        model_equations.append(
+            SingleEquation(
+                SUBEXPRESSION,
+                "Im",
+                dimensions=(amp / meter**2).dim,
+                expr=membrane_expr,
+            )
+        )
+        model_equations.append(SingleEquation(PARAMETER, "v", volt.dim))
         model = Equations(model_equations)
 
         ###### Process model equations (Im) to extract total conductance and the remaining current
         # Expand expressions in the membrane equation
         for var, expr in model.get_substituted_expressions(include_subexpressions=True):
-            if var == 'Im':
+            if var == "Im":
                 Im_expr = expr
                 break
         else:
@@ -310,21 +348,22 @@ class SpatialNeuron(NeuronGroup):
 
         # Differentiate Im with respect to v
         Im_sympy_exp = str_to_sympy(Im_expr.code)
-        v_sympy = sp.Symbol('v', real=True)
+        v_sympy = sp.Symbol("v", real=True)
         diffed = sp.diff(Im_sympy_exp, v_sympy)
 
         unevaled_derivatives = diffed.atoms(sp.Derivative)
         if len(unevaled_derivatives):
             raise TypeError(
-                f"Cannot take the derivative of '{Im_expr.code}' with respect to v.")
+                f"Cannot take the derivative of '{Im_expr.code}' with respect to v."
+            )
 
         gtot_str = sympy_to_str(sp.simplify(-diffed))
-        I0_str = sympy_to_str(sp.simplify(Im_sympy_exp - diffed*v_sympy))
+        I0_str = sympy_to_str(sp.simplify(Im_sympy_exp - diffed * v_sympy))
 
-        if gtot_str == '0':
-            gtot_str += '*siemens/meter**2'
-        if I0_str == '0':
-            I0_str += '*amp/meter**2'
+        if gtot_str == "0":
+            gtot_str += "*siemens/meter**2"
+        if I0_str == "0":
+            I0_str += "*amp/meter**2"
         gtot_str = f"gtot__private={gtot_str}: siemens/meter**2"
         I0_str = f"I0__private={I0_str}: amp/meter**2"
 
@@ -340,7 +379,8 @@ class SpatialNeuron(NeuronGroup):
         # TODO: check whether Cm and Ri are already in the equations
         #       no: should be shared instead of constant
         #       yes: should be constant (check)
-        eqs_constants = Equations("""
+        eqs_constants = Equations(
+            """
         length : meter (constant)
         distance : meter (constant)
         area : meter**2 (constant)
@@ -354,35 +394,60 @@ class SpatialNeuron(NeuronGroup):
         time_constant = Cm/gtot__private : second
         space_constant = (2/pi)**(1.0/3.0) * (area/(1/r_length_1 + 1/r_length_2))**(1.0/6.0) /
                          (2*(Ri*gtot__private)**(1.0/2.0)) : meter
-        """)
+        """
+        )
         if self.flat_morphology.has_coordinates:
-            eqs_constants += Equations("""
+            eqs_constants += Equations(
+                """
             x : meter (constant)
             y : meter (constant)
             z : meter (constant)
-            """)
+            """
+            )
 
-        NeuronGroup.__init__(self, morphology.total_compartments,
-                             model=model + eqs_constants,
-                             method_options=method_options,
-                             threshold=threshold, refractory=refractory,
-                             reset=reset, events=events,
-                             method=method, dt=dt, clock=clock, order=order,
-                             namespace=namespace, dtype=dtype, name=name)
+        NeuronGroup.__init__(
+            self,
+            morphology.total_compartments,
+            model=model + eqs_constants,
+            method_options=method_options,
+            threshold=threshold,
+            refractory=refractory,
+            reset=reset,
+            events=events,
+            method=method,
+            dt=dt,
+            clock=clock,
+            order=order,
+            namespace=namespace,
+            dtype=dtype,
+            name=name,
+        )
         # Parameters and intermediate variables for solving the cable equations
         # Note that some of these variables could have meaningful physical
         # units (e.g. _v_star is in volt, _I0_all is in amp/meter**2 etc.) but
         # since these variables should never be used in user code, we don't
         # assign them any units
-        self.variables.add_arrays(['_ab_star0', '_ab_star1', '_ab_star2',
-                                   '_b_plus', '_b_minus',
-                                   '_v_star', '_u_plus', '_u_minus',
-                                   '_v_previous', '_c',
-                                   # The following two are only necessary for
-                                   # C code where we cannot deal with scalars
-                                   # and arrays interchangeably:
-                                   '_I0_all', '_gtot_all'],
-                                  size=self.N, read_only=True)
+        self.variables.add_arrays(
+            [
+                "_ab_star0",
+                "_ab_star1",
+                "_ab_star2",
+                "_b_plus",
+                "_b_minus",
+                "_v_star",
+                "_u_plus",
+                "_u_minus",
+                "_v_previous",
+                "_c",
+                # The following two are only necessary for
+                # C code where we cannot deal with scalars
+                # and arrays interchangeably:
+                "_I0_all",
+                "_gtot_all",
+            ],
+            size=self.N,
+            read_only=True,
+        )
 
         self.Cm = Cm
         self.Ri = Ri
@@ -392,6 +457,7 @@ class SpatialNeuron(NeuronGroup):
         self.length_ = self.flat_morphology.length
         self.area_ = self.flat_morphology.area
         self.diameter_ = self.flat_morphology.diameter
+        self.volume_ = self.flat_morphology.volume
         self.r_length_1_ = self.flat_morphology.r_length_1
         self.r_length_2_ = self.flat_morphology.r_length_2
         if self.flat_morphology.has_coordinates:
@@ -400,10 +466,10 @@ class SpatialNeuron(NeuronGroup):
             self.z_ = self.flat_morphology.z
 
         # Performs numerical integration step
-        self.add_attribute('diffusion_state_updater')
-        self.diffusion_state_updater = SpatialStateUpdater(self, method,
-                                                           clock=self.clock,
-                                                           order=order)
+        self.add_attribute("diffusion_state_updater")
+        self.diffusion_state_updater = SpatialStateUpdater(
+            self, method, clock=self.clock, order=order
+        )
 
         # Update v after the gating variables to obtain consistent Ic and Im
         self.diffusion_state_updater.order = 1
@@ -412,8 +478,7 @@ class SpatialNeuron(NeuronGroup):
         self.contained_objects.extend([self.diffusion_state_updater])
 
         if len(constant_over_dt):
-            self.subexpression_updater = SubexpressionUpdater(self,
-                                                              constant_over_dt)
+            self.subexpression_updater = SubexpressionUpdater(self, constant_over_dt)
             self.contained_objects.append(self.subexpression_updater)
 
     def __getattr__(self, name):
@@ -458,13 +523,16 @@ class SpatialNeuron(NeuronGroup):
         Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubgroup`.
         If it does not exist, returns the `Group` attribute.
         """
-        if name == 'main':  # Main section, without the subtrees
+        if name == "main":  # Main section, without the subtrees
             indices = neuron.morphology.indices[:]
             start, stop = indices[0], indices[-1]
-            return SpatialSubgroup(neuron, start, stop + 1,
-                                   morphology=neuron.morphology)
-        elif (name != 'morphology') and ((name in getattr(neuron.morphology, 'children', [])) or
-                                      all([c in 'LR123456789' for c in name])):  # subtree
+            return SpatialSubgroup(
+                neuron, start, stop + 1, morphology=neuron.morphology
+            )
+        elif (name != "morphology") and (
+            (name in getattr(neuron.morphology, "children", []))
+            or all([c in "LR123456789" for c in name])
+        ):  # subtree
             morpho = neuron.morphology[name]
             start = morpho.indices[0]
             stop = SpatialNeuron._find_subtree_end(morpho)
@@ -481,17 +549,20 @@ class SpatialNeuron(NeuronGroup):
         """
         if isinstance(item, slice) and isinstance(item.start, Quantity):
             if item.step is not None:
-                raise ValueError("Cannot specify a step size for slicing based"
-                                 "on length.")
+                raise ValueError(
+                    "Cannot specify a step size for slicing basedon length."
+                )
             start, stop = item.start, item.stop
-            if (not have_same_dimensions(start, meter) or
-                    not have_same_dimensions(stop, meter)):
-                raise DimensionMismatchError("Start and stop should have units "
-                                             "of meter", start, stop)
+            if not have_same_dimensions(start, meter) or not have_same_dimensions(
+                stop, meter
+            ):
+                raise DimensionMismatchError(
+                    "Start and stop should have units of meter", start, stop
+                )
             # Convert to integers (compartment numbers)
             indices = neuron.morphology.indices[item]
             start, stop = indices[0], indices[-1] + 1
-        elif not isinstance(item, slice) and hasattr(item, 'indices'):
+        elif not isinstance(item, slice) and hasattr(item, "indices"):
             start, stop = to_start_stop(item.indices[:], neuron._N)
         else:
             start, stop = to_start_stop(item, neuron._N)
@@ -500,7 +571,9 @@ class SpatialNeuron(NeuronGroup):
                 stop += neuron.start
 
         if start >= stop:
-            raise IndexError(f'Illegal start/end values for subgroup, {int(start)}>={int(stop)}')
+            raise IndexError(
+                f"Illegal start/end values for subgroup, {int(start)}>={int(stop)}"
+            )
         if isinstance(neuron, SpatialSubgroup):
             # Note that the start/stop values calculated above are always
             # absolute values, even for subgroups
@@ -554,53 +627,77 @@ class SpatialStateUpdater(CodeRunner, Group):
         compartments = group.flat_morphology.n
         sections = group.flat_morphology.sections
 
-        CodeRunner.__init__(self, group,
-                            'spatialstateupdate',
-                            code="""_gtot = gtot__private
+        CodeRunner.__init__(
+            self,
+            group,
+            "spatialstateupdate",
+            code="""_gtot = gtot__private
                                     _I0 = I0__private""",
-                            clock=clock,
-                            when='groups',
-                            order=order,
-                            name=f"{group.name}_spatialstateupdater*",
-                            check_units=False,
-                            template_kwds={'number_sections': sections})
+            clock=clock,
+            when="groups",
+            order=order,
+            name=f"{group.name}_spatialstateupdater*",
+            check_units=False,
+            template_kwds={"number_sections": sections},
+        )
 
-        self.variables = Variables(self, default_index='_section_idx')
-        self.variables.add_reference('N', group)
+        self.variables = Variables(self, default_index="_section_idx")
+        self.variables.add_reference("N", group)
         # One value per compartment
-        self.variables.add_arange('_compartment_idx', size=compartments)
-        self.variables.add_array('_invr', dimensions=siemens.dim,
-                                 size=compartments, constant=True,
-                                 index='_compartment_idx')
+        self.variables.add_arange("_compartment_idx", size=compartments)
+        self.variables.add_array(
+            "_invr",
+            dimensions=siemens.dim,
+            size=compartments,
+            constant=True,
+            index="_compartment_idx",
+        )
         # one value per section
-        self.variables.add_arange('_section_idx', size=sections)
-        self.variables.add_array('_P_parent', size=sections,
-                                 constant=True)  # elements below diagonal
-        self.variables.add_arrays(['_morph_idxchild', '_morph_parent_i',
-                                   '_starts', '_ends'], size=sections,
-                                  dtype=np.int32, constant=True)
-        self.variables.add_arrays(['_invr0', '_invrn'], dimensions=siemens.dim,
-                                  size=sections, constant=True)
+        self.variables.add_arange("_section_idx", size=sections)
+        self.variables.add_array(
+            "_P_parent", size=sections, constant=True
+        )  # elements below diagonal
+        self.variables.add_arrays(
+            ["_morph_idxchild", "_morph_parent_i", "_starts", "_ends"],
+            size=sections,
+            dtype=np.int32,
+            constant=True,
+        )
+        self.variables.add_arrays(
+            ["_invr0", "_invrn"], dimensions=siemens.dim, size=sections, constant=True
+        )
         # one value per section + 1 value for the root
-        self.variables.add_arange('_section_root_idx', size=sections+1)
-        self.variables.add_array('_P_diag', size=sections+1,
-                                 constant=True, index='_section_root_idx')
-        self.variables.add_array('_B', size=sections+1,
-                                 constant=True, index='_section_root_idx')
-        self.variables.add_array('_morph_children_num',
-                                 size=sections+1, dtype=np.int32,
-                                 constant=True, index='_section_root_idx')
+        self.variables.add_arange("_section_root_idx", size=sections + 1)
+        self.variables.add_array(
+            "_P_diag", size=sections + 1, constant=True, index="_section_root_idx"
+        )
+        self.variables.add_array(
+            "_B", size=sections + 1, constant=True, index="_section_root_idx"
+        )
+        self.variables.add_array(
+            "_morph_children_num",
+            size=sections + 1,
+            dtype=np.int32,
+            constant=True,
+            index="_section_root_idx",
+        )
         # 2D matrices of size (sections + 1) x max children per section
-        self.variables.add_arange('_morph_children_idx',
-                                  size=len(group.flat_morphology.morph_children))
-        self.variables.add_array('_P_children',
-                                 size=len(group.flat_morphology.morph_children),
-                                 index='_morph_children_idx',
-                                 constant=True)  # elements above diagonal
-        self.variables.add_array('_morph_children',
-                                 size=len(group.flat_morphology.morph_children),
-                                 dtype=np.int32, constant=True,
-                                 index='_morph_children_idx')
+        self.variables.add_arange(
+            "_morph_children_idx", size=len(group.flat_morphology.morph_children)
+        )
+        self.variables.add_array(
+            "_P_children",
+            size=len(group.flat_morphology.morph_children),
+            index="_morph_children_idx",
+            constant=True,
+        )  # elements above diagonal
+        self.variables.add_array(
+            "_morph_children",
+            size=len(group.flat_morphology.morph_children),
+            dtype=np.int32,
+            constant=True,
+            index="_morph_children_idx",
+        )
         self._enable_group_attributes()
 
         self._morph_parent_i = group.flat_morphology.morph_parent_i
@@ -614,13 +711,16 @@ class SpatialStateUpdater(CodeRunner, Group):
         super(SpatialStateUpdater, self).before_run(run_namespace)
         # Raise a warning if the slow pure numpy version is used
         from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
+
         if type(self.code_objects[0]) == NumpyCodeObject:
             # If numpy is used, raise a warning if scipy is not present
             try:
                 import scipy
             except ImportError:
-                logger.info(('SpatialNeuron will use numpy to do the numerical '
-                             'integration -- this will be very slow. Either '
-                             'switch to a different code generation target '
-                             '(e.g. cython) or install scipy.'),
-                            once=True)
+                logger.info(
+                    "SpatialNeuron will use numpy to do the numerical "
+                    "integration -- this will be very slow. Either "
+                    "switch to a different code generation target "
+                    "(e.g. cython) or install scipy.",
+                    once=True,
+                )

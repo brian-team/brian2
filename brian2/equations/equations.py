@@ -1,58 +1,97 @@
-
 """
 Differential equations for Brian models.
 """
-from collections import namedtuple
-from collections.abc import Mapping, Hashable
 import keyword
 import re
 import string
+from collections import namedtuple
+from collections.abc import Hashable, Mapping
 
-from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
-                       Combine, Suppress, restOfLine, LineEnd, ParseException)
 import sympy
+from pyparsing import (
+    CharsNotIn,
+    Combine,
+    Group,
+    LineEnd,
+    OneOrMore,
+    Optional,
+    ParseException,
+    Suppress,
+    Word,
+    ZeroOrMore,
+    restOfLine,
+)
 
-from brian2.utils.stringtools import get_identifiers
-from brian2.core.namespace import (DEFAULT_FUNCTIONS,
-                                   DEFAULT_CONSTANTS,
-                                   DEFAULT_UNITS)
-from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
-from brian2.units.fundamentalunits import (Unit, Quantity, get_unit,
-                                           get_unit_for_display,
-                                           DIMENSIONLESS,
-                                           DimensionMismatchError,
-                                           get_dimensions)
-from brian2.units.allunits import (metre, meter, second, amp, ampere, kelvin, mole,
-                                   candle, kilogram, radian, steradian, hertz,
-                                   newton, pascal, joule, watt, coulomb, volt,
-                                   farad, ohm, siemens, weber, tesla, henry,
-                                   lumen, lux, becquerel, gray,
-                                   sievert, katal, kgram, kgramme)
-from brian2.utils.caching import cached, CacheKey
+from brian2.core.namespace import DEFAULT_CONSTANTS, DEFAULT_FUNCTIONS, DEFAULT_UNITS
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
+from brian2.units.allunits import (
+    amp,
+    ampere,
+    becquerel,
+    candle,
+    coulomb,
+    farad,
+    gray,
+    henry,
+    hertz,
+    joule,
+    katal,
+    kelvin,
+    kgram,
+    kgramme,
+    kilogram,
+    lumen,
+    lux,
+    meter,
+    metre,
+    mole,
+    newton,
+    ohm,
+    pascal,
+    radian,
+    second,
+    siemens,
+    sievert,
+    steradian,
+    tesla,
+    volt,
+    watt,
+    weber,
+)
+from brian2.units.fundamentalunits import (
+    DIMENSIONLESS,
+    DimensionMismatchError,
+    Quantity,
+    Unit,
+    get_dimensions,
+    get_unit,
+    get_unit_for_display,
+)
+from brian2.utils.caching import CacheKey, cached
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 from brian2.utils.topsort import topsort
 
 from .codestrings import Expression
 from .unitcheck import check_dimensions
 
-
-__all__ = ['Equations']
+__all__ = ["Equations"]
 
 logger = get_logger(__name__)
 
 # Equation types (currently simple strings but always use the constants,
 # this might get refactored into objects, for example)
-PARAMETER = 'parameter'
-DIFFERENTIAL_EQUATION = 'differential equation'
-SUBEXPRESSION = 'subexpression'
+PARAMETER = "parameter"
+DIFFERENTIAL_EQUATION = "differential equation"
+SUBEXPRESSION = "subexpression"
 
 # variable types (FLOAT is the only one that is possible for variables that
 # have dimensions). These types will be later translated into dtypes, either
 # using the default values from the preferences, or explicitly given dtypes in
 # the construction of the `NeuronGroup`, `Synapses`, etc. object
-FLOAT = 'float'
-INTEGER = 'integer'
-BOOLEAN = 'boolean'
+FLOAT = "float"
+INTEGER = "integer"
+BOOLEAN = "boolean"
 
 # Definitions of equation structure for parsing with pyparsing
 # TODO: Maybe move them somewhere else to not pollute the namespace here?
@@ -65,26 +104,31 @@ BOOLEAN = 'boolean'
 # combination of letters, numbers and underscores
 # Note that the check_identifiers function later performs more checks, e.g.
 # names starting with underscore should only be used internally
-IDENTIFIER = Word(string.ascii_letters + '_',
-                  string.ascii_letters + string.digits + '_').setResultsName('identifier')
+IDENTIFIER = Word(
+    string.ascii_letters + "_", string.ascii_letters + string.digits + "_"
+).setResultsName("identifier")
 
 # very broad definition here, expression will be analysed by sympy anyway
 # allows for multi-line expressions, where each line can have comments
-EXPRESSION = Combine(OneOrMore((CharsNotIn(':#\n') +
-                                Suppress(Optional(LineEnd()))).ignore('#' + restOfLine)),
-                     joinString=' ').setResultsName('expression')
+EXPRESSION = Combine(
+    OneOrMore(
+        (CharsNotIn(":#\n") + Suppress(Optional(LineEnd()))).ignore("#" + restOfLine)
+    ),
+    joinString=" ",
+).setResultsName("expression")
 
 # a unit
 # very broad definition here, again. Whether this corresponds to a valid unit
 # string will be checked later
-UNIT = Word(string.ascii_letters + string.digits + '*/.- ').setResultsName('unit')
+UNIT = Word(string.ascii_letters + string.digits + "*/.- ").setResultsName("unit")
 
 # a single Flag (e.g. "const" or "event-driven")
-FLAG = Word(string.ascii_letters, string.ascii_letters + '_- ' + string.digits)
+FLAG = Word(string.ascii_letters, string.ascii_letters + "_- " + string.digits)
 
 # Flags are comma-separated and enclosed in parantheses: "(flag1, flag2)"
-FLAGS = (Suppress('(') + FLAG + ZeroOrMore(Suppress(',') + FLAG) +
-         Suppress(')')).setResultsName('flags')
+FLAGS = (
+    Suppress("(") + FLAG + ZeroOrMore(Suppress(",") + FLAG) + Suppress(")")
+).setResultsName("flags")
 
 ###############################################################################
 # Equations
@@ -92,22 +136,25 @@ FLAGS = (Suppress('(') + FLAG + ZeroOrMore(Suppress(',') + FLAG) +
 # Three types of equations
 # Parameter:
 # x : volt (flags)
-PARAMETER_EQ = Group(IDENTIFIER + Suppress(':') + UNIT +
-                     Optional(FLAGS)).setResultsName(PARAMETER)
+PARAMETER_EQ = Group(
+    IDENTIFIER + Suppress(":") + UNIT + Optional(FLAGS)
+).setResultsName(PARAMETER)
 
 # Static equation:
 # x = 2 * y : volt (flags)
-STATIC_EQ = Group(IDENTIFIER + Suppress('=') + EXPRESSION + Suppress(':') +
-                  UNIT + Optional(FLAGS)).setResultsName(SUBEXPRESSION)
+STATIC_EQ = Group(
+    IDENTIFIER + Suppress("=") + EXPRESSION + Suppress(":") + UNIT + Optional(FLAGS)
+).setResultsName(SUBEXPRESSION)
 
 # Differential equation
 # dx/dt = -x / tau : volt
-DIFF_OP = (Suppress('d') + IDENTIFIER + Suppress('/') + Suppress('dt'))
-DIFF_EQ = Group(DIFF_OP + Suppress('=') + EXPRESSION + Suppress(':') + UNIT +
-                Optional(FLAGS)).setResultsName(DIFFERENTIAL_EQUATION)
+DIFF_OP = Suppress("d") + IDENTIFIER + Suppress("/") + Suppress("dt")
+DIFF_EQ = Group(
+    DIFF_OP + Suppress("=") + EXPRESSION + Suppress(":") + UNIT + Optional(FLAGS)
+).setResultsName(DIFFERENTIAL_EQUATION)
 
 # ignore comments
-EQUATION = (PARAMETER_EQ | STATIC_EQ | DIFF_EQ).ignore('#' + restOfLine)
+EQUATION = (PARAMETER_EQ | STATIC_EQ | DIFF_EQ).ignore("#" + restOfLine)
 EQUATIONS = ZeroOrMore(EQUATION)
 
 
@@ -115,6 +162,7 @@ class EquationError(Exception):
     """
     Exception type related to errors in an equation definition.
     """
+
     pass
 
 
@@ -122,17 +170,17 @@ def check_identifier_basic(identifier):
     """
     Check an identifier (usually resulting from an equation string provided by
     the user) for conformity with the rules. The rules are:
-    
+
         1. Only ASCII characters
         2. Starts with a character, then mix of alphanumerical characters and
            underscore
         3. Is not a reserved keyword of Python
-    
+
     Parameters
-    ----------    
+    ----------
     identifier : str
         The identifier that should be checked
-    
+
     Raises
     ------
     SyntaxError
@@ -151,13 +199,16 @@ def check_identifier_basic(identifier):
         raise SyntaxError(f"'{identifier}' is not a valid variable name.")
 
     if keyword.iskeyword(identifier):
-        raise SyntaxError(f"'{identifier}' is a Python keyword and cannot be used as "
-                          f"a variable.")
+        raise SyntaxError(
+            f"'{identifier}' is a Python keyword and cannot be used as a variable."
+        )
 
-    if identifier.startswith('_'):
-        raise SyntaxError(f"Variable '{identifier}' starts with an underscore, "
-                          f"this is only allowed for variables used "
-                          f"internally")
+    if identifier.startswith("_"):
+        raise SyntaxError(
+            f"Variable '{identifier}' starts with an underscore, "
+            "this is only allowed for variables used "
+            "internally"
+        )
 
 
 def check_identifier_reserved(identifier):
@@ -165,21 +216,29 @@ def check_identifier_reserved(identifier):
     Check that an identifier is not using a reserved special variable name. The
     special variables are: 't', 'dt', and 'xi', as well as everything starting
     with `xi_`.
-    
+
     Parameters
     ----------
     identifier: str
         The identifier that should be checked
-    
+
     Raises
     ------
     SyntaxError
         If the identifier is a special variable name.
     """
-    if (identifier in ('t', 'dt', 't_in_timesteps', 'xi', 'i', 'N') or
-            identifier.startswith('xi_')):
-        raise SyntaxError(f"'{identifier}' has a special meaning in equations and "
-                          f"cannot be used as a variable name.")
+    if identifier in (
+        "t",
+        "dt",
+        "t_in_timesteps",
+        "xi",
+        "i",
+        "N",
+    ) or identifier.startswith("xi_"):
+        raise SyntaxError(
+            f"'{identifier}' has a special meaning in equations and "
+            "cannot be used as a variable name."
+        )
 
 
 def check_identifier_units(identifier):
@@ -187,8 +246,9 @@ def check_identifier_units(identifier):
     Make sure that identifier names do not clash with unit names.
     """
     if identifier in DEFAULT_UNITS:
-        raise SyntaxError(f"'{identifier}' is the name of a unit, cannot be used as a "
-                          f"variable name.")
+        raise SyntaxError(
+            f"'{identifier}' is the name of a unit, cannot be used as a variable name."
+        )
 
 
 def check_identifier_functions(identifier):
@@ -196,8 +256,10 @@ def check_identifier_functions(identifier):
     Make sure that identifier names do not clash with function names.
     """
     if identifier in DEFAULT_FUNCTIONS:
-        raise SyntaxError(f"'{identifier}' is the name of a function, cannot be used as "
-                          f"a variable name.")
+        raise SyntaxError(
+            f"'{identifier}' is the name of a function, cannot be used as "
+            "a variable name."
+        )
 
 
 def check_identifier_constants(identifier):
@@ -205,12 +267,16 @@ def check_identifier_constants(identifier):
     Make sure that identifier names do not clash with function names.
     """
     if identifier in DEFAULT_CONSTANTS:
-        raise SyntaxError(f"'{identifier}' is the name of a constant, cannot be used as "
-                          f"a variable name.")
+        raise SyntaxError(
+            f"'{identifier}' is the name of a constant, cannot be used as "
+            "a variable name."
+        )
 
 
 _base_units_with_alternatives = None
 _base_units = None
+
+
 def dimensions_and_type_from_string(unit_string):
     """
     Returns the physical dimensions that results from evaluating a string like
@@ -235,12 +301,13 @@ def dimensions_and_type_from_string(unit_string):
     """
     # Lazy import to avoid circular dependency
     from brian2.core.namespace import DEFAULT_UNITS
+
     global _base_units_with_alternatives
     global _base_units
     if _base_units_with_alternatives is None:
         base_units_for_dims = {}
         for unit_name, unit in reversed(DEFAULT_UNITS.items()):
-            if float(unit) == 1.0 and repr(unit)[-1] not in ['2', '3']:
+            if float(unit) == 1.0 and repr(unit)[-1] not in ["2", "3"]:
                 if unit.dim in base_units_for_dims:
                     if unit_name not in base_units_for_dims[unit.dim]:
                         base_units_for_dims[unit.dim].append(unit_name)
@@ -248,35 +315,36 @@ def dimensions_and_type_from_string(unit_string):
                     base_units_for_dims[unit.dim] = [repr(unit)]
                     if unit_name != repr(unit):
                         base_units_for_dims[unit.dim].append(unit_name)
-        alternatives = sorted([tuple(values)
-                               for values in base_units_for_dims.values()])
-        _base_units = dict([(v, DEFAULT_UNITS[v])
-                            for values in alternatives for v in values])
+        alternatives = sorted(
+            [tuple(values) for values in base_units_for_dims.values()]
+        )
+        _base_units = dict(
+            [(v, DEFAULT_UNITS[v]) for values in alternatives for v in values]
+        )
         # Create a string that lists all allowed base units
         alternative_strings = []
         for units in alternatives:
             string = units[0]
             if len(units) > 1:
-                other_units = ', '.join(units[1:])
+                other_units = ", ".join(units[1:])
                 string += f" ({other_units})"
             alternative_strings.append(string)
-        _base_units_with_alternatives = ', '.join(alternative_strings)
+        _base_units_with_alternatives = ", ".join(alternative_strings)
 
     unit_string = unit_string.strip()
 
     # Special case: dimensionless unit
-    if unit_string == '1':
+    if unit_string == "1":
         return DIMENSIONLESS, FLOAT
 
     # Another special case: boolean variable
-    if unit_string == 'boolean':
+    if unit_string == "boolean":
         return DIMENSIONLESS, BOOLEAN
-    if unit_string == 'bool':
-        raise TypeError("Use 'boolean' not 'bool' as the unit for a boolean "
-                        "variable.")
+    if unit_string == "bool":
+        raise TypeError("Use 'boolean' not 'bool' as the unit for a boolean variable.")
 
     # Yet another special case: integer variable
-    if unit_string == 'integer':
+    if unit_string == "integer":
         return DIMENSIONLESS, INTEGER
 
     # Check first whether the expression only refers to base units
@@ -290,30 +358,39 @@ def dimensions_and_type_from_string(unit_string):
                     # Make sure that we don't suggest a unit that is not allowed
                     # (should not happen, normally)
                     base_unit = Unit(1, dim=base_unit.dim)
-                raise ValueError(f"Unit specification refers to "
-                                 f"'{identifier}', but this is not a base "
-                                 f"unit. Use '{base_unit!r}' instead.")
+                raise ValueError(
+                    "Unit specification refers to "
+                    f"'{identifier}', but this is not a base "
+                    f"unit. Use '{base_unit!r}' instead."
+                )
             else:
                 # Not a known unit
-                raise ValueError(f"Unit specification refers to "
-                                 f"'{identifier}', but this is not a base "
-                                 f"unit. The following base units are "
-                                 f"allowed: {_base_units_with_alternatives}.")
+                raise ValueError(
+                    "Unit specification refers to "
+                    f"'{identifier}', but this is not a base "
+                    "unit. The following base units are "
+                    f"allowed: {_base_units_with_alternatives}."
+                )
     try:
         evaluated_unit = eval(unit_string, _base_units)
     except Exception as ex:
-        raise ValueError(f"Could not interpret '{unit_string}' as a unit specification: "
-                         f"{ex}")
+        raise ValueError(
+            f"Could not interpret '{unit_string}' as a unit specification: {ex}"
+        )
 
     # Check whether the result is a unit
     if not isinstance(evaluated_unit, Unit):
         if isinstance(evaluated_unit, Quantity):
-            raise ValueError(f"'{unit_string}' does not evaluate to a unit but to a "
-                             f"quantity -- make sure to only use units, e.g. "
-                             f"'siemens/metre**2' and not '1 * siemens/metre**2'")
+            raise ValueError(
+                f"'{unit_string}' does not evaluate to a unit but to a "
+                "quantity -- make sure to only use units, e.g. "
+                "'siemens/metre**2' and not '1 * siemens/metre**2'"
+            )
         else:
-            raise ValueError(f"'{unit_string}' does not evaluate to a unit, the result "
-                             f"has type {type(evaluated_unit)} instead.")
+            raise ValueError(
+                f"'{unit_string}' does not evaluate to a unit, the result "
+                f"has type {type(evaluated_unit)} instead."
+            )
 
     # No error has been raised, all good
     return evaluated_unit.dim, FLOAT
@@ -325,13 +402,13 @@ def parse_string_equations(eqns):
     parse_string_equations(eqns)
 
     Parse a string defining equations.
-    
+
     Parameters
     ----------
     eqns : str
         The (possibly multi-line) string defining the equations. See the
         documentation of the `Equations` class for details.
-    
+
     Returns
     -------
     equations : dict
@@ -343,31 +420,40 @@ def parse_string_equations(eqns):
     try:
         parsed = EQUATIONS.parseString(eqns, parseAll=True)
     except ParseException as p_exc:
-        raise EquationError("Parsing failed: \n" + str(p_exc.line) + "\n" +
-                            " " * (p_exc.column - 1) + "^\n" + str(p_exc)) from p_exc
+        raise EquationError(
+            "Parsing failed: \n"
+            + str(p_exc.line)
+            + "\n"
+            + " " * (p_exc.column - 1)
+            + "^\n"
+            + str(p_exc)
+        ) from p_exc
     for eq in parsed:
         eq_type = eq.getName()
         eq_content = dict(eq.items())
         # Check for reserved keywords
-        identifier = eq_content['identifier']
+        identifier = eq_content["identifier"]
 
         # Convert unit string to Unit object
         try:
-            dims, var_type = dimensions_and_type_from_string(eq_content['unit'])
+            dims, var_type = dimensions_and_type_from_string(eq_content["unit"])
         except ValueError as ex:
-            raise EquationError(f"Error parsing the unit specification for "
-                                f"variable '{identifier}': {ex}")
+            raise EquationError(
+                "Error parsing the unit specification for "
+                f"variable '{identifier}': {ex}"
+            )
 
-        expression = eq_content.get('expression', None)
+        expression = eq_content.get("expression", None)
         if not expression is None:
             # Replace multiple whitespaces (arising from joining multiline
             # strings) with single space
-            p = re.compile(r'\s{2,}')
-            expression = Expression(p.sub(' ', expression))
-        flags = list(eq_content.get('flags', []))
+            p = re.compile(r"\s{2,}")
+            expression = Expression(p.sub(" ", expression))
+        flags = list(eq_content.get("flags", []))
 
-        equation = SingleEquation(eq_type, identifier, dims, var_type=var_type,
-                                  expr=expression, flags=flags)
+        equation = SingleEquation(
+            eq_type, identifier, dims, var_type=var_type, expr=expression, flags=flags
+        )
 
         if identifier in equations:
             raise EquationError(f"Duplicate definition of variable '{identifier}'")
@@ -384,7 +470,7 @@ class SingleEquation(Hashable, CacheKey):
     .. note::
         This class should never be used directly, it is only useful as part of
         the `Equations` class.
-    
+
     Parameters
     ----------
     type : {PARAMETER, DIFFERENTIAL_EQUATION, SUBEXPRESSION}
@@ -396,17 +482,18 @@ class SingleEquation(Hashable, CacheKey):
     var_type : {FLOAT, INTEGER, BOOLEAN}
         The type of the variable (floating point value or boolean).
     expr : `Expression`, optional
-        The expression defining the variable (or ``None`` for parameters).        
+        The expression defining the variable (or ``None`` for parameters).
     flags: list of str, optional
         A list of flags that give additional information about this equation.
         What flags are possible depends on the type of the equation and the
         context.
     """
 
-    _cache_irrelevant_attributes = {'update_order'}
+    _cache_irrelevant_attributes = {"update_order"}
 
-    def __init__(self, type, varname, dimensions, var_type=FLOAT, expr=None,
-                 flags=None):
+    def __init__(
+        self, type, varname, dimensions, var_type=FLOAT, expr=None, flags=None
+    ):
         self.type = type
         self.varname = varname
         self.dim = get_dimensions(dimensions)
@@ -420,7 +507,8 @@ class SingleEquation(Hashable, CacheKey):
         if type == DIFFERENTIAL_EQUATION:
             if var_type != FLOAT:
                 raise TypeError(
-                    "Differential equations can only define floating point variables")
+                    "Differential equations can only define floating point variables"
+                )
         self.expr = expr
         if flags is None:
             self.flags = []
@@ -430,16 +518,21 @@ class SingleEquation(Hashable, CacheKey):
         # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
 
-    unit = property(lambda self: get_unit(self.dim),
-                    doc="The `Unit` of this equation.")
+    unit = property(lambda self: get_unit(self.dim), doc="The `Unit` of this equation.")
 
-    identifiers = property(lambda self: self.expr.identifiers
-                           if not self.expr is None else set([]),
-                           doc="All identifiers in the RHS of this equation.")
+    identifiers = property(
+        lambda self: self.expr.identifiers if not self.expr is None else set([]),
+        doc="All identifiers in the RHS of this equation.",
+    )
 
-    stochastic_variables = property(lambda self: {variable for variable in self.identifiers
-                                                  if variable =='xi' or variable.startswith('xi_')},
-                                    doc="Stochastic variables in the RHS of this equation")
+    stochastic_variables = property(
+        lambda self: {
+            variable
+            for variable in self.identifiers
+            if variable == "xi" or variable.startswith("xi_")
+        },
+        doc="Stochastic variables in the RHS of this equation",
+    )
 
     def __eq__(self, other):
         if not isinstance(other, SingleEquation):
@@ -454,42 +547,49 @@ class SingleEquation(Hashable, CacheKey):
 
     def _latex(self, *args):
         if self.type == DIFFERENTIAL_EQUATION:
-            return (r'\frac{\mathrm{d}' + sympy.latex(sympy.Symbol(self.varname)) + r'}{\mathrm{d}t} = ' +
-                    sympy.latex(str_to_sympy(self.expr.code)))
+            return (
+                r"\frac{\mathrm{d}"
+                + sympy.latex(sympy.Symbol(self.varname))
+                + r"}{\mathrm{d}t} = "
+                + sympy.latex(str_to_sympy(self.expr.code))
+            )
         elif self.type == SUBEXPRESSION:
-            return (sympy.latex(sympy.Symbol(self.varname)) + ' = ' +
-                    sympy.latex(str_to_sympy(self.expr.code)))
+            return (
+                sympy.latex(sympy.Symbol(self.varname))
+                + " = "
+                + sympy.latex(str_to_sympy(self.expr.code))
+            )
         elif self.type == PARAMETER:
             return sympy.latex(sympy.Symbol(self.varname))
 
     def __str__(self):
         if self.type == DIFFERENTIAL_EQUATION:
-            s = 'd' + self.varname + '/dt'
+            s = "d" + self.varname + "/dt"
         else:
             s = self.varname
 
         if not self.expr is None:
-            s += ' = ' + str(self.expr)
+            s += " = " + str(self.expr)
 
-        s += ' : ' + get_unit_for_display(self.dim)
+        s += " : " + get_unit_for_display(self.dim)
 
         if len(self.flags):
-            s += ' (' + ', '.join(self.flags) + ')'
+            s += " (" + ", ".join(self.flags) + ")"
 
         return s
 
     def __repr__(self):
-        s = '<' + self.type + ' ' + self.varname
+        s = "<" + self.type + " " + self.varname
 
         if not self.expr is None:
-            s += ': ' + self.expr.code
+            s += ": " + self.expr.code
 
-        s += ' (Unit: ' + get_unit_for_display(self.dim)
+        s += " (Unit: " + get_unit_for_display(self.dim)
 
         if len(self.flags):
-            s += ', flags: ' + ', '.join(self.flags)
+            s += ", flags: " + ", ".join(self.flags)
 
-        s += ')>'
+        s += ")>"
         return s
 
     def _repr_pretty_(self, p, cycle):
@@ -501,37 +601,37 @@ class SingleEquation(Hashable, CacheKey):
             raise AssertionError("Cyclical call of SingleEquation._repr_pretty")
 
         if self.type == DIFFERENTIAL_EQUATION:
-            p.text('d' + self.varname + '/dt')
+            p.text("d" + self.varname + "/dt")
         else:
             p.text(self.varname)
 
         if not self.expr is None:
-            p.text(' = ')
+            p.text(" = ")
             p.pretty(self.expr)
 
-        p.text(' : ')
+        p.text(" : ")
         p.pretty(get_unit(self.dim))
 
         if len(self.flags):
-            p.text(' (' + ', '.join(self.flags) + ')')
+            p.text(" (" + ", ".join(self.flags) + ")")
 
     def _repr_latex_(self):
-        return '$' + sympy.latex(self) + '$'
+        return "$" + sympy.latex(self) + "$"
 
 
 class Equations(Hashable, Mapping):
     """
     Container that stores equations from which models can be created.
-    
+
     String equations can be of any of the following forms:
-    
+
     1. ``dx/dt = f : unit (flags)`` (differential equation)
     2. ``x = f : unit (flags)`` (equation)
     3. ``x : unit (flags)`` (parameter)
 
     String equations can span several lines and contain Python-style comments
-    starting with ``#``    
-    
+    starting with ``#``
+
     Parameters
     ----------
     eqs : `str` or list of `SingleEquation` objects
@@ -558,11 +658,14 @@ class Equations(Hashable, Mapping):
             self._equations = {}
             for eq in eqns:
                 if not isinstance(eq, SingleEquation):
-                    raise TypeError(f"The list should only contain "
-                                    f"SingleEquation objects, not {type(eq)}")
+                    raise TypeError(
+                        "The list should only contain "
+                        f"SingleEquation objects, not {type(eq)}"
+                    )
                 if eq.varname in self._equations:
                     raise EquationError(
-                        f"Duplicate definition of variable '{eq.varname}'")
+                        f"Duplicate definition of variable '{eq.varname}'"
+                    )
                 self._equations[eq.varname] = eq
 
         self._equations = self._substitute(kwds)
@@ -570,23 +673,27 @@ class Equations(Hashable, Mapping):
         # Check for special symbol xi (stochastic term)
         uses_xi = None
         for eq in self._equations.values():
-            if not eq.expr is None and 'xi' in eq.expr.identifiers:
+            if not eq.expr is None and "xi" in eq.expr.identifiers:
                 if not eq.type == DIFFERENTIAL_EQUATION:
-                    raise EquationError(f"The equation defining '{eq.varname}' "
-                                        f"contains the symbol 'xi' but is not a "
-                                        f"differential equation.")
+                    raise EquationError(
+                        f"The equation defining '{eq.varname}' "
+                        "contains the symbol 'xi' but is not a "
+                        "differential equation."
+                    )
                 elif uses_xi is not None:
-                    raise EquationError(f"The equation defining {eq.varname} contains "
-                                        f"the symbol 'xi', but it is already used "
-                                        f"in the equation defining {uses_xi}. Rename "
-                                        f"the variables to 'xi_...' to make "
-                                        f"clear whether they are the same or "
-                                        f"independent random variables. Using "
-                                        f"the same name twice will lead to "
-                                        f"identical noise realizations "
-                                        f"whereas using different names will "
-                                        f"lead to independent noise "
-                                        f"realizations.")
+                    raise EquationError(
+                        f"The equation defining {eq.varname} contains "
+                        "the symbol 'xi', but it is already used "
+                        f"in the equation defining {uses_xi}. Rename "
+                        "the variables to 'xi_...' to make "
+                        "clear whether they are the same or "
+                        "independent random variables. Using "
+                        "the same name twice will lead to "
+                        "identical noise realizations "
+                        "whereas using different names will "
+                        "lead to independent noise "
+                        "realizations."
+                    )
                 else:
                     uses_xi = eq.varname
 
@@ -606,13 +713,15 @@ class Equations(Hashable, Mapping):
             if eq.varname in replacements:
                 new_varname = replacements[eq.varname]
                 if not isinstance(new_varname, str):
-                    raise ValueError(f"Cannot replace model variable '{eq.varname}' "
-                                     f"with a value.")
+                    raise ValueError(
+                        f"Cannot replace model variable '{eq.varname}' with a value."
+                    )
                 if new_varname in self or new_varname in new_equations:
                     raise EquationError(
                         f"Cannot replace model variable '{eq.varname}' "
                         f"with '{new_varname}', duplicate definition "
-                        f"of '{new_varname}'.")
+                        f"of '{new_varname}'."
+                    )
                 # make sure that the replacement is a valid identifier
                 Equations.check_identifier(new_varname)
             else:
@@ -625,29 +734,39 @@ class Equations(Hashable, Mapping):
                     if to_replace in eq.identifiers:
                         if isinstance(replacement, str):
                             # replace the name with another name
-                            new_code = re.sub('\\b' + to_replace + '\\b',
-                                              replacement, new_code)
+                            new_code = re.sub(
+                                "\\b" + to_replace + "\\b", replacement, new_code
+                            )
                         else:
                             # replace the name with a value
-                            new_code = re.sub('\\b' + to_replace + '\\b',
-                                              '(' + repr(replacement) + ')',
-                                              new_code)
+                            new_code = re.sub(
+                                "\\b" + to_replace + "\\b",
+                                "(" + repr(replacement) + ")",
+                                new_code,
+                            )
                         try:
                             Expression(new_code)
                         except ValueError as ex:
                             raise ValueError(
-                                ('Replacing "%s" with "%r" failed: %s') %
-                                (to_replace, replacement, ex))
-                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            expr=Expression(new_code),
-                                                            flags=eq.flags)
+                                'Replacing "%s" with "%r" failed: %s'
+                                % (to_replace, replacement, ex)
+                            )
+                new_equations[new_varname] = SingleEquation(
+                    eq.type,
+                    new_varname,
+                    dimensions=eq.dim,
+                    var_type=eq.var_type,
+                    expr=Expression(new_code),
+                    flags=eq.flags,
+                )
             else:
-                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            flags=eq.flags)
+                new_equations[new_varname] = SingleEquation(
+                    eq.type,
+                    new_varname,
+                    dimensions=eq.dim,
+                    var_type=eq.var_type,
+                    flags=eq.flags,
+                )
 
         return new_equations
 
@@ -678,15 +797,19 @@ class Equations(Hashable, Mapping):
     #: Functions can be registered with the static method
     #: `Equations.register_identifier_check` and will be automatically
     #: used when checking identifiers
-    identifier_checks = {check_identifier_basic, check_identifier_reserved,
-                         check_identifier_functions, check_identifier_constants,
-                         check_identifier_units}
+    identifier_checks = {
+        check_identifier_basic,
+        check_identifier_reserved,
+        check_identifier_functions,
+        check_identifier_constants,
+        check_identifier_units,
+    }
 
     @staticmethod
     def register_identifier_check(func):
         """
         Register a function for checking identifiers.
-        
+
         Parameters
         ----------
         func : callable
@@ -695,7 +818,7 @@ class Equations(Hashable, Mapping):
             violates any rule.
 
         """
-        if not hasattr(func, '__call__'):
+        if not hasattr(func, "__call__"):
             raise ValueError("Can only register callables.")
 
         Equations.identifier_checks.add(func)
@@ -705,12 +828,12 @@ class Equations(Hashable, Mapping):
         """
         Perform all the registered checks. Checks can be registered via
         `Equations.register_identifier_check`.
-        
+
         Parameters
         ----------
         identifier : str
             The identifier that should be checked
-        
+
         Raises
         ------
         ValueError
@@ -722,12 +845,12 @@ class Equations(Hashable, Mapping):
     def check_identifiers(self):
         """
         Check all identifiers for conformity with the rules.
-        
+
         Raises
         ------
         ValueError
             If an identifier does not conform to the rules.
-        
+
         See also
         --------
         Equations.check_identifier : The function that is called for each identifier.
@@ -735,8 +858,7 @@ class Equations(Hashable, Mapping):
         for name in self.names:
             Equations.check_identifier(name)
 
-    def get_substituted_expressions(self, variables=None,
-                                    include_subexpressions=False):
+    def get_substituted_expressions(self, variables=None, include_subexpressions=False):
         """
         Return a list of ``(varname, expr)`` tuples, containing all
         differential equations (and optionally subexpressions) with all the
@@ -765,7 +887,9 @@ class Equations(Hashable, Mapping):
                 if eq.expr is None:
                     continue
 
-                new_sympy_expr = str_to_sympy(eq.expr.code, variables).xreplace(substitutions)
+                new_sympy_expr = str_to_sympy(eq.expr.code, variables).xreplace(
+                    substitutions
+                )
                 new_str_expr = sympy_to_str(new_sympy_expr)
                 expr = Expression(new_str_expr)
 
@@ -774,7 +898,9 @@ class Equations(Hashable, Mapping):
                         sympy_var = sympy.Symbol(eq.varname, integer=True)
                     else:
                         sympy_var = sympy.Symbol(eq.varname, real=True)
-                    substitutions.update({sympy_var: str_to_sympy(expr.code, variables)})
+                    substitutions.update(
+                        {sympy_var: str_to_sympy(expr.code, variables)}
+                    )
                     self._substituted_expressions.append((eq.varname, expr))
                 elif eq.type == DIFFERENTIAL_EQUATION:
                     #  a differential equation that we have to check
@@ -785,15 +911,18 @@ class Equations(Hashable, Mapping):
         if include_subexpressions:
             return self._substituted_expressions
         else:
-            return [(name, expr) for name, expr in self._substituted_expressions
-                    if self[name].type == DIFFERENTIAL_EQUATION]
+            return [
+                (name, expr)
+                for name, expr in self._substituted_expressions
+                if self[name].type == DIFFERENTIAL_EQUATION
+            ]
 
     def _get_stochastic_type(self):
         """
         Returns the type of stochastic differential equations (additivive or
         multiplicative). The system is only classified as ``additive`` if *all*
         equations have only additive noise (or no noise).
-        
+
         Returns
         -------
         type : str
@@ -805,88 +934,122 @@ class Equations(Hashable, Mapping):
 
         if not self.is_stochastic:
             return None
-        
+
         for _, expr in self.get_substituted_expressions():
             _, stochastic = expr.split_stochastic()
             if stochastic is not None:
                 for factor in stochastic.values():
-                    if 't' in factor.identifiers:
+                    if "t" in factor.identifiers:
                         # noise factor depends on time
-                        return 'multiplicative'
+                        return "multiplicative"
 
                     for identifier in factor.identifiers:
                         if identifier in self.diff_eq_names:
                             # factor depends on another state variable
-                            return 'multiplicative'
-        
-        return 'additive'
+                            return "multiplicative"
 
+        return "additive"
 
     ############################################################################
     # Properties
     ############################################################################
 
     # Lists of equations or (variable, expression tuples)
-    ordered = property(lambda self: sorted(self._equations.values(),
-                                           key=lambda key: (key.update_order,
-                                                            key.varname)),
-                                           doc='A list of all equations, sorted '
-                                           'according to the order in which they should '
-                                           'be updated')
+    ordered = property(
+        lambda self: sorted(
+            self._equations.values(), key=lambda key: (key.update_order, key.varname)
+        ),
+        doc=(
+            "A list of all equations, sorted "
+            "according to the order in which they should "
+            "be updated"
+        ),
+    )
 
-    diff_eq_expressions = property(lambda self: [(varname, eq.expr) for
-                                                 varname, eq in self.items()
-                                                 if eq.type == DIFFERENTIAL_EQUATION],
-                                   doc="A list of (variable name, expression) "
-                                       "tuples of all differential equations.")
+    diff_eq_expressions = property(
+        lambda self: [
+            (varname, eq.expr)
+            for varname, eq in self.items()
+            if eq.type == DIFFERENTIAL_EQUATION
+        ],
+        doc=(
+            "A list of (variable name, expression) "
+            "tuples of all differential equations."
+        ),
+    )
 
-    eq_expressions = property(lambda self: [(varname, eq.expr) for
-                                            varname, eq in self.items()
-                                            if eq.type in (SUBEXPRESSION,
-                                                              DIFFERENTIAL_EQUATION)],
-                              doc="A list of (variable name, expression) "
-                                  "tuples of all equations.")
+    eq_expressions = property(
+        lambda self: [
+            (varname, eq.expr)
+            for varname, eq in self.items()
+            if eq.type in (SUBEXPRESSION, DIFFERENTIAL_EQUATION)
+        ],
+        doc="A list of (variable name, expression) tuples of all equations.",
+    )
 
     # Sets of names
 
-    names = property(lambda self: {eq.varname for eq in self.ordered},
-                     doc='All variable names defined in the equations.')
+    names = property(
+        lambda self: {eq.varname for eq in self.ordered},
+        doc="All variable names defined in the equations.",
+    )
 
-    diff_eq_names = property(lambda self: {eq.varname for eq in self.ordered
-                                           if eq.type == DIFFERENTIAL_EQUATION},
-                             doc="All differential equation names.")
+    diff_eq_names = property(
+        lambda self: {
+            eq.varname for eq in self.ordered if eq.type == DIFFERENTIAL_EQUATION
+        },
+        doc="All differential equation names.",
+    )
 
-    subexpr_names = property(lambda self: {eq.varname for eq in self.ordered
-                                           if eq.type == SUBEXPRESSION},
-                             doc="All subexpression names.")
+    subexpr_names = property(
+        lambda self: {eq.varname for eq in self.ordered if eq.type == SUBEXPRESSION},
+        doc="All subexpression names.",
+    )
 
-    eq_names = property(lambda self: {eq.varname for eq in self.ordered
-                                      if eq.type in (DIFFERENTIAL_EQUATION,
-                                                     SUBEXPRESSION)},
-                        doc="All equation names (including subexpressions).")
+    eq_names = property(
+        lambda self: {
+            eq.varname
+            for eq in self.ordered
+            if eq.type in (DIFFERENTIAL_EQUATION, SUBEXPRESSION)
+        },
+        doc="All equation names (including subexpressions).",
+    )
 
-    parameter_names = property(lambda self: {eq.varname for eq in self.ordered
-                                             if eq.type == PARAMETER},
-                               doc="All parameter names.")
+    parameter_names = property(
+        lambda self: {eq.varname for eq in self.ordered if eq.type == PARAMETER},
+        doc="All parameter names.",
+    )
 
-    dimensions = property(lambda self: dict([(var, eq.dim) for var, eq in
-                                             self._equations.items()]),
-                          doc="Dictionary of all internal variables and their "
-                              "corresponding physical dimensions.")
+    dimensions = property(
+        lambda self: dict([(var, eq.dim) for var, eq in self._equations.items()]),
+        doc=(
+            "Dictionary of all internal variables and their "
+            "corresponding physical dimensions."
+        ),
+    )
 
+    identifiers = property(
+        lambda self: set().union(*[eq.identifiers for eq in self._equations.values()])
+        - self.names,
+        doc=(
+            "Set of all identifiers used in the equations, "
+            "excluding the variables defined in the equations"
+        ),
+    )
 
-    identifiers = property(lambda self: set().union(*[eq.identifiers for
-                                                      eq in self._equations.values()]) -
-                           self.names,
-                           doc="Set of all identifiers used in the equations, "
-                               "excluding the variables defined in the equations")
-
-    stochastic_variables = property(lambda self: {variable for variable in self.identifiers
-                                                  if variable =='xi' or variable.startswith('xi_')})
+    stochastic_variables = property(
+        lambda self: {
+            variable
+            for variable in self.identifiers
+            if variable == "xi" or variable.startswith("xi_")
+        }
+    )
 
     # general properties
-    is_stochastic = property(lambda self: len(self.stochastic_variables) > 0,
-                             doc='Whether the equations are stochastic.')
+    is_stochastic = property(
+        lambda self: len(self.stochastic_variables) > 0,
+        doc="Whether the equations are stochastic.",
+    )
 
     stochastic_type = property(fget=_get_stochastic_type)
 
@@ -903,15 +1066,20 @@ class Equations(Hashable, Mapping):
         static_deps = {}
         for eq in self._equations.values():
             if eq.type == SUBEXPRESSION:
-                static_deps[eq.varname] = [dep for dep in eq.identifiers if
-                                           dep in self._equations and
-                                           self._equations[dep].type == SUBEXPRESSION]
-        
+                static_deps[eq.varname] = [
+                    dep
+                    for dep in eq.identifiers
+                    if dep in self._equations
+                    and self._equations[dep].type == SUBEXPRESSION
+                ]
+
         try:
             sorted_eqs = topsort(static_deps)
         except ValueError:
-            raise ValueError("Cannot resolve dependencies between static "
-                             "equations, dependencies contain a cycle.")
+            raise ValueError(
+                "Cannot resolve dependencies between static "
+                "equations, dependencies contain a cycle."
+            )
 
         # put the equations objects in the correct order
         for order, static_variable in enumerate(sorted_eqs):
@@ -926,10 +1094,10 @@ class Equations(Hashable, Mapping):
 
     @property
     def dependencies(self):
-        '''
+        """
         Calculate the dependencies of all differential equations and
         subexpressions.
-        '''
+        """
         # Create a dictionary mapping differential equations and
         # subexpressions to a list of their dependencies within the equations
         # (ignoring external constants, unit names, etc.)
@@ -957,44 +1125,56 @@ class Equations(Hashable, Mapping):
                 deps[eq.varname] = []
             else:
                 continue
-            deps[name] = [dep for dep in eq.identifiers
-                          if dep in self._equations and
-                          self._equations[dep].type != PARAMETER]
+            deps[name] = [
+                dep
+                for dep in eq.identifiers
+                if dep in self._equations and self._equations[dep].type != PARAMETER
+            ]
         try:
             sorted_eqs = topsort(deps)
         except ValueError:
-            raise ValueError('Cannot resolve dependencies between static '
-                             'equations, dependencies contain a cycle.')
+            raise ValueError(
+                "Cannot resolve dependencies between static "
+                "equations, dependencies contain a cycle."
+            )
         # Remove the dummy entries for differential equations and rename
         # x' → x
-        sorted_eqs = [x.replace("'", "")
-                      for x in sorted_eqs if x not in self.diff_eq_names]
+        sorted_eqs = [
+            x.replace("'", "") for x in sorted_eqs if x not in self.diff_eq_names
+        ]
         # Now recursively fill in the dependencies – this only needs a single
         # pass due to the previous sorting
         deps = {}
-        Dependency = namedtuple("Dependency", ["equation", "via"],
-                                defaults=((), ))  # default for via is empty tuple
+        Dependency = namedtuple(
+            "Dependency", ["equation", "via"], defaults=((),)
+        )  # default for via is empty tuple
         for eq in sorted_eqs:
-            dep_names = {dep for dep in self._equations[eq].identifiers
-                         if dep in self._equations}
-            deps[eq] = [Dependency(equation=self._equations[dep])
-                        for dep in dep_names]
+            dep_names = {
+                dep for dep in self._equations[eq].identifiers if dep in self._equations
+            }
+            deps[eq] = [Dependency(equation=self._equations[dep]) for dep in dep_names]
             # add all indirect dependencies
             for dep in dep_names:
                 for indirect_dep in deps.get(dep, []):
                     if indirect_dep.equation.varname == dep:
                         continue  # do not go into recursion if a variable depends on itself
-                    if any(indirect_dep.equation.varname == existing_dep.equation.varname
-                           for existing_dep in deps[eq]):
+                    if any(
+                        indirect_dep.equation.varname == existing_dep.equation.varname
+                        for existing_dep in deps[eq]
+                    ):
                         continue  # Do not add indirect dependencies for things we also depend on directly
-                    deps[eq].append(Dependency(equation=indirect_dep.equation,
-                                               via=(dep, ) + indirect_dep.via))
+                    deps[eq].append(
+                        Dependency(
+                            equation=indirect_dep.equation,
+                            via=(dep,) + indirect_dep.via,
+                        )
+                    )
         return deps
 
     def check_units(self, group, run_namespace):
         """
         Check all the units for consistency.
-        
+
         Parameters
         ----------
         group : `Group`
@@ -1011,12 +1191,14 @@ class Equations(Hashable, Mapping):
             In case of any inconsistencies.
         """
         all_variables = dict(group.variables)
-        external = frozenset().union(*[expr.identifiers
-                                     for _, expr in self.eq_expressions])
+        external = frozenset().union(
+            *[expr.identifiers for _, expr in self.eq_expressions]
+        )
         external -= set(all_variables.keys())
 
-        resolved_namespace = group.resolve_all(external, run_namespace,
-                                               user_identifiers=external)  # all variables are user defined
+        resolved_namespace = group.resolve_all(
+            external, run_namespace, user_identifiers=external
+        )  # all variables are user defined
 
         all_variables.update(resolved_namespace)
         for var, eq in self._equations.items():
@@ -1026,21 +1208,27 @@ class Equations(Hashable, Mapping):
 
             if eq.type == DIFFERENTIAL_EQUATION:
                 try:
-                    check_dimensions(str(eq.expr), self.dimensions[var] / second.dim,
-                                     all_variables)
+                    check_dimensions(
+                        str(eq.expr), self.dimensions[var] / second.dim, all_variables
+                    )
                 except DimensionMismatchError as ex:
-                    raise DimensionMismatchError(f"Inconsistent units in "
-                                                  f"differential equation "
-                                                  f"defining variable '{eq.varname}':"
-                                                  f"\n{ex.desc}", *ex.dims) from ex
+                    raise DimensionMismatchError(
+                        "Inconsistent units in "
+                        "differential equation "
+                        f"defining variable '{eq.varname}':"
+                        f"\n{ex.desc}",
+                        *ex.dims,
+                    ) from ex
             elif eq.type == SUBEXPRESSION:
                 try:
-                    check_dimensions(str(eq.expr), self.dimensions[var],
-                                     all_variables)
+                    check_dimensions(str(eq.expr), self.dimensions[var], all_variables)
                 except DimensionMismatchError as ex:
-                    raise DimensionMismatchError(f"Inconsistent units in "
-                                                  f"subexpression {eq.varname}:"
-                                                  f"\n%{ex.desc}", *ex.dims) from ex
+                    raise DimensionMismatchError(
+                        "Inconsistent units in "
+                        f"subexpression {eq.varname}:"
+                        f"\n%{ex.desc}",
+                        *ex.dims,
+                    ) from ex
             else:
                 raise AssertionError(f"Unknown equation type: '{eq.type}'")
 
@@ -1074,20 +1262,25 @@ class Equations(Hashable, Mapping):
             for flag in eq.flags:
                 if not eq.type in allowed_flags or len(allowed_flags[eq.type]) == 0:
                     raise ValueError(
-                        f"Equations of type '{eq.type}' cannot have any flags.")
+                        f"Equations of type '{eq.type}' cannot have any flags."
+                    )
                 if not flag in allowed_flags[eq.type]:
-                    raise ValueError(f"Equations of type '{eq.type}' cannot have a "
-                                     f"flag '{flag}', only the following flags "
-                                     f"are allowed: {allowed_flags[eq.type]}")
+                    raise ValueError(
+                        f"Equations of type '{eq.type}' cannot have a "
+                        f"flag '{flag}', only the following flags "
+                        f"are allowed: {allowed_flags[eq.type]}"
+                    )
                 # Check for incompatibilities
                 for flag_combinations in incompatible_flags:
                     if flag in flag_combinations:
                         remaining_flags = set(flag_combinations) - {flag}
                         for remaining_flag in remaining_flags:
                             if remaining_flag in eq.flags:
-                                raise ValueError(f"Flag '{flag}' cannot be "
-                                                 f"combined with flag "
-                                                 f"'{remaining_flag}'")
+                                raise ValueError(
+                                    f"Flag '{flag}' cannot be "
+                                    "combined with flag "
+                                    f"'{remaining_flag}'"
+                                )
 
     ############################################################################
     # Representation
@@ -1095,51 +1288,55 @@ class Equations(Hashable, Mapping):
 
     def __str__(self):
         strings = [str(eq) for eq in self.ordered]
-        return '\n'.join(strings)
+        return "\n".join(strings)
 
     def __repr__(self):
         return f"<Equations object consisting of {len(self._equations)} equations>"
 
-    def _latex(self, *args):        
+    def _latex(self, *args):
         equations = []
         for eq in self._equations.values():
             # do not use SingleEquations._latex here as we want nice alignment
             varname = sympy.Symbol(eq.varname)
             if eq.type == DIFFERENTIAL_EQUATION:
-                lhs = r'\frac{\mathrm{d}' + sympy.latex(varname) + r'}{\mathrm{d}t}'
+                lhs = r"\frac{\mathrm{d}" + sympy.latex(varname) + r"}{\mathrm{d}t}"
             else:
                 # Normal equation or parameter
                 lhs = varname
             if not eq.type == PARAMETER:
                 rhs = str_to_sympy(eq.expr.code)
             if len(eq.flags):
-                flag_str = ', flags: ' + ', '.join(eq.flags)
+                flag_str = ", flags: " + ", ".join(eq.flags)
             else:
-                flag_str = ''
+                flag_str = ""
             if eq.type == PARAMETER:
-                eq_latex = r'%s &&& \text{(unit: $%s$%s)}' % (sympy.latex(lhs),                                 
-                                                              sympy.latex(get_unit(eq.dim)),
-                                                              flag_str)
+                eq_latex = r"%s &&& \text{(unit: $%s$%s)}" % (
+                    sympy.latex(lhs),
+                    sympy.latex(get_unit(eq.dim)),
+                    flag_str,
+                )
             else:
-                eq_latex = r'%s &= %s && \text{(unit of $%s$: $%s$%s)}' % (lhs,  # already a string
-                                                                           sympy.latex(rhs),
-                                                                           sympy.latex(varname),
-                                                                           sympy.latex(get_unit(eq.dim)),
-                                                                           flag_str)
+                eq_latex = r"%s &= %s && \text{(unit of $%s$: $%s$%s)}" % (
+                    lhs,  # already a string
+                    sympy.latex(rhs),
+                    sympy.latex(varname),
+                    sympy.latex(get_unit(eq.dim)),
+                    flag_str,
+                )
             equations.append(eq_latex)
-        return r'\begin{align*}' + (r'\\' + '\n').join(equations) + r'\end{align*}'
+        return r"\begin{align*}" + (r"\\" + "\n").join(equations) + r"\end{align*}"
 
     def _repr_latex_(self):
         return sympy.latex(self)
 
     def _repr_pretty_(self, p, cycle):
-        """ Pretty printing for ipython """
+        """Pretty printing for ipython"""
         if cycle:
             # Should never happen
             raise AssertionError("Cyclical call of 'Equations._repr_pretty_'")
         for eq in self._equations.values():
             p.pretty(eq)
-            p.breakable('\n')
+            p.breakable("\n")
 
 
 def is_stateful(expression, variables):
@@ -1196,37 +1393,40 @@ def check_subexpressions(group, equations, run_namespace):
         if eq.type == SUBEXPRESSION:
             # Check whether the expression is stateful (most commonly by
             # referring to rand() or randn()
-            variables = group.resolve_all(eq.identifiers,
-                                          run_namespace,
-                                          # we don't need to raise any warnings
-                                          # for the user here, warnings will
-                                          # be raised in create_runner_codeobj
-                                          user_identifiers=set())
+            variables = group.resolve_all(
+                eq.identifiers,
+                run_namespace,
+                # we don't need to raise any warnings
+                # for the user here, warnings will
+                # be raised in create_runner_codeobj
+                user_identifiers=set(),
+            )
             expression = str_to_sympy(eq.expr.code, variables=variables)
 
             # Check whether the expression refers to stateful functions
             if is_stateful(expression, variables):
-                raise SyntaxError(f"The subexpression '{eq.varname}' refers to a "
-                                  f"stateful function (e.g. rand()). Such "
-                                  f"expressions should only be evaluated "
-                                  f"once per timestep, add the 'constant "
-                                  f"over dt' flag.")
+                raise SyntaxError(
+                    f"The subexpression '{eq.varname}' refers to a "
+                    "stateful function (e.g. rand()). Such "
+                    "expressions should only be evaluated "
+                    "once per timestep, add the 'constant "
+                    "over dt' flag."
+                )
 
 
 def extract_constant_subexpressions(eqs):
     without_const_subexpressions = []
     const_subexpressions = []
     for eq in eqs.ordered:
-        if eq.type == SUBEXPRESSION and 'constant over dt' in eq.flags:
-            flags = set(eq.flags) - {'constant over dt'}
-            without_const_subexpressions.append(SingleEquation(PARAMETER,
-                                                               eq.varname,
-                                                               eq.dim,
-                                                               var_type=eq.var_type,
-                                                               flags=flags))
+        if eq.type == SUBEXPRESSION and "constant over dt" in eq.flags:
+            flags = set(eq.flags) - {"constant over dt"}
+            without_const_subexpressions.append(
+                SingleEquation(
+                    PARAMETER, eq.varname, eq.dim, var_type=eq.var_type, flags=flags
+                )
+            )
             const_subexpressions.append(eq)
         else:
             without_const_subexpressions.append(eq)
 
-    return (Equations(without_const_subexpressions),
-            Equations(const_subexpressions))
+    return (Equations(without_const_subexpressions), Equations(const_subexpressions))

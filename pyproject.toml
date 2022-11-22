@@ -1,0 +1,32 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "Cython",
+    "oldest-supported-numpy",
+    "versioneer[toml]",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+target-version = ['py37']
+include = '^/brian2/.*\.pyi?$'
+extend-exclude = '^/brian2/_version.py$'
+preview = true
+
+[tool.isort]
+atomic = true
+profile = "black"
+py_version = "37"
+skip_gitignore = true
+# NOTE: isort has no "include" option, only "skip".
+extend_skip = ["brian2/_version.py"]
+skip_glob = ["dev/*", "docs_sphinx/*", "examples/*", "tutorials/*"]
+
+[tool.versioneer]
+VCS = 'git'
+style = 'pep440-pre'
+versionfile_source = 'brian2/_version.py'
+versionfile_build = 'brian2/_version.py'
+tag_prefix = ''
+parentdir_prefix = 'brian2-'

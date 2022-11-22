@@ -5,23 +5,28 @@ provided in the GNU Scientific Library (GSL)
 
 import sys
 
-from .base import (StateUpdateMethod, UnsupportedEquationsException, extract_method_options)
-from ..core.preferences import prefs
-from ..devices.device import auto_target, all_devices, RuntimeDevice
 from brian2.utils.logger import get_logger
+
+from ..core.preferences import prefs
+from ..devices.device import RuntimeDevice, all_devices, auto_target
+from .base import (
+    StateUpdateMethod,
+    UnsupportedEquationsException,
+    extract_method_options,
+)
 
 logger = get_logger(__name__)
 
-__all__ = ['gsl_rk2', 'gsl_rk4', 'gsl_rkf45', 'gsl_rkck', 'gsl_rk8pd']
+__all__ = ["gsl_rk2", "gsl_rk4", "gsl_rkf45", "gsl_rkck", "gsl_rk8pd"]
 
 default_method_options = {
-    'adaptable_timestep': True,
-    'absolute_error': 1e-6,
-    'absolute_error_per_variable': None,
-    'max_steps': 100,
-    'use_last_timestep': True,
-    'save_failed_steps': False,
-    'save_step_count': False
+    "adaptable_timestep": True,
+    "absolute_error": 1e-6,
+    "absolute_error_per_variable": None,
+    "max_steps": 100,
+    "use_last_timestep": True,
+    "save_failed_steps": False,
+    "save_step_count": False,
 }
 
 
@@ -30,8 +35,15 @@ class GSLContainer(object):
     Class that contains information (equation- or integrator-related) required
     for later code generation
     """
-    def __init__(self, method_options, integrator, abstract_code=None,
-                 needed_variables=[], variable_flags=[]):
+
+    def __init__(
+        self,
+        method_options,
+        integrator,
+        abstract_code=None,
+        needed_variables=[],
+        variable_flags=[],
+    ):
         self.method_options = method_options
         self.integrator = integrator
         self.abstract_code = abstract_code
@@ -56,11 +68,17 @@ class GSLContainer(object):
         # imports in this function to avoid circular imports
         from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
         from brian2.devices.device import get_device
+
         from ..codegen.runtime.GSLcython_rt import GSLCythonCodeObject
 
         device = get_device()
-        if device.__class__ is CPPStandaloneDevice:  # We do not want to accept subclasses here
-            from ..devices.cpp_standalone.GSLcodeobject import GSLCPPStandaloneCodeObject
+        if (
+            device.__class__ is CPPStandaloneDevice
+        ):  # We do not want to accept subclasses here
+            from ..devices.cpp_standalone.GSLcodeobject import (
+                GSLCPPStandaloneCodeObject,
+            )
+
             # In runtime mode (i.e. Cython), the compiler settings are
             # added for each `CodeObject` (only the files that use the GSL are
             # linked to the GSL). However, in C++ standalone mode, there are global
@@ -70,42 +88,49 @@ class GSLContainer(object):
             # phase. Therefore, we have to add the options here
             # instead of in `GSLCPPStandaloneCodeObject`
             # Add the GSL library if it has not yet been added
-            if 'gsl' not in device.libraries:
-                device.libraries += ['gsl', 'gslcblas']
-                device.headers += ['<stdio.h>', '<stdlib.h>',
-                                   '<gsl/gsl_odeiv2.h>',
-                                   '<gsl/gsl_errno.h>',
-                                   '<gsl/gsl_matrix.h>']
-                if sys.platform == 'win32':
-                    device.define_macros += [('WIN32', '1'),
-                                             ('GSL_DLL', '1')]
+            if "gsl" not in device.libraries:
+                device.libraries += ["gsl", "gslcblas"]
+                device.headers += [
+                    "<stdio.h>",
+                    "<stdlib.h>",
+                    "<gsl/gsl_odeiv2.h>",
+                    "<gsl/gsl_errno.h>",
+                    "<gsl/gsl_matrix.h>",
+                ]
+                if sys.platform == "win32":
+                    device.define_macros += [("WIN32", "1"), ("GSL_DLL", "1")]
                 if prefs.GSL.directory is not None:
                     device.include_dirs += [prefs.GSL.directory]
             return GSLCPPStandaloneCodeObject
 
         elif isinstance(device, RuntimeDevice):
-            if prefs.codegen.target == 'auto':
+            if prefs.codegen.target == "auto":
                 target_name = auto_target().class_name
             else:
                 target_name = prefs.codegen.target
 
-            if target_name == 'cython':
+            if target_name == "cython":
                 return GSLCythonCodeObject
-            raise NotImplementedError(("GSL integration has not been implemented for "
-                                       "for the '{target_name}' code generation target."
-                                       "\nUse the 'cython' code generation target, "
-                                       "or switch to the 'cpp_standalone' device."
-                                       ).format(target_name=target_name))
+            raise NotImplementedError(
+                (
+                    "GSL integration has not been implemented for "
+                    "for the '{target_name}' code generation target."
+                    "\nUse the 'cython' code generation target, "
+                    "or switch to the 'cpp_standalone' device."
+                ).format(target_name=target_name)
+            )
         else:
-            device_name = [name for name, dev in all_devices.items()
-                           if dev is device]
+            device_name = [name for name, dev in all_devices.items() if dev is device]
             assert len(device_name) == 1
-            raise NotImplementedError(("GSL integration has not been implemented for "
-                                       "for the '{device}' device."
-                                       "\nUse either the 'cpp_standalone' device, "
-                                       "or the runtime device with target language "
-                                       "'cython'."
-                                       ).format(device=device_name[0]))
+            raise NotImplementedError(
+                (
+                    "GSL integration has not been implemented for "
+                    "for the '{device}' device."
+                    "\nUse either the 'cpp_standalone' device, "
+                    "or the runtime device with target language "
+                    "'cython'."
+                ).format(device=device_name[0])
+            )
 
     def __call__(self, obj):
         """
@@ -134,7 +159,7 @@ class GSLContainer(object):
         obj._gsl_variable_flags = self.variable_flags
         obj.method_options = self.method_options
         obj.integrator = self.integrator
-        obj.needed_variables = ['t', 'dt'] + self.needed_variables
+        obj.needed_variables = ["t", "dt"] + self.needed_variables
         return self.abstract_code
 
 
@@ -145,6 +170,7 @@ class GSLStateUpdater(StateUpdateMethod):
 
     .. versionadded:: 2.1
     """
+
     def __init__(self, integrator):
         self.integrator = integrator
 
@@ -165,15 +191,16 @@ class GSLStateUpdater(StateUpdateMethod):
             Method that needs to be called with `StateUpdater` to add CodeObject
             class and some other variables so these can be sent to the `CodeGenerator`
         """
-        logger.warn("Integrating equations with GSL is still considered experimental", once=True)
+        logger.warn(
+            "Integrating equations with GSL is still considered experimental", once=True
+        )
 
-        method_options = extract_method_options(method_options,
-                                                default_method_options)
+        method_options = extract_method_options(method_options, default_method_options)
 
         if equations.is_stochastic:
-            raise UnsupportedEquationsException("Cannot solve stochastic "
-                                                "equations with the GSL state "
-                                                "updater.")
+            raise UnsupportedEquationsException(
+                "Cannot solve stochastic equations with the GSL state updater."
+            )
 
         # the approach is to 'tag' the differential equation variables so they can
         # be translated to GSL code
@@ -189,7 +216,7 @@ class GSLStateUpdater(StateUpdateMethod):
             # know to add the variable to the namespace, so we add it to needed_variables
             diff_vars += [diff_name]
             counter[diff_name] = count_statevariables
-            code += [f'_gsl_{diff_name}_f{counter[diff_name]} = {expr}']
+            code += [f"_gsl_{diff_name}_f{counter[diff_name]} = {expr}"]
             count_statevariables += 1
 
         # add flags to variables objects because some of them we need in the GSL generator
@@ -198,14 +225,17 @@ class GSLStateUpdater(StateUpdateMethod):
             if len(eq_obj.flags) > 0:
                 flags[eq_name] = eq_obj.flags
 
-        return GSLContainer(method_options=method_options,
-                            integrator=self.integrator,
-                            abstract_code=('\n').join(code),
-                            needed_variables=diff_vars,
-                            variable_flags=flags)
+        return GSLContainer(
+            method_options=method_options,
+            integrator=self.integrator,
+            abstract_code=("\n").join(code),
+            needed_variables=diff_vars,
+            variable_flags=flags,
+        )
 
-gsl_rk2 = GSLStateUpdater('rk2')
-gsl_rk4 = GSLStateUpdater('rk4')
-gsl_rkf45 = GSLStateUpdater('rkf45')
-gsl_rkck = GSLStateUpdater('rkck')
-gsl_rk8pd = GSLStateUpdater('rk8pd')
+
+gsl_rk2 = GSLStateUpdater("rk2")
+gsl_rk4 = GSLStateUpdater("rk4")
+gsl_rkf45 = GSLStateUpdater("rkf45")
+gsl_rkck = GSLStateUpdater("rkck")
+gsl_rk8pd = GSLStateUpdater("rk8pd")

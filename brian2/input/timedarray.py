@@ -7,16 +7,19 @@ import numpy as np
 
 from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function
-from brian2.units.allunits import second
-from brian2.units.fundamentalunits import check_units, get_dimensions, Quantity, \
-    get_unit
 from brian2.core.names import Nameable
+from brian2.units.allunits import second
+from brian2.units.fundamentalunits import (
+    Quantity,
+    check_units,
+    get_dimensions,
+    get_unit,
+)
 from brian2.utils.caching import CacheKey
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import replace
 
-
-__all__ = ['TimedArray']
+__all__ = ["TimedArray"]
 
 
 logger = get_logger(__name__)
@@ -25,19 +28,23 @@ logger = get_logger(__name__)
 def _find_K(group_dt, dt):
     dt_ratio = dt / group_dt
     if dt_ratio > 1 and np.floor(dt_ratio) != dt_ratio:
-        logger.warn(('Group uses a dt of %s while TimedArray uses dt '
-                     'of %s (ratio: 1/%s) → time grids not aligned') %
-                    (group_dt*second, dt*second, dt_ratio), once=True)
+        logger.warn(
+            "Group uses a dt of %s while TimedArray uses dt "
+            "of %s (ratio: 1/%s) → time grids not aligned"
+            % (group_dt * second, dt * second, dt_ratio),
+            once=True,
+        )
     # Find an upsampling factor that should avoid rounding issues even
     # for multistep methods
-    K = max(int(2**np.ceil(np.log2(8/group_dt*dt))), 1)
+    K = max(int(2 ** np.ceil(np.log2(8 / group_dt * dt))), 1)
     return K
 
 
 def _generate_cpp_code_1d(values, dt, name):
     def cpp_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
-        code = """
+        code = (
+            """
         static inline double %NAME%(const double t)
         {
             const double epsilon = %DT% / %K%;
@@ -48,8 +55,13 @@ def _generate_cpp_code_1d(values, dt, name):
                 i = %NUM_VALUES%-1;
             return _namespace%NAME%_values[i];
         }
-        """.replace('%NAME%', name).replace('%DT%', f'{dt:.18f}').replace(
-            '%K%', str(K)).replace('%NUM_VALUES%', str(len(values)))
+        """.replace(
+                "%NAME%", name
+            )
+            .replace("%DT%", f"{dt:.18f}")
+            .replace("%K%", str(K))
+            .replace("%NUM_VALUES%", str(len(values)))
+        )
 
         return code
 
@@ -73,19 +85,26 @@ def _generate_cpp_code_2d(values, dt, name):
             return _namespace%NAME%_values[timestep*%COLS% + i];
         }
         """
-        code = replace(support_code, {'%NAME%': name,
-                                      '%DT%': f'{dt:.18f}',
-                                      '%K%': str(K),
-                                      '%COLS%': str(values.shape[1]),
-                                      '%ROWS%': str(values.shape[0])})
+        code = replace(
+            support_code,
+            {
+                "%NAME%": name,
+                "%DT%": f"{dt:.18f}",
+                "%K%": str(K),
+                "%COLS%": str(values.shape[1]),
+                "%ROWS%": str(values.shape[0]),
+            },
+        )
         return code
+
     return cpp_impl
 
 
 def _generate_cython_code_1d(values, dt, name):
     def cython_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
-        code = """
+        code = (
+            """
         cdef double %NAME%(const double t):
             global _namespace%NAME%_values
             cdef double epsilon = %DT% / %K%
@@ -95,10 +114,16 @@ def _generate_cython_code_1d(values, dt, name):
             if i >= %NUM_VALUES%:
                 i = %NUM_VALUES% - 1
             return _namespace%NAME%_values[i]
-        """.replace('%NAME%', name).replace('%DT%', f'{dt:.18f}').replace(
-            '%K%', str(K)).replace('%NUM_VALUES%', str(len(values)))
+        """.replace(
+                "%NAME%", name
+            )
+            .replace("%DT%", f"{dt:.18f}")
+            .replace("%K%", str(K))
+            .replace("%NUM_VALUES%", str(len(values)))
+        )
 
         return code
+
     return cython_impl
 
 
@@ -118,12 +143,18 @@ def _generate_cython_code_2d(values, dt, name):
                 timestep = %ROWS%-1
             return _namespace%NAME%_values[timestep*%COLS% + i]
         """
-        code = replace(code, {'%NAME%': name,
-                              '%DT%': f'{dt:.18f}',
-                              '%K%': str(K),
-                              '%COLS%': str(values.shape[1]),
-                              '%ROWS%': str(values.shape[0])})
+        code = replace(
+            code,
+            {
+                "%NAME%": name,
+                "%DT%": f"{dt:.18f}",
+                "%K%": str(K),
+                "%COLS%": str(values.shape[1]),
+                "%ROWS%": str(values.shape[0]),
+            },
+        )
         return code
+
     return cython_impl
 
 
@@ -178,8 +209,8 @@ class TimedArray(Function, Nameable, CacheKey):
      [ 1.  3.]
      [ 2.  4.]] mV
     """
-    _cache_irrelevant_attributes = {'_id', 'values', 'pyfunc',
-                                    'implementations'}
+
+    _cache_irrelevant_attributes = {"_id", "values", "pyfunc", "implementations"}
 
     #: Container for implementing functions for different targets
     #: This container can be extended by other codegeneration targets/devices
@@ -191,14 +222,14 @@ class TimedArray(Function, Nameable, CacheKey):
     #: that takes the `owner` argument (out of which they can get the context's
     #: dt as `owner.clock.dt_`) and returns the code.
     implementations = {
-        'cpp': (_generate_cpp_code_1d, _generate_cpp_code_2d),
-        'cython': (_generate_cython_code_1d, _generate_cython_code_2d)
+        "cpp": (_generate_cpp_code_1d, _generate_cpp_code_2d),
+        "cython": (_generate_cython_code_1d, _generate_cython_code_2d),
     }
 
     @check_units(dt=second)
     def __init__(self, values, dt, name=None):
         if name is None:
-            name = '_timedarray*'
+            name = "_timedarray*"
         Nameable.__init__(self, name)
         dimensions = get_dimensions(values)
         self.dim = dimensions
@@ -211,8 +242,9 @@ class TimedArray(Function, Nameable, CacheKey):
         elif values.ndim == 2:
             self._init_2d()
         else:
-            raise NotImplementedError("Only 1d and 2d arrays are supported "
-                                      "for TimedArray")
+            raise NotImplementedError(
+                "Only 1d and 2d arrays are supported for TimedArray"
+            )
 
     def _init_1d(self):
         dimensions = self.dim
@@ -227,8 +259,9 @@ class TimedArray(Function, Nameable, CacheKey):
             # We round according to the current defaultclock.dt
             K = _find_K(float(defaultclock.dt), dt)
             epsilon = dt / K
-            i = np.clip(np.int_(np.round(np.asarray(t/epsilon)) / K),
-                        0, len(values)-1)
+            i = np.clip(
+                np.int_(np.round(np.asarray(t / epsilon)) / K), 0, len(values) - 1
+            )
             return Quantity(values[i], dim=dimensions)
 
         Function.__init__(self, pyfunc=timed_array_func)
@@ -241,9 +274,9 @@ class TimedArray(Function, Nameable, CacheKey):
             K = _find_K(group_dt, dt)
             n_values = len(values)
             epsilon = dt / K
+
             def unitless_timed_array_func(t):
-                timestep = np.clip(np.int_(np.round(t/epsilon) / K),
-                                   0, n_values-1)
+                timestep = np.clip(np.int_(np.round(t / epsilon) / K), 0, n_values - 1)
                 return values[timestep]
 
             unitless_timed_array_func._arg_units = [second]
@@ -251,17 +284,18 @@ class TimedArray(Function, Nameable, CacheKey):
 
             return unitless_timed_array_func
 
-        self.implementations.add_dynamic_implementation('numpy',
-                                                        create_numpy_implementation)
-        namespace = lambda owner: {f'{self.name}_values': self.values}
+        self.implementations.add_dynamic_implementation(
+            "numpy", create_numpy_implementation
+        )
+        namespace = lambda owner: {f"{self.name}_values": self.values}
 
         for target, (func_1d, _) in TimedArray.implementations.items():
-            self.implementations.add_dynamic_implementation(target,
-                                                            func_1d(self.values,
-                                                                    self.dt,
-                                                                    self.name),
-                                                            namespace=namespace,
-                                                            name=self.name)
+            self.implementations.add_dynamic_implementation(
+                target,
+                func_1d(self.values, self.dt, self.name),
+                namespace=namespace,
+                name=self.name,
+            )
 
     def _init_2d(self):
         dimensions = self.dim
@@ -276,8 +310,9 @@ class TimedArray(Function, Nameable, CacheKey):
             # We round according to the current defaultclock.dt
             K = _find_K(float(defaultclock.dt), dt)
             epsilon = dt / K
-            time_step = np.clip(np.int_(np.round(np.asarray(t/epsilon)) / K),
-                        0, len(values)-1)
+            time_step = np.clip(
+                np.int_(np.round(np.asarray(t / epsilon)) / K), 0, len(values) - 1
+            )
             return Quantity(values[time_step, i], dim=dimensions)
 
         Function.__init__(self, pyfunc=timed_array_func)
@@ -290,9 +325,9 @@ class TimedArray(Function, Nameable, CacheKey):
             K = _find_K(group_dt, dt)
             n_values = len(values)
             epsilon = dt / K
+
             def unitless_timed_array_func(t, i):
-                timestep = np.clip(np.int_(np.round(t/epsilon) / K),
-                                   0, n_values-1)
+                timestep = np.clip(np.int_(np.round(t / epsilon) / K), 0, n_values - 1)
                 return values[timestep, i]
 
             unitless_timed_array_func._arg_units = [second]
@@ -300,30 +335,31 @@ class TimedArray(Function, Nameable, CacheKey):
 
             return unitless_timed_array_func
 
-        self.implementations.add_dynamic_implementation('numpy',
-                                                        create_numpy_implementation)
-        values_flat = self.values.astype(np.double,
-                                       order='C',
-                                       copy=False).ravel()
-        namespace = lambda owner: {f'{self.name}_values': values_flat}
+        self.implementations.add_dynamic_implementation(
+            "numpy", create_numpy_implementation
+        )
+        values_flat = self.values.astype(np.double, order="C", copy=False).ravel()
+        namespace = lambda owner: {f"{self.name}_values": values_flat}
 
         for target, (_, func_2d) in TimedArray.implementations.items():
-            self.implementations.add_dynamic_implementation(target,
-                                                            func_2d(self.values,
-                                                                    self.dt,
-                                                                    self.name),
-                                                            namespace=namespace,
-                                                            name=self.name)
+            self.implementations.add_dynamic_implementation(
+                target,
+                func_2d(self.values, self.dt, self.name),
+                namespace=namespace,
+                name=self.name,
+            )
 
     def is_locally_constant(self, dt):
         if dt > self.dt:
             return False
         dt_ratio = self.dt / float(dt)
         if np.floor(dt_ratio) != dt_ratio:
-            logger.info(("dt of the TimedArray is not an integer multiple of "
-                         "the group's dt, the TimedArray's return value can "
-                         "therefore not be considered constant over one "
-                         "timestep, making linear integration impossible."),
-                        once=True)
+            logger.info(
+                "dt of the TimedArray is not an integer multiple of "
+                "the group's dt, the TimedArray's return value can "
+                "therefore not be considered constant over one "
+                "timestep, making linear integration impossible.",
+                once=True,
+            )
             return False
         return True

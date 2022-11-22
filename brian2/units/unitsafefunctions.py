@@ -4,25 +4,49 @@ Unit-aware replacements for numpy functions.
 
 from functools import wraps
 
-import pkg_resources
 import numpy as np
+import pkg_resources
 
-from .fundamentalunits import (Quantity, wrap_function_dimensionless,
-                               wrap_function_remove_dimensions,
-                               fail_for_dimension_mismatch, is_dimensionless,
-                               DIMENSIONLESS, check_units)
+from .fundamentalunits import (
+    DIMENSIONLESS,
+    Quantity,
+    check_units,
+    fail_for_dimension_mismatch,
+    is_dimensionless,
+    wrap_function_dimensionless,
+    wrap_function_remove_dimensions,
+)
 
 __all__ = [
-         'log', 'log10', 'exp', 'expm1', 'log1p', 'exprel',
-         'sin', 'cos', 'tan',
-         'arcsin', 'arccos', 'arctan',
-         'sinh', 'cosh', 'tanh',
-         'arcsinh', 'arccosh', 'arctanh',
-         'diagonal', 'ravel', 'trace', 'dot',
-         'where',
-         'ones_like', 'zeros_like',
-         'arange', 'linspace'
-         ]
+    "log",
+    "log10",
+    "exp",
+    "expm1",
+    "log1p",
+    "exprel",
+    "sin",
+    "cos",
+    "tan",
+    "arcsin",
+    "arccos",
+    "arctan",
+    "sinh",
+    "cosh",
+    "tanh",
+    "arcsinh",
+    "arccosh",
+    "arctanh",
+    "diagonal",
+    "ravel",
+    "trace",
+    "dot",
+    "where",
+    "ones_like",
+    "zeros_like",
+    "arange",
+    "linspace",
+]
+
 
 def where(condition, *args, **kwds):  # pylint: disable=C0111
     if len(args) == 0:
@@ -30,20 +54,23 @@ def where(condition, *args, **kwds):  # pylint: disable=C0111
         return np.where(condition, *args, **kwds)
     elif len(args) == 2:
         # check that x and y have the same dimensions
-        fail_for_dimension_mismatch(args[0], args[1],
-                                    'x and y need to have the same dimensions')
+        fail_for_dimension_mismatch(
+            args[0], args[1], "x and y need to have the same dimensions"
+        )
 
         if is_dimensionless(args[0]):
             return np.where(condition, *args, **kwds)
         else:
             # as both arguments have the same unit, just use the first one's
             dimensionless_args = [np.asarray(arg) for arg in args]
-            return Quantity.with_dimensions(np.where(condition,
-                                                     *dimensionless_args),
-                                            args[0].dimensions)
+            return Quantity.with_dimensions(
+                np.where(condition, *dimensionless_args), args[0].dimensions
+            )
     else:
         # illegal number of arguments, let numpy take care of this
         return np.where(condition, *args, **kwds)
+
+
 where.__doc__ = np.where.__doc__
 where._do_not_run_doctests = True
 
@@ -82,19 +109,20 @@ def exprel(x):
         elif x > 717:
             return np.inf
         else:
-            return np.expm1(x)/x
+            return np.expm1(x) / x
     else:
         small = np.abs(x) < 1e-16
         big = x > 717
         in_between = np.logical_not(small | big)
         result[small] = 1.0
         result[big] = np.inf
-        result[in_between] = np.expm1(x[in_between])/x[in_between]
+        result[in_between] = np.expm1(x[in_between]) / x[in_between]
         return result
 
 
 ones_like = wrap_function_remove_dimensions(np.ones_like)
 zeros_like = wrap_function_remove_dimensions(np.zeros_like)
+
 
 def wrap_function_to_method(func):
     """
@@ -102,6 +130,7 @@ def wrap_function_to_method(func):
     Quantities object (if called with a Quantities object as the first
     argument). All other arguments are left untouched.
     """
+
     @wraps(func)
     def f(x, *args, **kwds):  # pylint: disable=C0111
         if isinstance(x, Quantity):
@@ -109,6 +138,7 @@ def wrap_function_to_method(func):
         else:
             # no need to wrap anything
             return func(x, *args, **kwds)
+
     f.__doc__ = func.__doc__
     f.__name__ = func.__name__
     f._do_not_run_doctests = True
@@ -121,9 +151,9 @@ def arange(*args, **kwargs):
     # we leave the actual checking of the number of arguments to numpy, though
 
     # default values
-    start = kwargs.pop('start', 0)
-    step = kwargs.pop('step', 1)
-    stop = kwargs.pop('stop', None)
+    start = kwargs.pop("start", 0)
+    step = kwargs.pop("step", 1)
+    stop = kwargs.pop("stop", None)
     if len(args) == 1:
         if stop is not None:
             raise TypeError("Duplicate definition of 'stop'")
@@ -146,35 +176,63 @@ def arange(*args, **kwargs):
         raise TypeError("Need between 1 and 3 non-keyword arguments")
     if stop is None:
         raise TypeError("Missing stop argument.")
-    fail_for_dimension_mismatch(start, stop,
-                                error_message=("Start value {start} and stop "
-                                               "value {stop} have to have the "
-                                               "same units."),
-                                start=start, stop=stop)
-    fail_for_dimension_mismatch(stop, step,
-                                error_message=("Stop value {stop} and step "
-                                               "value {step} have to have the "
-                                               "same units."),
-                                stop=stop, step=step)
-    dim = getattr(stop, 'dim', DIMENSIONLESS)
-    return Quantity(np.arange(start=np.asarray(start),
-                              stop=np.asarray(stop),
-                              step=np.asarray(step),
-                              **kwargs),
-                    dim=dim, copy=False)
+    fail_for_dimension_mismatch(
+        start,
+        stop,
+        error_message=(
+            "Start value {start} and stop value {stop} have to have the same units."
+        ),
+        start=start,
+        stop=stop,
+    )
+    fail_for_dimension_mismatch(
+        stop,
+        step,
+        error_message=(
+            "Stop value {stop} and step value {step} have to have the same units."
+        ),
+        stop=stop,
+        step=step,
+    )
+    dim = getattr(stop, "dim", DIMENSIONLESS)
+    return Quantity(
+        np.arange(
+            start=np.asarray(start),
+            stop=np.asarray(stop),
+            step=np.asarray(step),
+            **kwargs,
+        ),
+        dim=dim,
+        copy=False,
+    )
+
+
 arange._do_not_run_doctests = True
+
 
 @wraps(np.linspace)
 def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
-    fail_for_dimension_mismatch(start, stop,
-                                error_message=("Start value {start} and stop "
-                                               "value {stop} have to have the "
-                                               "same units."),
-                                start=start, stop=stop)
-    dim = getattr(start, 'dim', DIMENSIONLESS)
-    result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
-                         endpoint=endpoint, retstep=retstep, dtype=dtype)
+    fail_for_dimension_mismatch(
+        start,
+        stop,
+        error_message=(
+            "Start value {start} and stop value {stop} have to have the same units."
+        ),
+        start=start,
+        stop=stop,
+    )
+    dim = getattr(start, "dim", DIMENSIONLESS)
+    result = np.linspace(
+        np.asarray(start),
+        np.asarray(stop),
+        num=num,
+        endpoint=endpoint,
+        retstep=retstep,
+        dtype=dtype,
+    )
     return Quantity(result, dim=dim, copy=False)
+
+
 linspace._do_not_run_doctests = True
 
 # these functions discard subclass info -- maybe a bug in numpy?
