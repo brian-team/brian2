@@ -1,16 +1,22 @@
-import pytest
-
 import numpy as np
-from numpy.testing import assert_equal
+import pytest
 import sympy
-
-from brian2 import Expression, Statements
-from brian2 import Hz, ms, mV, volt, second, get_dimensions, DimensionMismatchError
-
-from brian2.utils.logger import catch_logs
-from brian2.core.preferences import prefs
+from numpy.testing import assert_equal
 
 import brian2
+from brian2 import (
+    DimensionMismatchError,
+    Expression,
+    Hz,
+    Statements,
+    get_dimensions,
+    ms,
+    mV,
+    second,
+    volt,
+)
+from brian2.core.preferences import prefs
+from brian2.utils.logger import catch_logs
 
 
 def sympy_equals(expr1, expr2):

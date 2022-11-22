@@ -2,12 +2,12 @@ import itertools
 
 import numpy as np
 
-from brian2.parsing.bast import brian_dtype_from_dtype
-from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, timestep
 from brian2.core.variables import ArrayVariable
-from brian2.utils.stringtools import get_identifiers, word_substitute, indent
+from brian2.parsing.bast import brian_dtype_from_dtype
+from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers, indent, word_substitute
 
 from .base import CodeGenerator
 

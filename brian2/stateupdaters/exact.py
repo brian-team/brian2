@@ -5,16 +5,16 @@ Exact integration for linear equations.
 import itertools
 
 import sympy as sp
-from sympy import Wild, Symbol, I, re, im
+from sympy import I, Symbol, Wild, im, re
 
-from brian2.utils.caching import cached
 from brian2.equations.codestrings import is_constant_over_dt
-from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.stateupdaters.base import (
     StateUpdateMethod,
     UnsupportedEquationsException,
     extract_method_options,
 )
+from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger
 
 __all__ = ["linear", "exact", "independent"]

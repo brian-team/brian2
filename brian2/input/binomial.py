@@ -5,7 +5,7 @@ Implementation of `BinomialFunction`
 import numpy as np
 
 from brian2.core.base import Nameable
-from brian2.core.functions import Function, DEFAULT_FUNCTIONS
+from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.units.fundamentalunits import check_units
 from brian2.utils.stringtools import replace
 

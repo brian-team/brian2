@@ -3,19 +3,20 @@ Package contain all unit/integration tests for the `brian2` package.
 """
 import os
 import sys
-from io import StringIO
 import tempfile
+from io import StringIO
 
 import numpy as np
 
 import brian2
 from brian2.core.preferences import prefs
-from brian2.devices.device import all_devices, reset_device, reinit_and_delete
+from brian2.devices.device import all_devices, reinit_and_delete, reset_device
 
 try:
+    import importlib
+
     import pytest
     from _pytest import doctest as pytest_doctest
-    import importlib
 
     class OurDoctestModule(pytest_doctest.DoctestModule):
         def collect(self):
@@ -290,6 +291,7 @@ def run(
 
     # Avoid failures in the tests for user-registered units
     import copy
+
     import brian2.units.fundamentalunits as fundamentalunits
 
     old_unit_registry = copy.copy(fundamentalunits.user_unit_register)
@@ -303,7 +305,7 @@ def run(
     print()
 
     # Suppress INFO log messages during testing
-    from brian2.utils.logger import BrianLogger, LOG_LEVELS
+    from brian2.utils.logger import LOG_LEVELS, BrianLogger
 
     log_level = BrianLogger.console_handler.level
     BrianLogger.console_handler.setLevel(LOG_LEVELS["WARNING"])

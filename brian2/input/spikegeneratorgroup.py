@@ -5,12 +5,12 @@ Module defining `SpikeGeneratorGroup`.
 import numpy as np
 
 from brian2.core.functions import timestep
-from brian2.utils.logger import get_logger
 from brian2.core.spikesource import SpikeSource
-from brian2.units.fundamentalunits import check_units, Quantity
-from brian2.units.allunits import second
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
+from brian2.units.allunits import second
+from brian2.units.fundamentalunits import Quantity, check_units
+from brian2.utils.logger import get_logger
 
 __all__ = ["SpikeGeneratorGroup"]
 

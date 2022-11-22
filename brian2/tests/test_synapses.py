@@ -1,28 +1,28 @@
-import uuid
 import logging
+import uuid
 
 import pytest
-from numpy.testing import assert_equal, assert_array_equal
 import sympy
+from numpy.testing import assert_array_equal, assert_equal
 
 from brian2 import *
-from brian2.codegen.translation import make_statements
 from brian2.codegen.generators import NumpyCodeGenerator
-from brian2.core.network import schedule_propagation_offset
-from brian2.core.variables import variables_by_owner, ArrayVariable, Constant
-from brian2.core.functions import DEFAULT_FUNCTIONS
-from brian2.stateupdaters.base import UnsupportedEquationsException
-from brian2.utils.logger import catch_logs
-from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
-from brian2.devices.device import reinit_and_delete, all_devices, get_device
-from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
 from brian2.codegen.permutation_analysis import (
-    check_for_order_independence,
     OrderDependenceError,
+    check_for_order_independence,
 )
+from brian2.codegen.translation import make_statements
+from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.core.network import schedule_propagation_offset
+from brian2.core.variables import ArrayVariable, Constant, variables_by_owner
+from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
+from brian2.devices.device import all_devices, get_device, reinit_and_delete
+from brian2.equations.equations import EquationError
+from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.tests.utils import assert_allclose, exc_isinstance
-from brian2.equations.equations import EquationError
+from brian2.utils.logger import catch_logs
+from brian2.utils.stringtools import deindent, get_identifiers, indent, word_substitute
 
 
 def _compare(synapses, expected):
@@ -3644,12 +3644,13 @@ def test_setting_from_weight_matrix():
 
 if __name__ == "__main__":
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
-    from brian2 import prefs
-    from _pytest.outcomes import Skipped
-
     # prefs.codegen.target = 'numpy'
     # prefs._backup()
     import time
+
+    from _pytest.outcomes import Skipped
+
+    from brian2 import prefs
 
     start = time.time()
 

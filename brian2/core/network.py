@@ -9,23 +9,24 @@ Preferences
 """
 
 import os
+import pickle as pickle
 import sys
 import time
-from collections import defaultdict, Counter, namedtuple
-from collections.abc import Sequence, Mapping
-import pickle as pickle
+from collections import Counter, defaultdict, namedtuple
+from collections.abc import Mapping, Sequence
 
-from brian2.synapses.synapses import SummedVariableUpdater
-from brian2.utils.logger import get_logger
-from brian2.core.names import Nameable
 from brian2.core.base import BrianObject, BrianObjectException
 from brian2.core.clocks import Clock, defaultclock
-from brian2.devices.device import get_device, all_devices, RuntimeDevice
-from brian2.groups.group import Group
-from brian2.units.fundamentalunits import check_units, Quantity
-from brian2.units.allunits import second, msecond
-from brian2.core.preferences import prefs, BrianPreference
+from brian2.core.names import Nameable
 from brian2.core.namespace import get_local_namespace
+from brian2.core.preferences import BrianPreference, prefs
+from brian2.devices.device import RuntimeDevice, all_devices, get_device
+from brian2.groups.group import Group
+from brian2.synapses.synapses import SummedVariableUpdater
+from brian2.units.allunits import msecond, second
+from brian2.units.fundamentalunits import Quantity, check_units
+from brian2.utils.logger import get_logger
+
 from .base import device_override
 
 __all__ = ["Network", "profiling_summary", "scheduling_summary"]

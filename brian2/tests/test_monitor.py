@@ -1,14 +1,14 @@
-import uuid
-import tempfile
 import logging
+import tempfile
+import uuid
 
-from numpy.testing import assert_array_equal
 import pytest
+from numpy.testing import assert_array_equal
 
 from brian2 import *
 from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
-from brian2.utils.logger import catch_logs
 from brian2.tests.utils import assert_allclose
+from brian2.utils.logger import catch_logs
 
 
 @pytest.mark.standalone_compatible

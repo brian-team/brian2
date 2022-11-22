@@ -6,20 +6,21 @@ Preferences
 .. document_brian_prefs:: codegen.cpp
 
 """
-from setuptools import msvc
 import distutils
-from distutils.ccompiler import get_default_compiler
 import json
 import os
-import re
 import platform
+import re
 import socket
 import struct
 import subprocess
 import sys
 import tempfile
+from distutils.ccompiler import get_default_compiler
 
-from brian2.core.preferences import prefs, BrianPreference
+from setuptools import msvc
+
+from brian2.core.preferences import BrianPreference, prefs
 from brian2.utils.filetools import ensure_directory
 from brian2.utils.logger import get_logger, std_silent
 

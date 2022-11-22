@@ -1,6 +1,9 @@
 """
 The unit system.
 """
+
+# isort:skip_file
+
 from .allunits import (
     # basic units
     pamp,

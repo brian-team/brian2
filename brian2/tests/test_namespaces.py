@@ -1,17 +1,18 @@
 import uuid
 
-import sympy
 import numpy
 import pytest
+import sympy
 
-from brian2.core.variables import Constant
 from brian2.core.namespace import get_local_namespace
+from brian2.core.variables import Constant
 from brian2.groups.group import Group
 from brian2.units import second, volt
 from brian2.units.fundamentalunits import Unit
-from brian2.units.stdunits import ms, Hz, mV
-from brian2.units.unitsafefunctions import sin, log, exp
+from brian2.units.stdunits import Hz, ms, mV
+from brian2.units.unitsafefunctions import exp, log, sin
 from brian2.utils.logger import catch_logs
+
 
 # a simple Group for testing
 class SimpleGroup(Group):

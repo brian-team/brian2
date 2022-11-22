@@ -8,6 +8,8 @@ Usage: ``from brian2.only import *``
 # To minimize the problems with imports, import the packages in a sensible
 # order
 
+# isort:skip_file
+
 # The units and utils package does not depend on any other Brian package and
 # should be imported first
 

@@ -1,17 +1,17 @@
-import brian2
-import numpy
+import itertools
 import os
 import pickle
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
-import itertools
-import re
-
-from brian2.utils.stringtools import indent
-
 from collections import defaultdict
+
+import numpy
+
+import brian2
+from brian2.utils.stringtools import indent
 
 __all__ = [
     "FeatureTest",

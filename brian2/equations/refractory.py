@@ -3,16 +3,16 @@ Module implementing Brian's refractory mechanism.
 """
 
 
-from brian2.units.fundamentalunits import DIMENSIONLESS
 from brian2.units.allunits import second
+from brian2.units.fundamentalunits import DIMENSIONLESS
 
 from .equations import (
-    Equations,
-    SingleEquation,
+    BOOLEAN,
     DIFFERENTIAL_EQUATION,
     PARAMETER,
+    Equations,
     Expression,
-    BOOLEAN,
+    SingleEquation,
 )
 
 __all__ = ["add_refractoriness"]

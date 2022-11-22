@@ -1,7 +1,8 @@
+import pytest
+from numpy.testing import assert_array_equal, assert_equal
+
 from brian2 import *
 from brian2.utils.logger import catch_logs
-from numpy.testing import assert_equal, assert_array_equal
-import pytest
 
 
 @pytest.mark.codegen_independent

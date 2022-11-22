@@ -10,10 +10,12 @@ Instead edit the template:
 # fmt: off
 import itertools
 
-from .fundamentalunits import (Unit, get_or_create_dimension,
-                               standard_unit_register,
-                               additional_unit_register)
-
+from .fundamentalunits import (
+    Unit,
+    additional_unit_register,
+    get_or_create_dimension,
+    standard_unit_register,
+)
 
 __all__ = [
     "metre",

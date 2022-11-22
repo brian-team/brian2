@@ -6,9 +6,5 @@ __all__ = [
     "run_feature_tests",
 ]
 
+from . import input, monitors, neurongroup, speed, synapses
 from .base import *
-from . import neurongroup
-from . import synapses
-from . import monitors
-from . import input
-from . import speed

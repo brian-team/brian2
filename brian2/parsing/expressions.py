@@ -6,12 +6,12 @@ import ast
 from brian2.core.functions import Function
 from brian2.parsing.rendering import NodeRenderer
 from brian2.units.fundamentalunits import (
-    Unit,
-    DimensionMismatchError,
-    have_same_dimensions,
-    get_dimensions,
     DIMENSIONLESS,
+    DimensionMismatchError,
+    Unit,
+    get_dimensions,
     get_unit_for_display,
+    have_same_dimensions,
 )
 
 __all__ = ["parse_expression_dimensions"]

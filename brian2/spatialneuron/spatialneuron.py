@@ -3,35 +3,35 @@ Compartmental models.
 This module defines the `SpatialNeuron` class, which defines multicompartmental
 models.
 """
-import weakref
 import copy
+import weakref
 
-import sympy as sp
 import numpy as np
+import sympy as sp
 
 from brian2.core.variables import Variables
+from brian2.equations.codestrings import Expression
 from brian2.equations.equations import (
-    Equations,
+    DIFFERENTIAL_EQUATION,
     PARAMETER,
     SUBEXPRESSION,
-    DIFFERENTIAL_EQUATION,
+    Equations,
     SingleEquation,
     extract_constant_subexpressions,
 )
-from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
-from brian2.units.allunits import ohm, siemens, amp, meter, volt
+from brian2.groups.group import CodeRunner, Group, create_runner_codeobj
+from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater, to_start_stop
+from brian2.groups.subgroup import Subgroup
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
+from brian2.units.allunits import amp, meter, ohm, siemens, volt
 from brian2.units.fundamentalunits import (
+    DimensionMismatchError,
     Quantity,
     fail_for_dimension_mismatch,
     have_same_dimensions,
-    DimensionMismatchError,
 )
-from brian2.units.stdunits import uF, cm
-from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
+from brian2.units.stdunits import cm, uF
 from brian2.utils.logger import get_logger
-from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater, to_start_stop
-from brian2.groups.subgroup import Subgroup
-from brian2.equations.codestrings import Expression
 
 __all__ = ["SpatialNeuron"]
 

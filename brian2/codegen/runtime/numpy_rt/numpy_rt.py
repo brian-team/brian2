@@ -8,20 +8,19 @@ from collections.abc import Iterable
 import numpy as np
 
 from brian2.core.base import BrianObjectException
-from brian2.core.preferences import prefs, BrianPreference
+from brian2.core.functions import Function
+from brian2.core.preferences import BrianPreference, prefs
 from brian2.core.variables import (
-    DynamicArrayVariable,
     ArrayVariable,
     AuxiliaryVariable,
+    DynamicArrayVariable,
     Subexpression,
 )
-from brian2.core.functions import Function
 
-from ...codeobject import CodeObject, constant_or_scalar, check_compiler_kwds
-
-from ...templates import Templater
+from ...codeobject import CodeObject, check_compiler_kwds, constant_or_scalar
 from ...generators.numpy_generator import NumpyCodeGenerator
 from ...targets import codegen_targets
+from ...templates import Templater
 
 __all__ = ["NumpyCodeObject"]
 

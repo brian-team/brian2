@@ -4,13 +4,13 @@ Some basic tests for the `Variable` system
 
 from collections import namedtuple
 
-import pytest
 import numpy as np
+import pytest
 
 from brian2.core.preferences import prefs
 from brian2.core.variables import *
-from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
+from brian2.units.fundamentalunits import Unit
 
 
 @pytest.mark.codegen_independent

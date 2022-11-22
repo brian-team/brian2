@@ -1,17 +1,17 @@
-from numpy import float64, float32
 from io import StringIO
 
-from brian2 import restore_initial_state, volt, amp
-from brian2.core.preferences import (
-    DefaultValidator,
-    BrianPreference,
-    BrianGlobalPreferences,
-    PreferenceError,
-    BrianGlobalPreferencesView,
-)
-
-from numpy.testing import assert_equal
 import pytest
+from numpy import float32, float64
+from numpy.testing import assert_equal
+
+from brian2 import amp, restore_initial_state, volt
+from brian2.core.preferences import (
+    BrianGlobalPreferences,
+    BrianGlobalPreferencesView,
+    BrianPreference,
+    DefaultValidator,
+    PreferenceError,
+)
 
 
 @pytest.mark.codegen_independent

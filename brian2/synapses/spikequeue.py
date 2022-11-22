@@ -8,8 +8,8 @@ import bisect
 
 import numpy as np
 
-from brian2.utils.logger import get_logger
 from brian2.utils.arrays import calc_repeats
+from brian2.utils.logger import get_logger
 
 __all__ = ["SpikeQueue"]
 

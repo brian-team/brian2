@@ -2,9 +2,9 @@
 Module for analysing synaptic pre and post code for synapse order independence.
 """
 
-from brian2.utils.stringtools import get_identifiers
 from brian2.core.functions import Function
 from brian2.core.variables import Constant
+from brian2.utils.stringtools import get_identifiers
 
 __all__ = ["OrderDependenceError", "check_for_order_independence"]
 

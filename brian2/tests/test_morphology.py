@@ -1,12 +1,13 @@
+import os
+import tempfile
+
 import pytest
 from numpy.testing import assert_equal
-import tempfile
-import os
 
-from brian2.spatialneuron import *
-from brian2.units import um, cm, second, DimensionMismatchError
 from brian2 import numpy as np
+from brian2.spatialneuron import *
 from brian2.tests.utils import assert_allclose
+from brian2.units import DimensionMismatchError, cm, second, um
 
 
 @pytest.mark.codegen_independent

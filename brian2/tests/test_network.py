@@ -1,60 +1,60 @@
-import weakref
 import copy
 import logging
-import tempfile
 import os
+import tempfile
 import uuid
+import weakref
 
 import numpy as np
-from numpy.testing import assert_equal, assert_array_equal
 import pytest
+from numpy.testing import assert_array_equal, assert_equal
 
 from brian2 import (
-    Clock,
-    Network,
-    ms,
-    us,
-    second,
-    BrianObject,
-    defaultclock,
-    run,
-    stop,
-    NetworkOperation,
-    network_operation,
-    MagicError,
-    Synapses,
-    NeuronGroup,
-    StateMonitor,
-    SpikeMonitor,
-    SpikeGeneratorGroup,
-    PopulationRateMonitor,
-    MagicNetwork,
-    magic_network,
-    PoissonGroup,
-    Hz,
-    collect,
-    store,
-    restore,
     BrianLogger,
-    start_scope,
+    BrianObject,
+    Clock,
+    Hz,
+    MagicError,
+    MagicNetwork,
+    Network,
+    NetworkOperation,
+    NeuronGroup,
+    PoissonGroup,
+    PopulationRateMonitor,
+    Quantity,
+    SpikeGeneratorGroup,
+    SpikeMonitor,
+    StateMonitor,
+    Synapses,
+    TimedArray,
+    collect,
+    defaultclock,
+    magic_network,
+    ms,
+    network_operation,
     prefs,
     profiling_summary,
-    Quantity,
-    TimedArray,
+    restore,
+    run,
+    second,
+    start_scope,
+    stop,
+    store,
+    us,
 )
 from brian2.core.network import schedule_propagation_offset, scheduling_summary
 from brian2.devices.device import (
-    reinit_and_delete,
     Device,
-    all_devices,
-    set_device,
-    get_device,
-    reset_device,
-    device,
     RuntimeDevice,
+    all_devices,
+    device,
+    get_device,
+    reinit_and_delete,
+    reset_device,
+    set_device,
 )
-from brian2.utils.logger import catch_logs
 from brian2.tests.utils import assert_allclose
+from brian2.utils.logger import catch_logs
 
 
 @pytest.mark.codegen_independent
@@ -989,9 +989,9 @@ def test_magic_collect():
     assert len(objects) == 6, f"expected {int(6)} objects, got {len(objects)}"
 
 
-from contextlib import contextmanager
-from io import StringIO, BytesIO
 import sys
+from contextlib import contextmanager
+from io import BytesIO, StringIO
 
 
 @contextmanager

@@ -10,6 +10,7 @@ This module defines the following short unit names:
 mV, mA, uA (micro_amp), nA, pA, mF, uF, nF, nS, mS, uS, ms,
 Hz, kHz, MHz, cm, cm2, cm3, mm, mm2, mm3, um, um2, um3
 """
+# isort:skip_file
 
 from .allunits import (
     mvolt,

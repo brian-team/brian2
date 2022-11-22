@@ -1,9 +1,9 @@
 """
 This model defines the `NeuronGroup`, the core of most simulations.
 """
-from collections.abc import Sequence, MutableMapping
 import numbers
 import string
+from collections.abc import MutableMapping, Sequence
 
 import numpy as np
 import sympy
@@ -13,36 +13,36 @@ from brian2.codegen.translation import analyse_identifiers
 from brian2.core.preferences import prefs
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import (
-    Variables,
-    LinkedVariable,
     DynamicArrayVariable,
+    LinkedVariable,
     Subexpression,
+    Variables,
 )
 from brian2.equations.equations import (
-    Equations,
     DIFFERENTIAL_EQUATION,
-    SUBEXPRESSION,
     PARAMETER,
+    SUBEXPRESSION,
+    Equations,
     check_subexpressions,
     extract_constant_subexpressions,
 )
 from brian2.equations.refractory import add_refractoriness
 from brian2.parsing.expressions import (
-    parse_expression_dimensions,
     is_boolean_expression,
+    parse_expression_dimensions,
 )
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
-    Quantity,
     DIMENSIONLESS,
     DimensionMismatchError,
+    Quantity,
     fail_for_dimension_mismatch,
 )
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 
-from .group import Group, CodeRunner, get_dtype
+from .group import CodeRunner, Group, get_dtype
 from .subgroup import Subgroup
 
 __all__ = ["NeuronGroup"]

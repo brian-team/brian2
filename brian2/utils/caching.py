@@ -4,8 +4,8 @@ of parsing, generation of state update code, etc.). Provides the `cached`
 decorator.
 """
 
-import functools
 import collections
+import functools
 from collections.abc import Mapping
 
 

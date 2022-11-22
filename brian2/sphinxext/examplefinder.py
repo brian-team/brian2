@@ -3,10 +3,13 @@ Automatically find examples of a Brian object or function.
 """
 
 
-import os, re
+import os
+import re
 from collections import defaultdict
-from .generate_examples import GlobDirectoryWalker
+
 from brian2.utils.stringtools import get_identifiers
+
+from .generate_examples import GlobDirectoryWalker
 
 __all__ = ["auto_find_examples"]
 

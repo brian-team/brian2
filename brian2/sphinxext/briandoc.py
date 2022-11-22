@@ -16,19 +16,18 @@ It will:
 .. [1] https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 """
-import re
-import pydoc
 import inspect
+import pydoc
+import re
 
-from docutils import statemachine, nodes
-from docutils.parsers.rst import directives, Directive
-
-from sphinx.roles import XRefRole
+from docutils import nodes, statemachine
+from docutils.parsers.rst import Directive, directives
 from sphinx.domains.python import PyXRefRole
+from sphinx.roles import XRefRole
 
 from brian2.core.preferences import prefs
 
-from .docscrape_sphinx import get_doc_object, SphinxDocString
+from .docscrape_sphinx import SphinxDocString, get_doc_object
 
 
 class BrianPrefsDirective(Directive):

@@ -10,34 +10,33 @@ except ImportError:
     pprint = None
 import pytest
 
-from brian2 import volt, mV, second, ms, Hz, farad, metre
-from brian2 import Unit, Equations, Expression
-from brian2.units.fundamentalunits import (
-    DIMENSIONLESS,
-    get_dimensions,
-    DimensionMismatchError,
-)
+from brian2 import Equations, Expression, Hz, Unit, farad, metre, ms, mV, second, volt
 from brian2.core.namespace import DEFAULT_UNITS
 from brian2.equations.equations import (
-    check_identifier_basic,
-    check_identifier_reserved,
-    check_identifier_functions,
-    check_identifier_constants,
-    check_identifier_units,
-    parse_string_equations,
-    dimensions_and_type_from_string,
-    SingleEquation,
-    DIFFERENTIAL_EQUATION,
-    SUBEXPRESSION,
-    PARAMETER,
-    FLOAT,
     BOOLEAN,
+    DIFFERENTIAL_EQUATION,
+    FLOAT,
     INTEGER,
+    PARAMETER,
+    SUBEXPRESSION,
     EquationError,
+    SingleEquation,
+    check_identifier_basic,
+    check_identifier_constants,
+    check_identifier_functions,
+    check_identifier_reserved,
+    check_identifier_units,
+    dimensions_and_type_from_string,
     extract_constant_subexpressions,
+    parse_string_equations,
 )
 from brian2.equations.refractory import check_identifier_refractory
 from brian2.groups.group import Group
+from brian2.units.fundamentalunits import (
+    DIMENSIONLESS,
+    DimensionMismatchError,
+    get_dimensions,
+)
 
 
 # a simple Group for testing

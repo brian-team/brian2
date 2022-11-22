@@ -11,19 +11,18 @@ from brian2.core.magic import run
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.variables import linked_var
-from brian2.devices.device import seed, device
+from brian2.devices.device import device, seed
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.monitors.statemonitor import StateMonitor
 from brian2.synapses.synapses import Synapses
-from brian2.tests.utils import assert_allclose
+from brian2.tests.utils import assert_allclose, exc_isinstance
 from brian2.units.allunits import second, volt
 from brian2.units.fundamentalunits import DimensionMismatchError, have_same_dimensions
-from brian2.units.stdunits import ms, mV, Hz
+from brian2.units.stdunits import Hz, ms, mV
 from brian2.units.unitsafefunctions import linspace
 from brian2.utils.logger import catch_logs
-from brian2.tests.utils import exc_isinstance
 
 
 @pytest.mark.codegen_independent

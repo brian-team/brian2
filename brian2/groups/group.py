@@ -5,43 +5,43 @@ for objects that in addition to storing state variables also execute code, i.e.
 objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
 `CodeRunner`, a class to run code in the context of a `Group`.
 """
-from collections.abc import Mapping
-from collections import OrderedDict
-import weakref
-import numbers
 import inspect
+import numbers
+import weakref
+from collections import OrderedDict
+from collections.abc import Mapping
 
 import numpy as np
 
+from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.core.base import BrianObject, weakproxy_with_fallback
-from brian2.core.names import Nameable, find_name
-from brian2.core.preferences import prefs
-from brian2.core.variables import (
-    Variables,
-    Constant,
-    Variable,
-    ArrayVariable,
-    DynamicArrayVariable,
-    Subexpression,
-    AuxiliaryVariable,
-)
 from brian2.core.functions import Function
+from brian2.core.names import Nameable, find_name
 from brian2.core.namespace import (
-    get_local_namespace,
+    DEFAULT_CONSTANTS,
     DEFAULT_FUNCTIONS,
     DEFAULT_UNITS,
-    DEFAULT_CONSTANTS,
+    get_local_namespace,
 )
-from brian2.codegen.codeobject import create_runner_codeobj
-from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT, Equations
+from brian2.core.preferences import prefs
+from brian2.core.variables import (
+    ArrayVariable,
+    AuxiliaryVariable,
+    Constant,
+    DynamicArrayVariable,
+    Subexpression,
+    Variable,
+    Variables,
+)
+from brian2.equations.equations import BOOLEAN, FLOAT, INTEGER, Equations
+from brian2.importexport.importexport import ImportExport
 from brian2.units.fundamentalunits import (
+    DIMENSIONLESS,
     fail_for_dimension_mismatch,
     get_unit,
-    DIMENSIONLESS,
 )
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import get_identifiers, SpellChecker
-from brian2.importexport.importexport import ImportExport
+from brian2.utils.stringtools import SpellChecker, get_identifiers
 
 __all__ = ["Group", "VariableOwner", "CodeRunner"]
 

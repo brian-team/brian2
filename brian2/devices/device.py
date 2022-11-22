@@ -3,16 +3,16 @@ Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
 """
 
-from weakref import WeakKeyDictionary
 import numbers
+from weakref import WeakKeyDictionary
 
 import numpy as np
 
-from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.targets import codegen_targets
 from brian2.core.names import find_name
 from brian2.core.preferences import prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
+from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.units import ms
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import code_representation, indent

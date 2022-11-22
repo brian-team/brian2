@@ -1,10 +1,10 @@
 import multiprocessing
 import os
 
-from brian2.utils.logger import BrianLogger, get_logger
-from brian2.core.preferences import prefs
-
 import pytest
+
+from brian2.core.preferences import prefs
+from brian2.utils.logger import BrianLogger, get_logger
 
 logger = get_logger("brian2.tests.test_logger")
 

@@ -3,22 +3,22 @@ Simplify and optimise sequences of statements by rewriting and pulling out loop 
 """
 
 import ast
-from collections import OrderedDict
 import copy
 import itertools
+from collections import OrderedDict
 from functools import reduce
 
-from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
+from brian2.core.functions import DEFAULT_CONSTANTS, DEFAULT_FUNCTIONS
+from brian2.core.preferences import prefs
 from brian2.core.variables import AuxiliaryVariable
 from brian2.parsing.bast import (
-    brian_ast,
     BrianASTRenderer,
-    dtype_hierarchy,
+    brian_ast,
     brian_dtype_from_dtype,
+    dtype_hierarchy,
 )
 from brian2.parsing.rendering import NodeRenderer, get_node_value
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.core.preferences import prefs
 
 from .statements import Statement
 

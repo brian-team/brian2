@@ -1,24 +1,25 @@
 """
 Numerical integration functions.
 """
-import string
 import operator
+import string
 from functools import reduce
 
 import sympy
-from sympy.core.sympify import SympifyError
 from pyparsing import (
-    Literal,
     Group,
+    Literal,
+    ParseException,
+    Suppress,
     Word,
     ZeroOrMore,
-    Suppress,
     restOfLine,
-    ParseException,
 )
+from sympy.core.sympify import SympifyError
 
-from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.equations.codestrings import is_constant_over_dt
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
+
 from .base import (
     StateUpdateMethod,
     UnsupportedEquationsException,
@@ -314,7 +315,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         return s
 
     def _latex(self, *args):
-        from sympy import latex, Symbol
+        from sympy import Symbol, latex
 
         s = [r"\begin{equation}"]
         for var, expr in self.statements:

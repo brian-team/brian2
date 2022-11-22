@@ -1,9 +1,8 @@
-import uuid
 import re
+import uuid
 
-from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable
-
+from brian2.utils.logger import get_logger
 
 __all__ = ["Nameable"]
 

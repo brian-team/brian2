@@ -5,14 +5,15 @@ provided in the GNU Scientific Library (GSL)
 
 import sys
 
+from brian2.utils.logger import get_logger
+
+from ..core.preferences import prefs
+from ..devices.device import RuntimeDevice, all_devices, auto_target
 from .base import (
     StateUpdateMethod,
     UnsupportedEquationsException,
     extract_method_options,
 )
-from ..core.preferences import prefs
-from ..devices.device import auto_target, all_devices, RuntimeDevice
-from brian2.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -67,6 +68,7 @@ class GSLContainer(object):
         # imports in this function to avoid circular imports
         from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
         from brian2.devices.device import get_device
+
         from ..codegen.runtime.GSLcython_rt import GSLCythonCodeObject
 
         device = get_device()

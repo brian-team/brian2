@@ -1,43 +1,42 @@
 """
 Module implementing the C++ "standalone" device.
 """
+import inspect
+import itertools
+import numbers
 import os
 import shutil
 import subprocess
 import sys
-import inspect
-from collections import defaultdict, Counter
-import itertools
-import numbers
 import tempfile
-from distutils import ccompiler
 import time
 import zlib
+from collections import Counter, defaultdict
+from distutils import ccompiler
 
 import numpy as np
 
 import brian2
 from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
-from brian2.core.network import Network
-from brian2.devices.device import Device, all_devices, set_device, reset_device
-from brian2.core.functions import Function
+from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.core.base import BrianObject
-from brian2.core.variables import *
+from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
+from brian2.core.network import Network
+from brian2.core.preferences import BrianPreference, prefs
+from brian2.core.variables import *
+from brian2.devices.device import Device, all_devices, reset_device, set_device
 from brian2.groups.group import Group
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
-from brian2.core.preferences import prefs, BrianPreference
-from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
-from brian2.utils.stringtools import word_substitute
-from brian2.codegen.generators.cpp_generator import c_data_type
-from brian2.units.fundamentalunits import Quantity
 from brian2.units import second
+from brian2.units.fundamentalunits import Quantity
+from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.logger import get_logger, std_silent
+from brian2.utils.stringtools import word_substitute
 
 from .codeobject import CPPStandaloneCodeObject, openmp_pragma
-
 
 __all__ = []
 

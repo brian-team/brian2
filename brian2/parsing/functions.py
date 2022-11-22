@@ -1,7 +1,7 @@
 import ast
 import inspect
 
-from brian2.utils.stringtools import deindent, indent, get_identifiers
+from brian2.utils.stringtools import deindent, get_identifiers, indent
 
 from .rendering import NodeRenderer
 

@@ -1,14 +1,14 @@
-import weakref
+import gc
 import inspect
 import itertools
-import gc
+import weakref
 
-from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
+from brian2.units.fundamentalunits import check_units
 from brian2.utils.logger import get_logger
 
-from .network import Network
 from .base import BrianObject
+from .network import Network
 
 __all__ = [
     "MagicNetwork",

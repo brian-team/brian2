@@ -7,21 +7,18 @@ import re
 
 import numpy as np
 
-from brian2.units.fundamentalunits import fail_for_dimension_mismatch
-from brian2.core.variables import AuxiliaryVariable, ArrayVariable, Constant
-from brian2.core.functions import Function
-from brian2.codegen.translation import make_statements
-from brian2.codegen.permutation_analysis import (
-    check_for_order_independence,
-    OrderDependenceError,
-)
-from brian2.core.preferences import prefs, BrianPreference
-from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.parsing.statements import parse_statement
 from brian2.codegen.generators import c_data_type
-
-
-from brian2.core.preferences import PreferenceError
+from brian2.codegen.permutation_analysis import (
+    OrderDependenceError,
+    check_for_order_independence,
+)
+from brian2.codegen.translation import make_statements
+from brian2.core.functions import Function
+from brian2.core.preferences import BrianPreference, PreferenceError, prefs
+from brian2.core.variables import ArrayVariable, AuxiliaryVariable, Constant
+from brian2.parsing.statements import parse_statement
+from brian2.units.fundamentalunits import fail_for_dimension_mismatch
+from brian2.utils.stringtools import get_identifiers, word_substitute
 
 __all__ = ["GSLCodeGenerator", "GSLCPPCodeGenerator", "GSLCythonCodeGenerator"]
 
@@ -212,8 +209,8 @@ class GSLCodeGenerator(object):
         is_constant_and_cpp_standalone : uses the returned value
         """
         # imports here to avoid circular imports
-        from brian2.devices.device import get_device
         from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
+        from brian2.devices.device import get_device
 
         device = get_device()
         return isinstance(device, CPPStandaloneDevice)

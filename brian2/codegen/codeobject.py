@@ -11,7 +11,7 @@ from brian2.core.functions import Function
 from brian2.core.names import Nameable
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import indent, code_representation
+from brian2.utils.stringtools import code_representation, indent
 
 from .translation import analyse_identifiers
 

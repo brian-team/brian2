@@ -77,12 +77,15 @@ __docformat__ = "restructuredtext en"
 from brian2.only import *
 from brian2.only import test
 
+
 # Check for outdated dependency versions
 def _check_dependency_version(name, version):
+    import sys
+
     from packaging.version import Version
+
     from .core.preferences import prefs
     from .utils.logger import get_logger
-    import sys
 
     logger = get_logger(__name__)
 
@@ -194,8 +197,10 @@ def clear_cache(target):
 
 
 def _check_caches():
-    from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir
-    from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_extensions
+    from brian2.codegen.runtime.cython_rt.extension_manager import (
+        get_cython_cache_dir,
+        get_cython_extensions,
+    )
 
     for target, (dirname, extensions) in [
         ("cython", (get_cython_cache_dir(), get_cython_extensions()))

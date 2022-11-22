@@ -16,13 +16,13 @@ Luminosity             candle    cd
 =====================  ========  ======
 """
 
-import numbers
 import collections
+import itertools
+import numbers
+import operator
+import sys
 from typing import Callable
 from warnings import warn
-import operator
-import itertools
-import sys
 
 import numpy as np
 from numpy import VisibleDeprecationWarning
