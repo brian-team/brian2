@@ -588,7 +588,7 @@ class CPPStandaloneDevice(Device):
         if isinstance(item, str):
             variables = Variables(None)
             variables.add_auxiliary_variable("_indices", dtype=np.int32)
-            variables.add_auxiliary_variable("_cond", dtype=np.bool)
+            variables.add_auxiliary_variable("_cond", dtype=bool)
 
             abstract_code = "_cond = " + item
             namespace = get_local_namespace(level=level + 2)
