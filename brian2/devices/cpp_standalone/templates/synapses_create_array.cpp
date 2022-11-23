@@ -16,8 +16,10 @@ const size_t _new_num_synapses = _old_num_synapses + _numsources;
 constants or scalar arrays#}
 const size_t _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
 const size_t _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
-{{_dynamic_N_incoming}}.resize(_N_post + _target_offset);
-{{_dynamic_N_outgoing}}.resize(_N_pre + _source_offset);
+const size_t _raw_N_pre = {{constant_or_scalar('raw_N_pre', variables['raw_N_pre'])}};
+const size_t _raw_N_post = {{constant_or_scalar('raw_N_post', variables['raw_N_post'])}};
+{{_dynamic_N_incoming}}.resize(_raw_N_post);
+{{_dynamic_N_outgoing}}.resize(_raw_N_pre);
 
 for (size_t _idx=0; _idx<_numsources; _idx++) {
     {# After this code has been executed, the arrays _real_sources and

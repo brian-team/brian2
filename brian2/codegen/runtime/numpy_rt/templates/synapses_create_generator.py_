@@ -106,7 +106,11 @@ _vectorisation_idx = 1
 "k" is called the inner variable #}
 
 for _{{outer_index}} in range({{outer_index_size}}):
+    {% if non_contiguous_outer %}
+    _raw{{outer_index_array}} = {{get_array_name(variables[outer_sub_idx])}}[_{{outer_index}}]
+    {% else %}
     _raw{{outer_index_array}} = _{{outer_index}} + {{outer_index_offset}}
+    {% endif %}
     {% if not result_index_condition %}
     {{vector_code['create_cond']|autoindent}}
     if not _cond:
@@ -184,7 +188,11 @@ for _{{outer_index}} in range({{outer_index_size}}):
     {% endif %}
 
     _vectorisation_idx = _{{result_index}}
+    {% if non_contiguous_result %}
+    _raw{{result_index_array}} = {{get_array_name(variables[result_sub_idx])}}[_{{result_index}}]
+    {% else %}
     _raw{{result_index_array}} = _{{result_index}} + {{result_index_offset}}
+    {% endif %}
     {{vector_code['update']|autoindent}}
 
     if not _numpy.isscalar(_n):
