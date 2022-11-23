@@ -88,12 +88,6 @@ def test_creation_errors():
         Synapses(G, G, "w:1", pre="v+=w", on_pre="v+=w")
     with pytest.raises(TypeError):
         Synapses(G, G, "w:1", post="v+=w", on_post="v+=w")
-    # We do not allow non-contiguous subgroups as source/target groups at the
-    # moment
-    with pytest.raises(TypeError):
-        Synapses(G[::2], G, "")
-    with pytest.raises(TypeError):
-        Synapses(G, G[::2], "")
 
 
 @pytest.mark.codegen_independent

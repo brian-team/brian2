@@ -1152,13 +1152,17 @@ class Synapses(Group):
                 )
 
     N_outgoing_pre = property(
-        fget=lambda self: self.variables["N_outgoing"].get_value(),
+        fget=lambda self: self.variables["N_outgoing"].get_value()
+        if not isinstance(self.source, Subgroup)
+        else self.variables["N_outgoing"].get_value()[self.source._sub_idx],
         doc=(
             "The number of outgoing synapses for each neuron in the pre-synaptic group."
         ),
     )
     N_incoming_post = property(
-        fget=lambda self: self.variables["N_incoming"].get_value(),
+        fget=lambda self: self.variables["N_incoming"].get_value()
+        if not isinstance(self.target, Subgroup)
+        else self.variables["N_incoming"].get_value()[self.target._sub_idx],
         doc=(
             "The number of incoming synapses for each neuron in the "
             "post-synaptic group."
@@ -1319,7 +1323,14 @@ class Synapses(Group):
             read_only=True,
             index="_presynaptic_idx",
         )
-
+        if isinstance(self.source, Subgroup):
+            self.variables.add_reference("raw_N_pre", self.source.source, "N")
+        else:
+            self.variables.add_reference("raw_N_pre", self.source, "N")
+        if isinstance(self.target, Subgroup):
+            self.variables.add_reference("raw_N_post", self.target.source, "N")
+        else:
+            self.variables.add_reference("raw_N_post", self.target, "N")
         # We have to make a distinction here between the indices
         # and the arrays (even though they refer to the same object)
         # the synaptic propagation template would otherwise overwrite
@@ -1329,45 +1340,68 @@ class Synapses(Group):
         self.variables.add_reference("_presynaptic_idx", self, "_synaptic_pre")
         self.variables.add_reference("_postsynaptic_idx", self, "_synaptic_post")
 
-        # Except for subgroups (which potentially add an offset), the "i" and
-        # "j" variables are simply equivalent to `_synaptic_pre` and
-        # `_synaptic_post`
-        if getattr(self.source, "start", 0) == 0:
+        # For subgroups, i and j either are shifted versions of the original indices
+        # (contiguous subgroups), or map into the real indices using the sub_idx
+        # variable
+        if (
+            isinstance(self.source, Subgroup)
+            and getattr(self.source, "start", None) != 0
+        ):
+            if self.source.contiguous:
+                self.variables.add_reference(
+                    "_source_i", self.source.source, "i", index="_presynaptic_idx"
+                )
+                self.variables.add_reference("_source_offset", self.source, "_offset")
+                self.variables.add_subexpression(
+                    "i",
+                    dtype=self.source.source.variables["i"].dtype,
+                    expr="_source_i - _source_offset",
+                    index="_presynaptic_idx",
+                )
+            else:
+                inverted_idcs = np.zeros(len(self.source.source), dtype=np.int32)
+                inverted_idcs[self.source._sub_idx] = np.arange(len(self.source))
+                self.variables.add_array(
+                    "i",
+                    dtype=np.int32,
+                    size=len(self.source.source),
+                    values=inverted_idcs,
+                    index="_presynaptic_idx",
+                )
+        else:
+            # For subgroups that start at zero, or when not using a subgroup, i is
+            # simply a reference to the presynaptic indices
             self.variables.add_reference("i", self, "_synaptic_pre")
-        else:
-            if isinstance(self.source, Subgroup) and not self.source.contiguous:
-                raise TypeError(
-                    "Cannot use a non-contiguous subgroup as a "
-                    "source group for Synapses."
+
+        if (
+            isinstance(self.target, Subgroup)
+            and getattr(self.target, "start", None) != 0
+        ):
+            if self.target.contiguous:
+                self.variables.add_reference(
+                    "_target_i", self.target.source, "i", index="_postsynaptic_idx"
                 )
-            self.variables.add_reference(
-                "_source_i", self.source.source, "i", index="_presynaptic_idx"
-            )
-            self.variables.add_reference("_source_offset", self.source, "_offset")
-            self.variables.add_subexpression(
-                "i",
-                dtype=self.source.source.variables["i"].dtype,
-                expr="_source_i - _source_offset",
-                index="_presynaptic_idx",
-            )
-        if getattr(self.target, "start", 0) == 0:
+                self.variables.add_reference("_target_offset", self.target, "_offset")
+                self.variables.add_subexpression(
+                    "j",
+                    dtype=self.target.source.variables["i"].dtype,
+                    expr="_target_i - _target_offset",
+                    index="_postsynaptic_idx",
+                )
+            else:
+                inverted_idcs = np.zeros(len(self.target.source), dtype=np.int32)
+                inverted_idcs[self.target._sub_idx] = np.arange(len(self.target))
+                self.variables.add_array(
+                    "j",
+                    dtype=np.int32,
+                    size=len(self.target.source),
+                    values=inverted_idcs,
+                    index="_postsynaptic_idx",
+                )
+        else:
+            # For subgroups that start at zero, or when not using a subgroup, j is
+            # simply a reference to the postsynaptic indices
             self.variables.add_reference("j", self, "_synaptic_post")
-        else:
-            if isinstance(self.target, Subgroup) and not self.target.contiguous:
-                raise TypeError(
-                    "Cannot use a non-contiguous subgroup as a "
-                    "target group for Synapses."
-                )
-            self.variables.add_reference(
-                "_target_j", self.target.source, "i", index="_postsynaptic_idx"
-            )
-            self.variables.add_reference("_target_offset", self.target, "_offset")
-            self.variables.add_subexpression(
-                "j",
-                dtype=self.target.source.variables["i"].dtype,
-                expr="_target_j - _target_offset",
-                index="_postsynaptic_idx",
-            )
 
         # Add the standard variables
         self.variables.add_array(
@@ -1779,20 +1813,19 @@ class Synapses(Group):
         self.variables["N"].set_value(number)
 
     def _update_synapse_numbers(self, old_num_synapses):
-        source_offset = self.variables["_source_offset"].get_value()
-        target_offset = self.variables["_target_offset"].get_value()
         # This resizing is only necessary if we are connecting to/from synapses
-        post_with_offset = int(self.variables["N_post"].get_value()) + target_offset
-        pre_with_offset = int(self.variables["N_pre"].get_value()) + source_offset
-        self.variables["N_incoming"].resize(post_with_offset)
-        self.variables["N_outgoing"].resize(pre_with_offset)
+        post_size = np.asarray(self.variables["raw_N_post"].get_value()).item()
+        pre_size = np.asarray(self.variables["raw_N_pre"].get_value()).item()
+        self.variables["N_incoming"].resize(post_size)
+        self.variables["N_outgoing"].resize(pre_size)
         N_outgoing = self.variables["N_outgoing"].get_value()
         N_incoming = self.variables["N_incoming"].get_value()
         synaptic_pre = self.variables["_synaptic_pre"].get_value()
         synaptic_post = self.variables["_synaptic_post"].get_value()
 
         # Update the number of total outgoing/incoming synapses per
-        # source/target neuron
+        # source/target neuron. Note that for subgroups, all entries that correspond
+        # to neurons not present in the subgroup are left empty.
         N_outgoing[:] += np.bincount(
             synaptic_pre[old_num_synapses:], minlength=len(N_outgoing)
         )
@@ -1841,7 +1874,7 @@ class Synapses(Group):
 
     def _add_synapses_from_arrays(self, sources, targets, n, p, namespace=None):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
-
+        needed_variables.extend(["raw_N_pre", "raw_N_post"])
         variables = Variables(self)
 
         sources = np.atleast_1d(sources).astype(np.int32)
@@ -1887,12 +1920,19 @@ class Synapses(Group):
         sources = sources.repeat(n)
         targets = targets.repeat(n)
 
+        # For non-contiguous subgroups, we directly translate the indices here, i.e. for
+        # the template it is as if no subgroups were used at all
+        if isinstance(self.source, Subgroup) and not self.source.contiguous:
+            sources = self.source._sub_idx[sources]
+        if isinstance(self.target, Subgroup) and not self.target.contiguous:
+            targets = self.target._sub_idx[targets]
         variables.add_array(
             "sources", len(sources), dtype=np.int32, values=sources, read_only=True
         )
         variables.add_array(
             "targets", len(targets), dtype=np.int32, values=targets, read_only=True
         )
+
         # These definitions are important to get the types right in C++
         variables.add_auxiliary_variable("_real_sources", dtype=np.int32)
         variables.add_auxiliary_variable("_real_targets", dtype=np.int32)
@@ -1988,6 +2028,16 @@ class Synapses(Group):
         outer_index_size = "N_pre" if over_presynaptic else "N_post"
         outer_index_array = "_pre_idx" if over_presynaptic else "_post_idx"
         outer_index_offset = "_source_offset" if over_presynaptic else "_target_offset"
+        if over_presynaptic:
+            non_contiguous_outer = not getattr(self.source, "contiguous", True)
+            non_contiguous_result = not getattr(self.target, "contiguous", True)
+        else:
+            non_contiguous_outer = not getattr(self.target, "contiguous", True)
+            non_contiguous_result = not getattr(self.source, "contiguous", True)
+        # The ..._sub_idx variable are unused if the group is a contiguous subgroup,
+        # or not a subgroup at all
+        outer_sub_idx = "_source_sub_idx" if over_presynaptic else "_target_sub_idx"
+        result_sub_idx = "_target_sub_idx" if over_presynaptic else "_source_sub_idx"
         result_index = "j" if over_presynaptic else "i"
         result_index_size = "N_post" if over_presynaptic else "N_pre"
         target_idx = "_postsynaptic_idx" if over_presynaptic else "_presynaptic_idx"
@@ -2000,11 +2050,15 @@ class Synapses(Group):
                 "outer_index_size": outer_index_size,
                 "outer_index_array": outer_index_array,
                 "outer_index_offset": outer_index_offset,
+                "non_contiguous_outer": non_contiguous_outer,
+                "outer_sub_idx": outer_sub_idx,
                 "result_index": result_index,
                 "result_index_size": result_index_size,
                 "result_index_name": result_index_name,
                 "result_index_array": result_index_array,
                 "result_index_offset": result_index_offset,
+                "non_contiguous_result": non_contiguous_result,
+                "result_sub_idx": result_sub_idx,
             }
         )
         abstract_code = {
@@ -2097,6 +2151,13 @@ class Synapses(Group):
         else:
             variables.add_constant("_target_offset", value=0)
 
+        if not getattr(self.source, "contiguous", True):
+            variables.add_reference("_source_sub_idx", self.source, "_sub_idx")
+            needed_variables.append("_source_sub_idx")
+        if not getattr(self.target, "contiguous", True):
+            variables.add_reference("_target_sub_idx", self.target, "_sub_idx")
+            needed_variables.append("_target_sub_idx")
+
         variables.add_auxiliary_variable("_raw_pre_idx", dtype=np.int32)
         variables.add_auxiliary_variable("_raw_post_idx", dtype=np.int32)
 
@@ -2116,6 +2177,7 @@ class Synapses(Group):
             f"'{self.target.name}', using generator "
             f"'{parsed['original_expression']}'"
         )
+        needed_variables.extend(["raw_N_pre", "raw_N_post"])
 
         codeobj = create_runner_codeobj(
             self,
