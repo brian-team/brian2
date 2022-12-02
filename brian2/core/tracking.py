@@ -34,7 +34,7 @@ class InstanceTrackerSet(set):
             pass
 
 
-class InstanceFollower(object):
+class InstanceFollower:
     """
     Keep track of all instances of classes derived from `Trackable`
 
@@ -58,7 +58,7 @@ class InstanceFollower(object):
         return self.instance_sets[cls]
 
 
-class Trackable(object):
+class Trackable:
     """
     Classes derived from this will have their instances tracked.
 

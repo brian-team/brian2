@@ -140,7 +140,7 @@ class PoissonGroup(Group, SpikeSource):
                 "argument, has to have units "
                 "of Hz",
             )
-        super(PoissonGroup, self).before_run(run_namespace)
+        super().before_run(run_namespace)
 
     @property
     def spikes(self):

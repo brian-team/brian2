@@ -18,7 +18,7 @@ from brian2.units import ms
 
 class ATestDevice(Device):
     def activate(self, build_on_run, **kwargs):
-        super(ATestDevice, self).activate(build_on_run, **kwargs)
+        super().activate(build_on_run, **kwargs)
         self.build_on_run = build_on_run
         self._options = kwargs
 

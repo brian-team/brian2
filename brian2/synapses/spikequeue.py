@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 INITIAL_MAXSPIKESPER_DT = 1
 
 
-class SpikeQueue(object):
+class SpikeQueue:
     """
     Data structure saving the spikes and taking care of delays.
 

@@ -12,7 +12,7 @@ from brian2.units.unitsafefunctions import *
 
 # These will not be imported with a wildcard import to not overwrite the
 # builtin names (mimicking the numpy behaviour)
-from builtins import bool, int, float, complex, object, bytes, str
+from builtins import bool, float, complex
 
 from numpy.core import round, abs, max, min
 

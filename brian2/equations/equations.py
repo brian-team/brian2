@@ -318,9 +318,7 @@ def dimensions_and_type_from_string(unit_string):
         alternatives = sorted(
             [tuple(values) for values in base_units_for_dims.values()]
         )
-        _base_units = dict(
-            [(v, DEFAULT_UNITS[v]) for values in alternatives for v in values]
-        )
+        _base_units = {v: DEFAULT_UNITS[v] for values in alternatives for v in values}
         # Create a string that lists all allowed base units
         alternative_strings = []
         for units in alternatives:
@@ -521,7 +519,7 @@ class SingleEquation(Hashable, CacheKey):
     unit = property(lambda self: get_unit(self.dim), doc="The `Unit` of this equation.")
 
     identifiers = property(
-        lambda self: self.expr.identifiers if not self.expr is None else set([]),
+        lambda self: self.expr.identifiers if not self.expr is None else set(),
         doc="All identifiers in the RHS of this equation.",
     )
 
@@ -1021,7 +1019,7 @@ class Equations(Hashable, Mapping):
     )
 
     dimensions = property(
-        lambda self: dict([(var, eq.dim) for var, eq in self._equations.items()]),
+        lambda self: {var: eq.dim for var, eq in self._equations.items()},
         doc=(
             "Dictionary of all internal variables and their "
             "corresponding physical dimensions."
@@ -1310,13 +1308,13 @@ class Equations(Hashable, Mapping):
             else:
                 flag_str = ""
             if eq.type == PARAMETER:
-                eq_latex = r"%s &&& \text{(unit: $%s$%s)}" % (
+                eq_latex = r"{} &&& \text{{(unit: ${}${})}}".format(
                     sympy.latex(lhs),
                     sympy.latex(get_unit(eq.dim)),
                     flag_str,
                 )
             else:
-                eq_latex = r"%s &= %s && \text{(unit of $%s$: $%s$%s)}" % (
+                eq_latex = r"{} &= {} && \text{{(unit of ${}$: ${}${})}}".format(
                     lhs,  # already a string
                     sympy.latex(rhs),
                     sympy.latex(varname),

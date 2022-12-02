@@ -30,7 +30,7 @@ default_method_options = {
 }
 
 
-class GSLContainer(object):
+class GSLContainer:
     """
     Class that contains information (equation- or integrator-related) required
     for later code generation

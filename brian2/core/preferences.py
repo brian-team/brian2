@@ -80,7 +80,7 @@ class PreferenceError(Exception):
     pass
 
 
-class DefaultValidator(object):
+class DefaultValidator:
     """
     Default preference validator
 
@@ -102,7 +102,7 @@ class DefaultValidator(object):
         return True
 
 
-class BrianPreference(object):
+class BrianPreference:
     """
     Used for defining a Brian preference.
 
@@ -442,7 +442,7 @@ class BrianGlobalPreferences(MutableMapping):
         """
         if isinstance(file, str):
             filename = file
-            file = open(file, "r")
+            file = open(file)
         else:
             filename = repr(file)
         lines = file.readlines()
@@ -494,7 +494,7 @@ class BrianGlobalPreferences(MutableMapping):
         for file in files:
             try:
                 self.read_preference_file(file)
-            except IOError:
+            except OSError:
                 pass
 
         # The "default_preferences" file is no longer used, but we raise a
@@ -720,7 +720,7 @@ prefs = BrianGlobalPreferences()
 
 
 # Simple class to give a useful error message when using `brian_prefs`
-class ErrorRaiser(object):
+class ErrorRaiser:
     def __getattr__(self, item):
         raise AttributeError(
             "The global preferences object has been renamed "

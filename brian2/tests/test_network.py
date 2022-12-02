@@ -101,7 +101,7 @@ class Counter(BrianObject):
     add_to_magic_network = True
 
     def __init__(self, **kwds):
-        super(Counter, self).__init__(**kwds)
+        super().__init__(**kwds)
         self.count = 0
         self.state = {"state": 0}
 
@@ -120,7 +120,7 @@ class CounterWithContained(Counter):
     add_to_magic_network = True
 
     def __init__(self, **kwds):
-        super(CounterWithContained, self).__init__(**kwds)
+        super().__init__(**kwds)
         self.sub_counter = Counter()
         self.contained_objects.append(self.sub_counter)
 
@@ -166,7 +166,7 @@ class NameLister(BrianObject):
     updates = []
 
     def __init__(self, **kwds):
-        super(NameLister, self).__init__(**kwds)
+        super().__init__(**kwds)
 
     def run(self):
         NameLister.updates.append(self.name)
@@ -309,7 +309,7 @@ def test_schedule_warning():
 
     class TestDevice2(TestDevice1):
         def __init__(self):
-            super(TestDevice2, self).__init__()
+            super().__init__()
             self.network_schedule = [
                 "start",
                 "groups",
@@ -478,7 +478,7 @@ class Preparer(BrianObject):
     add_to_magic_network = True
 
     def __init__(self, **kwds):
-        super(Preparer, self).__init__(**kwds)
+        super().__init__(**kwds)
         self.did_reinit = False
         self.did_pre_run = False
         self.did_post_run = False
@@ -510,7 +510,7 @@ class Stopper(BrianObject):
     add_to_magic_network = True
 
     def __init__(self, stoptime, stopfunc, **kwds):
-        super(Stopper, self).__init__(**kwds)
+        super().__init__(**kwds)
         self.stoptime = stoptime
         self.stopfunc = stopfunc
 
@@ -555,7 +555,7 @@ def test_network_operations():
 
     # In complex frameworks, network operations might be object methods that
     # access some common data
-    class Container(object):
+    class Container:
         def __init__(self):
             self.g1_data = "B"
             self.g2_data = "C"
@@ -581,7 +581,7 @@ def test_incorrect_network_operations():
     def func(x, y):
         pass
 
-    class Container(object):
+    class Container:
         def func(self, x, y):
             pass
 
@@ -596,7 +596,7 @@ def test_incorrect_network_operations():
     # method
     try:
 
-        class Container(object):
+        class Container:
             @network_operation
             def func(self):
                 pass

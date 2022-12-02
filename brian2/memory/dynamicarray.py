@@ -14,7 +14,7 @@ def getslices(shape, from_start=True):
         return tuple(slice(x, None) for x in shape)
 
 
-class DynamicArray(object):
+class DynamicArray:
     """
     An N-dimensional dynamic array class
 

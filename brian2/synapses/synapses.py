@@ -170,7 +170,7 @@ class SummedVariableUpdater(CodeRunner):
             "the same dimensions as the right-hand "
             f"side expression '{self.expression}'.",
         )
-        super(SummedVariableUpdater, self).before_run(run_namespace)
+        super().before_run(run_namespace)
 
 
 class SynapticPathway(CodeRunner, Group):
@@ -362,7 +362,7 @@ class SynapticPathway(CodeRunner, Group):
 
     @device_override("synaptic_pathway_before_run")
     def before_run(self, run_namespace):
-        super(SynapticPathway, self).before_run(run_namespace)
+        super().before_run(run_namespace)
 
     def create_code_objects(self, run_namespace):
         if self._pushspikes_codeobj is None:
@@ -433,7 +433,7 @@ class SynapticPathway(CodeRunner, Group):
             )
 
     def _full_state(self):
-        state = super(SynapticPathway, self)._full_state()
+        state = super()._full_state()
         if self.queue is not None:
             state["_spikequeue"] = self.queue._full_state()
         else:
@@ -446,7 +446,7 @@ class SynapticPathway(CodeRunner, Group):
         # get treated as a state variable by the standard mechanism in
         # `VariableOwner`
         queue_state = state.pop("_spikequeue")
-        super(SynapticPathway, self)._restore_from_full_state(state)
+        super()._restore_from_full_state(state)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
         self.queue._restore_from_full_state(queue_state)
@@ -528,7 +528,7 @@ def find_synapses(index, synaptic_neuron):
     return synapses
 
 
-class SynapticSubgroup(object):
+class SynapticSubgroup:
     """
     A simple subgroup of `Synapses` that can be used for indexing.
 
@@ -567,7 +567,7 @@ class SynapticSubgroup(object):
         )
 
 
-class SynapticIndexing(object):
+class SynapticIndexing:
     def __init__(self, synapses):
         self.synapses = weakref.proxy(synapses)
         self.source = weakproxy_with_fallback(self.synapses.source)
@@ -1498,7 +1498,7 @@ class Synapses(Group):
         # Check that subexpressions that refer to stateful functions are labeled
         # as "constant over dt"
         check_subexpressions(self, self.equations, run_namespace)
-        super(Synapses, self).before_run(run_namespace=run_namespace)
+        super().before_run(run_namespace=run_namespace)
 
     @device_override("synapses_connect")
     def connect(

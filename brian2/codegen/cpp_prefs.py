@@ -46,13 +46,13 @@ if platform.system() == "Windows":
     hostname = socket.gethostname()
     if os.path.isfile(flag_file):
         try:
-            with open(flag_file, "r", encoding="utf-8") as f:
+            with open(flag_file, encoding="utf-8") as f:
                 previously_stored_flags = json.load(f)
             if hostname not in previously_stored_flags:
                 logger.debug("Ignoring stored CPU flags for a different host")
             else:
                 flags = previously_stored_flags[hostname]
-        except (IOError, OSError) as ex:
+        except OSError as ex:
             logger.debug(
                 f'Opening file "{flag_file}" to get CPU flags failed with error'
                 f' "{str(ex)}".'
@@ -66,7 +66,7 @@ if platform.system() == "Windows":
         try:
             output = subprocess.check_output(
                 [sys.executable, get_cpu_flags_script],
-                universal_newlines=True,
+                text=True,
                 encoding="utf-8",
             )
             flags = json.loads(output)
@@ -79,7 +79,7 @@ if platform.system() == "Windows":
                     to_store = {hostname: flags}
                 with open(flag_file, "w", encoding="utf-8") as f:
                     json.dump(to_store, f)
-            except (IOError, OSError) as ex:
+            except OSError as ex:
                 logger.debug(
                     f'Writing file "{flag_file}" to store CPU flags failed with error'
                     f' "{str(ex)}".'
@@ -269,7 +269,7 @@ def _determine_flag_compatibility(compiler, flagname):
         prefix="brian_flag_test_"
     ) as temp_dir, std_silent():
         fname = os.path.join(temp_dir, "flag_test.cpp")
-        with open(fname, "wt") as f:
+        with open(fname, "w") as f:
             f.write("int main (int argc, char **argv) { return 0; }")
         try:
             compiler.compile([fname], output_dir=temp_dir, extra_postargs=[flagname])
@@ -351,7 +351,7 @@ def get_msvc_env():
         try:
             _msvc_env = msvc.msvc14_get_vc_env(arch_name)
         except distutils.errors.DistutilsPlatformError:
-            raise IOError(
+            raise OSError(
                 "Cannot find Microsoft Visual Studio, You "
                 "can try to set the path to vcvarsall.bat "
                 "via the codegen.cpp.msvc_vars_location "
@@ -370,11 +370,11 @@ def compiler_supports_c99():
             fd, tmp_file = tempfile.mkstemp(suffix=".cpp")
             os.write(
                 fd,
-                """
+                b"""
             #if _MSC_VER < 1800
             #error
             #endif
-            """.encode(),
+            """,
             )
             os.close(fd)
             msvc_env, vcvars_cmd = get_msvc_env()
@@ -396,7 +396,7 @@ def compiler_supports_c99():
     return _compiler_supports_c99
 
 
-class C99Check(object):
+class C99Check:
     """
     Helper class to create objects that can be passed as an ``availability_check`` to
     a `FunctionImplementation`.

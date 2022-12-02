@@ -3,7 +3,7 @@ Module providing the `Statement` class.
 """
 
 
-class Statement(object):
+class Statement:
     """
     A single line mathematical statement.
 

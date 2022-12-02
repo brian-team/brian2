@@ -128,7 +128,7 @@ def _get_size_recursively(dirname):
             try:
                 size = os.path.getsize(os.path.join(dirpath, fname))
                 total_size += size
-            except (OSError, IOError):
+            except OSError:
                 pass  # ignore the file
     return total_size
 
@@ -185,7 +185,7 @@ def clear_cache(target):
                 if f.endswith(ext):
                     break
             else:
-                raise IOError(
+                raise OSError(
                     f"The cache directory for target '{target}' contains "
                     f"the file '{os.path.join(folder, f)}' of an unexpected type and "
                     "will therefore not be removed. Delete files in "

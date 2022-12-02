@@ -102,7 +102,7 @@ prefs.register_preferences(
 )
 
 
-class CPPWriter(object):
+class CPPWriter:
     def __init__(self, project_dir):
         self.project_dir = project_dir
         self.source_files = set()
@@ -120,7 +120,7 @@ class CPPWriter(object):
             return
         fullfilename = os.path.join(self.project_dir, filename)
         if os.path.exists(fullfilename):
-            with open(fullfilename, "r") as f:
+            with open(fullfilename) as f:
                 if f.read() == contents:
                     return
         with open(fullfilename, "w") as f:
@@ -128,7 +128,7 @@ class CPPWriter(object):
 
 
 def invert_dict(x):
-    return dict((v, k) for k, v in x.items())
+    return {v: k for k, v in x.items()}
 
 
 class CPPStandaloneDevice(Device):
@@ -137,7 +137,7 @@ class CPPStandaloneDevice(Device):
     """
 
     def __init__(self):
-        super(CPPStandaloneDevice, self).__init__()
+        super().__init__()
         #: Dictionary mapping `ArrayVariable` objects to their globally
         #: unique name
         self.arrays = {}
@@ -205,7 +205,7 @@ class CPPStandaloneDevice(Device):
         #: Dictionary storing compile and binary execution times
         self.timers = {"run_binary": None, "compile": {"clean": None, "make": None}}
 
-        self.clocks = set([])
+        self.clocks = set()
 
         self.extra_compile_args = []
         self.define_macros = []
@@ -234,7 +234,7 @@ class CPPStandaloneDevice(Device):
         build_on_run = self.build_on_run
         build_options = self.build_options
         self.__init__()
-        super(CPPStandaloneDevice, self).reinit()
+        super().reinit()
         self.build_on_run = build_on_run
         self.build_options = build_options
 
@@ -676,7 +676,7 @@ class CPPStandaloneDevice(Device):
                     )
                     do_not_invalidate.add(var)
 
-        codeobj = super(CPPStandaloneDevice, self).code_object(
+        codeobj = super().code_object(
             owner,
             name,
             abstract_code,
@@ -993,7 +993,7 @@ class CPPStandaloneDevice(Device):
             source_list = " ".join(source_bases)
             source_list_fname = os.path.join(self.project_dir, "sourcefiles.txt")
             if os.path.exists(source_list_fname):
-                with open(source_list_fname, "r") as f:
+                with open(source_list_fname) as f:
                     if f.read() == source_list:
                         return
             with open(source_list_fname, "w") as f:
@@ -1142,7 +1142,7 @@ class CPPStandaloneDevice(Device):
 
                     if x != 0:
                         if os.path.exists("winmake.log"):
-                            with open("winmake.log", "r") as f:
+                            with open("winmake.log") as f:
                                 print(f.read())
                         error_message = (
                             "Project compilation failed (error code: %u)." % x
@@ -1225,7 +1225,7 @@ class CPPStandaloneDevice(Device):
                 stdout.close()
             if x:
                 if os.path.exists("results/stdout.txt"):
-                    with open("results/stdout.txt", "r") as f:
+                    with open("results/stdout.txt") as f:
                         print(f.read())
                 raise RuntimeError(
                     "Project run failed (project directory:"
@@ -1233,7 +1233,7 @@ class CPPStandaloneDevice(Device):
                 )
             self.has_been_run = True
             if os.path.isfile("results/last_run_info.txt"):
-                with open("results/last_run_info.txt", "r") as f:
+                with open("results/last_run_info.txt") as f:
                     last_run_info = f.read()
                 run_time, completed_fraction = last_run_info.split()
                 self._last_run_time = float(run_time)
@@ -1563,7 +1563,7 @@ class CPPStandaloneDevice(Device):
             full_fname = os.path.join(self.project_dir, fname)
             try:
                 os.remove(full_fname)
-            except (OSError, IOError) as ex:
+            except OSError as ex:
                 logger.debug(f'File "{full_fname}" could not be deleted: {str(ex)}')
 
         # Delete directories
@@ -1845,7 +1845,7 @@ class CPPStandaloneDevice(Device):
         return RunFunctionContext(name, include_in_parent)
 
 
-class RunFunctionContext(object):
+class RunFunctionContext:
     def __init__(self, name, include_in_parent):
         self.name = name
         self.include_in_parent = include_in_parent

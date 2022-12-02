@@ -7,10 +7,10 @@ __all__ = ["abstract_code_dependencies"]
 
 
 def get_read_write_funcs(parsed_code):
-    allids = set([])
-    read = set([])
-    write = set([])
-    funcs = set([])
+    allids = set()
+    read = set()
+    write = set()
+    funcs = set()
     for node in ast.walk(parsed_code):
         if node.__class__ is ast.Name:
             allids.add(node.id)
@@ -88,9 +88,9 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
             abstract code block.
     """
     if known_vars is None:
-        known_vars = set([])
+        known_vars = set()
     if known_funcs is None:
-        known_funcs = set([])
+        known_funcs = set()
     if not isinstance(known_vars, set):
         known_vars = set(known_vars)
     if not isinstance(known_funcs, set):
@@ -106,8 +106,8 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
     # Now check if there are any values that are unknown and read before
     # they are written to
     defined = known_vars.copy()
-    newly_defined = set([])
-    undefined_read = set([])
+    newly_defined = set()
+    undefined_read = set()
     for line in parsed_code.body:
         _, cur_read, cur_write, _ = get_read_write_funcs(line)
         undef = cur_read - defined

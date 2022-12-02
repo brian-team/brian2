@@ -212,7 +212,7 @@ class Clock(VariableOwner):
     epsilon_dt = 1e-4
 
 
-class DefaultClockProxy(object):
+class DefaultClockProxy:
     """
     Method proxy to access the defaultclock of the currently active device
     """

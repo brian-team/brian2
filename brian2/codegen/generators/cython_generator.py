@@ -32,8 +32,8 @@ data_type_conversion_table = [
     ]
 # fmt: on
 
-cpp_dtype = dict((canonical, cpp) for canonical, cpp, np in data_type_conversion_table)
-numpy_dtype = dict((canonical, np) for canonical, cpp, np in data_type_conversion_table)
+cpp_dtype = {canonical: cpp for canonical, cpp, np in data_type_conversion_table}
+numpy_dtype = {canonical: np for canonical, cpp, np in data_type_conversion_table}
 
 
 def get_cpp_dtype(obj):
@@ -57,7 +57,7 @@ class CythonNodeRenderer(NodeRenderer):
             right = self.render_node(node.right)
             return f"((({left})%({right}))+({right}))%({right})"
         else:
-            return super(CythonNodeRenderer, self).render_BinOp(node)
+            return super().render_BinOp(node)
 
 
 class CythonCodeGenerator(CodeGenerator):
@@ -69,7 +69,7 @@ class CythonCodeGenerator(CodeGenerator):
 
     def __init__(self, *args, **kwds):
         self.temporary_vars = set()
-        super(CythonCodeGenerator, self).__init__(*args, **kwds)
+        super().__init__(*args, **kwds)
 
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)

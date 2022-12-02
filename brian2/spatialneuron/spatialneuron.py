@@ -38,7 +38,7 @@ __all__ = ["SpatialNeuron"]
 logger = get_logger(__name__)
 
 
-class FlatMorphology(object):
+class FlatMorphology:
     """
     Container object to store the flattened representation of a morphology.
     Note that all values are stored as numpy arrays without unit information
@@ -708,7 +708,7 @@ class SpatialStateUpdater(CodeRunner, Group):
         self._ends = group.flat_morphology.ends
 
     def before_run(self, run_namespace):
-        super(SpatialStateUpdater, self).before_run(run_namespace)
+        super().before_run(run_namespace)
         # Raise a warning if the slow pure numpy version is used
         from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
 

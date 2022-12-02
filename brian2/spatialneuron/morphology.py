@@ -43,7 +43,7 @@ def _from_morphology(variable, i, j):
     return variable[i:j]
 
 
-class MorphologyIndexWrapper(object):
+class MorphologyIndexWrapper:
     """
     A simpler version of `~brian2.groups.group.IndexWrapper`, not allowing for
     string indexing (`Morphology` is not a `Group`). It allows to use
@@ -91,7 +91,7 @@ def _find_start_index(current, target_section, index=0):
     return index, False
 
 
-class Topology(object):
+class Topology:
     """
     A representation of the topology of a `Morphology`. Has a useful string
     representation, inspired by NEURON's ``topology`` function.
@@ -312,7 +312,7 @@ def _add_coordinates(
     return section
 
 
-class Children(object):
+class Children:
     """
     Helper class to represent the children (sub trees) of a section. Can be
     used like a dictionary (mapping names to `Morphology` objects), but iterates
@@ -418,7 +418,7 @@ class Children(object):
         return f"{s}>"
 
 
-class Morphology(object, metaclass=abc.ABCMeta):
+class Morphology(metaclass=abc.ABCMeta):
     """
     Neuronal morphology (tree structure).
 
@@ -1306,7 +1306,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
         # ignored
         swc_types.update({"1": "soma", "2": "axon", "3": "dend", "4": "apic"})
 
-        with open(filename, "r") as f:
+        with open(filename) as f:
             points = []
             for line_no, line in enumerate(f):
                 line = line.strip()
@@ -1362,7 +1362,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
             )
 
 
-class SubMorphology(object):
+class SubMorphology:
     """
     A view on a subset of a section in a morphology.
     """

@@ -212,7 +212,7 @@ def _same_function(func1, func2):
     return func1 is func2
 
 
-class Indexing(object):
+class Indexing:
     """
     Object responsible for calculating flat index arrays from arbitrary group-
     specific indices. Stores strong references to the necessary variables so
@@ -293,7 +293,7 @@ class Indexing(object):
                 return index_array
 
 
-class IndexWrapper(object):
+class IndexWrapper:
     """
     Convenience class to allow access to the indices via indexing syntax. This
     allows for example to get all indices for synapses originating from neuron
@@ -1254,4 +1254,4 @@ class CodeRunner(BrianObject):
 
     def before_run(self, run_namespace):
         self.create_code_objects(run_namespace)
-        super(CodeRunner, self).before_run(run_namespace)
+        super().before_run(run_namespace)

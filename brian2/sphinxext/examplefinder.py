@@ -34,7 +34,7 @@ def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=[]):
         for fname in shortfnames
     ]
     for fname, shortfname, exname in zip(fnames, shortfnames, exnames):
-        with open(fname, "r") as f:
+        with open(fname) as f:
             ex = f.read()
         ids = get_identifiers(ex)
         for id in ids:

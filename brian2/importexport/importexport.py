@@ -8,7 +8,7 @@ import abc
 from abc import abstractmethod, abstractproperty
 
 
-class ImportExport(object, metaclass=abc.ABCMeta):
+class ImportExport(metaclass=abc.ABCMeta):
     """
     Class for registering new import/export methods (via static methods). Also
     the base class that should be extended for such methods
