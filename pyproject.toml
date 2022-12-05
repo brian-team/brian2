@@ -9,7 +9,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.black]
-target-version = ['py37']
+target-version = ['py38']
 include = '^/brian2/.*\.pyi?$'
 extend-exclude = '^/brian2/_version.py$'
 preview = true
@@ -17,7 +17,7 @@ preview = true
 [tool.isort]
 atomic = true
 profile = "black"
-py_version = "37"
+py_version = "38"
 skip_gitignore = true
 # NOTE: isort has no "include" option, only "skip".
 extend_skip = ["brian2/_version.py"]
