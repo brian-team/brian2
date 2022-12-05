@@ -20,7 +20,7 @@ try:
 
     class OurDoctestModule(pytest_doctest.DoctestModule):
         def collect(self):
-            for item in super(OurDoctestModule, self).collect():
+            for item in super().collect():
                 # Check the object for exclusion from doctests
                 full_name = item.name.split(".")
                 test_name = []
@@ -40,7 +40,7 @@ except ImportError:
     pytest = None
 
 
-class PreferencePlugin(object):
+class PreferencePlugin:
     def __init__(self, prefs, fail_for_not_implemented=True):
         self.prefs = prefs
         self.device = "runtime"
@@ -57,7 +57,7 @@ class PreferencePlugin(object):
             config.pluginmanager.register(xdist_plugin)
 
 
-class XDistPreferencePlugin(object):
+class XDistPreferencePlugin:
     def __init__(self, pref_plugin):
         self._pref_plugin = pref_plugin
 

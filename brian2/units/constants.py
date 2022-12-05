@@ -1,4 +1,3 @@
-# coding=utf-8
 r"""
 A module providing some physical units as `Quantity` objects. Note that these
 units are not imported by wildcard imports (e.g. `from brian2 import *`), they

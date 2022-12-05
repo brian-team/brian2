@@ -121,7 +121,7 @@ def brian_ast(expr, variables):
     return renderer.render_node(node)
 
 
-class BrianASTRenderer(object):
+class BrianASTRenderer:
     """
     This class is modelled after `NodeRenderer` - see there for details.
     """

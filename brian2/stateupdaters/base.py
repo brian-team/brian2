@@ -83,7 +83,7 @@ def extract_method_options(method_options, default_options):
     return filled_options
 
 
-class StateUpdateMethod(object, metaclass=ABCMeta):
+class StateUpdateMethod(metaclass=ABCMeta):
     stateupdaters = dict()
 
     @abstractmethod

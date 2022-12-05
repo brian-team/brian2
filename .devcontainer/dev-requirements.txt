@@ -6,3 +6,4 @@ ipympl
 pre-commit == 2.20.*
 black == 22.10.0
 isort == 5.10.1
+pyupgrade == 3.2.3

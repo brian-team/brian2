@@ -14,7 +14,7 @@ __all__ = ["StateMonitor"]
 logger = get_logger(__name__)
 
 
-class StateMonitorView(object):
+class StateMonitorView:
     def __init__(self, monitor, item):
         self.monitor = monitor
         self.item = item
@@ -322,9 +322,9 @@ class StateMonitor(Group, CodeRunner):
                 scalar=var.scalar,
             )
 
-        self.recorded_variables = dict(
-            [(varname, self.variables[varname]) for varname in variables]
-        )
+        self.recorded_variables = {
+            varname: self.variables[varname] for varname in variables
+        }
         recorded_names = [varname for varname in variables]
 
         self.needed_variables = recorded_names

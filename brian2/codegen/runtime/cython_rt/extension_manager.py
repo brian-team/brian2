@@ -61,7 +61,7 @@ def get_cython_extensions():
     }
 
 
-class CythonExtensionManager(object):
+class CythonExtensionManager:
     def __init__(self):
         self._code_cache = {}
 
@@ -97,7 +97,7 @@ class CythonExtensionManager(object):
             os.makedirs(lib_dir)
         except OSError:
             if not os.path.exists(lib_dir):
-                raise IOError(
+                raise OSError(
                     f"Couldn't create Cython cache directory '{lib_dir}', try setting"
                     " the cache directly with prefs.codegen.runtime.cython.cache_dir."
                 )
@@ -325,7 +325,7 @@ class CythonExtensionManager(object):
                             )
                             for fname in glob.glob(temp_dir):
                                 os.remove(fname)
-                        except (OSError, IOError) as ex:
+                        except OSError as ex:
                             logger.debug(
                                 "Deleting Cython source files failed with error:"
                                 f" {str(ex)}"

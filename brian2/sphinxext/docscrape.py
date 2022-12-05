@@ -12,7 +12,7 @@ from warnings import warn
 from sphinx.pycode import ModuleAnalyzer
 
 
-class Reader(object):
+class Reader:
     """A line-based string reader."""
 
     def __init__(self, data):
@@ -88,7 +88,7 @@ class Reader(object):
         return not "".join(self._str).strip()
 
 
-class NumpyDocString(object):
+class NumpyDocString:
     def __init__(self, docstring, config={}):
         docstring = textwrap.dedent(docstring).split("\n")
 
@@ -478,7 +478,7 @@ class FunctionDoc(NumpyDocString):
                 print(f"Warning: invalid role {self._role}")
             out += f".. {roles.get(self._role, '')}:: {func_name}\n    \n\n"
 
-        out += super(FunctionDoc, self).__str__(func_role=self._role)
+        out += super().__str__(func_role=self._role)
         return out
 
 

@@ -92,7 +92,7 @@ def _format_time(time_in_s):
     return text
 
 
-class TextReport(object):
+class TextReport:
     """
     Helper object to report simulation progress in `Network.run`.
 
@@ -152,7 +152,7 @@ def _format_table(header, values, cell_formats):
     return "\n".join([formatted_header, line] + content)
 
 
-class SchedulingSummary(object):
+class SchedulingSummary:
     """
     Object representing the schedule that is used to simulate the objects in a
     network. Objects of this type are returned by `scheduling_summary`, they
@@ -166,10 +166,10 @@ class SchedulingSummary(object):
 
     def __init__(self, objects):
         # Map each dt to a rank (i.e. smallest dt=0, second smallest=1, etc.)
-        self.dts = dict(
-            (dt, rank)
+        self.dts = {
+            dt: rank
             for rank, dt in enumerate(sorted({float(obj.clock.dt) for obj in objects}))
-        )
+        }
         ScheduleEntry = namedtuple(
             "ScheduleEntry",
             field_names=[
@@ -224,7 +224,7 @@ class SchedulingSummary(object):
                         str(entry.dt),
                         "step"
                         if self.steps[float(entry.dt)] == 1
-                        else "{} steps".format(self.steps[float(entry.dt)]),
+                        else f"{self.steps[float(entry.dt)]} steps",
                     ),
                     entry.when,
                     entry.order,
@@ -247,8 +247,8 @@ class SchedulingSummary(object):
             <td style="text-align: center;">{}</td>
         </tr>
         """.format(
-                "<b>{}</b> (<em>{}</em>)".format(entry.name, entry.type),
-                "{} (<em>{}</em>)".format(entry.owner_name, entry.owner_type)
+                f"<b>{entry.name}</b> (<em>{entry.type}</em>)",
+                f"{entry.owner_name} (<em>{entry.owner_type}</em>)"
                 if entry.owner_name is not None
                 else "&ndash;",
                 "{} (every {})".format(
@@ -887,7 +887,7 @@ class Network(Nameable):
         # before_... names are assigned positions 0, 3, 6, ...
         # after_... names are assigned positions 2, 5, 8, ...
         all_objects = _get_all_objects(self.objects)
-        when_to_int = dict((when, 1 + i * 3) for i, when in enumerate(self.schedule))
+        when_to_int = {when: 1 + i * 3 for i, when in enumerate(self.schedule)}
         when_to_int.update(
             (f"before_{when}", i * 3) for i, when in enumerate(self.schedule)
         )
@@ -1285,14 +1285,14 @@ class Network(Nameable):
         self._stopped = True
 
     def __repr__(self):
-        objects = ", ".join((obj.__repr__() for obj in _get_all_objects(self.objects)))
+        objects = ", ".join(obj.__repr__() for obj in _get_all_objects(self.objects))
         return (
             f"<{self.__class__.__name__} at time t={self.t!s}, containing "
             f"objects: {objects}>"
         )
 
 
-class ProfilingSummary(object):
+class ProfilingSummary:
     """
     Class to nicely display the results of profiling. Objects of this class are
     returned by `profiling_summary`.

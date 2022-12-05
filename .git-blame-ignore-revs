@@ -10,3 +10,5 @@ d3ae59251c753ae0737d6ae6242b7e85b60908c4
 1e9ea598491444fe7c4ee9ece2ec94ad7c5020ec
 # Reformatting with isort
 67bf6d3760fa3fb8b3aa121b1b972d6cf36ec048
+# Update syntax to Python 3.8 with pyupgrade
+28b02c51545298cb9a76d8295e64a5df391b9207

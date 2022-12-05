@@ -64,7 +64,7 @@ prefs.register_preferences(
 )
 
 
-class GSLCodeGenerator(object):
+class GSLCodeGenerator:
     """
     GSL code generator.
 
@@ -427,9 +427,9 @@ class GSLCodeGenerator(object):
                 restrict = ""
             if var_obj.scalar or var_obj.size == 1:
                 restrict = ""
-            return "%s* %s %s{end_statement}" % (dtype, restrict, pointer_name)
+            return f"{dtype}* {restrict} {pointer_name}{{end_statement}}"
         else:
-            return "%s %s{end_statement}" % (dtype, var_obj.name)
+            return f"{dtype} {var_obj.name}{{end_statement}}"
 
     def write_dataholder(self, variables_in_vector):
         """
@@ -530,7 +530,7 @@ class GSLCodeGenerator(object):
         )
 
     def find_undefined_variables(self, statements):
-        """
+        r"""
         Find identifiers that are not in ``self.variables`` dictionary.
 
         Brian does not save the ``_lio_`` variables it uses anywhere. This is
@@ -737,9 +737,9 @@ class GSLCodeGenerator(object):
         # special substitute because of limitations of regex word boundaries with
         # variable[_idx]
         for from_sub, to_sub in list(to_replace.items()):
-            m = re.search("\[(\w+)\];?$", from_sub)
+            m = re.search(r"\[(\w+)\];?$", from_sub)
             if m:
-                code = re.sub(re.sub("\[", "\[", from_sub), to_sub, code)
+                code = re.sub(re.sub(r"\[", r"\[", from_sub), to_sub, code)
 
         if "_gsl" in code:
             raise AssertionError(
@@ -775,7 +775,7 @@ class GSLCodeGenerator(object):
         """
         code = []
         for line in code_lines:
-            m = re.search("(\w+ = .*)", line)
+            m = re.search(r"(\w+ = .*)", line)
             try:
                 new_line = m.group(1)
                 var, op, expr, comment = parse_statement(new_line)
@@ -935,14 +935,12 @@ class GSLCodeGenerator(object):
                         f"{len(vs)} lines of abstract code, first line is: '{vs[0]}'\n"
                     )
                 logger.warn(
-                    (
-                        "Came across an abstract code block that may not be "
-                        "well-defined: the outcome may depend on the "
-                        "order of execution. You can ignore this warning if "
-                        "you are sure that the order of operations does not "
-                        "matter. "
-                        + error_msg
-                    )
+                    "Came across an abstract code block that may not be "
+                    "well-defined: the outcome may depend on the "
+                    "order of execution. You can ignore this warning if "
+                    "you are sure that the order of operations does not "
+                    "matter. "
+                    + error_msg
                 )
 
         # save function names because self.generator.translate_statement_sequence
@@ -960,7 +958,7 @@ class GSLCodeGenerator(object):
         # first check if any indexing other than '_idx' is used (currently not supported)
         for code_list in list(scalar_code.values()) + list(vector_code.values()):
             for code in code_list:
-                m = re.search("\[(\w+)\]", code)
+                m = re.search(r"\[(\w+)\]", code)
                 if m is not None:
                     if m.group(1) != "0" and m.group(1) != "_idx":
                         from brian2.stateupdaters.base import (

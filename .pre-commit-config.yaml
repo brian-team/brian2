@@ -3,6 +3,13 @@ repos:
     hooks:
       - id: check-hooks-apply
       - id: check-useless-excludes
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.2.3
+    hooks:
+      - id: pyupgrade
+        args: [--py38-plus]
+        exclude: '^brian2/_version.py$'
+        files: '^brian2/.*\.pyi?$'
   - repo: https://github.com/pycqa/isort
     rev: 5.10.1
     hooks:

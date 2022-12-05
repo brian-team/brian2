@@ -160,7 +160,7 @@ class CPPCodeGenerator(CodeGenerator):
     universal_support_code = _universal_support_code
 
     def __init__(self, *args, **kwds):
-        super(CPPCodeGenerator, self).__init__(*args, **kwds)
+        super().__init__(*args, **kwds)
         self.c_data_type = c_data_type
 
     @property

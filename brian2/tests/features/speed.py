@@ -260,7 +260,7 @@ class STDP(SpeedTest):
         self.timed_run(self.duration)
 
 
-class SynapsesOnly(object):
+class SynapsesOnly:
     category = "Synapses only"
     tags = ["Synapses"]
     n_range = [10, 100, 1000, 10000]

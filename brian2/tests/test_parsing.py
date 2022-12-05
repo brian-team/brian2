@@ -155,7 +155,7 @@ def test_parse_expressions_sympy():
     # sympy expression via str_to_sympy (uses the SympyNodeRenderer internally),
     # then convert it back to a string via sympy_to_str and evaluate it
 
-    class SympyRenderer(object):
+    class SympyRenderer:
         def render_expr(self, expr):
             return str_to_sympy(expr)
 
@@ -217,7 +217,7 @@ def test_is_boolean_expression():
     Var = namedtuple("Var", ["is_boolean"])
 
     # dummy function object
-    class Func(object):
+    class Func:
         def __init__(self, returns_bool=False):
             self._returns_bool = returns_bool
 
@@ -401,7 +401,7 @@ def test_value_from_expression():
 
     constants = {"c": 3}
     # dummy class
-    class C(object):
+    class C:
         pass
 
     variables = {"s_constant_scalar": C(), "s_non_constant": C(), "s_non_scalar": C()}

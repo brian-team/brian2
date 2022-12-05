@@ -37,7 +37,7 @@ def find_name(name, names=None):
 
     if names is None:
         instances = set(Nameable.__instances__())
-        allnames = set(obj().name for obj in instances if hasattr(obj(), "name"))
+        allnames = {obj().name for obj in instances if hasattr(obj(), "name")}
     else:
         allnames = names
 

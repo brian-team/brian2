@@ -22,7 +22,7 @@ def get_node_value(node):
     return value
 
 
-class NodeRenderer(object):
+class NodeRenderer:
     expression_ops = {
         # BinOp
         "Add": "+",

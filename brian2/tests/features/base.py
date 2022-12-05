@@ -36,7 +36,7 @@ class InaccuracyError(AssertionError):
         AssertionError.__init__(self, *args)
 
 
-class BaseTest(object):
+class BaseTest:
     """ """
 
     category = None  # a string with the category of features
@@ -133,7 +133,7 @@ class SpeedTest(BaseTest):
         return self
 
 
-class Configuration(object):
+class Configuration:
     """ """
 
     name = None  # The name of this configuration
@@ -388,7 +388,7 @@ def run_feature_tests(
     return FeatureTestResults(full_results, tag_results, configurations, feature_tests)
 
 
-class FeatureTestResults(object):
+class FeatureTestResults:
     def __init__(self, full_results, tag_results, configurations, feature_tests):
         self.full_results = full_results
         self.tag_results = tag_results
@@ -574,7 +574,7 @@ def run_speed_tests(
     return SpeedTestResults(full_results, configurations, speed_tests)
 
 
-class SpeedTestResults(object):
+class SpeedTestResults:
     def __init__(self, full_results, configurations, speed_tests):
         self.full_results = full_results
         self.configurations = configurations

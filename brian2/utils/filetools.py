@@ -33,7 +33,7 @@ def ensure_directory(d):
     return d
 
 
-class in_directory(object):
+class in_directory:
     """
     Safely temporarily work in a subdirectory
 

@@ -1,7 +1,7 @@
 __all__ = ["SpikeSource"]
 
 
-class SpikeSource(object):
+class SpikeSource:
     """
     A source of spikes.
 

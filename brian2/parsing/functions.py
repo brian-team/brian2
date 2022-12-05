@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-class AbstractCodeFunction(object):
+class AbstractCodeFunction:
     """
     The information defining an abstract code function
 

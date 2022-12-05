@@ -342,7 +342,7 @@ def create_runner_codeobj(
     device = get_device()
 
     if override_conditional_write is None:
-        override_conditional_write = set([])
+        override_conditional_write = set()
     else:
         override_conditional_write = set(override_conditional_write)
 

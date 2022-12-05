@@ -17,7 +17,7 @@ def topsort(graph):
     except ImportError:
         # TODO: Can be removed when we depend on Python >= 3.9
         # make a copy so as not to destroy original
-        graph = dict((k, copy(v)) for k, v in graph.items())
+        graph = {k: copy(v) for k, v in graph.items()}
         # Use the standard algorithm for topological sorting:
         # http://en.wikipedia.org/wiki/Topological_sorting
         # List that will contain the sorted elements
