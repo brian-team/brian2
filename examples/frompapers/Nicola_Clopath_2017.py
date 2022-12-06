@@ -14,7 +14,7 @@ Sebastian Schmitt, 2022
 """
 
 from brian2 import NeuronGroup, Synapses, StateMonitor, SpikeMonitor
-from brian2 import run, defaultclock, network_operation
+from brian2 import run, defaultclock, linked_var, Clock
 from brian2 import ms, second, Hz
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
@@ -72,14 +72,18 @@ p = 0.1
 N = 2000
 
 # correlation weight matrix for RLMS
-alpha = defaultclock.dt/second*0.1
-Pinv = np.eye(N)*alpha
+alpha = defaultclock.dt / second * 0.1
 
-# Sinusoid oscillator
-def zx(t):
-    freq = 5*Hz
-    return np.sin(2*np.pi*freq*t)
+# Frequency of target sinusoid
+freq = 5 * Hz
 
+readout = NeuronGroup(
+    1,
+    """
+    z : 1 (shared)
+    r_cd : 1 (shared)
+    """,
+)
 neurons = NeuronGroup(N,
                       """
                       dv/dt = (-v + BIAS + IPSC + E*z)/tm: 1 (unless refractory)
@@ -87,14 +91,21 @@ neurons = NeuronGroup(N,
                       dh/dt = -h/td : 1/second
                       dr/dt = -r/tr + hr : 1
                       dhr/dt = -hr/td : 1/second
+                      z : 1 (linked)
+                      r_cd : 1 (linked)
+                      cd : 1
+                      zx = sin(2 * pi * freq * t) : 1 (shared)
+                      err = z - zx : 1 (shared)
                       BPhi : 1
-                      z : 1 (shared)
                       E : 1
                       """,
                       method="euler",
                       threshold="v>=vpeak",
                       reset="v=vreset; hr += 1/(tr*td)*second",
                       refractory=tref)
+neurons.z = linked_var(readout, "z")
+neurons.r_cd = linked_var(readout, "r_cd")
+BPhi_update = neurons.run_regularly("BPhi -= cd * err", dt=step, when="end", order=1)
 
 # fixed feedback weights
 neurons.E = (2*np.random.uniform(size=N)-1)*Q
@@ -109,24 +120,57 @@ synapses.w = omega.flatten()*second
 
 spikemon = SpikeMonitor(neurons[:20])
 statemon_BPhi = StateMonitor(neurons, "BPhi", record=range(10))
-statemon_z = StateMonitor(neurons, "z", record=[0])
+statemon_z = StateMonitor(readout, "z", record=[0])
 
-# linear readout
-@network_operation(dt=defaultclock.dt)
-def readout(t):
-    neurons.z = np.dot(neurons.BPhi, neurons.r)
 
-# FORCE training
-@network_operation(dt=step)
-def train(t):
-    global Pinv
-    if t > imin and t < icrit:
-        cd = Pinv@neurons.r
-        err = neurons.z - zx(t)
-        neurons.BPhi -= cd*err
-        Pinv -= np.outer(cd,cd)/( 1 + np.dot(neurons.r, cd))
+do_readout = Synapses(
+    neurons,
+    readout,
+    """
+    z_post = BPhi_pre*r_pre : 1 (summed)
+    r_cd_post = r_pre * cd_pre : 1 (summed)
+    """,
+)
+do_readout.summed_updaters["r_cd_post"]._clock = Clock(dt=step)
+do_readout.summed_updaters["r_cd_post"].when = "end"
+do_readout.summed_updaters["r_cd_post"].order = 3
+do_readout.connect()
 
-run(T, report="text")
+training_connections = Synapses(
+    neurons,
+    neurons,
+    """
+    Pinv : 1
+    cd_post = Pinv * r_pre : 1 (summed)
+    """,
+)
+training_connections.summed_updaters["cd_post"]._clock = Clock(dt=step)
+training_connections.summed_updaters["cd_post"].when = "end"
+training_connections.summed_updaters["cd_post"].order = 2
+training_connections.connect()
+training_connections.Pinv = (np.eye(N) * alpha).flatten()
+training_connections.run_regularly(
+    "Pinv -= (cd_pre * cd_post) / (1 + r_cd_post)", dt=step, when="end", order=4
+)
+
+training_connections.active = False
+do_readout.summed_updaters["r_cd_post"].active = False
+BPhi_update.active = False
+run(imin, report="text")
+
+training_connections.active = True
+do_readout.summed_updaters["r_cd_post"].active = True
+BPhi_update.active = True
+run(icrit - imin, report="text")
+
+training_connections.active = False
+do_readout.summed_updaters["r_cd_post"].active = False
+BPhi_update.active = False
+run(T - icrit, report="text")
+
+def zx(t):  # Only used for plotting
+    freq = 5*Hz
+    return np.sin(2*np.pi*freq*t)
 
 fig, axes = plt.subplots(2,2, figsize=(10,10))
 axes = axes.flatten()
@@ -139,7 +183,7 @@ axes[0].set_xlabel("t [s]")
 axes[0].set_ylabel("Neuron")
 axes[0].yaxis.set_major_locator(MaxNLocator(integer=True))
 
-axes[1].plot(statemon_z.t/second, zx(statemon_z.t), linestyle='--', color='k')
+axes[1].plot(statemon_z.t/second, np.sin(2*np.pi*freq*statemon_z.t), linestyle='--', color='k')
 axes[1].plot(statemon_z.t/second,statemon_z.z[0])
 
 axes[1].set_title("Target and readout")
@@ -152,7 +196,7 @@ axes[1].set_xlim((imin-1*second)/second, T/second)
 axes[1].set_ylim(-1.4,1.1)
 
 axes[2].set_title("Error")
-axes[2].plot(statemon_z.t/second, statemon_z.z[0] - zx(statemon_z.t))
+axes[2].plot(statemon_z.t/second, statemon_z.z[0] - np.sin(2*np.pi*freq*statemon_z.t))
 axes[2].annotate('RLS ON', xy=(imin/second, -0.15), xytext=(imin/second, -0.4),
             arrowprops=dict(facecolor='black', shrink=1), ha="center")
 axes[2].annotate('RLS OFF', xy=(icrit/second, -0.15), xytext=(icrit/second, -0.4),
@@ -174,3 +218,4 @@ axes[3].annotate('RLS OFF', xy=(icrit/second, -0.0001455), xytext=(icrit/second,
             arrowprops=dict(facecolor='black', shrink=1), ha="center")
 
 fig.tight_layout()
+plt.show()
