@@ -3,7 +3,6 @@ import pydoc
 import re
 import textwrap
 
-import sphinx
 from sphinx.pycode import ModuleAnalyzer
 
 from .docscrape import ClassDoc, FunctionDoc, NumpyDocString

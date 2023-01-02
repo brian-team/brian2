@@ -20,12 +20,16 @@ import brian2
 from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
 from brian2.codegen.generators.cpp_generator import c_data_type
-from brian2.core.base import BrianObject
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
-from brian2.core.network import Network
 from brian2.core.preferences import BrianPreference, prefs
-from brian2.core.variables import *
+from brian2.core.variables import (
+    ArrayVariable,
+    Constant,
+    DynamicArrayVariable,
+    Variable,
+    VariableView,
+)
 from brian2.devices.device import Device, all_devices, reset_device, set_device
 from brian2.groups.group import Group
 from brian2.parsing.rendering import CPPNodeRenderer
@@ -216,7 +220,9 @@ class CPPStandaloneDevice(Device):
         self.run_environment_variables = {}
         if sys.platform.startswith("darwin"):
             if "DYLD_LIBRARY_PATH" in os.environ:
-                dyld_library_path = f"{os.environ['DYLD_LIBRARY_PATH']}:{os.path.join(sys.prefix, 'lib')}"
+                dyld_library_path = (
+                    f"{os.environ['DYLD_LIBRARY_PATH']}:{os.path.join(sys.prefix, 'lib')}"
+                )
             else:
                 dyld_library_path = os.path.join(sys.prefix, "lib")
             self.run_environment_variables["DYLD_LIBRARY_PATH"] = dyld_library_path

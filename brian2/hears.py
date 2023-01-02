@@ -31,7 +31,7 @@ except ImportError:
 
 from inspect import isclass, ismethod
 
-from numpy import array, asarray, ndarray
+from numpy import asarray, ndarray
 
 from brian2.core.clocks import Clock
 from brian2.core.operations import network_operation
@@ -52,11 +52,11 @@ logger.warn(
 
 
 def convert_unit_b1_to_b2(val):
-    return Quantity.with_dimensions(float(val), arg.dim._dims)
+    return Quantity.with_dimensions(float(val), val.dim._dims)
 
 
 def convert_unit_b2_to_b1(val):
-    return b1.Quantity.with_dimensions(float(val), arg.dim._dims)
+    return b1.Quantity.with_dimensions(float(val), val.dim._dims)
 
 
 def modify_arg(arg):

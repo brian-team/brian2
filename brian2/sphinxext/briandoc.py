@@ -22,7 +22,9 @@ import re
 
 from docutils import nodes, statemachine
 from docutils.parsers.rst import Directive, directives
-from sphinx.domains.python import PyXRefRole
+from docutils.statemachine import ViewList
+from sphinx.domains.c import CDomain
+from sphinx.domains.python import PythonDomain, PyXRefRole
 from sphinx.roles import XRefRole
 
 from brian2.core.preferences import prefs
@@ -214,10 +216,6 @@ def setup(app, get_doc_object_=get_doc_object):
 # ------------------------------------------------------------------------------
 # Docstring-mangling domains
 # ------------------------------------------------------------------------------
-
-from docutils.statemachine import ViewList
-from sphinx.domains.c import CDomain
-from sphinx.domains.python import PythonDomain
 
 
 class ManglingDomainBase:

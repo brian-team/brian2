@@ -24,40 +24,7 @@ from pyparsing import (
 
 from brian2.core.namespace import DEFAULT_CONSTANTS, DEFAULT_FUNCTIONS, DEFAULT_UNITS
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
-from brian2.units.allunits import (
-    amp,
-    ampere,
-    becquerel,
-    candle,
-    coulomb,
-    farad,
-    gray,
-    henry,
-    hertz,
-    joule,
-    katal,
-    kelvin,
-    kgram,
-    kgramme,
-    kilogram,
-    lumen,
-    lux,
-    meter,
-    metre,
-    mole,
-    newton,
-    ohm,
-    pascal,
-    radian,
-    second,
-    siemens,
-    sievert,
-    steradian,
-    tesla,
-    volt,
-    watt,
-    weber,
-)
+from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
     DIMENSIONLESS,
     DimensionMismatchError,

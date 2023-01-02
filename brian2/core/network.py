@@ -20,7 +20,7 @@ from brian2.core.clocks import Clock, defaultclock
 from brian2.core.names import Nameable
 from brian2.core.namespace import get_local_namespace
 from brian2.core.preferences import BrianPreference, prefs
-from brian2.devices.device import RuntimeDevice, all_devices, get_device
+from brian2.devices.device import all_devices, get_device
 from brian2.groups.group import Group
 from brian2.synapses.synapses import SummedVariableUpdater
 from brian2.units.allunits import msecond, second
@@ -1347,8 +1347,8 @@ class ProfilingSummary:
 
         s = "Profiling summary"
         s += f"\n{'=' * len(s)}\n"
-        for name, time, percentage in zip(self.names, times, percentages):
-            s += f"{name}    {time}    {percentage}\n"
+        for name, t, percentage in zip(self.names, times, percentages):
+            s += f"{name}    {t}    {percentage}\n"
         return s
 
     def _repr_html_(self):
@@ -1356,10 +1356,10 @@ class ProfilingSummary:
         percentages = [f"{percentage:.2f} %" for percentage in self.percentages]
         s = '<h2 class="brian_prof_summary_header">Profiling summary</h2>\n'
         s += '<table class="brian_prof_summary_table">\n'
-        for name, time, percentage in zip(self.names, times, percentages):
+        for name, t, percentage in zip(self.names, times, percentages):
             s += "<tr>"
             s += f"<td>{name}</td>"
-            s += f'<td style="text-align: right">{time}</td>'
+            s += f'<td style="text-align: right">{t}</td>'
             s += f'<td style="text-align: right">{percentage}</td>'
             s += "</tr>\n"
         s += "</table>"

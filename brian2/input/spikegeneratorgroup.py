@@ -380,4 +380,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     def __repr__(self):
         cls = self.__class__.__name__
         size = self.variables["neuron_index"].size
-        return f"{cls}({self.N}, indices=<length {size} array>, times=<length {size} array>)"
+        return (
+            f"{cls}({self.N}, indices=<length {size} array>, times=<length"
+            f" {size} array>)"
+        )

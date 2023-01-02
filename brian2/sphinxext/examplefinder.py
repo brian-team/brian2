@@ -4,7 +4,6 @@ Automatically find examples of a Brian object or function.
 
 
 import os
-import re
 from collections import defaultdict
 
 from brian2.utils.stringtools import get_identifiers
@@ -82,6 +81,6 @@ def auto_find_examples(obj, headersymbol="="):
 
 
 if __name__ == "__main__":
-    from brian2 import NeuronGroup, SpatialNeuron
+    from brian2 import NeuronGroup
 
     print(auto_find_examples(NeuronGroup))

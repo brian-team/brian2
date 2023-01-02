@@ -38,7 +38,7 @@ from brian2.parsing.expressions import (
 )
 from brian2.parsing.rendering import NodeRenderer
 from brian2.stateupdaters.base import StateUpdateMethod, UnsupportedEquationsException
-from brian2.stateupdaters.exact import independent, linear
+from brian2.stateupdaters.exact import linear
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
@@ -402,7 +402,8 @@ class SynapticPathway(CodeRunner, Group):
                 "it has not created synapses with 'connect'. "
                 "Set its active attribute to False if you "
                 "intend to do only do this for a subsequent"
-                " run." % self.synapses.name
+                " run."
+                % self.synapses.name
             )
 
         # Update the dt (might have changed between runs)
@@ -1634,7 +1635,8 @@ class Synapses(Group):
         except IndexError as e:
             raise IndexError(
                 "Tried to create synapse indices outside valid "
-                "range. Original error message: " + str(e)
+                "range. Original error message: "
+                + str(e)
             )
 
     # Helper functions for Synapses.connect ↑

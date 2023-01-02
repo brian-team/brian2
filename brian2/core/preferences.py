@@ -236,7 +236,7 @@ class BrianGlobalPreferences(MutableMapping):
         if "pref_register" in self.__dict__ and name in self.pref_register:
             raise PreferenceError("Cannot delete a preference category.")
         else:
-            MutableMapping.__delattr__(self, name, value)
+            MutableMapping.__delattr__(self, name)
 
     toplevel_categories = property(
         fget=lambda self: [
@@ -611,7 +611,8 @@ class BrianGlobalPreferences(MutableMapping):
                 "The following preferences values have been set but "
                 "are not registered preferences:\n%s\nThis is usually "
                 "because of a spelling mistake or missing library "
-                "import." % ", ".join(self.prefs_unvalidated),
+                "import."
+                % ", ".join(self.prefs_unvalidated),
                 once=True,
             )
 

@@ -112,7 +112,9 @@ class NodeRenderer:
                 args = node.args + [vectorisation_idx]
             else:
                 args = node.args
-            return f"{self.render_func(node.func)}({', '.join(self.render_node(arg) for arg in args)})"
+            return (
+                f"{self.render_func(node.func)}({', '.join(self.render_node(arg) for arg in args)})"
+            )
 
     def render_element_parentheses(self, node):
         """
@@ -171,7 +173,9 @@ class NodeRenderer:
         )
 
     def render_UnaryOp(self, node):
-        return f"{self.expression_ops[node.op.__class__.__name__]} {self.render_element_parentheses(node.operand)}"
+        return (
+            f"{self.expression_ops[node.op.__class__.__name__]} {self.render_element_parentheses(node.operand)}"
+        )
 
     def render_Assign(self, node):
         if len(node.targets) > 1:

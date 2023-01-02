@@ -19,7 +19,7 @@ from brian2.equations.equations import (
     SingleEquation,
     extract_constant_subexpressions,
 )
-from brian2.groups.group import CodeRunner, Group, create_runner_codeobj
+from brian2.groups.group import CodeRunner, Group
 from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater, to_start_stop
 from brian2.groups.subgroup import Subgroup
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
@@ -715,7 +715,7 @@ class SpatialStateUpdater(CodeRunner, Group):
         if type(self.code_objects[0]) == NumpyCodeObject:
             # If numpy is used, raise a warning if scipy is not present
             try:
-                import scipy
+                import scipy  # noqa: F401
             except ImportError:
                 logger.info(
                     "SpatialNeuron will use numpy to do the numerical "

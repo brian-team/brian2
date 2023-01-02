@@ -53,7 +53,8 @@ class PandasImportExport(ImportExport):
         except ImportError as ex:
             raise ImportError(
                 "Exporting to pandas needs a working installation"
-                " of pandas. Importing pandas failed: " + str(ex)
+                " of pandas. Importing pandas failed: "
+                + str(ex)
             )
         if units:
             raise NotImplementedError(
@@ -66,14 +67,6 @@ class PandasImportExport(ImportExport):
 
     @staticmethod
     def import_data(group, data, units=True, level=0):
-        # pandas is not a default brian2 dependency, only import it here
-        try:
-            import pandas as pd
-        except ImportError as ex:
-            raise ImportError(
-                "Exporting to pandas needs a working installation"
-                " of pandas. Importing pandas failed: " + str(ex)
-            )
         if units:
             raise NotImplementedError(
                 "Units not supported when importing from pandas data frame"
