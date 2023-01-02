@@ -160,13 +160,6 @@ class NodeRenderer:
         return self.render_BinOp_parentheses(node.left, node.right, node.op)
 
     def render_BoolOp(self, node):
-        op = node.op
-        left = node.values[0]
-        remaining = node.values[1:]
-        while len(remaining):
-            right = remaining[0]
-            remaining = remaining[1:]
-            s = self.render_BinOp_parentheses(left, right, op)
         op = self.expression_ops[node.op.__class__.__name__]
         return (f" {op} ").join(
             f"{self.render_element_parentheses(v)}" for v in node.values
