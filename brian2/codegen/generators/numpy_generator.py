@@ -332,7 +332,7 @@ class NumpyCodeGenerator(CodeGenerator):
 
     def determine_keywords(self):
         try:
-            import scipy
+            import scipy  # noqa: F401
 
             scipy_available = True
         except ImportError:
