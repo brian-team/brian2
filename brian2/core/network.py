@@ -856,7 +856,7 @@ class Network(Nameable):
         fset=_set_schedule,
         doc="""
         List of ``when`` slots in the order they will be updated, can be modified.
-        
+
         See notes on scheduling in `Network`. Note that additional ``when``
         slots can be added, but the schedule should contain at least all of the
         names in the default schedule:
@@ -915,7 +915,7 @@ class Network(Nameable):
         all_ids = [obj.id for obj in all_objects]
         for obj in all_objects:
             for dependency in obj._dependencies:
-                if not dependency in all_ids:
+                if dependency not in all_ids:
                     raise ValueError(
                         f"'{obj.name}' has been included in the network "
                         "but not the object on which it "

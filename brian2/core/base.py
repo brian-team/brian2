@@ -81,8 +81,7 @@ class BrianObject(Nameable):
         #: A string indicating where this object was created (traceback with any parts of Brian code removed)
         self._creation_stack = (
             "Object was created here (most recent call only, full details in "
-            "debug log):\n"
-            + creation_stack[-1]
+            "debug log):\n" + creation_stack[-1]
         )
         self._full_creation_stack = "Object was created here:\n" + "\n".join(
             creation_stack
@@ -227,49 +226,49 @@ class BrianObject(Nameable):
     contained_objects = property(
         fget=lambda self: self._contained_objects,
         doc="""
-         The list of objects contained within the `BrianObject`.
-         
-         When a `BrianObject` is added to a `Network`, its contained objects will
-         be added as well. This allows for compound objects which contain
-         a mini-network structure.
-         
-         Note that this attribute cannot be set directly, you need to modify
-         the underlying list, e.g. ``obj.contained_objects.extend([A, B])``.
-         """,
+        The list of objects contained within the `BrianObject`.
+
+        When a `BrianObject` is added to a `Network`, its contained objects will
+        be added as well. This allows for compound objects which contain
+        a mini-network structure.
+
+        Note that this attribute cannot be set directly, you need to modify
+        the underlying list, e.g. ``obj.contained_objects.extend([A, B])``.
+        """,
     )
 
     code_objects = property(
         fget=lambda self: self._code_objects,
         doc="""
-         The list of `CodeObject` contained within the `BrianObject`.
-         
-         TODO: more details.
-                  
-         Note that this attribute cannot be set directly, you need to modify
-         the underlying list, e.g. ``obj.code_objects.extend([A, B])``.
-         """,
+        The list of `CodeObject` contained within the `BrianObject`.
+
+        TODO: more details.
+
+        Note that this attribute cannot be set directly, you need to modify
+        the underlying list, e.g. ``obj.code_objects.extend([A, B])``.
+        """,
     )
 
     updaters = property(
         fget=lambda self: self._updaters,
         doc="""
-         The list of `Updater` that define the runtime behaviour of this object.
-         
-         TODO: more details.
-                  
-         Note that this attribute cannot be set directly, you need to modify
-         the underlying list, e.g. ``obj.updaters.extend([A, B])``.
-         """,
+        The list of `Updater` that define the runtime behaviour of this object.
+
+        TODO: more details.
+
+        Note that this attribute cannot be set directly, you need to modify
+        the underlying list, e.g. ``obj.updaters.extend([A, B])``.
+        """,
     )
 
     clock = property(
         fget=lambda self: self._clock,
         doc="""
-                     The `Clock` determining when the object should be updated.
-                     
-                     Note that this cannot be changed after the object is
-                     created.
-                     """,
+        The `Clock` determining when the object should be updated.
+
+        Note that this cannot be changed after the object is
+        created.
+        """,
     )
 
     def _set_active(self, val):
@@ -282,13 +281,13 @@ class BrianObject(Nameable):
         fget=lambda self: self._active,
         fset=_set_active,
         doc="""
-                        Whether or not the object should be run.
-                        
-                        Inactive objects will not have their `update`
-                        method called in `Network.run`. Note that setting or
-                        unsetting the `active` attribute will set or unset
-                        it for all `contained_objects`. 
-                        """,
+        Whether or not the object should be run.
+
+        Inactive objects will not have their `update`
+        method called in `Network.run`. Note that setting or
+        unsetting the `active` attribute will set or unset
+        it for all `contained_objects`.
+        """,
     )
 
     def __repr__(self):

@@ -353,9 +353,9 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         indices = np.asarray(indices)
         if not sorted:
             # sort times and indices first by time, then by indices
-            I = np.lexsort((indices, times))
-            indices = indices[I]
-            times = times[I]
+            sort_indices = np.lexsort((indices, times))
+            indices = indices[sort_indices]
+            times = times[sort_indices]
 
         # We store the indices and times also directly in the Python object,
         # this way we can use them for checks in `before_run` even in standalone
@@ -379,5 +379,5 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     def __repr__(self):
         cls = self.__class__.__name__
-        l = self.variables["neuron_index"].size
-        return f"{cls}({self.N}, indices=<length {l} array>, times=<length {l} array>)"
+        size = self.variables["neuron_index"].size
+        return f"{cls}({self.N}, indices=<length {size} array>, times=<length {size} array>)"

@@ -1046,7 +1046,7 @@ class VariableView:
                         indexed_var = index_group.variables.get(
                             varname, index_group.variables.get(var.name)
                         )
-                        if not indexed_var is var:
+                        if indexed_var is not var:
                             logger.warn(
                                 "The string expression used for setting "
                                 f"'{self.name}' refers to '{varname}' which "

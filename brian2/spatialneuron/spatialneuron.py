@@ -269,7 +269,7 @@ class SpatialNeuron(NeuronGroup):
                 threshold_location = threshold_location._indices()
             # for now, only a single compartment allowed
             try:
-                treshold_location = int(threshold_location)
+                int(threshold_location)
             except TypeError:
                 raise AttributeError(
                     "Threshold can only be applied on a single location"

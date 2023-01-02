@@ -216,9 +216,7 @@ class CPPStandaloneDevice(Device):
         self.run_environment_variables = {}
         if sys.platform.startswith("darwin"):
             if "DYLD_LIBRARY_PATH" in os.environ:
-                dyld_library_path = (
-                    f"{os.environ['DYLD_LIBRARY_PATH']}:{os.path.join(sys.prefix, 'lib')}"
-                )
+                dyld_library_path = f"{os.environ['DYLD_LIBRARY_PATH']}:{os.path.join(sys.prefix, 'lib')}"
             else:
                 dyld_library_path = os.path.join(sys.prefix, "lib")
             self.run_environment_variables["DYLD_LIBRARY_PATH"] = dyld_library_path
@@ -716,7 +714,7 @@ class CPPStandaloneDevice(Device):
         for var in codeobj.variables.values():
             if (
                 isinstance(var, ArrayVariable)
-                and not var in do_not_invalidate
+                and var not in do_not_invalidate
                 and (not var.read_only or var in written_readonly_vars)
             ):
                 self.array_cache[var] = None
@@ -905,13 +903,11 @@ class CPPStandaloneDevice(Device):
             for line in lines:
                 # Sometimes an array is referred to by to different keys in our
                 # dictionary -- make sure to never add a line twice
-                if not line in code_object_defs[codeobj.name]:
+                if line not in code_object_defs[codeobj.name]:
                     code_object_defs[codeobj.name].append(line)
 
         # Generate the code objects
         for codeobj in self.code_objects.values():
-            ns = codeobj.variables
-
             # Before/after run code
             for block in codeobj.before_after_blocks:
                 cpp_code = getattr(codeobj.code, f"{block}_cpp_file")
@@ -1697,7 +1693,7 @@ class CPPStandaloneDevice(Device):
                 }
             }
             //less than one second
-            if(text.length() == 0) 
+            if(text.length() == 0)
             {
                 text = "< 1s";
             }

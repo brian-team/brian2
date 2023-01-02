@@ -1381,7 +1381,7 @@ class Quantity(np.ndarray):
                     s += f" * {repr(u.dim)}"
                 else:
                     s += f" {str(u.dim)}"
-        elif python_code == True:  # Make a quantity without unit recognisable
+        elif python_code:  # Make a quantity without unit recognisable
             return f"{self.__class__.__name__}({s.strip()})"
         return s.strip()
 

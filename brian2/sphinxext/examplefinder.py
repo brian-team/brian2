@@ -17,7 +17,9 @@ the_examples_map = defaultdict(list)
 the_tutorials_map = defaultdict(list)
 
 
-def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=[]):
+def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=None):
+    if path_exclusions is None:
+        path_exclusions = []
     if the_map:
         return the_map
     if environ_var in os.environ:
@@ -64,9 +66,7 @@ def auto_find_examples(obj, headersymbol="="):
     make mistakes but is usually going to be correct).
     """
     name = obj.__name__
-    examples_map = get_examples_map()
     examples = sorted(the_examples_map[name])
-    tutorials_map = get_tutorials_map()
     tutorials = sorted(the_tutorials_map[name])
     if len(examples + tutorials) == 0:
         return ""

@@ -7,7 +7,7 @@ This is only a bridge for using Brian 1 hears with Brian 2.
 NOTES:
 
 * Slicing sounds with Brian 2 units doesn't work, you need to either use Brian 1 units or replace calls to
-  ``sound[:20*ms]`` with ``sound.slice(None, 20*ms)``, etc. 
+  ``sound[:20*ms]`` with ``sound.slice(None, 20*ms)``, etc.
 
 TODO: handle properties (e.g. sound.duration)
 

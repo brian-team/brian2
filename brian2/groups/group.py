@@ -145,7 +145,7 @@ def get_dtype(equation, dtype=None):
         if equation.varname in dtype:
             BASIC_TYPES = {BOOLEAN: "b", INTEGER: "iu", FLOAT: "f"}
             provided_dtype = np.dtype(dtype[equation.varname])
-            if not provided_dtype.kind in BASIC_TYPES[equation.var_type]:
+            if provided_dtype.kind not in BASIC_TYPES[equation.var_type]:
                 raise TypeError(
                     "Error determining dtype for variable "
                     f"{equation.varname}: {provided_dtype.name} is not "
@@ -226,7 +226,7 @@ class Indexing:
         self.N = group.variables["N"]
         self.default_index = default_index
 
-    def __call__(self, item=slice(None), index_var=None):
+    def __call__(self, item=slice(None), index_var=None):  # noqa: B008
         """
         Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
@@ -344,7 +344,7 @@ class VariableOwner(Nameable):
             raise ValueError(
                 "Classes derived from VariableOwner need a variables attribute."
             )
-        if not "N" in self.variables:
+        if "N" not in self.variables:
             raise ValueError("Each VariableOwner needs an 'N' variable.")
         if not hasattr(self, "codeobj_class"):
             self.codeobj_class = None
@@ -394,7 +394,7 @@ class VariableOwner(Nameable):
         # called yet.
         if name == "_group_attribute_access_active":
             raise AttributeError
-        if not "_group_attribute_access_active" in self.__dict__:
+        if "_group_attribute_access_active" not in self.__dict__:
             raise AttributeError
         if (
             name in self.__getattribute__("__dict__")
@@ -1054,7 +1054,7 @@ class Group(VariableOwner, BrianObject):
         # the subgroup instead of the parent group. See github issue #922
         source_group = getattr(self, "source", None)
         if source_group is not None:
-            if not self in source_group.contained_objects:
+            if self not in source_group.contained_objects:
                 source_group.contained_objects.append(self)
 
         runner = CodeRunner(

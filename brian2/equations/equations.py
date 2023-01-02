@@ -442,7 +442,7 @@ def parse_string_equations(eqns):
             )
 
         expression = eq_content.get("expression", None)
-        if not expression is None:
+        if expression is not None:
             # Replace multiple whitespaces (arising from joining multiline
             # strings) with single space
             p = re.compile(r"\s{2,}")
@@ -519,7 +519,7 @@ class SingleEquation(Hashable, CacheKey):
     unit = property(lambda self: get_unit(self.dim), doc="The `Unit` of this equation.")
 
     identifiers = property(
-        lambda self: self.expr.identifiers if not self.expr is None else set(),
+        lambda self: self.expr.identifiers if self.expr is not None else set(),
         doc="All identifiers in the RHS of this equation.",
     )
 
@@ -566,7 +566,7 @@ class SingleEquation(Hashable, CacheKey):
         else:
             s = self.varname
 
-        if not self.expr is None:
+        if self.expr is not None:
             s += " = " + str(self.expr)
 
         s += " : " + get_unit_for_display(self.dim)
@@ -579,7 +579,7 @@ class SingleEquation(Hashable, CacheKey):
     def __repr__(self):
         s = "<" + self.type + " " + self.varname
 
-        if not self.expr is None:
+        if self.expr is not None:
             s += ": " + self.expr.code
 
         s += " (Unit: " + get_unit_for_display(self.dim)
@@ -603,7 +603,7 @@ class SingleEquation(Hashable, CacheKey):
         else:
             p.text(self.varname)
 
-        if not self.expr is None:
+        if self.expr is not None:
             p.text(" = ")
             p.pretty(self.expr)
 
@@ -671,7 +671,7 @@ class Equations(Hashable, Mapping):
         # Check for special symbol xi (stochastic term)
         uses_xi = None
         for eq in self._equations.values():
-            if not eq.expr is None and "xi" in eq.expr.identifiers:
+            if eq.expr is not None and "xi" in eq.expr.identifiers:
                 if not eq.type == DIFFERENTIAL_EQUATION:
                     raise EquationError(
                         f"The equation defining '{eq.varname}' "
@@ -816,7 +816,7 @@ class Equations(Hashable, Mapping):
             violates any rule.
 
         """
-        if not hasattr(func, "__call__"):
+        if not callable(func):
             raise ValueError("Can only register callables.")
 
         Equations.identifier_checks.add(func)
@@ -1258,11 +1258,11 @@ class Equations(Hashable, Mapping):
 
         for eq in self.values():
             for flag in eq.flags:
-                if not eq.type in allowed_flags or len(allowed_flags[eq.type]) == 0:
+                if eq.type not in allowed_flags or len(allowed_flags[eq.type]) == 0:
                     raise ValueError(
                         f"Equations of type '{eq.type}' cannot have any flags."
                     )
-                if not flag in allowed_flags[eq.type]:
+                if flag not in allowed_flags[eq.type]:
                     raise ValueError(
                         f"Equations of type '{eq.type}' cannot have a "
                         f"flag '{flag}', only the following flags "

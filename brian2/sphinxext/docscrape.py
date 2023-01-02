@@ -45,8 +45,8 @@ class Reader:
             return ""
 
     def seek_next_non_empty_line(self):
-        for l in self[self._l :]:
-            if l.strip():
+        for line in self[self._l :]:
+            if line.strip():
                 break
             else:
                 self._l += 1
@@ -89,7 +89,7 @@ class Reader:
 
 
 class NumpyDocString:
-    def __init__(self, docstring, config={}):
+    def __init__(self, docstring, config=None):
         docstring = textwrap.dedent(docstring).split("\n")
 
         self._doc = Reader(docstring)
@@ -134,21 +134,22 @@ class NumpyDocString:
         if l1.startswith(".. index::"):
             return True
 
-        l2 = self._doc.peek(1).strip()  #    ---------- or ==========
+        l2 = self._doc.peek(1).strip()  # ---------- or ==========
         return l2.startswith("-" * len(l1)) or l2.startswith("=" * len(l1))
 
     def _strip(self, doc):
-        i = 0
-        j = 0
+        start = stop = 0
         for i, line in enumerate(doc):
             if line.strip():
+                start = i
                 break
 
-        for j, line in enumerate(doc[::-1]):
+        for i, line in enumerate(doc[::-1]):
             if line.strip():
+                stop = i
                 break
 
-        return doc[i : len(doc) - j]
+        return doc[start:-stop]
 
     def _read_to_next_section(self):
         section = self._doc.read_to_next_empty_line()
@@ -424,7 +425,7 @@ def indent(str, indent=4):
     if str is None:
         return indent_str
     lines = str.split("\n")
-    return "\n".join(indent_str + l for l in lines)
+    return "\n".join(indent_str + line for line in lines)
 
 
 def dedent_lines(lines):
@@ -437,7 +438,7 @@ def header(text, style="-"):
 
 
 class FunctionDoc(NumpyDocString):
-    def __init__(self, func, role="func", doc=None, config={}):
+    def __init__(self, func, role="func", doc=None, config=None):
         self._f = func
         self._role = role  # e.g. "func" or "meth"
 
@@ -461,7 +462,10 @@ class FunctionDoc(NumpyDocString):
     def get_func(self):
         func_name = getattr(self._f, "__name__", self.__class__.__name__)
         if inspect.isclass(self._f):
-            func = getattr(self._f, "__call__", self._f.__init__)
+            if callable(self._f):
+                func = self._f.__call__
+            else:
+                func = self._f.__init__
         else:
             func = self._f
         return func, func_name
@@ -485,7 +489,7 @@ class FunctionDoc(NumpyDocString):
 class ClassDoc(NumpyDocString):
     extra_public_methods = ["__call__"]
 
-    def __init__(self, cls, doc=None, modulename="", func_doc=FunctionDoc, config={}):
+    def __init__(self, cls, doc=None, modulename="", func_doc=FunctionDoc, config=None):
         if not inspect.isclass(cls) and cls is not None:
             raise ValueError(f"Expected a class or None, but got {cls!r}")
         self._cls = cls
@@ -512,7 +516,7 @@ class ClassDoc(NumpyDocString):
             return []
         methods = [
             name
-            for name, func in getattr(self._cls, "__dict__").items()
+            for name, func in self._cls.__dict__.items()
             if (
                 (not name.startswith("_") or name in self.extra_public_methods)
                 and (
@@ -535,7 +539,7 @@ class ClassDoc(NumpyDocString):
         }
         class_members = {
             name
-            for name, func in getattr(self._cls, "__dict__").items()
+            for name, func in self._cls.__dict__.items()
             if not name.startswith("_")
             and (func is None or inspect.isdatadescriptor(func))
         }

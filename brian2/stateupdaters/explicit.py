@@ -748,7 +748,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             statements.append(f"_{var} = {RHS}")
 
         # Assign everything to the final variables
-        for var, expr in substituted_expressions:
+        for var, _ in substituted_expressions:
             statements.append(f"{var} = _{var}")
 
         return "\n".join(statements)

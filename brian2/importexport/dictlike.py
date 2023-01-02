@@ -31,7 +31,7 @@ class DictImportExport(ImportExport):
     @staticmethod
     def import_data(group, data, units=True, level=0):
         for key, value in data.items():
-            if getattr(group.variables[key], "read_only"):
+            if group.variables[key].read_only:
                 raise TypeError(f"Variable {key} is read-only.")
             group.state(key, use_units=units, level=level + 1)[:] = value
 
@@ -53,8 +53,7 @@ class PandasImportExport(ImportExport):
         except ImportError as ex:
             raise ImportError(
                 "Exporting to pandas needs a working installation"
-                " of pandas. Importing pandas failed: "
-                + str(ex)
+                " of pandas. Importing pandas failed: " + str(ex)
             )
         if units:
             raise NotImplementedError(
@@ -73,8 +72,7 @@ class PandasImportExport(ImportExport):
         except ImportError as ex:
             raise ImportError(
                 "Exporting to pandas needs a working installation"
-                " of pandas. Importing pandas failed: "
-                + str(ex)
+                " of pandas. Importing pandas failed: " + str(ex)
             )
         if units:
             raise NotImplementedError(
@@ -83,7 +81,7 @@ class PandasImportExport(ImportExport):
         colnames = data.columns
         array_data = data.values
         for e, colname in enumerate(colnames):
-            if getattr(group.variables[colname], "read_only"):
+            if group.variables[colname].read_only:
                 raise TypeError(f"Variable '{colname}' is read-only.")
             state = group.state(colname, use_units=units, level=level + 1)
             state[:] = np.squeeze(array_data[:, e])

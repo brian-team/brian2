@@ -402,8 +402,7 @@ class SynapticPathway(CodeRunner, Group):
                 "it has not created synapses with 'connect'. "
                 "Set its active attribute to False if you "
                 "intend to do only do this for a subsequent"
-                " run."
-                % self.synapses.name
+                " run." % self.synapses.name
             )
 
         # Update the dt (might have changed between runs)
@@ -605,24 +604,26 @@ class SynapticIndexing:
             elif len(index) > 3:
                 raise IndexError(f"Need 1, 2 or 3 indices, got {len(index)}.")
 
-            I, J, K = index
+            i_indices, j_indices, k_indices = index
             # Convert to absolute indices (e.g. for subgroups)
             # Allow the indexing to fail, we'll later return an empty array in
             # that case
             try:
-                if hasattr(I, "_indices"):  # will return absolute indices already
-                    I = I._indices()
+                if hasattr(
+                    i_indices, "_indices"
+                ):  # will return absolute indices already
+                    i_indices = i_indices._indices()
                 else:
-                    I = self.source._indices(I)
-                pre_synapses = find_synapses(I, self.synaptic_pre.get_value())
+                    i_indices = self.source._indices(i_indices)
+                pre_synapses = find_synapses(i_indices, self.synaptic_pre.get_value())
             except IndexError:
                 pre_synapses = np.array([], dtype=np.int32)
             try:
-                if hasattr(J, "_indices"):
-                    J = J._indices()
+                if hasattr(j_indices, "_indices"):
+                    j_indices = j_indices._indices()
                 else:
-                    J = self.target._indices(J)
-                post_synapses = find_synapses(J, self.synaptic_post.get_value())
+                    j_indices = self.target._indices(j_indices)
+                post_synapses = find_synapses(j_indices, self.synaptic_post.get_value())
             except IndexError:
                 post_synapses = np.array([], dtype=np.int32)
 
@@ -630,7 +631,7 @@ class SynapticIndexing:
                 pre_synapses, post_synapses, assume_unique=True
             )
 
-            if isinstance(K, slice) and K == slice(None):
+            if isinstance(k_indices, slice) and k_indices == slice(None):
                 final_indices = matching_synapses
             else:
                 if self.synapse_number is None:
@@ -640,8 +641,8 @@ class SynapticIndexing:
                         "'multisynaptic_index' when you create "
                         "the Synapses object."
                     )
-                if isinstance(K, (numbers.Integral, slice)):
-                    test_k = slice_to_test(K)
+                if isinstance(k_indices, (numbers.Integral, slice)):
+                    test_k = slice_to_test(k_indices)
                 else:
                     raise NotImplementedError(
                         "Indexing synapses with arrays notimplemented yet"
@@ -903,7 +904,7 @@ class Synapses(Group):
                         "simulation unnecessarily if you only need the values of "
                         "this variable whenever a spike occurs. Specify the equation "
                         "as clock-driven explicitly to avoid this warning.",
-                        f"clock_driven",
+                        "clock_driven",
                         once=True,
                     )
                 continuous.append(single_equation)
@@ -1013,7 +1014,7 @@ class Synapses(Group):
 
         # Check whether any delays were specified for pathways that don't exist
         for pathway in delay:
-            if not pathway in self._synaptic_updaters:
+            if pathway not in self._synaptic_updaters:
                 raise ValueError(
                     f"Cannot set the delay for pathway '{pathway}': unknown pathway."
                 )
@@ -1053,7 +1054,7 @@ class Synapses(Group):
                     f"The summed variable '{varname}' does not end "
                     "in '_pre' or '_post'."
                 )
-            if not varname in self.variables:
+            if varname not in self.variables:
                 raise ValueError(
                     f"The summed variable '{varname}' does not refer "
                     "to any known variable in the "
@@ -1633,8 +1634,7 @@ class Synapses(Group):
         except IndexError as e:
             raise IndexError(
                 "Tried to create synapse indices outside valid "
-                "range. Original error message: "
-                + str(e)
+                "range. Original error message: " + str(e)
             )
 
     # Helper functions for Synapses.connect ↑
@@ -1921,7 +1921,7 @@ class Synapses(Group):
             additional_indices = {}
         identifiers = get_identifiers_recursively([expr], self.variables)
         variables = self.resolve_all(
-            {name for name in identifiers if not name in additional_indices}, namespace
+            {name for name in identifiers if name not in additional_indices}, namespace
         )
         if any(getattr(var, "auto_vectorise", False) for var in variables.values()):
             identifiers.add("_vectorisation_idx")

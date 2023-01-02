@@ -56,4 +56,4 @@ class GSLCythonCodeObject(CythonCodeObject):
                 "\nIf GSL is installed but Python cannot find the correct files, it is "
                 "also possible to give the gsl directory manually by specifying "
                 "prefs.GSL.directory = ..."
-            )
+            ) from err

@@ -159,7 +159,7 @@ class BrianGlobalPreferences(MutableMapping):
             deindent(
                 """
             from numpy import *
-            from brian2.units import *            
+            from brian2.units import *
             from brian2.units.stdunits import *
             """
             ),
@@ -240,7 +240,7 @@ class BrianGlobalPreferences(MutableMapping):
 
     toplevel_categories = property(
         fget=lambda self: [
-            category for category in self.pref_register if not "." in category
+            category for category in self.pref_register if "." not in category
         ],
         doc="The toplevel preference categories",
     )
@@ -303,7 +303,7 @@ class BrianGlobalPreferences(MutableMapping):
         """
 
         s = ""
-        if not basename in self.pref_register:
+        if basename not in self.pref_register:
             raise ValueError(
                 f"No preferences under the name '{basename}' are registered"
             )
@@ -611,8 +611,7 @@ class BrianGlobalPreferences(MutableMapping):
                 "The following preferences values have been set but "
                 "are not registered preferences:\n%s\nThis is usually "
                 "because of a spelling mistake or missing library "
-                "import."
-                % ", ".join(self.prefs_unvalidated),
+                "import." % ", ".join(self.prefs_unvalidated),
                 once=True,
             )
 

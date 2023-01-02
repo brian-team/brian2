@@ -493,8 +493,8 @@ class GSLCodeGenerator:
             diff_scale = {}
             for var, error in list(abs_per_var.items()):
                 # first do some checks on input
-                if not var in diff_vars:
-                    if not var in self.variables:
+                if var not in diff_vars:
+                    if var not in self.variables:
                         raise KeyError(
                             "absolute_error specified for variable that "
                             f"does not exist: {var}"
@@ -554,19 +554,14 @@ class GSLCodeGenerator:
         variables = self.variables
         other_variables = {}
         for statement in statements:
-            var, op, expr, comment = (
-                statement.var,
-                statement.op,
-                statement.expr,
-                statement.comment,
-            )
+            var = statement.var
             if var not in variables:
                 other_variables[var] = AuxiliaryVariable(var, dtype=statement.dtype)
         return other_variables
 
     def find_used_variables(self, statements, other_variables):
         """
-        Find all the variables used in the right hand side of the given
+        Find all the variables used on the right hand side of the given
         expressions.
 
         Parameters
@@ -583,12 +578,7 @@ class GSLCodeGenerator:
         variables = self.variables
         used_variables = {}
         for statement in statements:
-            lhs, op, rhs, comment = (
-                statement.var,
-                statement.op,
-                statement.expr,
-                statement.comment,
-            )
+            rhs = statement.expr
             for var in get_identifiers(rhs):
                 if var in self.function_names:
                     continue
@@ -939,8 +929,7 @@ class GSLCodeGenerator:
                     "well-defined: the outcome may depend on the "
                     "order of execution. You can ignore this warning if "
                     "you are sure that the order of operations does not "
-                    "matter. "
-                    + error_msg
+                    "matter. " + error_msg
                 )
 
         # save function names because self.generator.translate_statement_sequence
@@ -993,9 +982,9 @@ class GSLCodeGenerator:
         # so that _dataholder holds diff_vars as well, even if they don't occur
         # in the actual statements
         for var in list(diff_vars.keys()):
-            if not var in variables_in_vector:
+            if var not in variables_in_vector:
                 variables_in_vector[var] = self.variables[var]
-        # lets keep track of the variables that eventually need to be added to
+        # let's keep track of the variables that eventually need to be added to
         # the _GSL_dataholder somehow
         self.variables_to_be_processed = list(variables_in_vector.keys())
 
@@ -1025,9 +1014,7 @@ class GSLCodeGenerator:
         )
         # rewrite scalar code, keep variables that are needed in scalar code normal
         # and add variables to _dataholder for vector_code
-        GSL_main_code += (
-            f"\n{self.translate_scalar_code(scalar_func_code, variables_in_scalar, variables_in_vector)}"
-        )
+        GSL_main_code += f"\n{self.translate_scalar_code(scalar_func_code, variables_in_scalar, variables_in_vector)}"
         if len(self.variables_to_be_processed) > 0:
             raise AssertionError(
                 "Not all variables that will be used in the vector "
