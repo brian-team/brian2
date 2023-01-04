@@ -71,7 +71,7 @@ def main(rootpath, destdir):
     # We assume all files are encoded as UTF-8
     examplescode = []
     for fname in examplesfnames:
-        with codecs.open(fname, "rU", encoding="utf-8") as f:
+        with codecs.open(fname, "r", encoding="utf-8") as f:
             examplescode.append(f.read())
     examplesdocs = []
     examplesafterdoccode = []
@@ -168,7 +168,7 @@ def main(rootpath, destdir):
             relpath = ""
         full_name = relpath.replace("/", ".").replace("\\", ".") + "." + file + ".rst"
         category_additional_files[relpath].append((file, full_name))
-        with codecs.open(fname, "rU", encoding="utf-8") as f:
+        with codecs.open(fname, "r", encoding="utf-8") as f:
             print(fname)
             content = f.read()
         output = file + "\n" + "=" * len(file) + "\n\n"
