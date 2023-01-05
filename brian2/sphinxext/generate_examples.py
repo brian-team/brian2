@@ -74,7 +74,6 @@ def main(rootpath, destdir):
             examplescode.append(f.read())
     examplesdocs = []
     examplesafterdoccode = []
-    examplesdocumentablenames = []
     for code in examplescode:
         codesplit = code.split("\n")
         comment_lines = 0
@@ -125,7 +124,7 @@ def main(rootpath, destdir):
         os.path.join(rootdir, "../docs_sphinx/resources/examples_images")
     )
     print("Searching for example images in directory", eximgpath)
-    for fname, path, basename, code, docs, afterdoccode, relpath, exname in examples:
+    for _fname, _path, basename, _code, docs, afterdoccode, relpath, exname in examples:
         categories[relpath].append((exname, basename))
         title = "Example: " + basename
         output = ".. currentmodule:: brian2\n\n"
@@ -172,7 +171,7 @@ def main(rootpath, destdir):
             content = f.read()
         output = file + "\n" + "=" * len(file) + "\n\n"
         output += ".. code:: none\n\n"
-        content_lines = ["\t" + l for l in content.split("\n")]
+        content_lines = ["\t" + line for line in content.split("\n")]
         output += "\n".join(content_lines)
         output += "\n\n"
         with open(os.path.join(destdir, full_name), "w", encoding="utf-8") as f:
@@ -188,7 +187,6 @@ def main(rootpath, destdir):
             mainpage_text += "\n" + category + "\n" + "-" * len(category) + "\n\n"
         mainpage_text += ".. toctree::\n"
         mainpage_text += "   :maxdepth: 1\n\n"
-        curpath = ""
         for exname, basename in sorted(categories[category]):
             mainpage_text += f"   {basename} <{exname}>\n"
         for fname, full_name in sorted(category_additional_files[category]):

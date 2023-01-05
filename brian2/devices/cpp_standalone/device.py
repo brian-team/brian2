@@ -20,12 +20,16 @@ import brian2
 from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
 from brian2.codegen.generators.cpp_generator import c_data_type
-from brian2.core.base import BrianObject
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
-from brian2.core.network import Network
 from brian2.core.preferences import BrianPreference, prefs
-from brian2.core.variables import *
+from brian2.core.variables import (
+    ArrayVariable,
+    Constant,
+    DynamicArrayVariable,
+    Variable,
+    VariableView,
+)
 from brian2.devices.device import Device, all_devices, reset_device, set_device
 from brian2.groups.group import Group
 from brian2.parsing.rendering import CPPNodeRenderer
@@ -716,7 +720,7 @@ class CPPStandaloneDevice(Device):
         for var in codeobj.variables.values():
             if (
                 isinstance(var, ArrayVariable)
-                and not var in do_not_invalidate
+                and var not in do_not_invalidate
                 and (not var.read_only or var in written_readonly_vars)
             ):
                 self.array_cache[var] = None
@@ -905,13 +909,11 @@ class CPPStandaloneDevice(Device):
             for line in lines:
                 # Sometimes an array is referred to by to different keys in our
                 # dictionary -- make sure to never add a line twice
-                if not line in code_object_defs[codeobj.name]:
+                if line not in code_object_defs[codeobj.name]:
                     code_object_defs[codeobj.name].append(line)
 
         # Generate the code objects
         for codeobj in self.code_objects.values():
-            ns = codeobj.variables
-
             # Before/after run code
             for block in codeobj.before_after_blocks:
                 cpp_code = getattr(codeobj.code, f"{block}_cpp_file")
@@ -1697,7 +1699,7 @@ class CPPStandaloneDevice(Device):
                 }
             }
             //less than one second
-            if(text.length() == 0) 
+            if(text.length() == 0)
             {
                 text = "< 1s";
             }

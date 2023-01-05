@@ -66,7 +66,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to delete the log and script file on exit.
-            
+
             If set to ``True`` (the default), log files (and the copy of the main
             script) will be deleted after the brian process has exited, unless an
             uncaught exception occurred. If set to ``False``, all log files will be
@@ -77,7 +77,7 @@ if "logging" not in prefs.pref_register:
             default="DEBUG",
             docs="""
             What log level to use for the log written to the log file.
-            
+
             In case file logging is activated (see `logging.file_log`), which log
             level should be used for logging. Has to be one of CRITICAL, ERROR,
             WARNING, INFO, DEBUG or DIAGNOSTIC.
@@ -88,7 +88,7 @@ if "logging" not in prefs.pref_register:
             default="INFO",
             docs="""
             What log level to use for the log written to the console.
-            
+
             Has to be one of CRITICAL, ERROR, WARNING, INFO, DEBUG or DIAGNOSTIC.
             """,
             validator=log_level_validator,
@@ -97,7 +97,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to log to a file or not.
-            
+
             If set to ``True`` (the default), logging information will be written
             to a file. The log level can be set via the `logging.file_log_level`
             preference.
@@ -122,7 +122,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to save a copy of the script that is run.
-            
+
             If set to ``True`` (the default), a copy of the currently run script
             is saved to a temporary location. It is deleted after a successful
             run (unless `logging.delete_log_on_exit` is ``False``) but is kept after
@@ -134,7 +134,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether or not to redirect stdout/stderr to null at certain places.
-            
+
             This silences a lot of annoying compiler output, but will also hide
             error messages making it harder to debug problems. You can always
             temporarily switch it off when debugging. If
@@ -147,7 +147,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to redirect stdout/stderr to a file.
-    
+
             If both ``logging.std_redirection`` and this preference are set to
             ``True``, all standard output/error (most importantly output from
             the compiler) will be stored in files and if an error occurs the name
@@ -155,7 +155,7 @@ if "logging" not in prefs.pref_register:
             and this preference is ``False``, then all standard output/error will
             be completely suppressed, i.e. neither be displayed nor stored in a
             file.
-    
+
             The value of this preference is ignore if `logging.std_redirection` is
             set to ``False``.
             """,
@@ -165,7 +165,7 @@ if "logging" not in prefs.pref_register:
             docs="""
             Whether to display a text for uncaught errors, mentioning the location
             of the log file, the mailing list and the github issues.
-            
+
             Defaults to ``True``.""",
         ),
     )

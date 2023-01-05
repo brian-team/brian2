@@ -6,6 +6,7 @@ This can be used for example as ``import brian2.numpy_ as np``
 """
 
 # isort:skip_file
+# flake8: noqa
 
 from numpy import *
 from brian2.units.unitsafefunctions import *

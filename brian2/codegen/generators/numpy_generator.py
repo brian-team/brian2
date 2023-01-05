@@ -242,7 +242,7 @@ class NumpyCodeGenerator(CodeGenerator):
             #                line = '{varname} = {array_name}.take({index})'
             #            line = line.format(varname=varname, array_name=self.get_array_name(var), index=index)
             line = f"{varname} = {self.get_array_name(var)}"
-            if not index in self.iterate_all:
+            if index not in self.iterate_all:
                 line += f"[{index}]"
             elif varname in write:
                 # avoid potential issues with aliased variables, see github #259
@@ -332,7 +332,7 @@ class NumpyCodeGenerator(CodeGenerator):
 
     def determine_keywords(self):
         try:
-            import scipy
+            import scipy  # noqa: F401
 
             scipy_available = True
         except ImportError:
@@ -365,6 +365,7 @@ for func_name, func in [
     DEFAULT_FUNCTIONS[func_name].implementations.add_implementation(
         NumpyCodeGenerator, code=func
     )
+
 
 # Functions that are implemented in a somewhat special way
 def randn_func(vectorisation_idx):

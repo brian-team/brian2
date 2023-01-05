@@ -5,7 +5,6 @@ Unit-aware replacements for numpy functions.
 from functools import wraps
 
 import numpy as np
-import pkg_resources
 
 from .fundamentalunits import (
     DIMENSIONLESS,

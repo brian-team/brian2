@@ -66,7 +66,7 @@ prefs.register_preferences(
         default="__restrict",
         docs="""
         The keyword used for the given compiler to declare pointers as restricted.
-        
+
         This keyword is different on different compilers, the default works for
         gcc and MSVS.
         """,
@@ -75,7 +75,7 @@ prefs.register_preferences(
         default=False,
         docs="""
         Adds code to flush denormals to zero.
-        
+
         The code is gcc and architecture specific, so may not compile on all
         platforms. The code, for reference is::
 
@@ -83,7 +83,7 @@ prefs.register_preferences(
             unsigned csr = __builtin_ia32_stmxcsr();
             csr |= CSR_FLUSH_TO_ZERO;
             __builtin_ia32_ldmxcsr(csr);
-            
+
         Found at `<http://stackoverflow.com/questions/2487653/avoiding-denormal-values-in-c>`_.
         """,
     ),
@@ -449,7 +449,7 @@ class CPPCodeGenerator(CodeGenerator):
         from brian2.devices.device import get_device
 
         device = get_device()
-        for varname, var in self.variables.items():
+        for var in self.variables.values():
             if isinstance(var, ArrayVariable):
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
@@ -564,12 +564,12 @@ clip_code = """
         template <typename T>
         static inline T _clip(const T value, const double a_min, const double a_max)
         {
-	        if (value < a_min)
-	            return a_min;
-	        if (value > a_max)
-	            return a_max;
-	        return value;
-	    }
+            if (value < a_min)
+                return a_min;
+            if (value > a_max)
+                return a_max;
+            return value;
+        }
         """
 DEFAULT_FUNCTIONS["clip"].implementations.add_implementation(
     CPPCodeGenerator, code=clip_code, name="_clip"
@@ -587,7 +587,7 @@ DEFAULT_FUNCTIONS["sign"].implementations.add_implementation(
 timestep_code = """
 static inline int64_t _timestep(double t, double dt)
 {
-    return (int64_t)((t + 1e-3*dt)/dt); 
+    return (int64_t)((t + 1e-3*dt)/dt);
 }
 """
 DEFAULT_FUNCTIONS["timestep"].implementations.add_implementation(

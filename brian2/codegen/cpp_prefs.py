@@ -253,11 +253,12 @@ prefs.register_preferences(
         default="",
         docs="""
         MSVC architecture name (or use system architectue by default).
-        
+
         Could take values such as x86, amd64, etc.
         """,
     ),
 )
+
 
 # check whether compiler supports a flag
 # Adapted from https://github.com/pybind/pybind11/

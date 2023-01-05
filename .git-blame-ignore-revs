@@ -12,3 +12,5 @@
 67bf6d3760fa3fb8b3aa121b1b972d6cf36ec048
 # Update syntax to Python 3.8 with pyupgrade
 28b02c51545298cb9a76d8295e64a5df391b9207
+# Fix a number of issues flagged by flake8
+0344b005e6ffd232f55e69621630ef01876bc0fb

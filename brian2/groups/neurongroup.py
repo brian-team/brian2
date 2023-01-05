@@ -86,7 +86,7 @@ def _guess_membrane_potential(equations):
     """
     if len(equations) == 1:
         return list(equations.keys())[0]
-    for name, eq in equations.items():
+    for name in equations:
         if name in ["V", "v", "Vm", "vm"]:
             return name
 

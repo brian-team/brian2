@@ -17,16 +17,16 @@ prefs.register_preferences(
         default="auto",
         docs="""
         Default target for code generation.
-        
+
         Can be a string, in which case it should be one of:
-        
+
         * ``'auto'`` the default, automatically chose the best code generation
           target available.
         * ``'cython'``, uses the Cython package to generate C++ code. Needs a
           working installation of Cython and a C++ compiler.
         * ``'numpy'`` works on all platforms and doesn't need a C compiler but
           is often less efficient.
-        
+
         Or it can be a ``CodeObject`` class.
         """,
         validator=lambda target: isinstance(target, str)
