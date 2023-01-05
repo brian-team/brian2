@@ -1,4 +1,3 @@
-import codecs
 import fnmatch
 import glob
 import os
@@ -71,7 +70,7 @@ def main(rootpath, destdir):
     # We assume all files are encoded as UTF-8
     examplescode = []
     for fname in examplesfnames:
-        with codecs.open(fname, "rU", encoding="utf-8") as f:
+        with open(fname, encoding="utf-8") as f:
             examplescode.append(f.read())
     examplesdocs = []
     examplesafterdoccode = []
@@ -157,7 +156,7 @@ def main(rootpath, destdir):
             print("Found example image file", image)
             output += f".. image:: ../resources/examples_images/{image}\n\n"
 
-        with codecs.open(os.path.join(destdir, exname + ".rst"), "w", "utf-8") as f:
+        with open(os.path.join(destdir, exname + ".rst"), "w", encoding="utf-8") as f:
             f.write(output)
 
     category_additional_files = defaultdict(list)
@@ -168,7 +167,7 @@ def main(rootpath, destdir):
             relpath = ""
         full_name = relpath.replace("/", ".").replace("\\", ".") + "." + file + ".rst"
         category_additional_files[relpath].append((file, full_name))
-        with codecs.open(fname, "rU", encoding="utf-8") as f:
+        with open(fname, encoding="utf-8") as f:
             print(fname)
             content = f.read()
         output = file + "\n" + "=" * len(file) + "\n\n"
@@ -176,7 +175,7 @@ def main(rootpath, destdir):
         content_lines = ["\t" + l for l in content.split("\n")]
         output += "\n".join(content_lines)
         output += "\n\n"
-        with codecs.open(os.path.join(destdir, full_name), "w", "utf-8") as f:
+        with open(os.path.join(destdir, full_name), "w", encoding="utf-8") as f:
             f.write(output)
 
     mainpage_text = "Examples\n"
