@@ -11,7 +11,7 @@ In the future it would be advantageous to implement an automated way of keep ver
 * [`pyproject.toml`](https://github.com/brian-team/brian2/blob/master/pyproject.toml)
 * [`.pre-commit-config.yaml`](https://github.com/brian-team/brian2/blob/master/.pre-commit-config.yaml)
 * [`docs_sphinx/conf.py`](https://github.com/brian-team/brian2/blob/master/docs_sphinx/conf.py)
-* [`dev/conda-recipe/meta.yaml`](https://github.com/brian-team/brian2/blob/master/dev/conda-recipe/meta.yaml)
+* [`conda-forge/brian2-feedstock/recipe/meta.yaml`](https://github.com/conda-forge/brian2-feedstock/blob/main/recipe/meta.yaml)
 * [`.github/workflows/publish_to_pypi.yml`](https://github.com/brian-team/brian2/blob/master/.github/workflows/publish_to_pypi.yml)
 * [`.github/workflows/test_latest.yml`](https://github.com/brian-team/brian2/blob/master/.github/workflows/test_latest.yml)
 * [`.github/workflows/testsuite.yml`](https://github.com/brian-team/brian2/blob/master/.github/workflows/testsuite.yml)
