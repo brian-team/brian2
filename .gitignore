@@ -47,3 +47,6 @@ output/
 
 # IPython
 .ipynb_checkpoints
+
+# System files
+.DS_Store
