@@ -592,6 +592,7 @@ class BrianLogger:
                     mode="a",
                     maxBytes=prefs["logging.file_log_max_size"],
                     backupCount=1,
+                    encoding="utf-8",
                 )
                 BrianLogger.file_handler.setLevel(
                     LOG_LEVELS[prefs["logging.file_log_level"].upper()]
