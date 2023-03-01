@@ -99,10 +99,12 @@ def test_variableview_calculations():
         """
         x : 1
         y : volt
+        idx : integer
         """,
     )
     G.x = np.arange(10)
     G.y = np.arange(10)[::-1] * mV
+    G.idx = np.arange(10, dtype=int)
     assert_allclose(G.x * G.y, np.arange(10) * np.arange(10)[::-1] * mV)
     assert_allclose(-G.x, -np.arange(10))
     assert_allclose(-G.y, -np.arange(10)[::-1] * mV)
@@ -113,6 +115,7 @@ def test_variableview_calculations():
     assert_allclose(G.y * 3, 3 * np.arange(10)[::-1] * mV)
     assert_allclose(G.x / 2.0, np.arange(10) / 2.0)
     assert_allclose(G.y / 2, np.arange(10)[::-1] * mV / 2)
+    assert_equal(G.idx % 2, np.arange(10, dtype=int) % 2)
     assert_allclose(G.x + 2, 2 + np.arange(10))
     assert_allclose(G.y + 2 * mV, 2 * mV + np.arange(10)[::-1] * mV)
     assert_allclose(2 + G.x, 2 + np.arange(10))

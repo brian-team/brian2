@@ -1402,6 +1402,9 @@ class VariableView:
     def __rfloordiv__(self, other):
         return np.asanyarray(other) // self.get_item(slice(None), level=1)
 
+    def __mod__(self, other):
+        return self.get_item(slice(None), level=1) % np.asanyarray(other)
+
     def __pow__(self, power, modulo=None):
         if modulo is not None:
             return self.get_item(slice(None), level=1) ** power % modulo
