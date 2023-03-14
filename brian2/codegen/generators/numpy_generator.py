@@ -330,16 +330,6 @@ class NumpyCodeGenerator(CodeGenerator):
 
         return lines
 
-    def determine_keywords(self):
-        try:
-            import scipy  # noqa: F401
-
-            scipy_available = True
-        except ImportError:
-            scipy_available = False
-
-        return {"_scipy_available": scipy_available}
-
 
 ################################################################################
 # Implement functions
