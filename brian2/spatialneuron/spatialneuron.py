@@ -706,21 +706,3 @@ class SpatialStateUpdater(CodeRunner, Group):
         self._morph_idxchild = group.flat_morphology.morph_idxchild
         self._starts = group.flat_morphology.starts
         self._ends = group.flat_morphology.ends
-
-    def before_run(self, run_namespace):
-        super().before_run(run_namespace)
-        # Raise a warning if the slow pure numpy version is used
-        from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
-
-        if type(self.code_objects[0]) == NumpyCodeObject:
-            # If numpy is used, raise a warning if scipy is not present
-            try:
-                import scipy  # noqa: F401
-            except ImportError:
-                logger.info(
-                    "SpatialNeuron will use numpy to do the numerical "
-                    "integration -- this will be very slow. Either "
-                    "switch to a different code generation target "
-                    "(e.g. cython) or install scipy.",
-                    once=True,
-                )

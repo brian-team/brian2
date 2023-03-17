@@ -8,8 +8,22 @@ from brian2 import *
 from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 
+try:
+    import scipy
+except ImportError:
+    scipy = None
+
+
+numpy_needs_scipy = pytest.mark.skipif(
+    # Using condition string, since we cannot yet know
+    # prefs.codegen.target at module import time
+    "prefs.codegen.target == 'numpy' and not scipy",
+    reason="multi-compartmental models need scipy to run with numpy",
+)
+
 
 @pytest.mark.codegen_independent
+@numpy_needs_scipy
 def test_custom_events():
     # Set (could be moved in a setup)
     EL = -65 * mV
@@ -166,6 +180,7 @@ def test_construction_coordinates():
 
 
 @pytest.mark.long
+@numpy_needs_scipy
 def test_infinitecable():
     """
     Test simulation of an infinite cable vs. theory for current pulse (Green function)
@@ -218,6 +233,7 @@ def test_infinitecable():
 
 
 @pytest.mark.standalone_compatible
+@numpy_needs_scipy
 def test_finitecable():
     """
     Test simulation of short cylinder vs. theory for constant current.
@@ -259,6 +275,7 @@ def test_finitecable():
 
 
 @pytest.mark.standalone_compatible
+@numpy_needs_scipy
 def test_rallpack1():
     """
     Rallpack 1
@@ -318,6 +335,7 @@ def test_rallpack1():
 
 
 @pytest.mark.standalone_compatible
+@numpy_needs_scipy
 def test_rallpack2():
     """
     Rallpack 2
@@ -401,6 +419,7 @@ def test_rallpack2():
 
 @pytest.mark.standalone_compatible
 @pytest.mark.long
+@numpy_needs_scipy
 def test_rallpack3():
     """
     Rallpack 3
@@ -482,6 +501,7 @@ def test_rallpack3():
 
 
 @pytest.mark.standalone_compatible
+@numpy_needs_scipy
 def test_rall():
     """
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
@@ -555,6 +575,7 @@ def test_rall():
 
 
 @pytest.mark.standalone_compatible
+@numpy_needs_scipy
 def test_basic_diffusion():
     # A very basic test that shows that propagation is working in a very basic
     # sense, testing all morphological classes
@@ -815,6 +836,7 @@ def test_spatialneuron_morphology_assignment():
 
 @pytest.mark.standalone_compatible
 @pytest.mark.multiple_runs
+@numpy_needs_scipy
 def test_spatialneuron_capacitive_currents():
     if prefs.core.default_float_dtype is np.float32:
         pytest.skip("Need double precision for this test")
@@ -878,6 +900,7 @@ def test_point_current():
 
 @pytest.mark.standalone_compatible
 @pytest.mark.multiple_runs
+@numpy_needs_scipy
 def test_spatialneuron_threshold_location():
     morpho = Soma(10 * um)
     morpho.axon = Cylinder(1 * um, n=2, length=20 * um)
@@ -934,6 +957,7 @@ def test_spatialneuron_threshold_location():
 
 
 @pytest.mark.standalone_compatible
+@numpy_needs_scipy
 def test_spatialneuron_timedarray():
     # See GitHub issue 1427
     ta = TimedArray([0, 1] * nA, dt=1 * ms)
