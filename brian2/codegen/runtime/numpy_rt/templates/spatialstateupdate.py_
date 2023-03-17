@@ -54,9 +54,7 @@ from numpy import zeros
 try:
     from scipy.linalg import solve_banded
 except ImportError:
-    raise ImportError("Simulating multi-compartmental neurons with the "
-                      "numpy code generation target requires the 'scipy' "
-                      "package.")
+    raise ImportError("Install 'scipy' to run multi-compartmental neurons with numpy")
 
 # scalar code
 _vectorisation_idx = 1
