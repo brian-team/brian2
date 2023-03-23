@@ -529,9 +529,9 @@ def find_synapses(index, synaptic_neuron):
     return synapses
 
 
-class SynapticSubgroup(object):
+class SynapticSubgroup(Group):
     """
-    A simple subgroup of `Synapses` that can be used for indexing.
+    A subgroup of `Synapses` that can be used for indexing and for accessing variables.
 
     Parameters
     ----------
@@ -542,21 +542,39 @@ class SynapticSubgroup(object):
         when new synapses where added after creating this object.
     """
 
-    def __init__(self, synapses, indices):
+    def __init__(self, synapses, indices, name=None):
         self.synapses = weakproxy_with_fallback(synapses)
+        self.source = weakproxy_with_fallback(synapses.source)
+        self.target = weakproxy_with_fallback(synapses.target)
+        self.multisynaptic_index = self.synapses.multisynaptic_index
         self._stored_indices = indices
+        self._N = len(indices)
         self._synaptic_pre = synapses.variables["_synaptic_pre"]
         self._source_N = self._synaptic_pre.size  # total number of synapses
 
-    def _indices(self, index_var="_idx"):
-        if index_var != "_idx":
-            raise AssertionError(f"Did not expect index {index_var} here.")
-        if len(self._synaptic_pre.get_value()) != self._source_N:
-            raise RuntimeError(
-                "Synapses have been added/removed since this "
-                "synaptic subgroup has been created"
-            )
-        return self._stored_indices
+        if name is None:
+            name = f"{self.synapses.name}_subgroup*"
+
+        Group.__init__(
+            self,
+            name=name,
+        )
+        self.variables = Variables(self, default_index="_sub_idx")
+        self.variables.add_references(synapses, list(synapses.variables.keys()))
+        self.variables.add_array(
+            "_sub_idx",
+            size=self._N,
+            dtype=np.int32,
+            values=indices,
+            index="_idx",
+            constant=True,
+            read_only=True,
+            unique=True,
+        )
+
+        self._indices = SynapticIndexing(self, "_sub_idx")
+
+        self._enable_group_attributes()
 
     def __len__(self):
         return len(self._stored_indices)
@@ -569,8 +587,9 @@ class SynapticSubgroup(object):
 
 
 class SynapticIndexing(object):
-    def __init__(self, synapses):
-        self.synapses = weakref.proxy(synapses)
+    def __init__(self, synapses, default_idx="_idx"):
+        self.synapses = synapses
+        self.default_idx = default_idx
         self.source = weakproxy_with_fallback(self.synapses.source)
         self.target = weakproxy_with_fallback(self.synapses.target)
         self.synaptic_pre = synapses.variables["_synaptic_pre"]
@@ -596,8 +615,13 @@ class SynapticIndexing(object):
             if hasattr(index, "_indices"):
                 final_indices = index._indices(index_var=index_var).astype(np.int32)
             elif isinstance(index, slice):
-                start, stop, step = index.indices(len(self.synaptic_pre.get_value()))
-                final_indices = np.arange(start, stop, step, dtype=np.int32)
+                if self.default_idx == "_idx":
+                    start, stop, step = index.indices(
+                        len(self.synaptic_pre.get_value())
+                    )
+                    final_indices = np.arange(start, stop, step, dtype=np.int32)
+                else:
+                    final_indices = self.synapses._stored_indices
             else:
                 final_indices = np.asarray(index)
         elif isinstance(index, tuple):
@@ -658,7 +682,10 @@ class SynapticIndexing(object):
         else:
             raise IndexError(f"Unsupported index type {type(index)}")
 
-        if index_var not in ("_idx", "0"):
+        if (
+            index_var not in ("_idx", "0")
+            and not getattr(index_var, "name", None) == "_sub_idx"
+        ):
             return index_var.get_value()[final_indices.astype(np.int32)]
         else:
             return final_indices.astype(np.int32)
