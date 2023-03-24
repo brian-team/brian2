@@ -741,6 +741,62 @@ def test_state_variable_indexing():
         S.w.__getitem__(1.5)
 
 
+def test_state_variable_indexing_with_subgroups():
+    G1 = NeuronGroup(5, "v:volt")
+    G1.v = "i*mV"
+    G2 = NeuronGroup(7, "v:volt")
+    G2.v = "10*mV + i*mV"
+    S = Synapses(G1, G2, "w:1", multisynaptic_index="k")
+    S.connect(True, n=2)
+    S.w[:, :, 0] = "5*i + j"
+    S.w[:, :, 1] = "35 + 5*i + j"
+
+    # Slicing
+    assert len(S[:].w) == len(S[:, :].w) == len(S[:, :, :].w) == len(G1) * len(G2) * 2
+    assert len(S[0:, 0:].w) == len(S[0:, 0:, 0:].w) == len(G1) * len(G2) * 2
+    assert len(S[0::2, 0:].w) == 3 * len(G2) * 2
+    assert len(S[0, :].w) == len(S[0, :, :].w) == len(G2) * 2
+    assert len(S[0:2, :].w) == len(S[0:2, :, :].w) == 2 * len(G2) * 2
+    assert len(S[:2, :].w) == len(S[:2, :, :].w) == 2 * len(G2) * 2
+    assert len(S[0:4:2, :].w) == len(S[0:4:2, :, :].w) == 2 * len(G2) * 2
+    assert len(S[:4:2, :].w) == len(S[:4:2, :, :].w) == 2 * len(G2) * 2
+    assert len(S[:, 0].w) == len(S[:, 0, :].w) == len(G1) * 2
+    assert len(S[:, 0:2].w) == len(S[:, 0:2, :].w) == 2 * len(G1) * 2
+    assert len(S[:, :2].w) == len(S[:, :2, :].w) == 2 * len(G1) * 2
+    assert len(S[:, 0:4:2].w) == len(S[:, 0:4:2, :].w) == 2 * len(G1) * 2
+    assert len(S[:, :4:2].w) == len(S[:, :4:2, :].w) == 2 * len(G1) * 2
+    assert len(S[:, :, 0].w) == len(G1) * len(G2)
+    assert len(S[:, :, 0:2].w) == len(G1) * len(G2) * 2
+    assert len(S[:, :, :2].w) == len(G1) * len(G2) * 2
+    assert len(S[:, :, 0:2:2].w) == len(G1) * len(G2)
+    assert len(S[:, :, :2:2].w) == len(G1) * len(G2)
+
+    # 1d indexing is directly indexing synapses!
+    assert len(S[:].w) == len(S[0:].w)
+    assert len(S[[0, 1]].w) == len(S[3:5].w) == 2
+    assert len(S[:].w) == len(S[np.arange(len(G1) * len(G2) * 2)].w)
+    assert S[3].w == S[np.int32(3)].w == S[np.int64(3)].w  # See issue #888
+
+    # Array-indexing (not yet supported for synapse index)
+    assert_equal(S[:, 0:3].w[:], S[:, [0, 1, 2]].w[:])
+    assert_equal(S[:, 0:3].w[:], S[np.arange(len(G1)), [0, 1, 2]].w[:])
+
+    # string-based indexing
+    assert_equal(S[0:3, :].w[:], S["i<3"].w[:])
+    assert_equal(S[:, 0:3].w[:], S["j<3"].w[:])
+    assert_equal(S[:, :, 0].w[:], S["k == 0"].w[:])
+    assert_equal(S[0:3, :].w[:], S["v_pre < 2.5*mV"].w[:])
+    assert_equal(S[:, 0:3].w[:], S["v_post < 12.5*mV"].w[:])
+
+    # invalid indices
+    with pytest.raises(IndexError):
+        S.__getitem__((1, 2, 3, 4))
+    with pytest.raises(IndexError):
+        S.__getitem__(object())
+    with pytest.raises(IndexError):
+        S.__getitem__(1.5)
+
+
 def test_indices():
     G = NeuronGroup(10, "v : 1")
     S = Synapses(G, G, "")

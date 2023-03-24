@@ -543,6 +543,7 @@ class SynapticSubgroup(Group):
     """
 
     def __init__(self, synapses, indices, name=None):
+        indices = np.atleast_1d(indices)  # Deal with scalar indices
         self.synapses = weakproxy_with_fallback(synapses)
         self.source = weakproxy_with_fallback(synapses.source)
         self.target = weakproxy_with_fallback(synapses.target)
