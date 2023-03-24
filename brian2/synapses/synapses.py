@@ -474,7 +474,7 @@ def slice_to_test(x):
         pass
 
     if isinstance(x, slice):
-        if isinstance(x, slice) and x == slice(None):
+        if x == slice(None):
             # No need for testing
             return lambda y: np.repeat(True, len(y))
         start, stop, step = x.start, x.stop, x.step
@@ -668,20 +668,18 @@ class SynapticIndexing:
                         "'multisynaptic_index' when you create "
                         "the Synapses object."
                     )
-                if isinstance(k_indices, (numbers.Integral, slice)):
-                    test_k = slice_to_test(k_indices)
-                else:
-                    raise NotImplementedError(
-                        "Indexing synapses with arrays notimplemented yet"
-                    )
 
                 # We want to access the raw arrays here, not go through the Variable
                 synapse_numbers = self.synapse_number.get_value()[matching_synapses]
-                final_indices = np.intersect1d(
-                    matching_synapses,
-                    np.flatnonzero(test_k(synapse_numbers)),
-                    assume_unique=True,
-                )
+
+                if isinstance(k_indices, (numbers.Integral, slice)):
+                    test_k = slice_to_test(k_indices)
+                    final_indices = matching_synapses[test_k(synapse_numbers)]
+                else:
+                    final_indices = matching_synapses[
+                        np.in1d(synapse_numbers, k_indices)
+                    ]
+
         else:
             raise IndexError(f"Unsupported index type {type(index)}")
 

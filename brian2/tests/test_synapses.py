@@ -721,9 +721,11 @@ def test_state_variable_indexing():
     assert len(S.w[:]) == len(S.w[np.arange(len(G1) * len(G2) * 2)])
     assert S.w[3] == S.w[np.int32(3)] == S.w[np.int64(3)]  # See issue #888
 
-    # Array-indexing (not yet supported for synapse index)
+    # Array-indexing
     assert_equal(S.w[:, 0:3], S.w[:, [0, 1, 2]])
     assert_equal(S.w[:, 0:3], S.w[np.arange(len(G1)), [0, 1, 2]])
+    assert_equal(S.w[:, 0:3], S.w[:, [0, 1, 2], [0, 1]])
+    assert_equal(S.w[:, 0:3, 0], S.w[:, [0, 1, 2], [0]])
 
     # string-based indexing
     assert_equal(S.w[0:3, :], S.w["i<3"])
@@ -780,6 +782,8 @@ def test_state_variable_indexing_with_subgroups():
     # Array-indexing (not yet supported for synapse index)
     assert_equal(S[:, 0:3].w[:], S[:, [0, 1, 2]].w[:])
     assert_equal(S[:, 0:3].w[:], S[np.arange(len(G1)), [0, 1, 2]].w[:])
+    assert_equal(S[:, 0:3].w[:], S[:, [0, 1, 2], [0, 1]].w[:])
+    assert_equal(S[:, 0:3, 0].w[:], S[:, [0, 1, 2], [0]].w[:])
 
     # string-based indexing
     assert_equal(S[0:3, :].w[:], S["i<3"].w[:])
