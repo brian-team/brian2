@@ -1,6 +1,3 @@
-import numbers
-from collections.abc import Sequence
-
 import numpy as np
 
 from brian2.core.base import weakproxy_with_fallback
