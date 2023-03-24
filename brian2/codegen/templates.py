@@ -55,7 +55,7 @@ def variables_to_array_names(variables, access_data=True):
     return names
 
 
-class LazyTemplateLoader(object):
+class LazyTemplateLoader:
     """
     Helper object to load templates only when they are needed.
     """
@@ -85,7 +85,7 @@ class LazyTemplateLoader(object):
         return self._templates[name]
 
 
-class Templater(object):
+class Templater:
     """
     Class to load and return all the templates a `CodeObject` defines.
 
@@ -171,7 +171,7 @@ class Templater(object):
         )
 
 
-class CodeObjectTemplate(object):
+class CodeObjectTemplate:
     """
     Single template object returned by `Templater` and used for final code generation
 
@@ -187,11 +187,11 @@ class CodeObjectTemplate(object):
         self.template = template
         self.template_source = template_source
         #: The set of variables in this template
-        self.variables = set([])
+        self.variables = set()
         #: The indices over which the template iterates completely
-        self.iterate_all = set([])
+        self.iterate_all = set()
         #: Read-only variables that are changed by this template
-        self.writes_read_only = set([])
+        self.writes_read_only = set()
         # This is the bit inside {} for USES_VARIABLES { list of words }
         specifier_blocks = re.findall(
             r"\bUSES_VARIABLES\b\s*\{(.*?)\}", template_source, re.M | re.S

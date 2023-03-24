@@ -164,7 +164,7 @@ def _error_msg(code, name):
     Little helper function for error messages.
     """
     error_msg = f"Error generating code for code object '{name}' "
-    code_lines = [l for l in code.split("\n") if len(l.strip())]
+    code_lines = [line for line in code.split("\n") if len(line.strip())]
     # If the abstract code is only one line, display it in full
     if len(code_lines) <= 1:
         error_msg += f"from this abstract code: '{code_lines[0]}'\n"
@@ -195,7 +195,7 @@ def check_compiler_kwds(compiler_kwds, accepted_kwds, target):
     ValueError
         If a compiler keyword is not understood
     """
-    for key, value in compiler_kwds.items():
+    for key in compiler_kwds:
         if key not in accepted_kwds:
             formatted_kwds = ", ".join(f"'{kw}'" for kw in accepted_kwds)
             raise ValueError(
@@ -342,7 +342,7 @@ def create_runner_codeobj(
     device = get_device()
 
     if override_conditional_write is None:
-        override_conditional_write = set([])
+        override_conditional_write = set()
     else:
         override_conditional_write = set(override_conditional_write)
 
@@ -465,7 +465,7 @@ def create_runner_codeobj(
     # Add the indices needed by the variables
     for varname in list(variables):
         var_index = all_variable_indices[varname]
-        if not var_index in ("_idx", "0"):
+        if var_index not in ("_idx", "0"):
             variables[var_index] = all_variables[var_index]
 
     return device.code_object(

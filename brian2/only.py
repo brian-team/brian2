@@ -9,6 +9,7 @@ Usage: ``from brian2.only import *``
 # order
 
 # isort:skip_file
+# flake8: noqa
 
 # The units and utils package does not depend on any other Brian package and
 # should be imported first

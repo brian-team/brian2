@@ -163,7 +163,8 @@ setup(name='Brian2',
                         'pyparsing',
                         'jinja2>=2.7',
                         'py-cpuinfo;platform_system=="Windows"',
-                        'setuptools>=24.2'
+                        'setuptools>=24.2',
+                        'packaging',
                        ],
       setup_requires=['numpy>=1.10',
                       'setuptools>=24.2'

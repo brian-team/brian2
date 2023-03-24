@@ -9,7 +9,7 @@ import functools
 from collections.abc import Mapping
 
 
-class CacheKey(object):
+class CacheKey:
     """
     Mixin class for objects that will be used as keys for caching (e.g.
     `Variable` objects) and have to define a certain "identity" with respect
@@ -42,7 +42,7 @@ class CacheKey(object):
         )
 
 
-class _CacheStatistics(object):
+class _CacheStatistics:
     """
     Helper class to store cache statistics
     """

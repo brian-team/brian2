@@ -43,7 +43,7 @@ def _from_morphology(variable, i, j):
     return variable[i:j]
 
 
-class MorphologyIndexWrapper(object):
+class MorphologyIndexWrapper:
     """
     A simpler version of `~brian2.groups.group.IndexWrapper`, not allowing for
     string indexing (`Morphology` is not a `Group`). It allows to use
@@ -91,7 +91,7 @@ def _find_start_index(current, target_section, index=0):
     return index, False
 
 
-class Topology(object):
+class Topology:
     """
     A representation of the topology of a `Morphology`. Has a useful string
     representation, inspired by NEURON's ``topology`` function.
@@ -312,7 +312,7 @@ def _add_coordinates(
     return section
 
 
-class Children(object):
+class Children:
     """
     Helper class to represent the children (sub trees) of a section. Can be
     used like a dictionary (mapping names to `Morphology` objects), but iterates
@@ -418,7 +418,7 @@ class Children(object):
         return f"{s}>"
 
 
-class Morphology(object, metaclass=abc.ABCMeta):
+class Morphology(metaclass=abc.ABCMeta):
     """
     Neuronal morphology (tree structure).
 
@@ -480,7 +480,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
                     raise TypeError(
                         "Cannot provide a step argument when slicing with lengths"
                     )
-                l = np.cumsum(np.asarray(self.length))  # coordinate on the section
+                pos = np.cumsum(np.asarray(self.length))  # coordinate on the section
                 # We use a special handling for values very close to the points
                 # between the compartments to avoid non-intuitive rounding
                 # effects: a point closer than 1e-12*length of section will be
@@ -490,37 +490,37 @@ class Morphology(object, metaclass=abc.ABCMeta):
                 if item.start is None:
                     i = 0
                 else:
-                    diff = np.abs(float(item.start) - l)
-                    if min(diff) < 1e-12 * l[-1]:
+                    diff = np.abs(float(item.start) - pos)
+                    if min(diff) < 1e-12 * pos[-1]:
                         i = np.argmin(diff) + 1
                     else:
-                        i = np.searchsorted(l, item.start)
+                        i = np.searchsorted(pos, item.start)
                 if item.stop is None:
-                    j = len(l)
+                    j = len(pos)
                 else:
-                    diff = np.abs(float(item.stop) - l)
-                    if min(diff) < 1e-12 * l[-1]:
+                    diff = np.abs(float(item.stop) - pos)
+                    if min(diff) < 1e-12 * pos[-1]:
                         j = np.argmin(diff) + 1
                     else:
-                        j = np.searchsorted(l, item.stop) + 1
+                        j = np.searchsorted(pos, item.stop) + 1
             else:  # integers
                 i, j, step = item.indices(self.n)
                 if step != 1:
                     raise TypeError("Can only slice a contiguous segment")
         elif isinstance(item, Quantity) and have_same_dimensions(item, meter):
-            l = np.hstack(
+            pos = np.hstack(
                 [0, np.cumsum(np.asarray(self.length))]
             )  # coordinate on the section
-            if float(item) < 0 or float(item) > (1 + 1e-12) * l[-1]:
+            if float(item) < 0 or float(item) > (1 + 1e-12) * pos[-1]:
                 raise IndexError(
                     f"Invalid index {item}, has to be in the interval "
-                    f"[{0 * meter!s}, {l[-1] * meter!s}]."
+                    f"[{0 * meter!s}, {pos[-1] * meter!s}]."
                 )
-            diff = np.abs(float(item) - l)
-            if min(diff) < 1e-12 * l[-1]:
+            diff = np.abs(float(item) - pos)
+            if min(diff) < 1e-12 * pos[-1]:
                 i = np.argmin(diff)
             else:
-                i = np.searchsorted(l, item) - 1
+                i = np.searchsorted(pos, item) - 1
             j = i + 1
         elif isinstance(item, numbers.Integral):  # int: returns one compartment
             if item < 0:  # allows e.g. to use -1 to get the last compartment
@@ -1156,7 +1156,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
                     f"{length_2:.3f}um, respectively, while the "
                     f"radius is {diameter / 2:.3f}um."
                 )
-            children = [c for c in compartment.children if not c in soma_c]
+            children = [c for c in compartment.children if c not in soma_c]
             compartment = Node(
                 index=compartment.index,
                 comp_name="soma",
@@ -1306,7 +1306,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
         # ignored
         swc_types.update({"1": "soma", "2": "axon", "3": "dend", "4": "apic"})
 
-        with open(filename, "r") as f:
+        with open(filename) as f:
             points = []
             for line_no, line in enumerate(f):
                 line = line.strip()
@@ -1362,7 +1362,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
             )
 
 
-class SubMorphology(object):
+class SubMorphology:
     """
     A view on a subset of a section in a morphology.
     """

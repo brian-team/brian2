@@ -8,7 +8,7 @@ from brian2.tests.utils import assert_allclose
 
 class DerivedBrianObject(BrianObject):
     def __init__(self, name="derivedbrianobject*"):
-        super(DerivedBrianObject, self).__init__(name=name)
+        super().__init__(name=name)
 
     def __str__(self):
         return self.name

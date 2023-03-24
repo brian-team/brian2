@@ -1,4 +1,3 @@
-import codecs
 import fnmatch
 import glob
 import os
@@ -71,11 +70,10 @@ def main(rootpath, destdir):
     # We assume all files are encoded as UTF-8
     examplescode = []
     for fname in examplesfnames:
-        with codecs.open(fname, "rU", encoding="utf-8") as f:
+        with open(fname, encoding="utf-8") as f:
             examplescode.append(f.read())
     examplesdocs = []
     examplesafterdoccode = []
-    examplesdocumentablenames = []
     for code in examplescode:
         codesplit = code.split("\n")
         comment_lines = 0
@@ -126,7 +124,7 @@ def main(rootpath, destdir):
         os.path.join(rootdir, "../docs_sphinx/resources/examples_images")
     )
     print("Searching for example images in directory", eximgpath)
-    for fname, path, basename, code, docs, afterdoccode, relpath, exname in examples:
+    for _fname, _path, basename, _code, docs, afterdoccode, relpath, exname in examples:
         categories[relpath].append((exname, basename))
         title = "Example: " + basename
         output = ".. currentmodule:: brian2\n\n"
@@ -157,7 +155,7 @@ def main(rootpath, destdir):
             print("Found example image file", image)
             output += f".. image:: ../resources/examples_images/{image}\n\n"
 
-        with codecs.open(os.path.join(destdir, exname + ".rst"), "w", "utf-8") as f:
+        with open(os.path.join(destdir, exname + ".rst"), "w", encoding="utf-8") as f:
             f.write(output)
 
     category_additional_files = defaultdict(list)
@@ -168,15 +166,15 @@ def main(rootpath, destdir):
             relpath = ""
         full_name = relpath.replace("/", ".").replace("\\", ".") + "." + file + ".rst"
         category_additional_files[relpath].append((file, full_name))
-        with codecs.open(fname, "rU", encoding="utf-8") as f:
+        with open(fname, encoding="utf-8") as f:
             print(fname)
             content = f.read()
         output = file + "\n" + "=" * len(file) + "\n\n"
         output += ".. code:: none\n\n"
-        content_lines = ["\t" + l for l in content.split("\n")]
+        content_lines = ["\t" + line for line in content.split("\n")]
         output += "\n".join(content_lines)
         output += "\n\n"
-        with codecs.open(os.path.join(destdir, full_name), "w", "utf-8") as f:
+        with open(os.path.join(destdir, full_name), "w", encoding="utf-8") as f:
             f.write(output)
 
     mainpage_text = "Examples\n"
@@ -189,7 +187,6 @@ def main(rootpath, destdir):
             mainpage_text += "\n" + category + "\n" + "-" * len(category) + "\n\n"
         mainpage_text += ".. toctree::\n"
         mainpage_text += "   :maxdepth: 1\n\n"
-        curpath = ""
         for exname, basename in sorted(categories[category]):
             mainpage_text += f"   {basename} <{exname}>\n"
         for fname, full_name in sorted(category_additional_files[category]):

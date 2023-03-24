@@ -802,7 +802,7 @@ def test_function_implementation_container():
 
     # some basic dictionary properties
     assert len(container) == 4
-    assert set((key for key in container)) == {
+    assert {key for key in container} == {
         "A Language",
         "B",
         ACodeObject,

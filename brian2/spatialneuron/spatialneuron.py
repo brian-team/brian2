@@ -19,7 +19,7 @@ from brian2.equations.equations import (
     SingleEquation,
     extract_constant_subexpressions,
 )
-from brian2.groups.group import CodeRunner, Group, create_runner_codeobj
+from brian2.groups.group import CodeRunner, Group
 from brian2.groups.neurongroup import (
     NeuronGroup,
     SubexpressionUpdater,
@@ -42,7 +42,7 @@ __all__ = ["SpatialNeuron"]
 logger = get_logger(__name__)
 
 
-class FlatMorphology(object):
+class FlatMorphology:
     """
     Container object to store the flattened representation of a morphology.
     Note that all values are stored as numpy arrays without unit information
@@ -273,7 +273,7 @@ class SpatialNeuron(NeuronGroup):
                 threshold_location = threshold_location._indices()
             # for now, only a single compartment allowed
             try:
-                treshold_location = int(threshold_location)
+                int(threshold_location)
             except TypeError:
                 raise AttributeError(
                     "Threshold can only be applied on a single location"
@@ -705,21 +705,3 @@ class SpatialStateUpdater(CodeRunner, Group):
         self._morph_idxchild = group.flat_morphology.morph_idxchild
         self._starts = group.flat_morphology.starts
         self._ends = group.flat_morphology.ends
-
-    def before_run(self, run_namespace):
-        super(SpatialStateUpdater, self).before_run(run_namespace)
-        # Raise a warning if the slow pure numpy version is used
-        from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
-
-        if type(self.code_objects[0]) == NumpyCodeObject:
-            # If numpy is used, raise a warning if scipy is not present
-            try:
-                import scipy
-            except ImportError:
-                logger.info(
-                    "SpatialNeuron will use numpy to do the numerical "
-                    "integration -- this will be very slow. Either "
-                    "switch to a different code generation target "
-                    "(e.g. cython) or install scipy.",
-                    once=True,
-                )

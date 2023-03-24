@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 INITIAL_MAXSPIKESPER_DT = 1
 
 
-class SpikeQueue(object):
+class SpikeQueue:
     """
     Data structure saving the spikes and taking care of delays.
 
@@ -78,8 +78,6 @@ class SpikeQueue(object):
         homogeneous, in which case insertion will use a faster method
         implemented in `insert_homogeneous`.
         """
-        n_synapses = len(synapse_sources)
-
         if self._dt is not None:
             # store the current spikes
             spikes = self._extract_spikes()
@@ -103,13 +101,14 @@ class SpikeQueue(object):
         synapse_sources = synapse_sources[:]
         ss = np.ravel(synapse_sources)
         # mergesort to retain relative order, keeps the output lists in sorted order
-        I = np.argsort(ss, kind="mergesort")
-        ss_sorted = ss[I]
+        ss_sort_indices = np.argsort(ss, kind="mergesort")
+        ss_sorted = ss[ss_sort_indices]
         splitinds = np.searchsorted(
             ss_sorted, np.arange(self._source_start, self._source_end + 1)
         )
         self._neurons_to_synapses = [
-            I[splitinds[j] : splitinds[j + 1]] for j in range(len(splitinds) - 1)
+            ss_sort_indices[splitinds[j] : splitinds[j + 1]]
+            for j in range(len(splitinds) - 1)
         ]
         max_events = max(map(len, self._neurons_to_synapses))
 

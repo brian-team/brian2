@@ -592,7 +592,7 @@ def test_msvc_flags():
     flag_file = os.path.join(user_dir, "cpu_flags.txt")
     assert len(cpp_prefs.msvc_arch_flag)
     assert os.path.exists(flag_file)
-    with open(flag_file, "r", encoding="utf-8") as f:
+    with open(flag_file, encoding="utf-8") as f:
         previously_stored_flags = json.load(f)
     hostname = socket.gethostname()
     assert hostname in previously_stored_flags

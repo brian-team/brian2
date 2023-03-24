@@ -1,5 +1,3 @@
-# coding=utf-8
-
 """
 Defines physical units and quantities
 
@@ -54,8 +52,7 @@ def _flatten(iterable):
     """
     for e in iterable:
         if isinstance(e, list):
-            for f in _flatten(e):
-                yield f
+            yield from _flatten(e)
         else:
             yield e
 
@@ -443,7 +440,7 @@ _siprefixes = {
 }
 
 
-class Dimension(object):
+class Dimension:
     """
     Stores the indices of the 7 basic SI unit dimension (length, mass, etc.).
 
@@ -976,7 +973,7 @@ def quantity_with_dimensions(floatval, dims):
     return Quantity(floatval, get_or_create_dimension(dims._dims))
 
 
-class Quantity(np.ndarray, object):
+class Quantity(np.ndarray):
     """
     A number with an associated physical dimension. In most cases, it is not
     necessary to create a Quantity object by hand, instead use multiplication
@@ -1384,7 +1381,7 @@ class Quantity(np.ndarray, object):
                     s += f" * {repr(u.dim)}"
                 else:
                     s += f" {str(u.dim)}"
-        elif python_code == True:  # Make a quantity without unit recognisable
+        elif python_code:  # Make a quantity without unit recognisable
             return f"{self.__class__.__name__}({s.strip()})"
         return s.strip()
 
@@ -1480,7 +1477,7 @@ class Quantity(np.ndarray, object):
 
     def __setitem__(self, key, value):
         fail_for_dimension_mismatch(self, value, "Inconsistent units in assignment")
-        return super(Quantity, self).__setitem__(key, value)
+        return super().__setitem__(key, value)
 
     #### ARITHMETIC ####
     def _binary_operation(
@@ -1689,7 +1686,7 @@ class Quantity(np.ndarray, object):
                 exponent=other,
             )
             other = np.array(other, copy=False)
-            super(Quantity, self).__ipow__(other)
+            super().__ipow__(other)
             self.dim = self.dim**other
             return self
         else:
@@ -1853,7 +1850,7 @@ class Quantity(np.ndarray, object):
         if format_spec == "":
             return str(self)
         else:
-            return super(Quantity, self).__format__(format_spec)
+            return super().__format__(format_spec)
 
     #### Mathematic methods ####
 
@@ -1912,14 +1909,14 @@ class Quantity(np.ndarray, object):
 
     def fill(self, values):  # pylint: disable=C0111
         fail_for_dimension_mismatch(self, values, "fill")
-        super(Quantity, self).fill(values)
+        super().fill(values)
 
     fill.__doc__ = np.ndarray.fill.__doc__
     fill._do_not_run_doctests = True
 
     def put(self, indices, values, *args, **kwds):  # pylint: disable=C0111
         fail_for_dimension_mismatch(self, values, "fill")
-        super(Quantity, self).put(indices, values, *args, **kwds)
+        super().put(indices, values, *args, **kwds)
 
     put.__doc__ = np.ndarray.put.__doc__
     put._do_not_run_doctests = True
@@ -1952,13 +1949,13 @@ class Quantity(np.ndarray, object):
 
     def searchsorted(self, v, **kwds):  # pylint: disable=C0111
         fail_for_dimension_mismatch(self, v, "searchsorted")
-        return super(Quantity, self).searchsorted(np.array(v, copy=False), **kwds)
+        return super().searchsorted(np.array(v, copy=False), **kwds)
 
     searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
     searchsorted._do_not_run_doctests = True
 
     def prod(self, *args, **kwds):  # pylint: disable=C0111
-        prod_result = super(Quantity, self).prod(*args, **kwds)
+        prod_result = super().prod(*args, **kwds)
         # Calculating the correct dimensions is not completly trivial (e.g.
         # like doing self.dim**self.size) because prod can be called on
         # multidimensional arrays along a certain axis.
@@ -2104,7 +2101,7 @@ class Unit(Quantity):
     ):
         if dim is None:
             dim = DIMENSIONLESS
-        obj = super(Unit, cls).__new__(
+        obj = super().__new__(
             cls, arr, dim=dim, dtype=dtype, copy=copy, force_quantity=True
         )
         return obj
@@ -2323,7 +2320,7 @@ class Unit(Quantity):
             )
             return u
         else:
-            return super(Unit, self).__mul__(other)
+            return super().__mul__(other)
 
     def __rmul__(self, other):
         return self.__mul__(other)
@@ -2345,7 +2342,7 @@ class Unit(Quantity):
                 dispname += other.dispname
                 name += other.name
 
-            latexname = r"\frac{%s}{%s}" % (self.latexname, other.latexname)
+            latexname = rf"\frac{{{self.latexname}}}{{{other.latexname}}}"
             scale = self.scale - other.scale
             u = Unit(
                 10.0**scale,
@@ -2358,7 +2355,7 @@ class Unit(Quantity):
             )
             return u
         else:
-            return super(Unit, self).__div__(other)
+            return super().__div__(other)
 
     def __rdiv__(self, other):
         if isinstance(other, Unit):
@@ -2369,7 +2366,7 @@ class Unit(Quantity):
                     return self**-1
             except (ValueError, TypeError, DimensionMismatchError):
                 pass
-            return super(Unit, self).__rdiv__(other)
+            return super().__rdiv__(other)
 
     def __pow__(self, other):
         if is_scalar_type(other):
@@ -2396,7 +2393,7 @@ class Unit(Quantity):
             )  # To avoid issues with units like (second ** -1) ** -1
             return u
         else:
-            return super(Unit, self).__pow__(other)
+            return super().__pow__(other)
 
     def __iadd__(self, other):
         raise TypeError("Units cannot be modified in-place")
@@ -2435,7 +2432,7 @@ class Unit(Quantity):
         return hash((self.dim, self.scale))
 
 
-class UnitRegistry(object):
+class UnitRegistry:
     """
     Stores known units for printing in best units.
 

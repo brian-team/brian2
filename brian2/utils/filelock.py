@@ -113,7 +113,7 @@ class Timeout(TimeoutError):
 # automatically.
 #
 # :seealso: issue #37 (memory leak)
-class _Acquire_ReturnProxy(object):
+class _Acquire_ReturnProxy:
     def __init__(self, lock):
         self.lock = lock
         return None
@@ -126,7 +126,7 @@ class _Acquire_ReturnProxy(object):
         return None
 
 
-class BaseFileLock(object):
+class BaseFileLock:
     """
     Implements the base class of a file lock.
     """
@@ -291,7 +291,7 @@ class BaseFileLock(object):
                         poll_intervall,
                     )
                     time.sleep(poll_intervall)
-        except:
+        except BaseException:
             # Something did go wrong, so decrement the counter.
             with self._thread_lock:
                 self._lock_counter = max(0, self._lock_counter - 1)
@@ -362,7 +362,7 @@ class WindowsFileLock(BaseFileLock):
         else:
             try:
                 msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
-            except (IOError, OSError):
+            except OSError:
                 os.close(fd)
             else:
                 self._lock_file_fd = fd
@@ -398,7 +398,7 @@ class UnixFileLock(BaseFileLock):
 
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except (IOError, OSError):
+        except OSError:
             os.close(fd)
         else:
             self._lock_file_fd = fd
@@ -429,7 +429,7 @@ class SoftFileLock(BaseFileLock):
         open_mode = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_TRUNC
         try:
             fd = os.open(self._lock_file, open_mode)
-        except (IOError, OSError):
+        except OSError:
             pass
         else:
             self._lock_file_fd = fd

@@ -23,8 +23,8 @@ from brian2.utils.stringtools import get_identifiers, word_substitute
 from .statements import Statement
 
 # Default namespace has all the standard functions and constants in it
-defaults_ns = dict((k, v.pyfunc) for k, v in DEFAULT_FUNCTIONS.items())
-defaults_ns.update(dict((k, v.value) for k, v in DEFAULT_CONSTANTS.items()))
+defaults_ns = {k: v.pyfunc for k, v in DEFAULT_FUNCTIONS.items()}
+defaults_ns.update({k: v.value for k, v in DEFAULT_CONSTANTS.items()})
 
 
 __all__ = ["optimise_statements", "ArithmeticSimplifier", "Simplifier"]
@@ -91,11 +91,11 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
     new_vector_statements : sequence of Statement
         Simplified/optimised versions of statements
     """
-    boolvars = dict(
-        (k, v)
+    boolvars = {
+        k: v
         for k, v in variables.items()
         if hasattr(v, "dtype") and brian_dtype_from_dtype(v.dtype) == "boolean"
-    )
+    }
     # We use the Simplifier class by rendering each expression, which generates new scalar statements
     # stored in the Simplifier object, and these are then added to the scalar statements.
     simplifier = Simplifier(variables, scalar_statements, extra_lio_prefix=blockname)
@@ -125,9 +125,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
             for bool_vals in itertools.product(*bool_space):
                 # substitute those values into the expr and simplify (including potentially pulling out new
                 # loop invariants)
-                subs = dict(
-                    (var, str(val)) for var, val in zip(used_boolvars, bool_vals)
-                )
+                subs = {var: str(val) for var, val in zip(used_boolvars, bool_vals)}
                 curexpr = word_substitute(new_expr, subs)
                 curexpr = simplifier.render_expr(curexpr)
                 key = tuple((var, val) for var, val in zip(used_boolvars, bool_vals))
@@ -217,7 +215,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
         Assumes that the node has already been fully processed by BrianASTRenderer
         """
         if not hasattr(node, "simplified"):
-            node = super(ArithmeticSimplifier, self).render_node(node)
+            node = super().render_node(node)
             node.simplified = True
         # can't evaluate vector expressions, so abandon in this case
         if not node.scalar:
@@ -270,7 +268,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
                 return self.render_node(newnode)
         left = node.left = self.render_node(node.left)
         right = node.right = self.render_node(node.right)
-        node = super(ArithmeticSimplifier, self).render_BinOp(node)
+        node = super().render_BinOp(node)
         op = node.op
         # Handle multiplication by 0 or 1
         if op.__class__.__name__ == "Mult":
@@ -437,7 +435,7 @@ class Simplifier(BrianASTRenderer):
             newnode.stateless = node.stateless
             return newnode
         # otherwise, render node as usual
-        return super(Simplifier, self).render_node(node)
+        return super().render_node(node)
 
 
 def reduced_node(terms, op):
@@ -494,8 +492,8 @@ def cancel_identical_terms(primary, inverted):
         Inverted nodes after cancellation
     """
     nr = NodeRenderer()
-    expressions = dict((node, nr.render_node(node)) for node in primary)
-    expressions.update(dict((node, nr.render_node(node)) for node in inverted))
+    expressions = {node: nr.render_node(node) for node in primary}
+    expressions.update({node: nr.render_node(node) for node in inverted})
     new_primary = []
     inverted_expressions = [expressions[term] for term in inverted]
     for term in primary:

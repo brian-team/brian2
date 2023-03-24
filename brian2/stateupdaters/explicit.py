@@ -281,9 +281,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             for symbol, unique_symbol in zip(symbols, unique_symbols):
                 expression = expression.subs(symbol, unique_symbol)
 
-            self.symbols.update(
-                dict(((symbol.name, symbol) for symbol in unique_symbols))
-            )
+            self.symbols.update({symbol.name: symbol for symbol in unique_symbols})
             if element.getName() == "statement":
                 self.statements.append((f"__{element.identifier}", expression))
             elif element.getName() == "output":
@@ -357,22 +355,17 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # e.g. '_k_v' for the state variable 'v' and the temporary
             # variable 'k'.
             if stochastic_variable is None:
-                temp_var_replacements = dict(
-                    (
-                        (self.symbols[temp_var], _symbol(f"{temp_var}_{var}"))
-                        for temp_var in temp_vars
-                    )
-                )
+                temp_var_replacements = {
+                    self.symbols[temp_var]: _symbol(f"{temp_var}_{var}")
+                    for temp_var in temp_vars
+                }
             else:
-                temp_var_replacements = dict(
-                    (
-                        (
-                            self.symbols[temp_var],
-                            _symbol(f"{temp_var}_{var}_{stochastic_variable}"),
-                        )
-                        for temp_var in temp_vars
+                temp_var_replacements = {
+                    self.symbols[temp_var]: _symbol(
+                        f"{temp_var}_{var}_{stochastic_variable}"
                     )
-                )
+                    for temp_var in temp_vars
+                }
             # In the expression given as 'x', replace 'x' by the variable
             # 'var' and all the temporary variables by their
             # variable-specific counterparts.
@@ -415,10 +408,10 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 self.symbols["__x"], eq_symbols[var]
             )
             # Replace intermediate variables
-            temp_var_replacements = dict(
-                (self.symbols[temp_var], _symbol(f"{temp_var}_{var}"))
+            temp_var_replacements = {
+                self.symbols[temp_var]: _symbol(f"{temp_var}_{var}")
                 for temp_var in temp_vars
-            )
+            }
             non_stochastic_result = non_stochastic_result.subs(temp_var_replacements)
             non_stochastic_results.append(non_stochastic_result)
         elif isinstance(stochastic_variable, str):
@@ -434,13 +427,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 self.symbols["__x"], eq_symbols[var]
             )
             # Replace intermediate variables
-            temp_var_replacements = dict(
-                (
-                    self.symbols[temp_var],
-                    _symbol(f"{temp_var}_{var}_{stochastic_variable}"),
+            temp_var_replacements = {
+                self.symbols[temp_var]: _symbol(
+                    f"{temp_var}_{var}_{stochastic_variable}"
                 )
                 for temp_var in temp_vars
-            )
+            }
 
             non_stochastic_result = non_stochastic_result.subs(temp_var_replacements)
             non_stochastic_results.append(non_stochastic_result)
@@ -457,19 +449,13 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 self.symbols["__x"], eq_symbols[var]
             )
             # Replace intermediate variables
-            temp_var_replacements = dict(
-                (
-                    self.symbols[temp_var],
-                    reduce(
-                        operator.add,
-                        [
-                            _symbol(f"{temp_var}_{var}_{xi}")
-                            for xi in stochastic_variable
-                        ],
-                    ),
+            temp_var_replacements = {
+                self.symbols[temp_var]: reduce(
+                    operator.add,
+                    [_symbol(f"{temp_var}_{var}_{xi}") for xi in stochastic_variable],
                 )
                 for temp_var in temp_vars
-            )
+            }
 
             non_stochastic_result = non_stochastic_result.subs(temp_var_replacements)
             non_stochastic_results.append(non_stochastic_result)
@@ -506,13 +492,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 self.symbols["__dW"], stochastic_variable
             )
             # Replace intermediate variables
-            temp_var_replacements = dict(
-                (
-                    self.symbols[temp_var],
-                    _symbol(f"{temp_var}_{var}_{stochastic_variable}"),
+            temp_var_replacements = {
+                self.symbols[temp_var]: _symbol(
+                    f"{temp_var}_{var}_{stochastic_variable}"
                 )
                 for temp_var in temp_vars
-            )
+            }
 
             stochastic_result = stochastic_result.subs(temp_var_replacements)
             stochastic_results.append(stochastic_result)
@@ -534,10 +519,10 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 stochastic_result = stochastic_result.subs(self.symbols["__dW"], xi)
 
                 # Replace intermediate variables
-                temp_var_replacements = dict(
-                    (self.symbols[temp_var], _symbol(f"{temp_var}_{var}_{xi}"))
+                temp_var_replacements = {
+                    self.symbols[temp_var]: _symbol(f"{temp_var}_{var}_{xi}")
                     for temp_var in temp_vars
-                )
+                }
 
                 stochastic_result = stochastic_result.subs(temp_var_replacements)
                 stochastic_results.append(stochastic_result)
@@ -670,7 +655,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
         # A dictionary mapping all the variables in the equations to their
         # sympy representations
-        eq_variables = dict(((var, _symbol(var)) for var in eqs.eq_names))
+        eq_variables = {var: _symbol(var) for var in eqs.eq_names}
 
         # Generate the random numbers for the stochastic variables
         for stochastic_variable in stochastic_variables:
@@ -763,7 +748,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             statements.append(f"_{var} = {RHS}")
 
         # Assign everything to the final variables
-        for var, expr in substituted_expressions:
+        for var, _ in substituted_expressions:
             statements.append(f"{var} = _{var}")
 
         return "\n".join(statements)

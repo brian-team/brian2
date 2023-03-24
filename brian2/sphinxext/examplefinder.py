@@ -4,7 +4,6 @@ Automatically find examples of a Brian object or function.
 
 
 import os
-import re
 from collections import defaultdict
 
 from brian2.utils.stringtools import get_identifiers
@@ -17,7 +16,9 @@ the_examples_map = defaultdict(list)
 the_tutorials_map = defaultdict(list)
 
 
-def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=[]):
+def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=None):
+    if path_exclusions is None:
+        path_exclusions = []
     if the_map:
         return the_map
     if environ_var in os.environ:
@@ -34,7 +35,7 @@ def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=[]):
         for fname in shortfnames
     ]
     for fname, shortfname, exname in zip(fnames, shortfnames, exnames):
-        with open(fname, "r") as f:
+        with open(fname) as f:
             ex = f.read()
         ids = get_identifiers(ex)
         for id in ids:
@@ -64,9 +65,7 @@ def auto_find_examples(obj, headersymbol="="):
     make mistakes but is usually going to be correct).
     """
     name = obj.__name__
-    examples_map = get_examples_map()
     examples = sorted(the_examples_map[name])
-    tutorials_map = get_tutorials_map()
     tutorials = sorted(the_tutorials_map[name])
     if len(examples + tutorials) == 0:
         return ""
@@ -82,6 +81,6 @@ def auto_find_examples(obj, headersymbol="="):
 
 
 if __name__ == "__main__":
-    from brian2 import NeuronGroup, SpatialNeuron
+    from brian2 import NeuronGroup
 
     print(auto_find_examples(NeuronGroup))

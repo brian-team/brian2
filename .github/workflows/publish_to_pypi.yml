@@ -10,11 +10,11 @@ jobs:
       matrix:
         os: [ ubuntu-20.04, windows-2019, macOS-11 ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Set up Python 3.x
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
       - name: Build source tarball (only on Linux)

@@ -191,7 +191,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables["period"].set_value(period)
 
     def _full_state(self):
-        state = super(SpikeGeneratorGroup, self)._full_state()
+        state = super()._full_state()
         # Store the internal information we use to decide whether to rebuild
         # the time bins
         state["_previous_dt"] = self._previous_dt
@@ -202,7 +202,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         state = state.copy()  # copy to avoid errors for multiple restores
         self._previous_dt = state.pop("_previous_dt")
         self._spikes_changed = state.pop("_spikes_changed")
-        super(SpikeGeneratorGroup, self)._restore_from_full_state(state)
+        super()._restore_from_full_state(state)
 
     def before_run(self, run_namespace):
         # Do some checks on the period vs. dt
@@ -280,7 +280,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             self._previous_dt = dt
             self._spikes_changed = False
 
-        super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace)
+        super().before_run(run_namespace=run_namespace)
 
     @check_units(indices=1, times=second, period=second)
     def set_spikes(self, indices, times, period=0 * second, sorted=False):
@@ -353,9 +353,9 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         indices = np.asarray(indices)
         if not sorted:
             # sort times and indices first by time, then by indices
-            I = np.lexsort((indices, times))
-            indices = indices[I]
-            times = times[I]
+            sort_indices = np.lexsort((indices, times))
+            indices = indices[sort_indices]
+            times = times[sort_indices]
 
         # We store the indices and times also directly in the Python object,
         # this way we can use them for checks in `before_run` even in standalone
@@ -379,5 +379,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     def __repr__(self):
         cls = self.__class__.__name__
-        l = self.variables["neuron_index"].size
-        return f"{cls}({self.N}, indices=<length {l} array>, times=<length {l} array>)"
+        size = self.variables["neuron_index"].size
+        return (
+            f"{cls}({self.N}, indices=<length {size} array>, times=<length"
+            f" {size} array>)"
+        )

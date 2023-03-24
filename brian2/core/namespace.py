@@ -68,11 +68,11 @@ def _get_default_unit_namespace():
     # Include all "simple" units from additional_units, i.e. units like mliter
     # but not "newton * metre"
     namespace.update(
-        dict(
-            (name, unit)
+        {
+            name: unit
             for name, unit in additional_unit_register.units.items()
             if not unit.iscompound
-        )
+        }
     )
     return namespace
 

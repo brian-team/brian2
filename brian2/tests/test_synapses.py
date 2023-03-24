@@ -2037,11 +2037,11 @@ def numerically_check_permutation_code(code):
         elif var.endswith("_const"):
             indices[var] = "0"
             vals[var] = 42
-    subs = dict(
-        (var, var + "[" + idx + "]")
+    subs = {
+        var: var + "[" + idx + "]"
         for var, idx in indices.items()
         if not var.endswith("_const")
-    )
+    }
     code = word_substitute(code, subs)
     code = f"""
 from numpy import *

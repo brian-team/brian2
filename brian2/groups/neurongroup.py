@@ -1,9 +1,8 @@
 """
 This model defines the `NeuronGroup`, the core of most simulations.
 """
-import numbers
 import string
-from collections.abc import MutableMapping, Sequence
+from collections.abc import MutableMapping
 
 import numpy as np
 import sympy
@@ -86,7 +85,7 @@ def _guess_membrane_potential(equations):
     """
     if len(equations) == 1:
         return list(equations.keys())[0]
-    for name, eq in equations.items():
+    for name in equations:
         if name in ["V", "v", "Vm", "vm"]:
             return name
 
@@ -914,7 +913,7 @@ class NeuronGroup(Group, SpikeSource):
         # Check that subexpressions that refer to stateful functions are labeled
         # as "constant over dt"
         check_subexpressions(self, self.equations, run_namespace)
-        super(NeuronGroup, self).before_run(run_namespace=run_namespace)
+        super().before_run(run_namespace=run_namespace)
 
     def _repr_html_(self):
         text = [rf"NeuronGroup '{self.name}' with {self._N} neurons.<br>"]

@@ -106,7 +106,7 @@ class Expression(CodeString):
             # Just try to convert it to a sympy expression to get syntax errors
             # for incorrect expressions
             str_to_sympy(code)
-        super(Expression, self).__init__(code=code)
+        super().__init__(code=code)
 
     stochastic_variables = property(
         lambda self: {

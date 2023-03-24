@@ -37,7 +37,7 @@ from .statements import Statement
 __all__ = ["analyse_identifiers", "get_identifiers_recursively"]
 
 
-class LineInfo(object):
+class LineInfo:
     """
     A helper class, just used to store attributes.
     """
@@ -86,19 +86,19 @@ def analyse_identifiers(code, variables, recursive=False):
         external namespace.
     """
     if isinstance(variables, Mapping):
-        known = set(
+        known = {
             k for k, v in variables.items() if not isinstance(k, AuxiliaryVariable)
-        )
+        }
     else:
         known = set(variables)
-        variables = dict((k, Variable(name=k, dtype=np.float64)) for k in known)
+        variables = {k: Variable(name=k, dtype=np.float64) for k in known}
 
     known |= STANDARD_IDENTIFIERS
     scalar_stmts, vector_stmts = make_statements(
         code, variables, np.float64, optimise=False
     )
     stmts = scalar_stmts + vector_stmts
-    defined = set(stmt.var for stmt in stmts if stmt.op == ":=")
+    defined = {stmt.var for stmt in stmts if stmt.op == ":="}
     if len(stmts) == 0:
         allids = set()
     elif recursive:
@@ -230,9 +230,7 @@ def make_statements(code, variables, dtype, optimise=True, blockname=""):
     # Do a copy so we can add stuff without altering the original dict
     variables = dict(variables)
     # we will do inference to work out which lines are := and which are =
-    defined = set(
-        k for k, v in variables.items() if not isinstance(v, AuxiliaryVariable)
-    )
+    defined = {k for k, v in variables.items() if not isinstance(v, AuxiliaryVariable)}
     for line in lines:
         statement = None
         # parse statement into "var op expr"
@@ -338,9 +336,9 @@ def make_statements(code, variables, dtype, optimise=True, blockname=""):
         line.will_write = will_write.copy()
         will_write.add(line.write)
 
-    subexpressions = dict(
-        (name, val) for name, val in variables.items() if isinstance(val, Subexpression)
-    )
+    subexpressions = {
+        name: val for name, val in variables.items() if isinstance(val, Subexpression)
+    }
     # Check that no scalar subexpression refers to a vectorised function
     # (e.g. rand()) -- otherwise it would be differently interpreted depending
     # on whether it is used in a scalar or a vector context (i.e., even though
@@ -365,16 +363,16 @@ def make_statements(code, variables, dtype, optimise=True, blockname=""):
 
     # sort subexpressions into an order so that subexpressions that don't depend
     # on other subexpressions are first
-    subexpr_deps = dict(
-        (name, [dep for dep in subexpr.identifiers if dep in subexpressions])
+    subexpr_deps = {
+        name: [dep for dep in subexpr.identifiers if dep in subexpressions]
         for name, subexpr in subexpressions.items()
-    )
+    }
     sorted_subexpr_vars = topsort(subexpr_deps)
 
     statements = []
 
     # none are yet defined (or declared)
-    subdefined = dict((name, None) for name in subexpressions)
+    subdefined = {name: None for name in subexpressions}
     for line in lines:
         # update/define all subexpressions needed by this statement
         for var in sorted_subexpr_vars:

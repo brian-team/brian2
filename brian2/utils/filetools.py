@@ -33,7 +33,7 @@ def ensure_directory(d):
     return d
 
 
-class in_directory(object):
+class in_directory:
     """
     Safely temporarily work in a subdirectory
 
@@ -63,7 +63,7 @@ def copy_directory(source, target):
     """
     relnames = []
     sourcebase = os.path.normpath(source) + os.path.sep
-    for root, dirnames, filenames in os.walk(source):
+    for root, _, filenames in os.walk(source):
         for filename in filenames:
             fullname = os.path.normpath(os.path.join(root, filename))
             relname = fullname.replace(sourcebase, "")

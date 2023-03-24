@@ -99,10 +99,12 @@ def test_variableview_calculations():
         """
         x : 1
         y : volt
+        idx : integer
         """,
     )
     G.x = np.arange(10)
     G.y = np.arange(10)[::-1] * mV
+    G.idx = np.arange(10, dtype=int)
     assert_allclose(G.x * G.y, np.arange(10) * np.arange(10)[::-1] * mV)
     assert_allclose(-G.x, -np.arange(10))
     assert_allclose(-G.y, -np.arange(10)[::-1] * mV)
@@ -113,6 +115,7 @@ def test_variableview_calculations():
     assert_allclose(G.y * 3, 3 * np.arange(10)[::-1] * mV)
     assert_allclose(G.x / 2.0, np.arange(10) / 2.0)
     assert_allclose(G.y / 2, np.arange(10)[::-1] * mV / 2)
+    assert_equal(G.idx % 2, np.arange(10, dtype=int) % 2)
     assert_allclose(G.x + 2, 2 + np.arange(10))
     assert_allclose(G.y + 2 * mV, 2 * mV + np.arange(10)[::-1] * mV)
     assert_allclose(2 + G.x, 2 + np.arange(10))
@@ -572,8 +575,8 @@ def test_linked_subexpression():
 
     # Due to the linking, the first 5 and the second 5 recorded I vectors should
     # be identical
-    assert all((all(mon[i].I == mon[0].I) for i in range(5)))
-    assert all((all(mon[i + 5].I == mon[5].I) for i in range(5)))
+    assert all(all(mon[i].I == mon[0].I) for i in range(5))
+    assert all(all(mon[i + 5].I == mon[5].I) for i in range(5))
 
 
 @pytest.mark.standalone_compatible
@@ -626,8 +629,8 @@ def test_linked_subexpression_3():
 
     # Due to the linking, the first 5 and the second 5 recorded I vectors should
     # refer to the
-    assert all((all(mon[i].I_l == mon1[0].I) for i in range(5)))
-    assert all((all(mon[i + 5].I_l == mon1[1].I) for i in range(5)))
+    assert all(all(mon[i].I_l == mon1[0].I) for i in range(5))
+    assert all(all(mon[i + 5].I_l == mon1[1].I) for i in range(5))
 
 
 def test_linked_subexpression_synapse():
@@ -1981,7 +1984,7 @@ def test_random_values_fixed_and_random():
     second_run_values = np.array(mon.v[:, [2, 3]])
 
     # First time step should be identical (same seed)
-    assert all(abs((first_run_values[:, 0] - second_run_values[:, 0])) < 0.0001)
+    assert all(abs(first_run_values[:, 0] - second_run_values[:, 0]) < 0.0001)
     # Increase in second time step should be different (random seed)
     assert all(
         abs(

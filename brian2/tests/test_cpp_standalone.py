@@ -665,7 +665,7 @@ def test_constant_replacement():
 def test_header_file_inclusion():
     set_device("cpp_standalone", directory=None, debug=True)
     with tempfile.TemporaryDirectory() as tmpdir:
-        with open(os.path.join(tmpdir, "foo.h"), "wt") as f:
+        with open(os.path.join(tmpdir, "foo.h"), "w") as f:
             f.write(
                 """
             namespace brian_test_namespace {
@@ -673,7 +673,7 @@ def test_header_file_inclusion():
             }
             """
             )
-        with open(os.path.join(tmpdir, "foo.cpp"), "wt") as f:
+        with open(os.path.join(tmpdir, "foo.cpp"), "w") as f:
             f.write(
                 """
             namespace brian_test_namespace {
