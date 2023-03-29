@@ -3563,17 +3563,47 @@ def test_synaptic_subgroups():
     from_3 = syn[3, :]
     assert len(from_3) == 3
     assert all(syn.i[from_3] == 3)
+    assert all(from_3.i == 3)
     assert_array_equal(syn.j[from_3], np.arange(3))
+    assert_array_equal(from_3.j, np.arange(3))
 
     to_2 = syn[:, 2]
     assert len(to_2) == 5
     assert all(syn.j[to_2] == 2)
-    assert_array_equal(syn.i[to_2], np.arange(5))
+    assert all(to_2.j == 2)
 
     mixed = syn[1:3, :2]
     assert len(mixed) == 4
     connections = {(i, j) for i, j in zip(syn.i[mixed], syn.j[mixed])}
-    assert connections == {(1, 0), (1, 1), (2, 0), (2, 1)}
+    expected = {(1, 0), (1, 1), (2, 0), (2, 1)}
+    # assert connections == expected
+    connections = {(i, j) for i, j in zip(mixed.i[:], mixed.j[:])}
+    assert connections == expected
+
+    string_based = syn["i > 1 and j % 2 == 0"]
+    assert len(string_based) == 6
+    connections = {(i, j) for i, j in zip(syn.i[string_based], syn.j[string_based])}
+    expected = {(2, 0), (2, 2), (3, 0), (3, 2), (4, 0), (4, 2)}
+    assert connections == expected
+    connections = {(i, j) for i, j in zip(string_based.i[:], string_based.j[:])}
+    assert connections == expected
+
+    array_based_2d = syn[[2, 3, 4], [0, 2]]  # same as above
+    assert len(array_based_2d) == 6
+    connections = {(i, j) for i, j in zip(syn.i[array_based_2d], syn.j[array_based_2d])}
+    expected = {(2, 0), (2, 2), (3, 0), (3, 2), (4, 0), (4, 2)}
+    assert connections == expected
+    connections = {(i, j) for i, j in zip(array_based_2d.i[:], array_based_2d.j[:])}
+    assert connections == expected
+
+    indices = np.flatnonzero((syn.i > 1) & (syn.j % 2 == 0))
+    array_based_1d = syn[indices]  # same as above
+    assert len(array_based_1d) == 6
+    connections = {(i, j) for i, j in zip(syn.i[array_based_1d], syn.j[array_based_1d])}
+    expected = {(2, 0), (2, 2), (3, 0), (3, 2), (4, 0), (4, 2)}
+    assert connections == expected
+    connections = {(i, j) for i, j in zip(array_based_1d.i[:], array_based_1d.j[:])}
+    assert connections == expected
 
 
 @pytest.mark.codegen_independent
