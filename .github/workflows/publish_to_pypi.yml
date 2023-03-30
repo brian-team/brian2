@@ -24,12 +24,13 @@ jobs:
           python setup.py sdist --formats=gztar --with-cython --fail-on-error
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.2.2
+        uses: pypa/cibuildwheel@v2.12.1
         with:
           output-dir: dist
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
-          CIBW_ARCHS: auto64
+          CIBW_ARCHS_WINDOWS: auto64
+          CIBW_ARCHS_LINUX: auto64 aarch64 ppc64le
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_TEST_SKIP: '*_arm64 *_universal2:arm64'
