@@ -61,12 +61,16 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-      - name: Build source tarball (only on Linux)
+      - name: Build source tarball
         run: |
           python -m pip install --upgrade pip
           python -m pip install "cython>=0.29" oldest-supported-numpy setuptools versioneer
           python setup.py sdist --formats=gztar --with-cython --fail-on-error
         if: ${{ matrix.arch == 'auto64' }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.1
         with:
