@@ -737,9 +737,9 @@ def test_state_variable_indexing():
     # invalid indices
     with pytest.raises(IndexError):
         S.w.__getitem__((1, 2, 3, 4))
-    with pytest.raises(IndexError):
+    with pytest.raises(TypeError):
         S.w.__getitem__(object())
-    with pytest.raises(IndexError):
+    with pytest.raises(TypeError):
         S.w.__getitem__(1.5)
 
 
@@ -795,9 +795,9 @@ def test_state_variable_indexing_with_subgroups():
     # invalid indices
     with pytest.raises(IndexError):
         S.__getitem__((1, 2, 3, 4))
-    with pytest.raises(IndexError):
+    with pytest.raises(TypeError):
         S.__getitem__(object())
-    with pytest.raises(IndexError):
+    with pytest.raises(TypeError):
         S.__getitem__(1.5)
 
 

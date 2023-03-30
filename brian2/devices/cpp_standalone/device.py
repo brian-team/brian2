@@ -462,8 +462,8 @@ class CPPStandaloneDevice(Device):
         self.main_queue.append(("resize_array", (array_name, new_size)))
 
     def variableview_set_with_index_array(self, variableview, item, value, check_units):
-        if isinstance(item, slice) and item == slice(None):
-            item = "True"
+        if item == "True":
+            item = slice(None)
         value = Quantity(value)
 
         if (
@@ -478,7 +478,7 @@ class CPPStandaloneDevice(Device):
                 ("set_by_single_value", (array_name, item, value_str))
             )
         # Simple case where we don't have to do any indexing
-        elif item == "True" and variableview.index_var in ("_idx", "0"):
+        elif item == slice(None) and variableview.index_var in ("_idx", "0"):
             self.fill_with_array(variableview.variable, value)
         else:
             # We have to calculate indices. This will not work for synaptic
@@ -717,6 +717,9 @@ class CPPStandaloneDevice(Device):
                         cache.get(var, np.empty(0, dtype=int)), value
                     )
                     do_not_invalidate.add(var)
+                # Also update the size attribute
+                variables["_synaptic_pre"].size += variables["sources"].size
+                variables["_synaptic_post"].size += variables["targets"].size
 
         codeobj = super().code_object(
             owner,

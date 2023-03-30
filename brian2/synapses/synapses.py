@@ -25,7 +25,7 @@ from brian2.equations.equations import (
     Equations,
     check_subexpressions,
 )
-from brian2.groups.group import CodeRunner, Group, get_dtype
+from brian2.groups.group import CodeRunner, Group, Indexing, get_dtype
 from brian2.groups.neurongroup import (
     SubexpressionUpdater,
     check_identifier_pre_post,
@@ -561,6 +561,7 @@ class SynapticSubgroup(Group):
             name=name,
         )
         self.variables = Variables(self, default_index="_sub_idx")
+        self.variables.add_constant("N", self._N)
         self.variables.add_references(synapses, list(synapses.variables.keys()))
         self.variables.add_array(
             "_sub_idx",
@@ -573,7 +574,7 @@ class SynapticSubgroup(Group):
             unique=True,
         )
 
-        self._indices = SynapticIndexing(self, "_sub_idx")
+        self._indices = SynapticIndexing(self, self.variables["_sub_idx"])
 
         self._enable_group_attributes()
 
@@ -587,12 +588,11 @@ class SynapticSubgroup(Group):
         )
 
 
-class SynapticIndexing:
+class SynapticIndexing(Indexing):
     def __init__(self, synapses, default_idx="_idx"):
-        self.synapses = synapses
-        self.default_idx = default_idx
-        self.source = weakproxy_with_fallback(self.synapses.source)
-        self.target = weakproxy_with_fallback(self.synapses.target)
+        super().__init__(synapses, default_idx)
+        self.source = weakproxy_with_fallback(synapses.source)
+        self.target = weakproxy_with_fallback(synapses.target)
         self.synaptic_pre = synapses.variables["_synaptic_pre"]
         self.synaptic_post = synapses.variables["_synaptic_post"]
         if synapses.multisynaptic_index is not None:
@@ -600,96 +600,82 @@ class SynapticIndexing:
         else:
             self.synapse_number = None
 
-    def __call__(self, index=None, index_var="_idx"):
+    def __call__(self, item=slice(None), index_var=None):  # noqa: B008
         """
         Returns synaptic indices for `index`, which can be a tuple of indices
         (including arrays and slices), a single index or a string.
 
         """
-        if index is None or (isinstance(index, str) and index == "True"):
-            index = slice(None)
+        if index_var is None:
+            index_var = self.default_index
 
-        if not isinstance(index, (tuple, str)) and (
-            isinstance(index, (numbers.Integral, np.ndarray, slice, Sequence))
-            or hasattr(index, "_indices")
-        ):
-            if hasattr(index, "_indices"):
-                final_indices = index._indices(index_var=index_var).astype(np.int32)
-            elif isinstance(index, slice):
-                if self.default_idx == "_idx":
-                    start, stop, step = index.indices(
-                        len(self.synaptic_pre.get_value())
-                    )
-                    final_indices = np.arange(start, stop, step, dtype=np.int32)
-                else:
-                    final_indices = self.synapses._stored_indices
-            else:
-                final_indices = np.asarray(index)
-        elif isinstance(index, tuple):
-            if len(index) == 2:  # two indices (pre- and postsynaptic cell)
-                index = (index[0], index[1], slice(None))
-            elif len(index) > 3:
-                raise IndexError(f"Need 1, 2 or 3 indices, got {len(index)}.")
+        if not isinstance(item, tuple):
+            # 1d indexing = synaptic indices
+            if hasattr(item, "_indices"):
+                item = item._indices()
+            final_indices = self._to_index_array(item, index_var)
+        else:
+            # 2d or 3d indexing = pre-/post-synaptic indices and (optionally) synapse number
+            if len(item) == 2:  # two indices (pre- and postsynaptic cell)
+                item = (item[0], item[1], slice(None))
+            elif len(item) > 3:
+                raise IndexError(f"Need 1, 2 or 3 indices, got {len(item)}.")
 
-            i_indices, j_indices, k_indices = index
-            # Convert to absolute indices (e.g. for subgroups)
-            # Allow the indexing to fail, we'll later return an empty array in
-            # that case
-            try:
-                if hasattr(
-                    i_indices, "_indices"
-                ):  # will return absolute indices already
-                    i_indices = i_indices._indices()
-                else:
-                    i_indices = self.source._indices(i_indices)
-                pre_synapses = find_synapses(i_indices, self.synaptic_pre.get_value())
-            except IndexError:
-                pre_synapses = np.array([], dtype=np.int32)
-            try:
-                if hasattr(j_indices, "_indices"):
-                    j_indices = j_indices._indices()
-                else:
-                    j_indices = self.target._indices(j_indices)
-                post_synapses = find_synapses(j_indices, self.synaptic_post.get_value())
-            except IndexError:
-                post_synapses = np.array([], dtype=np.int32)
+            i_indices, j_indices, k_indices = item
 
-            matching_synapses = np.intersect1d(
-                pre_synapses, post_synapses, assume_unique=True
+            if k_indices != slice(None) and self.synapse_number is None:
+                raise IndexError(
+                    "To index by the third dimension you need "
+                    "to switch on the calculation of the "
+                    "'multisynaptic_index' when you create "
+                    "the Synapses object."
+                )
+
+            final_indices = self._from_3d_indices_to_index_array(
+                i_indices, j_indices, k_indices
             )
 
-            if isinstance(k_indices, slice) and k_indices == slice(None):
-                final_indices = matching_synapses
-            else:
-                if self.synapse_number is None:
-                    raise IndexError(
-                        "To index by the third dimension you need "
-                        "to switch on the calculation of the "
-                        "'multisynaptic_index' when you create "
-                        "the Synapses object."
-                    )
-
-                # We want to access the raw arrays here, not go through the Variable
-                synapse_numbers = self.synapse_number.get_value()[matching_synapses]
-
-                if isinstance(k_indices, (numbers.Integral, slice)):
-                    test_k = slice_to_test(k_indices)
-                    final_indices = matching_synapses[test_k(synapse_numbers)]
-                else:
-                    final_indices = matching_synapses[
-                        np.in1d(synapse_numbers, k_indices)
-                    ]
-
-        else:
-            raise IndexError(f"Unsupported index type {type(index)}")
-
-        if (
-            index_var not in ("_idx", "0")
-            and not getattr(index_var, "name", None) == "_sub_idx"
-        ):
+        if index_var not in ("_idx", "0"):
             return index_var.get_value()[final_indices.astype(np.int32)]
         else:
             return final_indices.astype(np.int32)
+
+    def _from_3d_indices_to_index_array(self, i_indices, j_indices, k_indices):
+        # Convert to absolute indices (e.g. for subgroups)
+        # Allow the indexing to fail, we'll later return an empty array in
+        # that case
+        try:
+            if hasattr(i_indices, "_indices"):  # will return absolute indices already
+                i_indices = i_indices._indices()
+            else:
+                i_indices = self.source._indices(i_indices)
+            pre_synapses = find_synapses(i_indices, self.synaptic_pre.get_value())
+        except IndexError:
+            pre_synapses = np.array([], dtype=np.int32)
+        try:
+            if hasattr(j_indices, "_indices"):
+                j_indices = j_indices._indices()
+            else:
+                j_indices = self.target._indices(j_indices)
+            post_synapses = find_synapses(j_indices, self.synaptic_post.get_value())
+        except IndexError:
+            post_synapses = np.array([], dtype=np.int32)
+        matching_synapses = np.intersect1d(
+            pre_synapses, post_synapses, assume_unique=True
+        )
+
+        if k_indices == slice(None):
+            final_indices = matching_synapses
+        else:
+            # We want to access the raw arrays here, not go through the Variable
+            synapse_numbers = self.synapse_number.get_value()[matching_synapses]
+
+            if isinstance(k_indices, (numbers.Integral, slice)):
+                test_k = slice_to_test(k_indices)
+                final_indices = matching_synapses[test_k(synapse_numbers)]
+            else:
+                final_indices = matching_synapses[np.in1d(synapse_numbers, k_indices)]
+        return final_indices
 
 
 class Synapses(Group):
