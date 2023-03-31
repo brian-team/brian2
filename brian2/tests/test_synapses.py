@@ -1250,8 +1250,8 @@ def test_transmission_scalar_delay_different_clocks():
             run(2 * ms)
             assert len(l) == 1, "expected a warning, got %d" % len(l)
             assert l[0][1].endswith("synapses_dt_mismatch")
-
-    run(0 * ms)
+    else:
+        run(2 * ms)
     assert_allclose(mon[0].v[mon.t < 0.5 * ms], 0)
     assert_allclose(mon[0].v[mon.t >= 0.5 * ms], 1)
     assert_allclose(mon[1].v[mon.t < 1.5 * ms], 0)
