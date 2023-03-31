@@ -157,14 +157,19 @@ void _write_arrays()
 	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
-        if (! {{varname}}.empty() )
-        {
-			outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}[0]), {{varname}}.size()*sizeof({{varname}}[0]));
-		    outfile_{{varname}}.close();
-		}
+		outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}[0]), {{varname}}.size()*sizeof({{varname}}[0]));
+		outfile_{{varname}}.close();
 	} else
 	{
 		std::cout << "Error writing output file for {{varname}}." << endl;
+	}
+	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}_size", ios::out);
+	if (outfile_{{varname}}.is_open()) {
+	    outfile_{{varname}} << {{varname}}.size();
+	    outfile_{{varname}}.close();
+	} else
+	{
+		std::cout << "Error writing size file for {{varname}}." << endl;
 	}
 	{% endfor %}
 
@@ -184,6 +189,14 @@ void _write_arrays()
 	} else
 	{
 		std::cout << "Error writing output file for {{varname}}." << endl;
+	}
+	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}_size", ios::out);
+	if (outfile_{{varname}}.is_open()) {
+	    outfile_{{varname}} << {{varname}}.n << " " << {{varname}}.m;
+	    outfile_{{varname}}.close();
+	} else
+	{
+		std::cout << "Error writing size file for {{varname}}." << endl;
 	}
 	{% endfor %}
     {% if profiled_codeobjects is defined and profiled_codeobjects %}

@@ -528,7 +528,14 @@ class CPPStandaloneDevice(Device):
         # however (values that have been set with explicit values and not
         # changed in code objects)
         if self.array_cache.get(var, None) is not None:
-            return self.array_cache[var]
+            values = self.array_cache[var]
+            if isinstance(var, DynamicArrayVariable):
+                # Make sure that size information is up-to-date as well
+                if var.ndim == 2:
+                    var.size = values.shape
+                else:
+                    var.size = values.size
+            return values
         else:
             # After the network has been run, we can retrieve the values from
             # disk
@@ -537,27 +544,16 @@ class CPPStandaloneDevice(Device):
                 fname = os.path.join(self.project_dir, self.get_array_filename(var))
                 with open(fname, "rb") as f:
                     data = np.fromfile(f, dtype=dtype)
-                # This is a bit of an heuristic, but our 2d dynamic arrays are
-                # only expanding in one dimension, we assume here that the
-                # other dimension has size 0 at the beginning
-                if isinstance(var.size, tuple) and len(var.size) == 2:
-                    if var.size[0] * var.size[1] == len(data):
-                        size = var.size
-                    elif var.size[0] == 0:
-                        size = (len(data) // var.size[1], var.size[1])
-                    elif var.size[1] == 0:
-                        size = (var.size[0], len(data) // var.size[0])
-                    else:
-                        raise IndexError(
-                            "Do not now how to deal with 2d "
-                            f"array of size {var.size!s}, the array on "
-                            f"disk has length {len(data)}."
-                        )
+                if (
+                    isinstance(var.size, tuple) and len(var.size) == 2
+                ):  # 2D dynamic array
+                    values = data.reshape(var.size)
+                else:
+                    values = data
+                # assert (np.atleast_1d(values.shape) == np.atleast_1d(var.size)).all(), f"{values.shape} ≠ {var.size} ({var.name})"
+                self.array_cache[var] = values
+                return values
 
-                    var.size = size
-                    return data.reshape(var.size)
-                var.size = len(data)
-                return data
             raise NotImplementedError(
                 "Cannot retrieve the values of state "
                 "variables in standalone code before the "
@@ -1300,6 +1296,18 @@ class CPPStandaloneDevice(Device):
                     already_checked.add(owner.name)
             except ReferenceError:
                 pass
+
+        # Make sure the size information is up-to-date for dynamic variables
+        # Note that the actual data will only be loaded on demand
+        with in_directory(directory):
+            for var in self.dynamic_arrays:
+                fname = self.get_array_filename(var) + "_size"
+                new_size = int(np.loadtxt(fname, delimiter=" ", dtype=np.int32))
+                var.size = new_size
+            for var in self.dynamic_arrays_2d:
+                fname = self.get_array_filename(var) + "_size"
+                new_size = tuple(np.loadtxt(fname, delimiter=" ", dtype=np.int32))
+                var.size = new_size
 
     def build(
         self,
