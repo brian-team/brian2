@@ -17,7 +17,7 @@ def test_spike_monitor():
     G = NeuronGroup(
         3,
         """dv/dt = rate : 1
-                          rate: Hz""",
+           rate: Hz""",
         threshold="v>1",
         reset="v=0",
     )
@@ -90,8 +90,8 @@ def test_spike_monitor_variables():
     G = NeuronGroup(
         3,
         """dv/dt = rate : 1
-                          rate : Hz
-                          prev_spikes : integer""",
+           rate : Hz
+           prev_spikes : integer""",
         threshold="v>1",
         reset="v=0; prev_spikes += 1",
     )
@@ -123,8 +123,8 @@ def test_spike_monitor_get_states():
     G = NeuronGroup(
         3,
         """dv/dt = rate : 1
-                          rate : Hz
-                          prev_spikes : integer""",
+           rate : Hz
+           prev_spikes : integer""",
         threshold="v>1",
         reset="v=0; prev_spikes += 1",
     )
@@ -193,7 +193,7 @@ def test_event_monitor():
     G = NeuronGroup(
         3,
         """dv/dt = rate : 1
-                          rate: Hz""",
+           rate: Hz""",
         events={"my_event": "v>1"},
     )
     G.run_on_event("my_event", "v=0")
@@ -321,8 +321,8 @@ def test_state_monitor():
     G = NeuronGroup(
         2,
         """dv/dt = -v / (10*ms) : 1
-                          f = clip(v, 0.1, 0.9) : 1
-                          rate: Hz""",
+           f = clip(v, 0.1, 0.9) : 1
+           rate: Hz""",
         threshold="v>1",
         reset="v=0",
         refractory=2 * ms,
@@ -398,7 +398,7 @@ def test_state_monitor_subgroups():
     G = NeuronGroup(
         10,
         """v : volt
-                           step_size : volt (constant)""",
+           step_size : volt (constant)""",
     )
     G.run_regularly("v += step_size")
     G.step_size = "i*mV"
@@ -497,8 +497,8 @@ def test_state_monitor_get_states():
     G = NeuronGroup(
         2,
         """dv/dt = -v / (10*ms) : 1
-                          f = clip(v, 0.1, 0.9) : 1
-                          rate: Hz""",
+           f = clip(v, 0.1, 0.9) : 1
+           rate: Hz""",
         threshold="v>1",
         reset="v=0",
         refractory=2 * ms,
@@ -688,7 +688,7 @@ def test_rate_monitor_subgroups():
     G = NeuronGroup(
         4,
         """dv/dt = rate : 1
-                          rate : Hz""",
+           rate : Hz""",
         threshold="v>0.999",
         reset="v=0",
     )
