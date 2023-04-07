@@ -2,18 +2,12 @@
 {% extends 'common_group.pyx' %}
 
 {% block maincode %}
-
     cdef size_t _num_spikes = {{_spikespace}}[_num{{_spikespace}}-1]
-    {% if subgroup and not contiguous %}
-    # We use the same data structure as for the eventspace to store the
-    # "filtered" events, i.e. the events that are indexed in the subgroup
-    cdef int[{{source_N}} + 1] _filtered_events
-    cdef size_t _source_index_counter = 0
-    _filtered_events[{{source_N}}] = 0
-    {% endif %}
+
     {% if subgroup %}
-    # For subgroups, we do not want to record all spikes
-    {% if contiguous %}
+    cdef int32_t _filtered_spikes = 0
+    cdef size_t _source_index_counter = 0
+    {% if contiguous %}{# contiguous subgroup #}
     # We assume that spikes are ordered
     _start_idx = _num_spikes
     _end_idx = _num_spikes
@@ -27,8 +21,8 @@
         if _idx < _source_stop:
             break
         _end_idx = _j
-    _num_spikes = _end_idx - _start_idx
-    {% else %}
+    _filtered_spikes = _end_idx - _start_idx
+    {% else %}{# non-contiguous subgroup #}
     for _j in range(_num_spikes):
         _idx = {{_spikespace}}[_j]
         if _idx < {{_source_indices}}[_source_index_counter]:
@@ -38,12 +32,12 @@
         if (_source_index_counter < {{source_N}} and
                 _idx == {{_source_indices}}[_source_index_counter]):
             _source_index_counter += 1
-            _filtered_events[_filtered_events[{{source_N}}]] = _idx
-            _filtered_events[{{source_N}}] += 1
+            _filtered_spikes += 1
+
         if _source_index_counter == {{source_N}}:
             break
-    _num_spikes = _filtered_events[{{source_N}}]
     {% endif %}
+    _num_spikes = _filtered_spikes
     {% endif %}
     
     # Calculate the new length for the arrays
