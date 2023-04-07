@@ -3605,6 +3605,11 @@ def test_synaptic_subgroups():
     connections = {(i, j) for i, j in zip(array_based_1d.i[:], array_based_1d.j[:])}
     assert connections == expected
 
+    syn2 = Synapses(source, target)
+    # Cannot use subgroups of one Synapses object as indices for another
+    with pytest.raises(TypeError):
+        syn2.i[syn[3, :]]
+
 
 @pytest.mark.codegen_independent
 def test_incorrect_connect_N_incoming_outgoing():

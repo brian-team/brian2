@@ -267,9 +267,13 @@ class SpatialNeuron(NeuronGroup):
                 f"object, is '{type(model)}' instead."
             )
 
+        self.can_index = {morphology.id}
+
         # Insert the threshold mechanism at the specified location
         if threshold_location is not None:
             if hasattr(threshold_location, "_indices"):  # assuming this is a method
+                if threshold_location.id not in self.can_index:
+                    raise TypeError("Cannot use this object as a threshold location.")
                 threshold_location = threshold_location._indices()
             # for now, only a single compartment allowed
             try:
@@ -426,6 +430,9 @@ class SpatialNeuron(NeuronGroup):
             dtype=dtype,
             name=name,
         )
+
+        self.can_index.add(self.id)
+
         # Parameters and intermediate variables for solving the cable equations
         # Note that some of these variables could have meaningful physical
         # units (e.g. _v_star is in volt, _I0_all is in amp/meter**2 etc.) but

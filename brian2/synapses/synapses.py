@@ -612,6 +612,10 @@ class SynapticIndexing(Indexing):
         if not isinstance(item, tuple):
             # 1d indexing = synaptic indices
             if hasattr(item, "_indices"):
+                if item.id not in self.group.can_index:
+                    raise TypeError(
+                        "Cannot use this object for indexing in this context."
+                    )
                 item = item._indices()
             final_indices = self._to_index_array(item, index_var)
         else:
@@ -1178,7 +1182,9 @@ class Synapses(Group):
 
     def __getitem__(self, item):
         indices = self.indices[item]
-        return SynapticSubgroup(self, indices)
+        subgroup = SynapticSubgroup(self, indices)
+        self.can_index.add(subgroup.id)
+        return subgroup
 
     def _set_delay(self, delay, with_unit):
         if "pre" not in self._synaptic_updaters:

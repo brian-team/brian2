@@ -180,12 +180,20 @@ def test_state_variables_string_indices():
 @pytest.mark.codegen_independent
 def test_state_variables_group_as_index():
     G = NeuronGroup(10, "v : 1")
+    G2 = NeuronGroup(10, "v : 1")
     SG = G[4:9]
+    SG2 = G2[4:9]
     G.v[SG] = 1
     assert_equal(G.v[:], np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0]))
     G.v = 1
     G.v[SG] = "2*v"
     assert_equal(G.v[:], np.array([1, 1, 1, 1, 2, 2, 2, 2, 2, 1]))
+
+    # Need to correctly match subgroups and groups for indexing
+    with pytest.raises(TypeError):
+        G.v[SG2]
+    with pytest.raises(TypeError):
+        SG.v[SG2]
 
 
 @pytest.mark.codegen_independent

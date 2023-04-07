@@ -936,6 +936,15 @@ def test_spatialneuron_threshold_location():
             threshold_location=morpho.axon[5 * um : 15 * um],
             threshold="should_spike",
         )
+    with pytest.raises(TypeError):
+        # Need to use the correct morhpology
+        morpho2 = Soma(10 * um)
+        SpatialNeuron(
+            morpho,
+            model,
+            threshold_location=morpho2[0],
+            threshold="should_spike",
+        )
     neurons = [neuron, neuron2, neuron3]
     monitors = [SpikeMonitor(n) for n in neurons]
 

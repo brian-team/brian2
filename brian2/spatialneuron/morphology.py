@@ -5,6 +5,7 @@ This module defines classes to load and build neuronal morphologies.
 import abc
 import numbers
 import os
+import uuid
 from abc import abstractmethod
 from collections import OrderedDict, defaultdict, namedtuple
 
@@ -449,6 +450,9 @@ class Morphology(metaclass=abc.ABCMeta):
         self._children = Children(self)
         self._parent = None
         self.indices = MorphologyIndexWrapper(self)
+        self._id = uuid.uuid4()
+
+    id = property(fget=lambda self: self._id)
 
     def __getitem__(self, item):
         """
@@ -586,6 +590,9 @@ class Morphology(metaclass=abc.ABCMeta):
         """
         if isinstance(child, Morphology) and not item.startswith("_"):
             self[item] = child
+            # For purposes of indexing, this is now a subtree that can be used for
+            # indexing into the morphology
+            child._id = self.id
         else:  # If it is not a subtree, then it's a normal class attribute
             object.__setattr__(self, item, child)
 
@@ -1369,9 +1376,12 @@ class SubMorphology:
 
     def __init__(self, morphology, i, j):
         self._morphology = morphology
+        self._id = morphology.id
         self.indices = MorphologyIndexWrapper(self)
         self._i = i
         self._j = j
+
+    id = property(lambda self: self._id)
 
     def _indices(self, item=None):
         if not (item is None or item == slice(None)):

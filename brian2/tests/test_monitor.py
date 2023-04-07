@@ -419,7 +419,13 @@ def test_state_monitor_subgroups():
     # monitor full group and use subgroup as indices
     state_mon5 = StateMonitor(G, "v", record=SG1)
     state_mon6 = StateMonitor(G, "v", record=SG2)
-
+    with pytest.raises(TypeError):
+        # Cannot use a subgroup as indices for a monitor of a different subgroup
+        StateMonitor(SG1, "v", record=SG2)
+    with pytest.raises(TypeError):
+        G2 = NeuronGroup(10, "v : volt")
+        # Cannot use a subgroup as indices for a monitor of a different group
+        StateMonitor(G2, "v", record=SG1)
     run(2 * defaultclock.dt)
 
     assert_allclose(state_mon1.v, state_mon_full.v[3:8])

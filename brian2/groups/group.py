@@ -251,6 +251,8 @@ class Indexing:
             index_var = self.default_index
 
         if hasattr(item, "_indices"):
+            if item.id not in self.group.can_index:
+                raise TypeError("Cannot use this object as an index in this context.")
             item = item._indices()
 
         if isinstance(item, tuple):
@@ -393,6 +395,8 @@ class VariableOwner(Nameable):
             self.codeobj_class = None
         if not hasattr(self, "_indices"):
             self._indices = Indexing(self)
+        if not hasattr(self, "can_index"):
+            self.can_index = {self.id}
         if not hasattr(self, "indices"):
             self.indices = IndexWrapper(self)
         if not hasattr(self, "_stored_states"):
