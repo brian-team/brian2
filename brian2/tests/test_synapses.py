@@ -773,13 +773,17 @@ def test_state_variable_indexing_with_subgroups():
     assert len(S[:, :, 0:2:2].w) == len(G1) * len(G2)
     assert len(S[:, :, :2:2].w) == len(G1) * len(G2)
 
-    # 1d indexing is directly indexing synapses!
-    assert len(S[:].w) == len(S[0:].w)
-    assert len(S[[0, 1]].w) == len(S[3:5].w) == 2
-    assert len(S[:].w) == len(S[np.arange(len(G1) * len(G2) * 2)].w)
+    # 1d indexing is directly indexing synapses and should be equivalent to numpy syntax!
+    assert len(S[:].w) == len(S[0:].w) == len(S.w[:])
+    assert len(S[[0, 1]].w) == len(S[3:5].w) == len(S.w[:][[0, 1]]) == 2
+    assert (
+        len(S[:].w)
+        == len(S[np.arange(len(G1) * len(G2) * 2)].w)
+        == len(S.w[:][np.arange(len(G1) * len(G2) * 2)])
+    )
     assert S[3].w == S[np.int32(3)].w == S[np.int64(3)].w  # See issue #888
 
-    # Array-indexing (not yet supported for synapse index)
+    # Array-indexing
     assert_equal(S[:, 0:3].w[:], S[:, [0, 1, 2]].w[:])
     assert_equal(S[:, 0:3].w[:], S[np.arange(len(G1)), [0, 1, 2]].w[:])
     assert_equal(S[:, 0:3].w[:], S[:, [0, 1, 2], [0, 1]].w[:])
@@ -799,6 +803,8 @@ def test_state_variable_indexing_with_subgroups():
         S.__getitem__(object())
     with pytest.raises(TypeError):
         S.__getitem__(1.5)
+    with pytest.raises(IndexError):
+        S.__getitem__(np.arange(len(G1) * len(G2) * 2 + 1))
 
 
 def test_indices():

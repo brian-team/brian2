@@ -614,6 +614,18 @@ class SynapticIndexing(Indexing):
             if hasattr(item, "_indices"):
                 item = item._indices()
             final_indices = self._to_index_array(item, index_var)
+            if len(final_indices):
+                if np.min(final_indices) < 0:
+                    raise IndexError("Negative indices are not allowed.")
+                try:
+                    N = self.N.get_value()
+                    if np.max(final_indices) >= N:
+                        raise IndexError(
+                            f"Index {np.max(final_indices)} is out of bounds for "
+                            f"{N} synapses."
+                        )
+                except NotImplementedError:
+                    logger.warn("Cannot check synaptic indices for correctness")
         else:
             # 2d or 3d indexing = pre-/post-synaptic indices and (optionally) synapse number
             if len(item) == 2:  # two indices (pre- and postsynaptic cell)
@@ -636,7 +648,16 @@ class SynapticIndexing(Indexing):
             )
 
         if index_var not in ("_idx", "0"):
-            return index_var.get_value()[final_indices.astype(np.int32)]
+            try:
+                return index_var.get_value()[final_indices.astype(np.int32)]
+            except IndexError as ex:
+                # We try to emulate numpy's indexing semantics here:
+                # slices never lead to IndexErrors, instead they return an
+                # empty array if they don't match anything
+                if isinstance(item, slice):
+                    return np.array([], dtype=np.int32)
+                else:
+                    raise ex
         else:
             return final_indices.astype(np.int32)
 
