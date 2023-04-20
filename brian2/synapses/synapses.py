@@ -614,7 +614,7 @@ class SynapticIndexing(Indexing):
             if hasattr(item, "_indices"):
                 item = item._indices()
             final_indices = self._to_index_array(item, index_var)
-            if len(final_indices):
+            if final_indices.size > 0:
                 if np.min(final_indices) < 0:
                     raise IndexError("Negative indices are not allowed.")
                 try:
