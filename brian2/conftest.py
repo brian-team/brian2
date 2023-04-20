@@ -8,7 +8,7 @@ import pytest
 
 from brian2.core.clocks import defaultclock
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
-from brian2.devices import get_device, reinit_devices
+from brian2.devices import all_devices, get_device, reinit_devices
 from brian2.devices.device import reinit_and_delete, set_device
 from brian2.units import ms
 
@@ -84,9 +84,12 @@ def setup_and_teardown(request):
             brian2.prefs[key] = value
         set_device(config["device"], **config["device_options"])
     else:
-        for k, v in request.config.brian_prefs.items():
+        for k, v in getattr(request.config, "brian_prefs", {}).items():
             brian2.prefs[k] = v
-        set_device(request.config.device, **request.config.device_options)
+        set_device(
+            getattr(request.config, "device", all_devices["runtime"]),
+            **getattr(request.config, "device_options", {}),
+        )
     brian2.prefs._backup()
     # Print output changed in numpy 1.14, stick with the old format to
     # avoid doctest failures
@@ -108,7 +111,9 @@ def pytest_runtest_makereport(item, call):
     if hasattr(item.config, "workerinput"):
         fail_for_not_implemented = item.config.workerinput["fail_for_not_implemented"]
     else:
-        fail_for_not_implemented = item.config.fail_for_not_implemented
+        fail_for_not_implemented = getattr(
+            item.config, "fail_for_not_implemented", True
+        )
     outcome = yield
     rep = outcome.get_result()
     if rep.outcome == "failed":

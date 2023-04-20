@@ -30,3 +30,15 @@ versionfile_source = 'brian2/_version.py'
 versionfile_build = 'brian2/_version.py'
 tag_prefix = ''
 parentdir_prefix = 'brian2-'
+
+[tool.pytest.ini_options]
+markers = [
+    "codegen_independent: tests that do not generate/compile code",
+    "standalone_compatible: tests that can be run in standalone mode",
+    "multiple_runs: tests containing multiple run statements",
+    "cpp_standalone: tests specifically for C++ standalone mode",
+    "standalone_only: tests that should only run in standalone mode",
+    "openmp: tests that run multi-threaded simulations with OpenMP",
+    "gsl: tests that require the Gnu Scienfitic Library",
+    "long: long running tests",
+]
