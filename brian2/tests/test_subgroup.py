@@ -516,7 +516,6 @@ def test_synapse_access():
     S.w = "2*j"
     assert all(S.w[:, 1] == 2)
 
-    assert len(S.w[:, 10]) == 0
     assert len(S.w["j==10"]) == 0
 
     # Test referencing pre- and postsynaptic variables
@@ -531,7 +530,6 @@ def test_synapse_access():
     assert len(S) == len(S.w[SG1, SG2])
     assert_equal(S.w[SG1, 1], S.w[:, 1])
     assert_equal(S.w[1, SG2], S.w[1, :])
-    assert len(S.w[SG1, 10]) == 0
 
 
 def test_synapses_access_subgroups():

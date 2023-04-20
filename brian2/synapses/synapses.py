@@ -663,24 +663,18 @@ class SynapticIndexing(Indexing):
 
     def _from_3d_indices_to_index_array(self, i_indices, j_indices, k_indices):
         # Convert to absolute indices (e.g. for subgroups)
-        # Allow the indexing to fail, we'll later return an empty array in
-        # that case
-        try:
-            if hasattr(i_indices, "_indices"):  # will return absolute indices already
-                i_indices = i_indices._indices()
-            else:
-                i_indices = self.source._indices(i_indices)
-            pre_synapses = find_synapses(i_indices, self.synaptic_pre.get_value())
-        except IndexError:
-            pre_synapses = np.array([], dtype=np.int32)
-        try:
-            if hasattr(j_indices, "_indices"):
-                j_indices = j_indices._indices()
-            else:
-                j_indices = self.target._indices(j_indices)
-            post_synapses = find_synapses(j_indices, self.synaptic_post.get_value())
-        except IndexError:
-            post_synapses = np.array([], dtype=np.int32)
+        if hasattr(i_indices, "_indices"):  # will return absolute indices already
+            i_indices = i_indices._indices()
+        else:
+            i_indices = self.source._indices(i_indices)
+        pre_synapses = find_synapses(i_indices, self.synaptic_pre.get_value())
+
+        if hasattr(j_indices, "_indices"):
+            j_indices = j_indices._indices()
+        else:
+            j_indices = self.target._indices(j_indices)
+        post_synapses = find_synapses(j_indices, self.synaptic_post.get_value())
+
         matching_synapses = np.intersect1d(
             pre_synapses, post_synapses, assume_unique=True
         )
@@ -690,11 +684,15 @@ class SynapticIndexing(Indexing):
         else:
             # We want to access the raw arrays here, not go through the Variable
             synapse_numbers = self.synapse_number.get_value()[matching_synapses]
-
             if isinstance(k_indices, (numbers.Integral, slice)):
                 test_k = slice_to_test(k_indices)
                 final_indices = matching_synapses[test_k(synapse_numbers)]
             else:
+                k_indices = np.asarray(k_indices)
+                if k_indices.dtype == bool:
+                    raise NotImplementedError(
+                        "Boolean indexing not supported for synapse number"
+                    )
                 final_indices = matching_synapses[np.in1d(synapse_numbers, k_indices)]
         return final_indices
 

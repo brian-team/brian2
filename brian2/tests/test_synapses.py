@@ -727,6 +727,18 @@ def test_state_variable_indexing():
     assert_equal(S.w[:, 0:3], S.w[:, [0, 1, 2], [0, 1]])
     assert_equal(S.w[:, 0:3, 0], S.w[:, [0, 1, 2], [0]])
 
+    # Array indexing with boolean arrays
+    assert_equal(
+        S.w[:, 0:3], S.w[:, np.array([True, True, True, False, False, False, False])]
+    )
+    assert_equal(
+        S.w[:, 0:3],
+        S.w[
+            [True, True, True, True, True],
+            [True, True, True, False, False, False, False],
+        ],
+    )
+
     # string-based indexing
     assert_equal(S.w[0:3, :], S.w["i<3"])
     assert_equal(S.w[:, 0:3], S.w["j<3"])
@@ -737,6 +749,12 @@ def test_state_variable_indexing():
     # invalid indices
     with pytest.raises(IndexError):
         S.w.__getitem__((1, 2, 3, 4))
+    with pytest.raises(IndexError):
+        S.w[[0, 5], :]  # out-of-range array index
+    with pytest.raises(IndexError):
+        S.w[[True, False], :]  # too few boolean indices
+    with pytest.raises(IndexError):
+        S.w[[True, False, True, False, True, False], :]  # too many boolean indices
     with pytest.raises(TypeError):
         S.w.__getitem__(object())
     with pytest.raises(TypeError):
