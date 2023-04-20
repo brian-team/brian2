@@ -320,6 +320,11 @@ class Indexing:
         else:  # array, sequence, or single value
             index_array = np.asarray(item)
             if index_array.dtype == bool:
+                if not index_array.shape == (self.N.get_value(),):
+                    raise IndexError(
+                        "Boolean index did not match shape of indexed array;shape is"
+                        f" {(self.N.get_value(), )}, but index is {index_array.shape}"
+                    )
                 index_array = np.flatnonzero(index_array)
             elif not np.issubdtype(index_array.dtype, np.signedinteger):
                 raise TypeError(
