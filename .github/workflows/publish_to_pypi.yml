@@ -5,6 +5,9 @@ jobs:
   build-n-publish:
     name: Build wheels on ${{ matrix.os }} and publish to (Test)PyPI
     runs-on: ${{ matrix.os }}
+    environment: release
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
     strategy:
       fail-fast: false
       matrix:
@@ -31,24 +34,19 @@ jobs:
           CIBW_TEST_REQUIRES: pytest
       - name: Publish distribution 📦 to Test PyPI
         if: github.ref == 'refs/heads/master' && github.repository == 'brian-team/brian2'
-        run: |
-          pip install twine
-          twine upload -r testpypi dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
       - name: Publish distribution release 📦 to PyPI
         if: ${{ startsWith(github.ref, 'refs/tags') && github.repository == 'brian-team/brian2' }}
-        run: |
-          pip install twine
-          twine upload dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.pypi_password }}
+        uses: pypa/gh-action-pypi-publish@release/v1
 
   build-n-publish-linux:
     name: Build ${{ matrix.arch }} wheels on Linux and publish to (Test)PyPI
     runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
     strategy:
       fail-fast: false
       matrix:
@@ -84,17 +82,9 @@ jobs:
           CIBW_TEST_REQUIRES: pytest
       - name: Publish distribution 📦 to Test PyPI
         if: github.ref == 'refs/heads/master' && github.repository == 'brian-team/brian2'
-        run: |
-          pip install twine
-          twine upload -r testpypi dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
       - name: Publish distribution release 📦 to PyPI
         if: ${{ startsWith(github.ref, 'refs/tags') && github.repository == 'brian-team/brian2' }}
-        run: |
-          pip install twine
-          twine upload dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.pypi_password }}
+        uses: pypa/gh-action-pypi-publish@release/v1
