@@ -79,7 +79,7 @@ jobs:
 
   deploy:
     name: Publish to (Test)PyPI
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     environment: release
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
