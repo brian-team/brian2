@@ -2,12 +2,9 @@ name: Build and publish to TestPyPI or PyPI
 on: [push, pull_request]
 
 jobs:
-  build-n-publish:
-    name: Build wheels on ${{ matrix.os }} and publish to (Test)PyPI
+  build:
+    name: Build 🎡 on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    environment: release
-    permissions:
-      id-token: write # IMPORTANT: mandatory for trusted publishing
     strategy:
       fail-fast: false
       matrix:
@@ -32,21 +29,15 @@ jobs:
           CIBW_SKIP: 'pp* *-musllinux_*'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
-      - name: Publish distribution 📦 to Test PyPI
-        if: github.ref == 'refs/heads/master' && github.repository == 'brian-team/brian2'
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: store distribution 📦
+        uses: actions/upload-artifact@v3
         with:
-          repository-url: https://test.pypi.org/legacy/
-      - name: Publish distribution release 📦 to PyPI
-        if: ${{ startsWith(github.ref, 'refs/tags') && github.repository == 'brian-team/brian2' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
+          name: packages
+          path: dist
 
-  build-n-publish-linux:
-    name: Build ${{ matrix.arch }} wheels on Linux and publish to (Test)PyPI
+  build-linux:
+    name: Build ${{ matrix.arch }} 🎡 and source 📦 on Linux
     runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      id-token: write # IMPORTANT: mandatory for trusted publishing
     strategy:
       fail-fast: false
       matrix:
@@ -80,11 +71,32 @@ jobs:
           CIBW_SKIP: 'pp* *-musllinux_*'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
-      - name: Publish distribution 📦 to Test PyPI
-        if: github.ref == 'refs/heads/master' && github.repository == 'brian-team/brian2'
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: store distribution 📦
+        uses: actions/upload-artifact@v3
         with:
-          repository-url: https://test.pypi.org/legacy/
-      - name: Publish distribution release 📦 to PyPI
-        if: ${{ startsWith(github.ref, 'refs/tags') && github.repository == 'brian-team/brian2' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
+          name: packages
+          path: dist
+
+    deploy:
+      name: Publish to (Test)PyPI
+      runs-on: ubuntu-slim
+      environment: release
+      permissions:
+        id-token: write  # IMPORTANT: mandatory for trusted publishing
+      needs:
+        - build
+        - build-linux
+      steps:
+        - name: load distribution 📦
+          uses: actions/download-artifact@v3
+          with:
+            name: packages
+            path: dist/
+        - name: Publish distribution 📦 to Test PyPI
+          if: github.ref == 'refs/heads/master' && github.repository == 'brian-team/brian2'
+          uses: pypa/gh-action-pypi-publish@release/v1
+          with:
+            repository-url: https://test.pypi.org/legacy/
+        - name: Publish distribution release 📦 to PyPI
+          if: ${{ startsWith(github.ref, 'refs/tags') && github.repository == 'brian-team/brian2' }}
+          uses: pypa/gh-action-pypi-publish@release/v1
