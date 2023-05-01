@@ -301,7 +301,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
             )
         if not hasattr(func, "_arg_units") or not hasattr(func, "_return_unit"):
             raise ValueError(
-                f"Function {expr.func_id} does not specify how it deals with units."
+                f"Function {expr.func.id} does not specify how it deals with units."
             )
 
         if len(func._arg_units) != len(expr.args):
