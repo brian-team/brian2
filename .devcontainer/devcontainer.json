@@ -47,7 +47,8 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-python.vscode-pylance",
-				"ms-python.vscode-isort"
+				"ms-python.vscode-isort",
+				"ms-azuretools.vscode-docker"
 			]
 
 		}
