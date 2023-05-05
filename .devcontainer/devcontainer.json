@@ -55,6 +55,9 @@
 	// "postCreateCommand": "pip3 install --user -r requirements.txt",
 	"postCreateCommand": "pre-commit install && pip3 install --user -e '.[test,docs]' && pip3 freeze > .devcontainer/frozen-requirements.txt",
 
+	// Workaround for git security restrictions and dubious ownership in devcontainers
+	"postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
 	// https: //code.visualstudio.com/docs/remote/containers#_dev-container-features-preview
