@@ -48,7 +48,8 @@
 				"ms-python.python",
 				"ms-python.vscode-pylance",
 				"ms-python.vscode-isort",
-				"ms-azuretools.vscode-docker"
+				"ms-azuretools.vscode-docker",
+				"ms-python.flake8"
 			]
 
 		}
