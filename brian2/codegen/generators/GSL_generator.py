@@ -1053,7 +1053,7 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
     syntax = {
         "end_statement": "",
         "access_pointer": ".",
-        "start_declare": "cdef ",
+        "start_declare": "cdef extern ",
         "open_function": ":",
         "open_struct": ":",
         "end_function": "",
@@ -1113,7 +1113,7 @@ class GSLCPPCodeGenerator(GSLCodeGenerator):
     syntax = {
         "end_statement": ";",
         "access_pointer": "->",
-        "start_declare": "",
+        "start_declare": 'extern "C" ',
         "open_function": "\n{",
         "open_struct": "\n{",
         "end_function": "\n}",
