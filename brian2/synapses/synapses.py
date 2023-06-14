@@ -510,8 +510,8 @@ def slice_to_test(x):
 
 def find_synapses(index, synaptic_neuron):
     try:
-        index = int(index)
-    except TypeError:
+        index = index.item()
+    except (TypeError, ValueError):
         pass
 
     if isinstance(index, (int, slice)):
@@ -1770,8 +1770,8 @@ class Synapses(Group):
         source_offset = self.variables["_source_offset"].get_value()
         target_offset = self.variables["_target_offset"].get_value()
         # This resizing is only necessary if we are connecting to/from synapses
-        post_with_offset = int(self.variables["N_post"].get_value()) + target_offset
-        pre_with_offset = int(self.variables["N_pre"].get_value()) + source_offset
+        post_with_offset = self.variables["N_post"].item() + target_offset
+        pre_with_offset = self.variables["N_pre"].item() + source_offset
         self.variables["N_incoming"].resize(post_with_offset)
         self.variables["N_outgoing"].resize(pre_with_offset)
         N_outgoing = self.variables["N_outgoing"].get_value()

@@ -818,7 +818,7 @@ class GSLCodeGenerator:
     def add_meta_variables(self, options):
         if options["use_last_timestep"]:
             try:
-                N = int(self.variables["N"].get_value())
+                N = self.variables["N"].item()
                 self.owner.variables.add_array(
                     "_last_timestep",
                     size=N,
@@ -838,7 +838,7 @@ class GSLCodeGenerator:
             pointer_last_timestep = None
 
         if options["save_failed_steps"]:
-            N = int(self.variables["N"].get_value())
+            N = self.variables["N"].item()
             try:
                 self.owner.variables.add_array("_failed_steps", size=N, dtype=np.int32)
             except KeyError:

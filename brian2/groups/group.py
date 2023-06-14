@@ -263,7 +263,7 @@ class Indexing:
                 if index_var == "0":
                     return 0
                 if index_var == "_idx":
-                    start, stop, step = item.indices(int(self.N.get_value()))
+                    start, stop, step = item.indices(self.N.item())
                 else:
                     start, stop, step = item.indices(index_var.size)
                 index_array = np.arange(start, stop, step, dtype=np.int32)
@@ -686,7 +686,7 @@ class VariableOwner(Nameable):
                 )
 
     def __len__(self):
-        return int(self.variables["N"].get_value())
+        return self.variables["N"].item()
 
 
 class Group(VariableOwner, BrianObject):

@@ -371,6 +371,9 @@ class Constant(Variable):
     def get_value(self):
         return self.value
 
+    def item(self):
+        return self.value
+
 
 class AuxiliaryVariable(Variable):
     """
@@ -502,6 +505,12 @@ class ArrayVariable(Variable):
 
     def get_value(self):
         return self.device.get_value(self)
+
+    def item(self):
+        if self.size == 1:
+            return self.get_value().item()
+        else:
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     def set_value(self, value):
         self.device.fill_with_array(self, value)
@@ -957,15 +966,9 @@ class VariableView:
             )
         elif isinstance(item, str):
             try:
-                float(value)  # only checks for the exception
-                try:
-                    # length-1 arrays are also convertible to float, but we
-                    # don't want the repr used later to be something like
-                    # array([...]).
-                    value = value[0]
-                except (IndexError, TypeError):
-                    # was scalar already apparently
-                    pass
+                if isinstance(value, str):
+                    raise TypeError  # Will be dealt with below
+                value = np.asanyarray(value).item()
             except (TypeError, ValueError):
                 if item != "True":
                     raise TypeError(

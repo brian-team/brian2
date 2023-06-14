@@ -1475,6 +1475,10 @@ class Quantity(np.ndarray):
         """
         return Quantity(np.ndarray.__getitem__(self, key), self.dim)
 
+    def item(self, *args):
+        """Overwritten to assure that the returned element retains its unit."""
+        return Quantity(np.ndarray.item(self, *args), self.dim)
+
     def __setitem__(self, key, value):
         fail_for_dimension_mismatch(self, value, "Inconsistent units in assignment")
         return super().__setitem__(key, value)
