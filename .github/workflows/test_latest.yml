@@ -60,7 +60,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - name: Install dependencies
-        run: ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing numpy jinja2 scipy sphinx
+        run: |
+          ${{ steps.python.outputs.python-path }} -m pip install --upgrade pip
+          ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing numpy jinja2 scipy sphinx
       - name: Install Brian2
         run: ${{ steps.python.outputs.python-path }} -m pip install .
       - name: Run Tests
