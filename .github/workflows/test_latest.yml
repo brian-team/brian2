@@ -15,20 +15,22 @@ jobs:
     steps:
       - name: "calculate versions according to NEP29"
         id: nep29
-        uses: mstimberg/github-calc-nep29@v0.5
+        uses: mstimberg/github-calc-nep29@v0.6
         with:
+          include-release-candidates: true
+          include-beta-releases: true
           token: ${{ secrets.GITHUB_TOKEN }}
   
   testing:
     needs: [get_python_versions]
-    name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
+    name: "Python ${{ matrix.python-version }} on ${{ matrix.os.image }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
     runs-on: ${{ matrix.os.image }}
     strategy:
       fail-fast: false
       matrix:
-        os: [{image: ubuntu-latest, triplet: x64-linux },
-             {image: windows-latest, triplet: x64-windows },
-             {image: macOS-latest, triplet: x64-osx }]
+        os: [{image: ubuntu-latest, triplet: x64-linux},
+             {image: windows-latest, triplet: x64-windows},
+             {image: macOS-latest, triplet: x64-osx}]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
@@ -51,18 +53,20 @@ jobs:
           revision: master
           token: ${{ github.token }}
       - name: Install Python
+        id: python
         uses: actions/setup-python@v4
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - name: Install dependencies
-        run: python -m pip install --pre pytest cython sympy pyparsing numpy jinja2 scipy sphinx
+        run: ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing numpy jinja2 scipy sphinx
       - name: Install Brian2
-        run: python -m pip install .
+        run: ${{ steps.python.outputs.python-path }} -m pip install .
       - name: Run Tests
         run: |
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
-          python -Wd $GITHUB_WORKSPACE/dev/continuous-integration/run_test_suite.py
+          ${{ steps.python.outputs.python-path }} -Wd $GITHUB_WORKSPACE/dev/continuous-integration/run_test_suite.py
         env:
           DEPRECATION_ERROR: true
           AGENT_OS: ${{runner.os}}
