@@ -257,18 +257,25 @@ class Indexing:
             raise IndexError(
                 f"Can only interpret 1-d indices, got {len(item)} dimensions."
             )
-        else:
-            if isinstance(item, str) and item == "True":
-                item = slice(None)
-            if isinstance(item, slice):
-                if index_var == "0":
-                    return 0
-                if index_var == "_idx":
-                    start, stop, step = item.indices(self.N.item())
+
+        index_array = self._to_index_array(item, index_var)
+
+        if index_array.size == 0:
+            return index_array
+
+        if index_var not in ("_idx", "0"):
+            try:
+                index_array = index_var.get_value()[index_array]
+            except IndexError as ex:
+                # We try to emulate numpy's indexing semantics here:
+                # slices never lead to IndexErrors, instead they return an
+                # empty array if they don't match anything
+                if isinstance(item, slice):
+                    return np.array([], dtype=np.int32)
                 else:
                     raise ex
         else:
-            N = int(self.N.get_value())
+            N = self.N.item()
             if np.min(index_array) < -N:
                 raise IndexError(
                     "Illegal index {} for a group of size {}".format(
