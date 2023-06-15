@@ -14,6 +14,8 @@ The container environment can be customised in many ways, such as with [dotfiles
 
 The exact dependency versions used in this container will be saved in `.devcontainer/frozen_dependencies.txt`, which may be useful for debugging. 
 
+Note, when updating the packages in `.devcontainer/dev-requirements.txt`, the versions specified in `.pre-commit-config.yaml` must also be updated to match in order for the pre-commit hooks to work. 
+
 Plots can be saved directly to disk e.g. as `png` files for viewing. [JupyterLab](https://jupyterlab.readthedocs.io/en/stable/) is also provided for running code in notebooks and interactive plotting. The backend can be chosen with one of the following "magic" commands:
 
 * `%matplotlib inline` - This is the default and will render images as PNGs in the notebook.

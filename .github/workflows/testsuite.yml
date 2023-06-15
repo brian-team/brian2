@@ -91,7 +91,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
         run: |
           cp  $GITHUB_WORKSPACE/../.coverage .
-          pip3 install --upgrade coveralls
+          python -m pip install --upgrade coveralls
           coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -106,8 +106,8 @@ jobs:
     steps:
     - name: Finished
       run: |
-        pip3 install --upgrade coveralls
-        coveralls --service=github --finish
+        python -m pip install --upgrade coveralls
+        coveralls --service=github --finish --rcfile=$GITHUB_WORKSPACE/.coveragerc
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

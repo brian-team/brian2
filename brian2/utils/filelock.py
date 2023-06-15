@@ -463,4 +463,4 @@ else:
     FileLock = SoftFileLock
 
     if warnings is not None:
-        warnings.warn("only soft file lock is available")
+        warnings.warn("only soft file lock is available", stacklevel=1)
