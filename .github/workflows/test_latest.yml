@@ -22,11 +22,13 @@ jobs:
   testing:
     needs: [get_python_versions]
     name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os.image }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [{image: ubuntu-latest, triplet: x64-linux },
+             {image: windows-latest, triplet: x64-windows },
+             {image: macOS-latest, triplet: x64-osx }]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
@@ -39,24 +41,24 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      - name: Setup Conda and Python
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Install GSL
+        uses: johnwason/vcpkg-action@v5
+        id: vcpkg
         with:
-          auto-update-conda: true
-          auto-activate-base: false
-          channels: conda-forge,defaults
-          channel-priority: true
-          activate-environment: 'test_env'
+          pkgs: gsl
+          triplet: ${{ matrix.os.triplet }}
+          cache-key: gsl-${{ matrix.os.triplet }}
+          revision: master
+          token: ${{ github.token }}
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          cache: 'pip'
           python-version: ${{ matrix.python-version }}
-
-      - name: Install Brian2 and dependencies
-        run: |
-          conda install -n test_env --quiet --yes -c conda-forge gsl pip
-          conda activate test_env
-          python -m pip install --pre pytest cython sympy pyparsing numpy jinja2 scipy sphinx
-          python -m pip install .
-
+      - name: Install dependencies
+        run: python -m pip install --pre pytest cython sympy pyparsing numpy jinja2 scipy sphinx
+      - name: Install Brian2
+        run: python -m pip install .
       - name: Run Tests
         run: |
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
@@ -66,4 +68,3 @@ jobs:
           AGENT_OS: ${{runner.os}}
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
-
