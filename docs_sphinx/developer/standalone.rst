@@ -8,6 +8,7 @@ Standalone implementation
 This – currently very incomplete – document describes some of the implementation details of :ref:`cpp_standalone`.
 
 .. _array_cache:
+
 Array cache
 -----------
 As described in :ref:`standalone variables <standalone_variables>`, in standalone mode Python code does not
