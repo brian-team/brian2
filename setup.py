@@ -157,7 +157,7 @@ setup(name='Brian2',
                     'brian2.random': ['randomkit/randomkit.c',
                                       'randomkit/randomkit.h']
                     },
-      install_requires=['numpy>=1.17',
+      install_requires=['numpy>=1.21',
                         'cython>=0.29',
                         'sympy>=1.2',
                         'pyparsing',
@@ -169,6 +169,7 @@ setup(name='Brian2',
       setup_requires=['numpy>=1.10',
                       'setuptools>=24.2'
                       ],
+      python_requires='>=3.9',
       cmdclass=versioneer.get_cmdclass({'build_ext': optional_build_ext}),
       provides=['brian2'],
       extras_require={'test': ['pytest',
@@ -199,6 +200,5 @@ setup(name='Brian2',
           'Programming Language :: Python',
           'Programming Language :: Python :: 3',
           'Topic :: Scientific/Engineering :: Bio-Informatics'
-      ],
-      python_requires='>=3.7'
+      ]
       )

@@ -5,7 +5,9 @@ Brian 2.5.2
 -----------
 This new minor release fixes incompatibility issues with the latest numpy release, and a number of other issues.
 To make it easier to contribute to Brian, we have now adopted a consistent code style and updated our infrastructure so
-that the style gets enforced for all new code contributions (see :ref:`code_style` for details).
+that the style gets enforced for all new code contributions (see :ref:`code_style` for details). Following
+`NEP 29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_, this release supports Python 3.9 & numpy 1.21 and
+newer.
 
 New features
 ~~~~~~~~~~~~

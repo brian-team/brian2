@@ -2,7 +2,21 @@ name: Build and publish to TestPyPI or PyPI
 on: [push, pull_request]
 
 jobs:
+  get_python_versions:
+    name: "Determine Python versions"
+    runs-on: ubuntu-latest
+    outputs:
+      min-python: ${{ steps.nep29.outputs.min-python }}
+      max-python: ${{ steps.nep29.outputs.max-python }}
+    steps:
+      - name: "calculate versions according to NEP29"
+        id: nep29
+        uses: mstimberg/github-calc-nep29@v0.5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: [get_python_versions]
     name: Build 🎡 on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -22,7 +36,7 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_TEST_SKIP: '*_arm64 *_universal2:arm64'
@@ -36,6 +50,7 @@ jobs:
           path: dist
 
   build-linux:
+    needs: [get_python_versions]
     name: Build ${{ matrix.arch }} 🎡 and source 📦 on Linux
     runs-on: ubuntu-latest
     strategy:
@@ -65,7 +80,7 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_SKIP: 'pp* *-musllinux_*'
