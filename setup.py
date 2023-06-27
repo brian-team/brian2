@@ -9,17 +9,12 @@ import io
 import sys
 import os
 import platform
-from packaging.version import parse as parse_version
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.errors import CompileError, DistutilsPlatformError
 
-REQUIRED_CYTHON_VERSION = '0.29'
 
 try:
-    import Cython
-    if parse_version(Cython.__version__) < parse_version(REQUIRED_CYTHON_VERSION):
-        raise ImportError('Cython version %s is too old' % Cython.__version__)
     from Cython.Build import cythonize
     cython_available = True
 except ImportError:
@@ -50,10 +45,10 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
     if not cython_available:
         if FAIL_ON_ERROR and WITH_CYTHON:
             raise RuntimeError('Compilation with Cython requested/necessary but '
-                               'Cython >= %s is not available.' % REQUIRED_CYTHON_VERSION)
+                               'Cython is not available.')
         else:
             sys.stderr.write('Compilation with Cython requested/necessary but '
-                             'Cython >= %s is not available.\n' % REQUIRED_CYTHON_VERSION)
+                             'Cython is not available.\n')
             fname = None
     if not os.path.exists(pyx_fname):
         if FAIL_ON_ERROR and WITH_CYTHON:
@@ -61,7 +56,7 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
                                 'Cython source file %s does not exist') % pyx_fname)
         else:
             sys.stderr.write(('Compilation with Cython requested/necessary but '
-                                'Cython source file %s does not exist\n') % pyx_fname)
+                              'Cython source file %s does not exist\n') % pyx_fname)
             fname = None
 else:
     fname = cpp_fname
