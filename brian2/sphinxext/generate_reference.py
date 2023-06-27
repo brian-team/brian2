@@ -278,3 +278,4 @@ def main(rootpath, exclude_dirs, exclude_files, destdir):
         os.makedirs(destdir)
 
     exclude_dirs = normalize_excludes(rootpath, exclude_dirs)
+    recurse_tree(rootpath, exclude_dirs, exclude_files, destdir)
