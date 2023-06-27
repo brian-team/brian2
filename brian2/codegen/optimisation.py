@@ -36,8 +36,8 @@ def evaluate_expr(expr, ns):
 
     Returns either (value, True) if successful, or (expr, False) otherwise.
 
-    Example
-    -------
+    Examples
+    --------
     >>> assumptions = {'exp': DEFAULT_FUNCTIONS['exp'].pyfunc,
     ...                'inf': DEFAULT_CONSTANTS['inf'].value}
     >>> evaluate_expr('1/2', assumptions)

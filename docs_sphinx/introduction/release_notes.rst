@@ -163,6 +163,7 @@ A new build to provide binary
 for Python 3.10.
 
 .. _brian2.5:
+
 Brian 2.5
 ---------
 This new major release contains a large number of bug fixes and improvements, as well as
