@@ -68,7 +68,6 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 target-version = ['py39']
 include = '^/brian2/.*\.pyi?$'
-extend-exclude = '^/brian2/_version.py$'
 preview = true
 
 [tool.isort]
@@ -77,5 +76,4 @@ profile = "black"
 py_version = "39"
 skip_gitignore = true
 # NOTE: isort has no "include" option, only "skip".
-extend_skip = ["brian2/_version.py"]
 skip_glob = ["dev/*", "docs_sphinx/*", "examples/*", "tutorials/*"]
