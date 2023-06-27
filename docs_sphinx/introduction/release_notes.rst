@@ -1,6 +1,28 @@
 Release notes
 =============
 
+Brian 2.5.3
+-----------
+This new minor release only fixes two infrastructure issues that came up with the previous release.
+
+Selected bug fixes
+~~~~~~~~~~~~~~~~~~
+- Re-introduce the reference documentation, that was no longer created on https://brian2.readthedocs.org with the latest release (:issue:`1474`). Thanks to Michalis Pagkalos for making us aware of the issue.
+
+Infrastructure improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Brian's packaging infrastructure now switches to modern tools such as ``pyproject.toml`` for metadata declaration, ``build`` for source package creation, and ``setuptools_scm`` for versioning (:issue:`1475`). 
+
+
+Contributions
+~~~~~~~~~~~~~
+
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+
+
 Brian 2.5.2
 -----------
 This new minor release fixes incompatibility issues with the latest numpy release, and a number of other issues.
