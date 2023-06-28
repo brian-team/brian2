@@ -53,18 +53,7 @@ version number will contain additional information:
 .. code-block:: pycon
 
     >>> print(brian2.__version__) # doctest: +SKIP
-    2.4.2.post0.dev408
+    2.4.2.post408
 
 The above means that the Brian version that is used has 408 additional commits that were
-added after the 2.4.2 release. To get the exact git commit for the local Brian
-installation, use:
-
-.. code-block:: pycon
-
-    >>> print(brian2.__git_revision__) # doctest: +SKIP
-    d2cb4a85f804037ef055503975d822ff3f473ccf
-
-To get more information about this commit, you can append it to the repository URL
-on GitHub as ``/commit/<commit id>`` (where the first few characters of the
-``<commit id>`` are enough), e.g. for the commit referenced above:
-https://github.com/brian-team/brian2/commit/d2cb4a85
+added after the 2.4.2 release.

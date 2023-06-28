@@ -67,9 +67,9 @@ jobs:
           python-version: '3.x'
       - name: Build source tarball
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install "cython>=0.29" oldest-supported-numpy setuptools versioneer
-          python setup.py sdist --formats=gztar --with-cython --fail-on-error
+          python -m pip install --upgrade pip build
+          python -m pip install "cython>=0.29" oldest-supported-numpy "setuptools>=61" "setuptools_scm[toml]>=6.2"
+          python -m build --sdist --config-setting=--formats=gztar --config-setting=--with-cython --config-setting=--fail-on-error
         if: ${{ matrix.arch == 'auto64' }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
