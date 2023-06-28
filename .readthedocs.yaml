@@ -7,3 +7,4 @@ build:
   jobs:
     post_install:
         - python -m pip install .
+        - python -m pip install -r rtd-requirements.txt
