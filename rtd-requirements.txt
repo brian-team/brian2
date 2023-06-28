@@ -4,3 +4,4 @@
 # highlighting) get displayed correctly
 ipython >= 5
 sphinx-tabs
+sphinx==1.8.6
