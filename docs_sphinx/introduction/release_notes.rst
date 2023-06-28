@@ -7,7 +7,7 @@ This new minor release only fixes two infrastructure issues that came up with th
 
 Selected bug fixes
 ~~~~~~~~~~~~~~~~~~
-- Re-introduce the reference documentation, that was no longer created on https://brian2.readthedocs.org with the latest release (:issue:`1474`). Thanks to Michalis Pagkalos for making us aware of the issue.
+- Re-introduce the reference documentation that was no longer created on https://brian2.readthedocs.org with the latest release (:issue:`1474`). Thanks to Michalis Pagkalos for making us aware of the issue.
 
 Infrastructure improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

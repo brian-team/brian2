@@ -314,5 +314,11 @@ doctest_global_setup = 'from brian2 import *'
 highlight_language = 'python'  # instead of python3 (default for sphinx>=1.4)
 
 # Configure linking to github
-extlinks = {'issue': ('https://github.com/brian-team/brian2/issues/%s',
-                      '# %s')}
+import sphinx
+sphinx_version = tuple(int(x) for x in sphinx.__version__.split('.'))
+if sphinx_version >= (4, 0, 0): 
+    extlinks = {'issue': ('https://github.com/brian-team/brian2/issues/%s',
+                          '# %s')}
+else:
+    extlinks = {'issue': ('https://github.com/brian-team/brian2/issues/%s',
+                          '# ')}
