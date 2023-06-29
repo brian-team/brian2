@@ -1,7 +1,7 @@
 [project]
 name = "Brian2"
 authors = [
-    {name = 'Marcel Stimberg', email="marcel.stimberg@inserm.fr"},
+    {name = 'Marcel Stimberg'},
     {name = 'Dan Goodman'},
     {name ='Romain Brette'}
 ]
