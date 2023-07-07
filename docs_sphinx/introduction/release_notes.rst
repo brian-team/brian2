@@ -1,6 +1,29 @@
 Release notes
 =============
 
+Brian 2.5.4
+-----------
+Yet another minor release that fixes an issue with the documentation build. As a bonus, we now provide wheels built
+with the `musl <https://musl.libc.org/>`_ standard library, which allows installing Brian on distributions such as
+`Alpine Linux <https://alpinelinux.org/>`_.
+
+Selected bug fixes
+~~~~~~~~~~~~~~~~~~
+- Re-introduce the tutorials and example plots that were omitted from the documentation by accident. Thanks to Felix Kern for making us aware of the issue.
+
+Infrastructure improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Provide ``musllinux`` (see `PEP 656 <https://peps.python.org/pep-0656/>`_) wheels for distributions such as Alpine Linux (:issue:`1478`).
+
+Contributions
+~~~~~~~~~~~~~
+
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Felix Benjamin Kern (`@kernfel <https://github.com/kernfel>`_)
+
 Brian 2.5.3
 -----------
 This new minor release only fixes two infrastructure issues that came up with the previous release.
