@@ -40,7 +40,7 @@ jobs:
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_TEST_SKIP: '*_arm64 *_universal2:arm64'
-          CIBW_SKIP: 'pp* *-musllinux_*'
+          CIBW_SKIP: 'pp*'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
       - name: store distribution 📦
@@ -83,7 +83,7 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_SKIP: 'pp* *-musllinux_*'
+          CIBW_SKIP: 'pp* *-musllinux_aarch64'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
       - name: store distribution 📦
