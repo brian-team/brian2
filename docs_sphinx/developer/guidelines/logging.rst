@@ -101,3 +101,11 @@ warning and error messages)::
         assert len(logs) == 1
         # logs contains tuples of (log level, name, message)
         assert logs[0][0] == 'WARNING' and logs[0][1].endswith('warning_type')
+
+Logging in extension packages
+-----------------------------
+Extension packages such as `brian2cuda <https://brian2cuda.readthedocs.io>`_ can use Brian's logging infrastructure by
+using the `~brian2.utils.logger.get_logger` function to get a logger instance. They should use their own module name,
+e.g. a name starting with ``brian2cuda.`` so that it is clear whether a log message comes from Brian or from an
+extension package. This is also used by the `~.catch_logs` context manager (see above) to only consider log messages
+from the ``brian2`` package.
