@@ -38,7 +38,7 @@ from brian2.parsing.expressions import (
 )
 from brian2.parsing.rendering import NodeRenderer
 from brian2.stateupdaters.base import StateUpdateMethod, UnsupportedEquationsException
-from brian2.stateupdaters.exact import independent, linear
+from brian2.stateupdaters.exact import linear
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
@@ -170,7 +170,7 @@ class SummedVariableUpdater(CodeRunner):
             "the same dimensions as the right-hand "
             f"side expression '{self.expression}'.",
         )
-        super(SummedVariableUpdater, self).before_run(run_namespace)
+        super().before_run(run_namespace)
 
 
 class SynapticPathway(CodeRunner, Group):
@@ -362,7 +362,7 @@ class SynapticPathway(CodeRunner, Group):
 
     @device_override("synaptic_pathway_before_run")
     def before_run(self, run_namespace):
-        super(SynapticPathway, self).before_run(run_namespace)
+        super().before_run(run_namespace)
 
     def create_code_objects(self, run_namespace):
         if self._pushspikes_codeobj is None:
@@ -433,7 +433,7 @@ class SynapticPathway(CodeRunner, Group):
             )
 
     def _full_state(self):
-        state = super(SynapticPathway, self)._full_state()
+        state = super()._full_state()
         if self.queue is not None:
             state["_spikequeue"] = self.queue._full_state()
         else:
@@ -446,7 +446,7 @@ class SynapticPathway(CodeRunner, Group):
         # get treated as a state variable by the standard mechanism in
         # `VariableOwner`
         queue_state = state.pop("_spikequeue")
-        super(SynapticPathway, self)._restore_from_full_state(state)
+        super()._restore_from_full_state(state)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
         self.queue._restore_from_full_state(queue_state)
@@ -510,8 +510,8 @@ def slice_to_test(x):
 
 def find_synapses(index, synaptic_neuron):
     try:
-        index = int(index)
-    except TypeError:
+        index = index.item()
+    except (TypeError, ValueError):
         pass
 
     if isinstance(index, (int, slice)):
@@ -528,7 +528,7 @@ def find_synapses(index, synaptic_neuron):
     return synapses
 
 
-class SynapticSubgroup(object):
+class SynapticSubgroup:
     """
     A simple subgroup of `Synapses` that can be used for indexing.
 
@@ -567,7 +567,7 @@ class SynapticSubgroup(object):
         )
 
 
-class SynapticIndexing(object):
+class SynapticIndexing:
     def __init__(self, synapses):
         self.synapses = weakref.proxy(synapses)
         self.source = weakproxy_with_fallback(self.synapses.source)
@@ -605,24 +605,26 @@ class SynapticIndexing(object):
             elif len(index) > 3:
                 raise IndexError(f"Need 1, 2 or 3 indices, got {len(index)}.")
 
-            I, J, K = index
+            i_indices, j_indices, k_indices = index
             # Convert to absolute indices (e.g. for subgroups)
             # Allow the indexing to fail, we'll later return an empty array in
             # that case
             try:
-                if hasattr(I, "_indices"):  # will return absolute indices already
-                    I = I._indices()
+                if hasattr(
+                    i_indices, "_indices"
+                ):  # will return absolute indices already
+                    i_indices = i_indices._indices()
                 else:
-                    I = self.source._indices(I)
-                pre_synapses = find_synapses(I, self.synaptic_pre.get_value())
+                    i_indices = self.source._indices(i_indices)
+                pre_synapses = find_synapses(i_indices, self.synaptic_pre.get_value())
             except IndexError:
                 pre_synapses = np.array([], dtype=np.int32)
             try:
-                if hasattr(J, "_indices"):
-                    J = J._indices()
+                if hasattr(j_indices, "_indices"):
+                    j_indices = j_indices._indices()
                 else:
-                    J = self.target._indices(J)
-                post_synapses = find_synapses(J, self.synaptic_post.get_value())
+                    j_indices = self.target._indices(j_indices)
+                post_synapses = find_synapses(j_indices, self.synaptic_post.get_value())
             except IndexError:
                 post_synapses = np.array([], dtype=np.int32)
 
@@ -630,7 +632,7 @@ class SynapticIndexing(object):
                 pre_synapses, post_synapses, assume_unique=True
             )
 
-            if isinstance(K, slice) and K == slice(None):
+            if isinstance(k_indices, slice) and k_indices == slice(None):
                 final_indices = matching_synapses
             else:
                 if self.synapse_number is None:
@@ -640,8 +642,8 @@ class SynapticIndexing(object):
                         "'multisynaptic_index' when you create "
                         "the Synapses object."
                     )
-                if isinstance(K, (numbers.Integral, slice)):
-                    test_k = slice_to_test(K)
+                if isinstance(k_indices, (numbers.Integral, slice)):
+                    test_k = slice_to_test(k_indices)
                 else:
                     raise NotImplementedError(
                         "Indexing synapses with arrays notimplemented yet"
@@ -903,7 +905,7 @@ class Synapses(Group):
                         "simulation unnecessarily if you only need the values of "
                         "this variable whenever a spike occurs. Specify the equation "
                         "as clock-driven explicitly to avoid this warning.",
-                        f"clock_driven",
+                        "clock_driven",
                         once=True,
                     )
                 continuous.append(single_equation)
@@ -1013,7 +1015,7 @@ class Synapses(Group):
 
         # Check whether any delays were specified for pathways that don't exist
         for pathway in delay:
-            if not pathway in self._synaptic_updaters:
+            if pathway not in self._synaptic_updaters:
                 raise ValueError(
                     f"Cannot set the delay for pathway '{pathway}': unknown pathway."
                 )
@@ -1053,7 +1055,7 @@ class Synapses(Group):
                     f"The summed variable '{varname}' does not end "
                     "in '_pre' or '_post'."
                 )
-            if not varname in self.variables:
+            if varname not in self.variables:
                 raise ValueError(
                     f"The summed variable '{varname}' does not refer "
                     "to any known variable in the "
@@ -1498,7 +1500,7 @@ class Synapses(Group):
         # Check that subexpressions that refer to stateful functions are labeled
         # as "constant over dt"
         check_subexpressions(self, self.equations, run_namespace)
-        super(Synapses, self).before_run(run_namespace=run_namespace)
+        super().before_run(run_namespace=run_namespace)
 
     @device_override("synapses_connect")
     def connect(
@@ -1768,8 +1770,8 @@ class Synapses(Group):
         source_offset = self.variables["_source_offset"].get_value()
         target_offset = self.variables["_target_offset"].get_value()
         # This resizing is only necessary if we are connecting to/from synapses
-        post_with_offset = int(self.variables["N_post"].get_value()) + target_offset
-        pre_with_offset = int(self.variables["N_pre"].get_value()) + source_offset
+        post_with_offset = self.variables["N_post"].item() + target_offset
+        pre_with_offset = self.variables["N_pre"].item() + source_offset
         self.variables["N_incoming"].resize(post_with_offset)
         self.variables["N_outgoing"].resize(pre_with_offset)
         N_outgoing = self.variables["N_outgoing"].get_value()
@@ -1921,7 +1923,7 @@ class Synapses(Group):
             additional_indices = {}
         identifiers = get_identifiers_recursively([expr], self.variables)
         variables = self.resolve_all(
-            {name for name in identifiers if not name in additional_indices}, namespace
+            {name for name in identifiers if name not in additional_indices}, namespace
         )
         if any(getattr(var, "auto_vectorise", False) for var in variables.values()):
             identifiers.add("_vectorisation_idx")

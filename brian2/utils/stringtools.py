@@ -274,7 +274,7 @@ def code_representation(code):
 
 # The below is adapted from Peter Norvig's spelling corrector
 # http://norvig.com/spell.py (MIT licensed)
-class SpellChecker(object):
+class SpellChecker:
     """
     A simple spell checker that will be used to suggest the correct name if the
     user made a typo (e.g. for state variable names).
@@ -301,12 +301,12 @@ class SpellChecker(object):
         return set(deletes + transposes + replaces + inserts)
 
     def known_edits2(self, word):
-        return set(
+        return {
             e2 for e1 in self.edits1(word) for e2 in self.edits1(e1) if e2 in self.words
-        )
+        }
 
     def known(self, words):
-        return set(w for w in words if w in self.words)
+        return {w for w in words if w in self.words}
 
     def suggest(self, word):
         return self.known(self.edits1(word)) or self.known_edits2(word) or set()

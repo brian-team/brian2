@@ -296,6 +296,7 @@ If you need to do loops or other features not supported automatically, you can d
 C++ source code and modifying it, or by inserting code directly into the main loop as described below.
 
 .. _standalone_variables:
+
 Variables
 ~~~~~~~~~
 In standalone mode, code will only be executed when the simulation is run (after the `run` call by default, or after a call

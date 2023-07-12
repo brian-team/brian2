@@ -1,5 +1,3 @@
-# encoding: utf8
-
 import sys
 
 import numpy as np
@@ -400,7 +398,7 @@ def test_construction_errors():
 @pytest.mark.codegen_independent
 def test_unit_checking():
     # dummy Variable class
-    class S(object):
+    class S:
         def __init__(self, dimensions):
             self.dim = get_dimensions(dimensions)
 
@@ -469,11 +467,11 @@ def test_properties():
     assert len(eqs.eq_names) == 3 and eqs.eq_names == {"v", "I", "f"}
     assert set(eqs.keys()) == {"v", "I", "f", "freq"}
     # test that the equations object is iterable itself
-    assert all((isinstance(eq, SingleEquation) for eq in eqs.values()))
-    assert all((isinstance(eq, str) for eq in eqs))
+    assert all(isinstance(eq, SingleEquation) for eq in eqs.values())
+    assert all(isinstance(eq, str) for eq in eqs)
     assert (
         len(eqs.ordered) == 4
-        and all((isinstance(eq, SingleEquation) for eq in eqs.ordered))
+        and all(isinstance(eq, SingleEquation) for eq in eqs.ordered)
         and [eq.varname for eq in eqs.ordered] == ["f", "I", "v", "freq"]
     )
     assert [eq.unit for eq in eqs.ordered] == [Hz, volt, volt, 1]
@@ -619,7 +617,7 @@ def test_dependency_calculation():
 
     # v depends directly on I_m, on I_ext and I_pas via I_m, and on v via I_m -> I_pas
     assert len(deps["v"]) == 4
-    assert set(d.equation.varname for d in deps["v"]) == {"I_m", "I_ext", "I_pas", "v"}
+    assert {d.equation.varname for d in deps["v"]} == {"I_m", "I_ext", "I_pas", "v"}
     expected_via = {
         "I_m": (),
         "I_pas": ("I_m",),
@@ -630,7 +628,7 @@ def test_dependency_calculation():
 
     # I_m depends directly on I_ext and I_pas, and on v via I_pas
     assert len(deps["I_m"]) == 3
-    assert set(d.equation.varname for d in deps["I_m"]) == {"I_ext", "I_pas", "v"}
+    assert {d.equation.varname for d in deps["I_m"]} == {"I_ext", "I_pas", "v"}
     expected_via = {"I_ext": (), "I_pas": (), "v": ("I_pas",)}
     assert all([d.via == expected_via[d.equation.varname] for d in deps["I_m"]])
 

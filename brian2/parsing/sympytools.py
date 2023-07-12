@@ -145,20 +145,20 @@ def sympy_to_str(sympy_expr):
         A string representing the sympy expression.
     """
     # replace the standard functions by our names if necessary
-    replacements = dict(
-        (f.sympy_func, sympy.Function(name))
+    replacements = {
+        f.sympy_func: sympy.Function(name)
         for name, f in DEFAULT_FUNCTIONS.items()
         if f.sympy_func is not None
         and isinstance(f.sympy_func, sympy.FunctionClass)
         and str(f.sympy_func) != name
-    )
+    }
     # replace constants with our names as well
     replacements.update(
-        dict(
-            (c.sympy_obj, sympy.Symbol(name))
+        {
+            c.sympy_obj: sympy.Symbol(name)
             for name, c in DEFAULT_CONSTANTS.items()
             if str(c.sympy_obj) != name
-        )
+        }
     )
 
     # Replace the placeholder argument by an empty symbol

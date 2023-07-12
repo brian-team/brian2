@@ -83,7 +83,7 @@ def extract_method_options(method_options, default_options):
     return filled_options
 
 
-class StateUpdateMethod(object, metaclass=ABCMeta):
+class StateUpdateMethod(metaclass=ABCMeta):
     stateupdaters = dict()
 
     @abstractmethod
@@ -220,7 +220,7 @@ class StateUpdateMethod(object, metaclass=ABCMeta):
                 )
             logger.info(msg_text, "method_choice")
         else:
-            if hasattr(method, "__call__"):
+            if callable(method):
                 # if this is a standard state updater, i.e. if it has a
                 # can_integrate method, check this method and raise a warning if it
                 # claims not to be applicable.

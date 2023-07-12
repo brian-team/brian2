@@ -357,7 +357,7 @@ class EventMonitor(Group, CodeRunner):
                 "them."
             )
         indices = self.i[:]
-        sort_indices = np.argsort(indices)
+        sort_indices = np.argsort(indices, kind="mergesort")
         used_indices, first_pos = np.unique(self.i[:][sort_indices], return_index=True)
         all_values_dict = {}
         for varname in self.record_variables - {"i"}:
@@ -473,7 +473,7 @@ class SpikeMonitor(EventMonitor):
         #: The array of spike counts (length = size of target group)
         self.count = None
         del self.count  # this is handled by the Variable mechanism
-        super(SpikeMonitor, self).__init__(
+        super().__init__(
             source,
             event="spike",
             variables=variables,
@@ -552,7 +552,7 @@ class SpikeMonitor(EventMonitor):
         >>> print(counter2_values[1])
         [100]
         """
-        return super(SpikeMonitor, self).values(var)
+        return super().values(var)
 
     def all_values(self):
         """
@@ -588,7 +588,7 @@ class SpikeMonitor(EventMonitor):
         >>> print(all_values['t'][1])
         [ 9.9] ms
         """
-        return super(SpikeMonitor, self).all_values()
+        return super().all_values()
 
     def __repr__(self):
         classname = self.__class__.__name__

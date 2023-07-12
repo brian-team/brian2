@@ -48,7 +48,7 @@ class GSLCythonCodeObject(CythonCodeObject):
         if prefs.GSL.directory is not None:
             self.include_dirs += [prefs.GSL.directory]
         try:
-            super(GSLCythonCodeObject, self).compile()
+            super().compile()
         except CompileError as err:
             raise GSLCompileError(
                 "\nCompilation of files generated for integration with GSL has failed."
@@ -56,4 +56,4 @@ class GSLCythonCodeObject(CythonCodeObject):
                 "\nIf GSL is installed but Python cannot find the correct files, it is "
                 "also possible to give the gsl directory manually by specifying "
                 "prefs.GSL.directory = ..."
-            )
+            ) from err

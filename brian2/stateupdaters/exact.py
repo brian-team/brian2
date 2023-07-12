@@ -231,7 +231,7 @@ class LinearStateUpdater(StateUpdateMethod):
         # The solution contains _S[0, 0], _S[1, 0] etc. for the state variables,
         # replace them with the state variable names
         abstract_code = []
-        for idx, (variable, update) in enumerate(zip(varnames, updates)):
+        for variable, update in zip(varnames, updates):
             rhs = update
             if rhs.has(I, re, im):
                 raise UnsupportedEquationsException(

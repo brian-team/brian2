@@ -8,7 +8,7 @@ import weakref
 
 import numpy
 
-from brian2.parsing.rendering import NodeRenderer, get_node_value
+from brian2.parsing.rendering import get_node_value
 from brian2.utils.logger import get_logger
 
 __all__ = ["brian_ast", "BrianASTRenderer", "dtype_hierarchy"]
@@ -121,7 +121,7 @@ def brian_ast(expr, variables):
     return renderer.render_node(node)
 
 
-class BrianASTRenderer(object):
+class BrianASTRenderer:
     """
     This class is modelled after `NodeRenderer` - see there for details.
     """

@@ -22,7 +22,9 @@ import re
 
 from docutils import nodes, statemachine
 from docutils.parsers.rst import Directive, directives
-from sphinx.domains.python import PyXRefRole
+from docutils.statemachine import ViewList
+from sphinx.domains.c import CDomain
+from sphinx.domains.python import PythonDomain, PyXRefRole
 from sphinx.roles import XRefRole
 
 from brian2.core.preferences import prefs
@@ -74,7 +76,7 @@ class BrianPrefsDirective(Directive):
             return []
 
 
-def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
+def brianobj_role(role, rawtext, text, lineno, inliner, options=None, content=None):
     """
     A Sphinx role, used as a wrapper for the default `py:obj` role, allowing
     us to use the simple backtick syntax for brian classes/functions without
@@ -82,6 +84,10 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
     a `from brian2 import *`, e.g `NeuronGroup`.
     Also allows to directly link to preference names using the same syntax.
     """
+    if options is None:
+        options = {}
+    if content is None:
+        content = []
     if text in prefs:
         linktext = text.replace("_", "-").replace(".", "-")
         text = f"{text} <brian-pref-{linktext}>"
@@ -89,7 +95,7 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
         xref = XRefRole(warn_dangling=True)
         return xref("std:ref", rawtext, text, lineno, inliner, options, content)
     else:
-        if text and (not "~" in text):
+        if text and ("~" not in text):
             try:
                 # A simple class or function name
                 if "." not in text:
@@ -127,7 +133,9 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
         return py_role(role, rawtext, text, lineno, inliner, options, content)
 
 
-def mangle_docstrings(app, what, name, obj, options, lines, reference_offset=[0]):
+def mangle_docstrings(app, what, name, obj, options, lines, reference_offset=None):
+    if reference_offset is None:
+        reference_offset = [0]
     cfg = dict()
     if what == "module":
         # Strip top title
@@ -157,7 +165,7 @@ def mangle_docstrings(app, what, name, obj, options, lines, reference_offset=[0]
     # start renaming from the longest string, to avoid overwriting parts
     references.sort(key=lambda x: -len(x))
     if references:
-        for i, line in enumerate(lines):
+        for i in range(len(lines)):
             for r in references:
                 if re.match(r"^\d+$", r):
                     new_r = f"R{int(reference_offset[0] + int(r))}"
@@ -209,16 +217,12 @@ def setup(app, get_doc_object_=get_doc_object):
 # Docstring-mangling domains
 # ------------------------------------------------------------------------------
 
-from docutils.statemachine import ViewList
-from sphinx.domains.c import CDomain
-from sphinx.domains.python import PythonDomain
 
-
-class ManglingDomainBase(object):
+class ManglingDomainBase:
     directive_mangling_map = {}
 
     def __init__(self, *a, **kw):
-        super(ManglingDomainBase, self).__init__(*a, **kw)
+        super().__init__(*a, **kw)
         self.wrap_mangling_directives()
 
     def wrap_mangling_directives(self):

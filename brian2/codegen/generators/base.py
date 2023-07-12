@@ -19,7 +19,7 @@ __all__ = ["CodeGenerator"]
 logger = get_logger(__name__)
 
 
-class CodeGenerator(object):
+class CodeGenerator:
     """
     Base class for all languages.
 
@@ -120,7 +120,7 @@ class CodeGenerator(object):
         used for example by the `CPPCodeGenerator` to set up all the supporting
         code
         """
-        raise NotImplementedError
+        return {}
 
     def translate_one_statement_sequence(self, statements, scalar=False):
         raise NotImplementedError
@@ -187,30 +187,30 @@ class CodeGenerator(object):
                             f"referring to vector variable '{name}'"
                         )
             write.add(stmt.var)
-        read = set(
+        read = {
             varname
             for varname, var in list(variables.items())
             if isinstance(var, ArrayVariable) and varname in read
-        )
-        write = set(
+        }
+        write = {
             varname
             for varname, var in list(variables.items())
             if isinstance(var, ArrayVariable) and varname in write
-        )
+        }
         # Gather the indices stored as arrays (ignore _idx which is special)
         indices = set()
-        indices |= set(
+        indices |= {
             variable_indices[varname]
             for varname in read
             if not variable_indices[varname] in ("_idx", "0")
             and isinstance(variables[variable_indices[varname]], ArrayVariable)
-        )
-        indices |= set(
+        }
+        indices |= {
             variable_indices[varname]
             for varname in write
             if not variable_indices[varname] in ("_idx", "0")
             and isinstance(variables[variable_indices[varname]], ArrayVariable)
-        )
+        }
         # don't list arrays that are read explicitly and used as indices twice
         read -= indices
         return read, write, indices
@@ -236,12 +236,12 @@ class CodeGenerator(object):
         """
         read, write, indices = self.array_read_write(statements)
         conditional_write_vars = self.get_conditional_write_vars()
-        read |= set(var for var in write if var in conditional_write_vars)
-        read |= set(
+        read |= {var for var in write if var in conditional_write_vars}
+        read |= {
             conditional_write_vars[var]
             for var in write
             if var in conditional_write_vars
-        )
+        }
         return read, write, indices, conditional_write_vars
 
     def has_repeated_indices(self, statements):
@@ -255,7 +255,7 @@ class CodeGenerator(object):
         # Check whether we potentially deal with repeated indices (which will
         # be the case most importantly when we write to pre- or post-synaptic
         # variables in synaptic code)
-        used_indices = set(variable_indices[var] for var in write)
+        used_indices = {variable_indices[var] for var in write}
         all_unique = all(
             variables[index].unique
             for index in used_indices
@@ -293,14 +293,12 @@ class CodeGenerator(object):
                         f"{len(vs)} lines of abstract code, first line is: '{vs[0]}'\n"
                     )
                 logger.warn(
-                    (
-                        "Came across an abstract code block that may not be "
-                        "well-defined: the outcome may depend on the "
-                        "order of execution. You can ignore this warning if "
-                        "you are sure that the order of operations does not "
-                        "matter. "
-                        + error_msg
-                    )
+                    "Came across an abstract code block that may not be "
+                    "well-defined: the outcome may depend on the "
+                    "order of execution. You can ignore this warning if "
+                    "you are sure that the order of operations does not "
+                    "matter. "
+                    + error_msg
                 )
 
         translated = self.translate_statement_sequence(

@@ -78,7 +78,7 @@ def declare_types(**types):
     return annotate_function_with_types
 
 
-class Function(object):
+class Function:
     """
     An abstract specification of a function that can be used as part of
     model equations, etc.
@@ -271,7 +271,7 @@ class Function(object):
         return self.pyfunc(*args)
 
 
-class FunctionImplementation(object):
+class FunctionImplementation:
     """
     A simple container object for function implementations.
 
@@ -698,7 +698,7 @@ class SymbolicConstant(Constant):
     """
 
     def __init__(self, name, sympy_obj, value):
-        super(SymbolicConstant, self).__init__(name, value=value)
+        super().__init__(name, value=value)
         self.sympy_obj = sympy_obj
 
 

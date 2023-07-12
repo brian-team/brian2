@@ -2,7 +2,7 @@
 TODO: rewrite this (verbatim from Brian 1.x), more efficiency
 """
 
-from numpy import *
+import numpy as np
 
 __all__ = ["DynamicArray", "DynamicArray1D"]
 
@@ -14,7 +14,7 @@ def getslices(shape, from_start=True):
         return tuple(slice(x, None) for x in shape)
 
 
-class DynamicArray(object):
+class DynamicArray:
     """
     An N-dimensional dynamic array class
 
@@ -87,7 +87,7 @@ class DynamicArray(object):
     ):
         if isinstance(shape, int):
             shape = (shape,)
-        self._data = zeros(shape, dtype=dtype)
+        self._data = np.zeros(shape, dtype=dtype)
         self.data = self._data
         self.dtype = dtype
         self.shape = self._data.shape
@@ -101,17 +101,17 @@ class DynamicArray(object):
         current data, but should have the same rank, i.e. same number of
         dimensions.
         """
-        datashapearr = array(self._data.shape)
-        newshapearr = array(newshape)
+        datashapearr = np.array(self._data.shape)
+        newshapearr = np.array(newshape)
         resizedimensions = newshapearr > datashapearr
         if resizedimensions.any():
             # resize of the data is needed
             minnewshapearr = datashapearr  # .copy()
             dimstoinc = minnewshapearr[resizedimensions]
-            incdims = array(dimstoinc * self.factor, dtype=int)
-            newdims = maximum(incdims, dimstoinc + 1)
+            incdims = np.array(dimstoinc * self.factor, dtype=int)
+            newdims = np.maximum(incdims, dimstoinc + 1)
             minnewshapearr[resizedimensions] = newdims
-            newshapearr = maximum(newshapearr, minnewshapearr)
+            newshapearr = np.maximum(newshapearr, minnewshapearr)
             do_resize = False
             if self.use_numpy_resize and self._data.flags["C_CONTIGUOUS"]:
                 if sum(resizedimensions) == resizedimensions[0]:
@@ -120,7 +120,7 @@ class DynamicArray(object):
                 self.data = None
                 self._data.resize(tuple(newshapearr), refcheck=self.refcheck)
             else:
-                newdata = zeros(tuple(newshapearr), dtype=self.dtype)
+                newdata = np.zeros(tuple(newshapearr), dtype=self.dtype)
                 slices = getslices(self._data.shape)
                 newdata[slices] = self._data
                 self._data = newdata
@@ -134,14 +134,14 @@ class DynamicArray(object):
     def resize_along_first(self, newshape):
         new_dimension = newshape[0]
         if new_dimension > self._data.shape[0]:
-            new_size = maximum(self._data.shape[0] * self.factor, new_dimension + 1)
-            final_new_shape = array(self._data.shape)
+            new_size = np.maximum(self._data.shape[0] * self.factor, new_dimension + 1)
+            final_new_shape = np.array(self._data.shape)
             final_new_shape[0] = new_size
             if self.use_numpy_resize and self._data.flags["C_CONTIGUOUS"]:
                 self.data = None
                 self._data.resize(tuple(final_new_shape), refcheck=self.refcheck)
             else:
-                newdata = zeros(tuple(final_new_shape), dtype=self.dtype)
+                newdata = np.zeros(tuple(final_new_shape), dtype=self.dtype)
                 slices = getslices(self._data.shape)
                 newdata[slices] = self._data
                 self._data = newdata
@@ -163,10 +163,10 @@ class DynamicArray(object):
         """
         if isinstance(newshape, int):
             newshape = (newshape,)
-        shapearr = array(self.shape)
-        newshapearr = array(newshape)
+        shapearr = np.array(self.shape)
+        newshapearr = np.array(newshape)
         if (newshapearr <= shapearr).all():
-            newdata = zeros(newshapearr, dtype=self.dtype)
+            newdata = np.zeros(newshapearr, dtype=self.dtype)
             newdata[:] = self._data[getslices(newshapearr)]
             self._data = newdata
             self.shape = tuple(newshapearr)
@@ -203,7 +203,7 @@ class DynamicArray1D(DynamicArray):
                 self.data = None
                 self._data.resize(newdatashape, refcheck=self.refcheck)
             else:
-                newdata = zeros(newdatashape, dtype=self.dtype)
+                newdata = np.zeros(newdatashape, dtype=self.dtype)
                 newdata[:shape] = self.data
                 self._data = newdata
         elif newshape < self.shape[0]:

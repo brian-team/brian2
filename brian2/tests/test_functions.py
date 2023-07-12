@@ -802,7 +802,7 @@ def test_function_implementation_container():
 
     # some basic dictionary properties
     assert len(container) == 4
-    assert set((key for key in container)) == {
+    assert {key for key in container} == {
         "A Language",
         "B",
         ACodeObject,
@@ -1110,6 +1110,28 @@ def test_multiple_stateless_function_calls():
     with pytest.raises(BrianObjectException) as exc:
         net.run(0 * ms)
     assert exc_isinstance(exc, NotImplementedError)
+
+
+@pytest.mark.codegen_independent
+def test_parse_dimension_errors():
+    from brian2.parsing.expressions import parse_expression_dimensions
+
+    @check_units(x=1, result=1)
+    def foo(x):
+        return x
+
+    # Function call with keyword arguments
+    with pytest.raises(ValueError):
+        parse_expression_dimensions("foo(a=1, b=2)", {"foo": foo})
+    # Unknown function
+    with pytest.raises(SyntaxError):
+        parse_expression_dimensions("bar(1, 2)", {"foo": foo})
+    # Function without unit definition
+    with pytest.raises(ValueError):
+        parse_expression_dimensions("bar(1, 2)", {"bar": lambda x, y: x + y})
+    # Function with wrong number of arguments
+    with pytest.raises(SyntaxError):
+        parse_expression_dimensions("foo(1, 2)", {"foo": foo})
 
 
 if __name__ == "__main__":

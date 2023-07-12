@@ -18,9 +18,13 @@ from brian2.core.preferences import BrianPreference, PreferenceError, prefs
 from brian2.core.variables import ArrayVariable, AuxiliaryVariable, Constant
 from brian2.parsing.statements import parse_statement
 from brian2.units.fundamentalunits import fail_for_dimension_mismatch
+from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
 
 __all__ = ["GSLCodeGenerator", "GSLCPPCodeGenerator", "GSLCythonCodeGenerator"]
+
+
+logger = get_logger(__name__)
 
 
 def valid_gsl_dir(val):
@@ -64,7 +68,7 @@ prefs.register_preferences(
 )
 
 
-class GSLCodeGenerator(object):
+class GSLCodeGenerator:
     """
     GSL code generator.
 
@@ -427,9 +431,9 @@ class GSLCodeGenerator(object):
                 restrict = ""
             if var_obj.scalar or var_obj.size == 1:
                 restrict = ""
-            return "%s* %s %s{end_statement}" % (dtype, restrict, pointer_name)
+            return f"{dtype}* {restrict} {pointer_name}{{end_statement}}"
         else:
-            return "%s %s{end_statement}" % (dtype, var_obj.name)
+            return f"{dtype} {var_obj.name}{{end_statement}}"
 
     def write_dataholder(self, variables_in_vector):
         """
@@ -493,8 +497,8 @@ class GSLCodeGenerator(object):
             diff_scale = {}
             for var, error in list(abs_per_var.items()):
                 # first do some checks on input
-                if not var in diff_vars:
-                    if not var in self.variables:
+                if var not in diff_vars:
+                    if var not in self.variables:
                         raise KeyError(
                             "absolute_error specified for variable that "
                             f"does not exist: {var}"
@@ -530,7 +534,7 @@ class GSLCodeGenerator(object):
         )
 
     def find_undefined_variables(self, statements):
-        """
+        r"""
         Find identifiers that are not in ``self.variables`` dictionary.
 
         Brian does not save the ``_lio_`` variables it uses anywhere. This is
@@ -554,19 +558,14 @@ class GSLCodeGenerator(object):
         variables = self.variables
         other_variables = {}
         for statement in statements:
-            var, op, expr, comment = (
-                statement.var,
-                statement.op,
-                statement.expr,
-                statement.comment,
-            )
+            var = statement.var
             if var not in variables:
                 other_variables[var] = AuxiliaryVariable(var, dtype=statement.dtype)
         return other_variables
 
     def find_used_variables(self, statements, other_variables):
         """
-        Find all the variables used in the right hand side of the given
+        Find all the variables used on the right hand side of the given
         expressions.
 
         Parameters
@@ -583,12 +582,7 @@ class GSLCodeGenerator(object):
         variables = self.variables
         used_variables = {}
         for statement in statements:
-            lhs, op, rhs, comment = (
-                statement.var,
-                statement.op,
-                statement.expr,
-                statement.comment,
-            )
+            rhs = statement.expr
             for var in get_identifiers(rhs):
                 if var in self.function_names:
                     continue
@@ -737,9 +731,9 @@ class GSLCodeGenerator(object):
         # special substitute because of limitations of regex word boundaries with
         # variable[_idx]
         for from_sub, to_sub in list(to_replace.items()):
-            m = re.search("\[(\w+)\];?$", from_sub)
+            m = re.search(r"\[(\w+)\];?$", from_sub)
             if m:
-                code = re.sub(re.sub("\[", "\[", from_sub), to_sub, code)
+                code = re.sub(re.sub(r"\[", r"\[", from_sub), to_sub, code)
 
         if "_gsl" in code:
             raise AssertionError(
@@ -775,7 +769,7 @@ class GSLCodeGenerator(object):
         """
         code = []
         for line in code_lines:
-            m = re.search("(\w+ = .*)", line)
+            m = re.search(r"(\w+ = .*)", line)
             try:
                 new_line = m.group(1)
                 var, op, expr, comment = parse_statement(new_line)
@@ -824,7 +818,7 @@ class GSLCodeGenerator(object):
     def add_meta_variables(self, options):
         if options["use_last_timestep"]:
             try:
-                N = int(self.variables["N"].get_value())
+                N = self.variables["N"].item()
                 self.owner.variables.add_array(
                     "_last_timestep",
                     size=N,
@@ -844,7 +838,7 @@ class GSLCodeGenerator(object):
             pointer_last_timestep = None
 
         if options["save_failed_steps"]:
-            N = int(self.variables["N"].get_value())
+            N = self.variables["N"].item()
             try:
                 self.owner.variables.add_array("_failed_steps", size=N, dtype=np.int32)
             except KeyError:
@@ -935,14 +929,12 @@ class GSLCodeGenerator(object):
                         f"{len(vs)} lines of abstract code, first line is: '{vs[0]}'\n"
                     )
                 logger.warn(
-                    (
-                        "Came across an abstract code block that may not be "
-                        "well-defined: the outcome may depend on the "
-                        "order of execution. You can ignore this warning if "
-                        "you are sure that the order of operations does not "
-                        "matter. "
-                        + error_msg
-                    )
+                    "Came across an abstract code block that may not be "
+                    "well-defined: the outcome may depend on the "
+                    "order of execution. You can ignore this warning if "
+                    "you are sure that the order of operations does not "
+                    "matter. "
+                    + error_msg
                 )
 
         # save function names because self.generator.translate_statement_sequence
@@ -960,7 +952,7 @@ class GSLCodeGenerator(object):
         # first check if any indexing other than '_idx' is used (currently not supported)
         for code_list in list(scalar_code.values()) + list(vector_code.values()):
             for code in code_list:
-                m = re.search("\[(\w+)\]", code)
+                m = re.search(r"\[(\w+)\]", code)
                 if m is not None:
                     if m.group(1) != "0" and m.group(1) != "_idx":
                         from brian2.stateupdaters.base import (
@@ -995,9 +987,9 @@ class GSLCodeGenerator(object):
         # so that _dataholder holds diff_vars as well, even if they don't occur
         # in the actual statements
         for var in list(diff_vars.keys()):
-            if not var in variables_in_vector:
+            if var not in variables_in_vector:
                 variables_in_vector[var] = self.variables[var]
-        # lets keep track of the variables that eventually need to be added to
+        # let's keep track of the variables that eventually need to be added to
         # the _GSL_dataholder somehow
         self.variables_to_be_processed = list(variables_in_vector.keys())
 
@@ -1061,7 +1053,7 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
     syntax = {
         "end_statement": "",
         "access_pointer": ".",
-        "start_declare": "cdef ",
+        "start_declare": "cdef extern ",
         "open_function": ":",
         "open_struct": ":",
         "end_function": "",
@@ -1121,7 +1113,7 @@ class GSLCPPCodeGenerator(GSLCodeGenerator):
     syntax = {
         "end_statement": ";",
         "access_pointer": "->",
-        "start_declare": "",
+        "start_declare": 'extern "C" ',
         "open_function": "\n{",
         "open_struct": "\n{",
         "end_function": "\n}",

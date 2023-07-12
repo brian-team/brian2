@@ -37,7 +37,7 @@ def find_name(name, names=None):
 
     if names is None:
         instances = set(Nameable.__instances__())
-        allnames = set(obj().name for obj in instances if hasattr(obj(), "name"))
+        allnames = {obj().name for obj in instances if hasattr(obj(), "name")}
     else:
         allnames = names
 
@@ -112,23 +112,23 @@ class Nameable(Trackable):
     name = property(
         fget=lambda self: self._name,
         doc="""
-                        The unique name for this object.
-                        
-                        Used when generating code. Should be an acceptable
-                        variable name, i.e. starting with a letter
-                        character and followed by alphanumeric characters and
-                        ``_``.
-                        """,
+        The unique name for this object.
+
+        Used when generating code. Should be an acceptable
+        variable name, i.e. starting with a letter
+        character and followed by alphanumeric characters and
+        ``_``.
+        """,
     )
 
     id = property(
         fget=lambda self: self._id,
         doc="""
-                        A unique id for this object.
+        A unique id for this object.
 
-                        In contrast to names, which may be reused, the id stays
-                        unique. This is used in the dependency checking to not
-                        have to deal with the chore of comparing weak
-                        references, weak proxies and strong references.
-                        """,
+        In contrast to names, which may be reused, the id stays
+        unique. This is used in the dependency checking to not
+        have to deal with the chore of comparing weak
+        references, weak proxies and strong references.
+        """,
     )

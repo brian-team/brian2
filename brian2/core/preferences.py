@@ -80,7 +80,7 @@ class PreferenceError(Exception):
     pass
 
 
-class DefaultValidator(object):
+class DefaultValidator:
     """
     Default preference validator
 
@@ -102,7 +102,7 @@ class DefaultValidator(object):
         return True
 
 
-class BrianPreference(object):
+class BrianPreference:
     """
     Used for defining a Brian preference.
 
@@ -159,7 +159,7 @@ class BrianGlobalPreferences(MutableMapping):
             deindent(
                 """
             from numpy import *
-            from brian2.units import *            
+            from brian2.units import *
             from brian2.units.stdunits import *
             """
             ),
@@ -236,11 +236,11 @@ class BrianGlobalPreferences(MutableMapping):
         if "pref_register" in self.__dict__ and name in self.pref_register:
             raise PreferenceError("Cannot delete a preference category.")
         else:
-            MutableMapping.__delattr__(self, name, value)
+            MutableMapping.__delattr__(self, name)
 
     toplevel_categories = property(
         fget=lambda self: [
-            category for category in self.pref_register if not "." in category
+            category for category in self.pref_register if "." not in category
         ],
         doc="The toplevel preference categories",
     )
@@ -303,7 +303,7 @@ class BrianGlobalPreferences(MutableMapping):
         """
 
         s = ""
-        if not basename in self.pref_register:
+        if basename not in self.pref_register:
             raise ValueError(
                 f"No preferences under the name '{basename}' are registered"
             )
@@ -442,7 +442,7 @@ class BrianGlobalPreferences(MutableMapping):
         """
         if isinstance(file, str):
             filename = file
-            file = open(file, "r")
+            file = open(file)
         else:
             filename = repr(file)
         lines = file.readlines()
@@ -494,7 +494,7 @@ class BrianGlobalPreferences(MutableMapping):
         for file in files:
             try:
                 self.read_preference_file(file)
-            except IOError:
+            except OSError:
                 pass
 
         # The "default_preferences" file is no longer used, but we raise a
@@ -720,7 +720,7 @@ prefs = BrianGlobalPreferences()
 
 
 # Simple class to give a useful error message when using `brian_prefs`
-class ErrorRaiser(object):
+class ErrorRaiser:
     def __getattr__(self, item):
         raise AttributeError(
             "The global preferences object has been renamed "

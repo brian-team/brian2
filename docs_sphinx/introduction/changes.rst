@@ -4,6 +4,11 @@ Changes for Brian 1 users
     :local:
     :depth: 1
 
+.. note::
+
+    If you need to run existing Brian 1 simulations, have a look at
+    :doc:`brian1_to_2/container`.
+
 In most cases, Brian 2 works in a very similar way to Brian 1 but there are
 some important differences to be aware of. The major distinction is that
 in Brian 2 you need to be more explicit about the definition of your

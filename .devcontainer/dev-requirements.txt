@@ -3,6 +3,9 @@ scipy >= 0.13.3
 matplotlib >= 2.0
 jupyterlab
 ipympl
-pre-commit == 2.20.*
+pre-commit == 3.3.*
 black == 22.10.0
-isort == 5.10.1
+isort == 5.12.0
+pyupgrade == 3.4.0
+flake8 == 6.0.0
+flake8-bugbear == 23.5.9

@@ -57,7 +57,7 @@ jobs:
         shell: bash -l {0}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -91,7 +91,7 @@ jobs:
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
         run: |
           cp  $GITHUB_WORKSPACE/../.coverage .
-          conda install --quiet --yes coveralls
+          python -m pip install --upgrade coveralls
           coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -106,7 +106,44 @@ jobs:
     steps:
     - name: Finished
       run: |
-        pip3 install --upgrade coveralls
-        coveralls --finish
+        python -m pip install --upgrade coveralls
+        coveralls --service=github --finish --rcfile=$GITHUB_WORKSPACE/.coveragerc
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test_doc_build:
+    needs: get_python_versions
+    name: Test building the documentation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        submodules: true
+
+    - name: Setup Conda and Python
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+        auto-activate-base: false
+        channels: conda-forge,defaults
+        channel-priority: true
+        activate-environment: 'test_env'
+        python-version: "${{ needs.get_python_versions.outputs.max-python }}"
+
+    - name: Install dependencies
+      run: pip install -r rtd-requirements.txt
+
+    - name: Install brian2
+      run: pip install .
+
+    - name: Build HTML documentation
+      run: |
+        cd docs_sphinx
+        sphinx-build -b html . ../docs
+      env:
+        READTHEDOCS: True

@@ -8,7 +8,6 @@ from brian2.core.variables import Variable
 from brian2.parsing.expressions import parse_expression_dimensions
 from brian2.parsing.statements import parse_statement
 from brian2.units.fundamentalunits import (
-    Unit,
     fail_for_dimension_mismatch,
     get_dimensions,
     get_unit,

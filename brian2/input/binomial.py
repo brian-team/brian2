@@ -144,7 +144,7 @@ def _generate_cpp_code(n, p, use_normal, name):
 
 
 class BinomialFunction(Function, Nameable):
-    """
+    r"""
     BinomialFunction(n, p, approximate=True, name='_binomial*')
 
     A function that generates samples from a binomial distribution.

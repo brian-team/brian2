@@ -1,6 +1,5 @@
 import ast
 
-from brian2 import *
 from brian2.parsing.rendering import NodeRenderer
 
 __all__ = ["parse_synapse_generator"]

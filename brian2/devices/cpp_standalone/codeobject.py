@@ -105,7 +105,7 @@ class CPPStandaloneCodeObject(CodeObject):
     generator_class = CPPCodeGenerator
 
     def __init__(self, *args, **kwds):
-        super(CPPStandaloneCodeObject, self).__init__(*args, **kwds)
+        super().__init__(*args, **kwds)
         #: Store whether this code object defines before/after blocks
         self.before_after_blocks = []
 

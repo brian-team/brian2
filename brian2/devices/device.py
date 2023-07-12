@@ -55,11 +55,9 @@ def auto_target():
     """
     global _auto_target
     if _auto_target is None:
-        target_dict = dict(
-            (target.class_name, target)
-            for target in codegen_targets
-            if target.class_name
-        )
+        target_dict = {
+            target.class_name: target for target in codegen_targets if target.class_name
+        }
         using_fallback = False
         if "cython" in target_dict and target_dict["cython"].is_available():
             _auto_target = target_dict["cython"]
@@ -85,7 +83,7 @@ def auto_target():
     return _auto_target
 
 
-class Device(object):
+class Device:
     """
     Base Device object.
     """
@@ -473,7 +471,7 @@ class RuntimeDevice(Device):
     """
 
     def __init__(self):
-        super(RuntimeDevice, self).__init__()
+        super().__init__()
         #: Mapping from `Variable` objects to numpy arrays (or `DynamicArray`
         #: objects). Arrays in this dictionary will disappear as soon as the
         #: last reference to the `Variable` object used as a key is gone
@@ -592,7 +590,7 @@ class RuntimeDevice(Device):
         self.randn_buffer[:] = state["randn_buffer"]
 
 
-class Dummy(object):
+class Dummy:
     """
     Dummy object
     """
@@ -616,7 +614,7 @@ class Dummy(object):
         pass
 
 
-class CurrentDeviceProxy(object):
+class CurrentDeviceProxy:
     """
     Method proxy for access to the currently active device
     """

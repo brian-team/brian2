@@ -203,7 +203,7 @@ def network_operation(*args, **kwds):
     # Here, the 'function factory' is the locally defined class
     # do_network_operation, which is a callable object that takes a function
     # as argument and returns a NetworkOperation object.
-    class do_network_operation(object):
+    class do_network_operation:
         def __init__(self, **kwds):
             self.kwds = kwds
 

@@ -37,20 +37,20 @@ def _get_contained_objects(obj):
 
     Returns
     -------
-    l : list of `BrianObject`
+    objects : list of `BrianObject`
         A list of all the objects contained in `obj`
     """
-    l = []
+    objects = []
     contained_objects = getattr(obj, "contained_objects", [])
-    l.extend(contained_objects)
+    objects.extend(contained_objects)
     for contained_obj in contained_objects:
-        l.extend(_get_contained_objects(contained_obj))
+        objects.extend(_get_contained_objects(contained_obj))
 
-    return l
+    return objects
 
 
 def get_objects_in_namespace(level):
-    """
+    r"""
     Get all the objects in the current namespace that derive from `BrianObject`.
     Used to determine the objects for the `MagicNetwork`.
 
@@ -69,7 +69,7 @@ def get_objects_in_namespace(level):
     # Get the locals and globals from the stack frame
     objects = set()
     frame = inspect.stack()[level + 1][0]
-    for k, v in itertools.chain(frame.f_globals.items(), frame.f_locals.items()):
+    for _, v in itertools.chain(frame.f_globals.items(), frame.f_locals.items()):
         # We are only interested in numbers and functions, not in
         # everything else (classes, modules, etc.)
         if isinstance(v, BrianObject):
@@ -148,7 +148,7 @@ class MagicNetwork(Network):
             raise ValueError("There can be only one MagicNetwork.")
         MagicNetwork._already_created = True
 
-        super(MagicNetwork, self).__init__(name="magicnetwork*")
+        super().__init__(name="magicnetwork*")
 
         self._previous_refs = set()
 
@@ -231,7 +231,7 @@ class MagicNetwork(Network):
                     break
 
     def after_run(self):
-        super(MagicNetwork, self).after_run()
+        super().after_run()
         self.objects.clear()
         gc.collect()  # Make sure that all unused objects are cleared
 
@@ -260,7 +260,7 @@ class MagicNetwork(Network):
         See `Network.store`.
         """
         self._update_magic_objects(level=level + 1)
-        super(MagicNetwork, self).store(name=name, filename=filename)
+        super().store(name=name, filename=filename)
         self.objects.clear()
 
     def restore(
@@ -270,7 +270,7 @@ class MagicNetwork(Network):
         See `Network.restore`.
         """
         self._update_magic_objects(level=level + 1)
-        super(MagicNetwork, self).restore(
+        super().restore(
             name=name, filename=filename, restore_random_state=restore_random_state
         )
         self.objects.clear()
@@ -280,9 +280,7 @@ class MagicNetwork(Network):
         See `Network.get_states`.
         """
         self._update_magic_objects(level=level + 1)
-        states = super(MagicNetwork, self).get_states(
-            units, format, subexpressions, level=level + 1
-        )
+        states = super().get_states(units, format, subexpressions, level=level + 1)
         self.objects.clear()
         return states
 
@@ -291,7 +289,7 @@ class MagicNetwork(Network):
         See `Network.set_states`.
         """
         self._update_magic_objects(level=level + 1)
-        super(MagicNetwork, self).set_states(values, units, format, level=level + 1)
+        super().set_states(values, units, format, level=level + 1)
         self.objects.clear()
 
     def __str__(self):
@@ -305,7 +303,7 @@ magic_network = MagicNetwork()
 
 
 def collect(level=0):
-    """
+    r"""
     Return the list of `BrianObject`\ s that will be simulated if `run` is
     called.
 

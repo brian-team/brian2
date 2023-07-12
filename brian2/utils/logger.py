@@ -66,7 +66,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to delete the log and script file on exit.
-            
+
             If set to ``True`` (the default), log files (and the copy of the main
             script) will be deleted after the brian process has exited, unless an
             uncaught exception occurred. If set to ``False``, all log files will be
@@ -77,7 +77,7 @@ if "logging" not in prefs.pref_register:
             default="DEBUG",
             docs="""
             What log level to use for the log written to the log file.
-            
+
             In case file logging is activated (see `logging.file_log`), which log
             level should be used for logging. Has to be one of CRITICAL, ERROR,
             WARNING, INFO, DEBUG or DIAGNOSTIC.
@@ -88,7 +88,7 @@ if "logging" not in prefs.pref_register:
             default="INFO",
             docs="""
             What log level to use for the log written to the console.
-            
+
             Has to be one of CRITICAL, ERROR, WARNING, INFO, DEBUG or DIAGNOSTIC.
             """,
             validator=log_level_validator,
@@ -97,7 +97,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to log to a file or not.
-            
+
             If set to ``True`` (the default), logging information will be written
             to a file. The log level can be set via the `logging.file_log_level`
             preference.
@@ -122,7 +122,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to save a copy of the script that is run.
-            
+
             If set to ``True`` (the default), a copy of the currently run script
             is saved to a temporary location. It is deleted after a successful
             run (unless `logging.delete_log_on_exit` is ``False``) but is kept after
@@ -134,7 +134,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether or not to redirect stdout/stderr to null at certain places.
-            
+
             This silences a lot of annoying compiler output, but will also hide
             error messages making it harder to debug problems. You can always
             temporarily switch it off when debugging. If
@@ -147,7 +147,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to redirect stdout/stderr to a file.
-    
+
             If both ``logging.std_redirection`` and this preference are set to
             ``True``, all standard output/error (most importantly output from
             the compiler) will be stored in files and if an error occurs the name
@@ -155,7 +155,7 @@ if "logging" not in prefs.pref_register:
             and this preference is ``False``, then all standard output/error will
             be completely suppressed, i.e. neither be displayed nor stored in a
             file.
-    
+
             The value of this preference is ignore if `logging.std_redirection` is
             set to ``False``.
             """,
@@ -165,7 +165,7 @@ if "logging" not in prefs.pref_register:
             docs="""
             Whether to display a text for uncaught errors, mentioning the location
             of the log file, the mailing list and the github issues.
-            
+
             Defaults to ``True``.""",
         ),
     )
@@ -245,19 +245,19 @@ def clean_up_logging():
         if BrianLogger.tmp_log is not None:
             try:
                 os.remove(BrianLogger.tmp_log)
-            except (IOError, OSError) as exc:
+            except OSError as exc:
                 warn(f"Could not delete log file: {exc}")
             # Remove log files that have been rotated (currently only one)
             rotated_log = f"{BrianLogger.tmp_log}.1"
             if os.path.exists(rotated_log):
                 try:
                     os.remove(rotated_log)
-                except (IOError, OSError) as exc:
+                except OSError as exc:
                     warn(f"Could not delete log file: {exc}")
         if BrianLogger.tmp_script is not None:
             try:
                 os.remove(BrianLogger.tmp_script)
-            except (IOError, OSError) as exc:
+            except OSError as exc:
                 warn(f"Could not delete copy of script file: {exc}")
         std_silent.close()
 
@@ -265,7 +265,7 @@ def clean_up_logging():
 atexit.register(clean_up_logging)
 
 
-class HierarchyFilter(object):
+class HierarchyFilter:
     """
     A class for suppressing all log messages in a subtree of the name hierarchy.
     Does exactly the opposite as the `logging.Filter` class, which allows
@@ -289,7 +289,7 @@ class HierarchyFilter(object):
         return not self.orig_filter.filter(record)
 
 
-class NameFilter(object):
+class NameFilter:
     """
     A class for suppressing log messages ending with a certain name.
 
@@ -311,7 +311,7 @@ class NameFilter(object):
         return self.name != record_name
 
 
-class BrianLogger(object):
+class BrianLogger:
     """
     Convenience object for logging. Call `get_logger` to get an instance of
     this class.
@@ -592,6 +592,7 @@ class BrianLogger(object):
                     mode="a",
                     maxBytes=prefs["logging.file_log_max_size"],
                     backupCount=1,
+                    encoding="utf-8",
                 )
                 BrianLogger.file_handler.setLevel(
                     LOG_LEVELS[prefs["logging.file_log_level"].upper()]
@@ -603,7 +604,7 @@ class BrianLogger(object):
                 )
                 logger.addHandler(BrianLogger.file_handler)
                 BrianLogger._pid = os.getpid()
-            except IOError as ex:
+            except OSError as ex:
                 warn(f"Could not create log file: {ex}")
 
         # Save a copy of the script
@@ -629,7 +630,7 @@ class BrianLogger(object):
                         with open(os.path.abspath(sys.argv[0]), "rb") as script_file:
                             shutil.copyfileobj(script_file, tmp_file)
                         BrianLogger.tmp_script = tmp_file.name
-                except IOError as ex:
+                except OSError as ex:
                     warn(f"Could not copy script file to temp directory: {ex}")
 
         if BrianLogger.console_handler is not None:
@@ -698,7 +699,7 @@ def get_logger(module_name="brian2"):
     return BrianLogger(module_name)
 
 
-class catch_logs(object):
+class catch_logs:
     """
     A context manager for catching log messages. Use this for testing the
     messages that are logged. Defaults to catching warning/error messages and
@@ -791,7 +792,7 @@ class LogCapture(logging.Handler):
 # See http://stackoverflow.com/questions/26126160/redirecting-standard-out-in-err-back-after-os-dup2
 # for an explanation of how this function works. Note that 1 and 2 are the file
 # numbers for stdout and stderr
-class std_silent(object):
+class std_silent:
     """
     Context manager that temporarily silences stdout and stderr but keeps the
     output saved in a temporary file and writes it if an exception is raised.
@@ -831,9 +832,9 @@ class std_silent(object):
             std_silent.dest_stdout.flush()
             std_silent.dest_stderr.flush()
             if exc_type is not None:
-                with open(std_silent.dest_fname_stdout, "r") as f:
+                with open(std_silent.dest_fname_stdout) as f:
                     out = f.read()
-                with open(std_silent.dest_fname_stderr, "r") as f:
+                with open(std_silent.dest_fname_stderr) as f:
                     err = f.read()
             os.dup2(self.orig_out_fd, 1)
             os.dup2(self.orig_err_fd, 2)
@@ -850,7 +851,7 @@ class std_silent(object):
             if prefs["logging.delete_log_on_exit"]:
                 try:
                     os.remove(std_silent.dest_fname_stdout)
-                except (IOError, OSError):
+                except OSError:
                     # TODO: this happens quite frequently - why?
                     # The file objects are closed as far as Python is concerned,
                     # but maybe Windows is still hanging on to them?
@@ -860,5 +861,5 @@ class std_silent(object):
             if prefs["logging.delete_log_on_exit"]:
                 try:
                     os.remove(std_silent.dest_fname_stderr)
-                except (IOError, OSError):
+                except OSError:
                     pass

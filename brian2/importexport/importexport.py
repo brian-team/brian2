@@ -5,10 +5,10 @@ data in and out of groups in various formats (see `Group.get_states` and
 """
 
 import abc
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 
 
-class ImportExport(object, metaclass=abc.ABCMeta):
+class ImportExport(metaclass=abc.ABCMeta):
     """
     Class for registering new import/export methods (via static methods). Also
     the base class that should be extended for such methods

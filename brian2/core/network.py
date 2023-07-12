@@ -20,7 +20,7 @@ from brian2.core.clocks import Clock, defaultclock
 from brian2.core.names import Nameable
 from brian2.core.namespace import get_local_namespace
 from brian2.core.preferences import BrianPreference, prefs
-from brian2.devices.device import RuntimeDevice, all_devices, get_device
+from brian2.devices.device import all_devices, get_device
 from brian2.groups.group import Group
 from brian2.synapses.synapses import SummedVariableUpdater
 from brian2.units.allunits import msecond, second
@@ -92,7 +92,7 @@ def _format_time(time_in_s):
     return text
 
 
-class TextReport(object):
+class TextReport:
     """
     Helper object to report simulation progress in `Network.run`.
 
@@ -152,7 +152,7 @@ def _format_table(header, values, cell_formats):
     return "\n".join([formatted_header, line] + content)
 
 
-class SchedulingSummary(object):
+class SchedulingSummary:
     """
     Object representing the schedule that is used to simulate the objects in a
     network. Objects of this type are returned by `scheduling_summary`, they
@@ -166,10 +166,10 @@ class SchedulingSummary(object):
 
     def __init__(self, objects):
         # Map each dt to a rank (i.e. smallest dt=0, second smallest=1, etc.)
-        self.dts = dict(
-            (dt, rank)
+        self.dts = {
+            dt: rank
             for rank, dt in enumerate(sorted({float(obj.clock.dt) for obj in objects}))
-        )
+        }
         ScheduleEntry = namedtuple(
             "ScheduleEntry",
             field_names=[
@@ -224,7 +224,7 @@ class SchedulingSummary(object):
                         str(entry.dt),
                         "step"
                         if self.steps[float(entry.dt)] == 1
-                        else "{} steps".format(self.steps[float(entry.dt)]),
+                        else f"{self.steps[float(entry.dt)]} steps",
                     ),
                     entry.when,
                     entry.order,
@@ -247,8 +247,8 @@ class SchedulingSummary(object):
             <td style="text-align: center;">{}</td>
         </tr>
         """.format(
-                "<b>{}</b> (<em>{}</em>)".format(entry.name, entry.type),
-                "{} (<em>{}</em>)".format(entry.owner_name, entry.owner_type)
+                f"<b>{entry.name}</b> (<em>{entry.type}</em>)",
+                f"{entry.owner_name} (<em>{entry.owner_type}</em>)"
                 if entry.owner_name is not None
                 else "&ndash;",
                 "{} (every {})".format(
@@ -856,7 +856,7 @@ class Network(Nameable):
         fset=_set_schedule,
         doc="""
         List of ``when`` slots in the order they will be updated, can be modified.
-        
+
         See notes on scheduling in `Network`. Note that additional ``when``
         slots can be added, but the schedule should contain at least all of the
         names in the default schedule:
@@ -887,7 +887,7 @@ class Network(Nameable):
         # before_... names are assigned positions 0, 3, 6, ...
         # after_... names are assigned positions 2, 5, 8, ...
         all_objects = _get_all_objects(self.objects)
-        when_to_int = dict((when, 1 + i * 3) for i, when in enumerate(self.schedule))
+        when_to_int = {when: 1 + i * 3 for i, when in enumerate(self.schedule)}
         when_to_int.update(
             (f"before_{when}", i * 3) for i, when in enumerate(self.schedule)
         )
@@ -915,7 +915,7 @@ class Network(Nameable):
         all_ids = [obj.id for obj in all_objects]
         for obj in all_objects:
             for dependency in obj._dependencies:
-                if not dependency in all_ids:
+                if dependency not in all_ids:
                     raise ValueError(
                         f"'{obj.name}' has been included in the network "
                         "but not the object on which it "
@@ -1285,14 +1285,14 @@ class Network(Nameable):
         self._stopped = True
 
     def __repr__(self):
-        objects = ", ".join((obj.__repr__() for obj in _get_all_objects(self.objects)))
+        objects = ", ".join(obj.__repr__() for obj in _get_all_objects(self.objects))
         return (
             f"<{self.__class__.__name__} at time t={self.t!s}, containing "
             f"objects: {objects}>"
         )
 
 
-class ProfilingSummary(object):
+class ProfilingSummary:
     """
     Class to nicely display the results of profiling. Objects of this class are
     returned by `profiling_summary`.
@@ -1347,8 +1347,8 @@ class ProfilingSummary(object):
 
         s = "Profiling summary"
         s += f"\n{'=' * len(s)}\n"
-        for name, time, percentage in zip(self.names, times, percentages):
-            s += f"{name}    {time}    {percentage}\n"
+        for name, t, percentage in zip(self.names, times, percentages):
+            s += f"{name}    {t}    {percentage}\n"
         return s
 
     def _repr_html_(self):
@@ -1356,10 +1356,10 @@ class ProfilingSummary(object):
         percentages = [f"{percentage:.2f} %" for percentage in self.percentages]
         s = '<h2 class="brian_prof_summary_header">Profiling summary</h2>\n'
         s += '<table class="brian_prof_summary_table">\n'
-        for name, time, percentage in zip(self.names, times, percentages):
+        for name, t, percentage in zip(self.names, times, percentages):
             s += "<tr>"
             s += f"<td>{name}</td>"
-            s += f'<td style="text-align: right">{time}</td>'
+            s += f'<td style="text-align: right">{t}</td>'
             s += f'<td style="text-align: right">{percentage}</td>'
             s += "</tr>\n"
         s += "</table>"

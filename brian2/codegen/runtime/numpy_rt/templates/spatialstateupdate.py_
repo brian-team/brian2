@@ -51,6 +51,10 @@ for _counter, (_first, _last) in enumerate(zip({{_starts}},
 {% block maincode %}
 from numpy import pi
 from numpy import zeros
+try:
+    from scipy.linalg import solve_banded
+except ImportError:
+    raise ImportError("Install 'scipy' to run multi-compartmental neurons with numpy")
 
 # scalar code
 _vectorisation_idx = 1
@@ -61,8 +65,6 @@ _vectorisation_idx = LazyArange(N)
 {{vector_code|autoindent}}
 
 {{_v_previous}}[:] = {{v}}
-{%if _scipy_available %}
-from scipy.linalg import solve_banded
 
 # Particular solution
 _b=-({{Cm}}/{{dt}}*{{v}})-_I0
@@ -82,39 +84,6 @@ _ab[0,:] = {{_ab_star0}}
 _ab[1,:] = {{_ab_star1}} - _gtot
 _ab[2,:] = {{_ab_star2}}
 {{_u_minus}}[:] = solve_banded((1,1),_ab,_b,overwrite_ab=True,overwrite_b=True)
-{% else %}
-# Pure numpy solution, very slow because it needs forward and backward passes
-# along the array that can't be vectorized
-_b = -({{Cm}} / {{dt}}*{{v}}) - _I0
-
-# Tridiagonal solving
-_forward = range(1, N)
-_backward = range(N-2, -1, -1)
-
-_bi = {{_ab_star1}} - _gtot  # main diagonal
-
-# First compartment
-{{_c}}[0] = {{_ab_star0}}[1] / _bi[0]
-{{_v_star}}[0] = _b[0] / _bi[0]
-{{_u_plus}}[0] = {{_b_plus}}[0]/_bi[0]
-{{_u_minus}}[0] = {{_b_minus}}[0]/_bi[0]
-
-# Other compartments
-{{_c}}[1:-1] = {{_ab_star0}}[2:]
-for _i in _forward:
-    _ai = {{_ab_star2}}[_i-1]  # subdiagonal
-    _m = 1.0/(_bi[_i]-_ai*{{_c}}[_i-1])
-    {{_c}}[_i] *= _m
-    {{_v_star}}[_i] = (_b[_i] - _ai*{{_v_star}}[_i-1])*_m
-    {{_u_plus}}[_i] = ({{_b_plus}}[_i] - _ai*{{_u_plus}}[_i-1])*_m
-    {{_u_minus}}[_i] = ({{_b_minus}}[_i] - _ai*{{_u_minus}}[_i-1])*_m
-
-for _i in _backward:
-    {{_v_star}}[_i] -= {{_c}}[_i]*{{_v_star}}[_i+1]
-    {{_u_plus}}[_i] -= {{_c}}[_i]*{{_u_plus}}[_i+1]
-    {{_u_minus}}[_i] -= {{_c}}[_i]*{{_u_minus}}[_i+1]
-
-{% endif %}
 
 # indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
 children_rowlength = len({{_morph_children}})//len({{_morph_children_num}})

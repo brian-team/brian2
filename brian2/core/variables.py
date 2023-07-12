@@ -89,17 +89,15 @@ def get_dtype_str(val):
 
 def variables_by_owner(variables, owner):
     owner_name = getattr(owner, "name", None)
-    return dict(
-        [
-            (varname, var)
-            for varname, var in variables.items()
-            if getattr(var.owner, "name", None) is owner_name
-        ]
-    )
+    return {
+        varname: var
+        for varname, var in variables.items()
+        if getattr(var.owner, "name", None) is owner_name
+    }
 
 
 class Variable(CacheKey):
-    """
+    r"""
     An object providing information about model variables (including implicit
     variables such as ``t`` or ``xi``). This class should never be
     instantiated outside of testing code, use one of its subclasses instead.
@@ -369,7 +367,7 @@ class Constant(Variable):
         #: The constant's value
         self.value = value
 
-        super(Constant, self).__init__(
+        super().__init__(
             dimensions=dimensions,
             name=name,
             owner=owner,
@@ -380,6 +378,9 @@ class Constant(Variable):
         )
 
     def get_value(self):
+        return self.value
+
+    def item(self):
         return self.value
 
 
@@ -406,9 +407,7 @@ class AuxiliaryVariable(Variable):
     """
 
     def __init__(self, name, dimensions=DIMENSIONLESS, dtype=None, scalar=False):
-        super(AuxiliaryVariable, self).__init__(
-            dimensions=dimensions, name=name, dtype=dtype, scalar=scalar
-        )
+        super().__init__(dimensions=dimensions, name=name, dtype=dtype, scalar=scalar)
 
     def get_value(self):
         raise TypeError(
@@ -475,7 +474,7 @@ class ArrayVariable(Variable):
         dynamic=False,
         unique=False,
     ):
-        super(ArrayVariable, self).__init__(
+        super().__init__(
             dimensions=dimensions,
             name=name,
             owner=owner,
@@ -515,6 +514,12 @@ class ArrayVariable(Variable):
 
     def get_value(self):
         return self.device.get_value(self)
+
+    def item(self):
+        if self.size == 1:
+            return self.get_value().item()
+        else:
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     def set_value(self, value):
         self.device.fill_with_array(self, value)
@@ -614,7 +619,7 @@ class DynamicArrayVariable(ArrayVariable):
         #: Whether this array will be only resized along the first dimension
         self.resize_along_first = resize_along_first
 
-        super(DynamicArrayVariable, self).__init__(
+        super().__init__(
             dimensions=dimensions,
             owner=owner,
             name=name,
@@ -692,7 +697,7 @@ class Subexpression(Variable):
         dtype=None,
         scalar=False,
     ):
-        super(Subexpression, self).__init__(
+        super().__init__(
             dimensions=dimensions,
             owner=owner,
             name=name,
@@ -740,7 +745,7 @@ class Subexpression(Variable):
 # ------------------------------------------------------------------------------
 # Classes providing views on variables and storing variables information
 # ------------------------------------------------------------------------------
-class LinkedVariable(object):
+class LinkedVariable:
     """
     A simple helper class to make linking variables explicit. Users should use
     `linked_var` instead.
@@ -811,7 +816,7 @@ def linked_var(group_or_variable, name=None, index=None):
         )
 
 
-class VariableView(object):
+class VariableView:
     """
     A view on a variable that allows to treat it as an numpy array while
     allowing special indexing (e.g. with strings) in the context of a `Group`.
@@ -970,15 +975,9 @@ class VariableView(object):
             )
         elif isinstance(item, str):
             try:
-                float(value)  # only checks for the exception
-                try:
-                    # length-1 arrays are also convertible to float, but we
-                    # don't want the repr used later to be something like
-                    # array([...]).
-                    value = value[0]
-                except (IndexError, TypeError):
-                    # was scalar already apparently
-                    pass
+                if isinstance(value, str):
+                    raise TypeError  # Will be dealt with below
+                value = np.asanyarray(value).item()
             except (TypeError, ValueError):
                 if item != "True":
                     raise TypeError(
@@ -1059,7 +1058,7 @@ class VariableView(object):
                         indexed_var = index_group.variables.get(
                             varname, index_group.variables.get(var.name)
                         )
-                        if not indexed_var is var:
+                        if indexed_var is not var:
                             logger.warn(
                                 "The string expression used for setting "
                                 f"'{self.name}' refers to '{varname}' which "
@@ -1414,6 +1413,9 @@ class VariableView(object):
 
     def __rfloordiv__(self, other):
         return np.asanyarray(other) // self.get_item(slice(None), level=1)
+
+    def __mod__(self, other):
+        return self.get_item(slice(None), level=1) % np.asanyarray(other)
 
     def __pow__(self, power, modulo=None):
         if modulo is not None:

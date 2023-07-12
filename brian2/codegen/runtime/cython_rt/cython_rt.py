@@ -105,7 +105,7 @@ class CythonCodeObject(NumpyCodeObject):
             ],
             "Cython",
         )
-        super(CythonCodeObject, self).__init__(
+        super().__init__(
             owner,
             code,
             variables,
