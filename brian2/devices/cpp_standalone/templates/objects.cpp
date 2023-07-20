@@ -25,104 +25,98 @@ std::vector< rk_state* > _mersenne_twister_states;
 Network {{net.name}};
 {% endfor %}
 
-//////////////// array meta data //////////
-std::map<std::string, std::tuple<bool, size_t, data_type, void*>> array_meta_data;
+template<class T> void set_variable_from_value(std::string varname, T* var_pointer, size_t size, T value) {
+    #ifdef DEBUG
+    std::cout << "Setting '" << varname << "' to " << value << std::endl;
+    #endif
+    std::fill(var_pointer, var_pointer+size, value);
+}
+
+template<class T> void set_variable_from_file(std::string varname, T* var_pointer, size_t data_size, std::string filename) {
+    ifstream f;
+    #ifdef DEBUG
+    std::cout << "Setting '" << varname << "' from file '" << filename << "'" << std::endl;
+    #endif
+    f.open(filename, ios::in | ios::binary);
+    if (f.is_open())
+        f.read(reinterpret_cast<char *>(var_pointer), data_size);
+    else
+        std::cerr << "Could not read '" << filename << "'" << std::endl;
+}
 
 //////////////// set arrays by name ///////
-void set_variable_by_name(std::string owner_variable, std::string s_value) {
-	std::tuple<bool, size_t, data_type, void*> meta_data;
-	try {
-		meta_data = array_meta_data.at(owner_variable);
-	} catch (const std::out_of_range& oor) {
-    	std::cerr << "Did not find variable '" << owner_variable << "'" << std::endl;
-  	}
-	const bool is_dynamic = std::get<0>(meta_data);
-	size_t var_size = std::get<1>(meta_data);  // will be overwritten by actual size for dynamic arrays
+void set_variable_by_name(std::string name, std::string s_value) {
+	{# Add code to set initial values for variables by name #}
+	size_t var_size;
 	size_t data_size;
-	const data_type var_type = std::get<2>(meta_data);
-	void* var_pointer = std::get<3>(meta_data);
-	
-	switch (var_type) {
-		case double_type:
-			if (is_dynamic)
-				var_size = ((std::vector<double>*)var_pointer)->size();
-			data_size = var_size * sizeof(double);
-			break;
-		case float_type:
-			if (is_dynamic)
-				var_size = ((std::vector<float>*)var_pointer)->size();
-			data_size = var_size * sizeof(float);
-			break;
-		case int64_t_type:
-			if (is_dynamic)
-				var_size = ((std::vector<int64_t>*)var_pointer)->size();
-			data_size = var_size * sizeof(int64_t);
-			break;
-		case int32_t_type:
-			if (is_dynamic)
-				var_size = ((std::vector<int32_t>*)var_pointer)->size();
-			data_size = var_size * sizeof(int32_t);
-			break;
-		case char_type:  // booleans are stored as bytes, actually
-			if (is_dynamic)
-				var_size = ((std::vector<bool>*)var_pointer)->size();
-			data_size = var_size * sizeof(char);
-			break;
-	}
-	if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9'))
-	{
-		#ifdef DEBUG
-		std::cout << "Setting '" << owner_variable << "' to " << s_value << std::endl;
-		#endif
-		double d_value; float f_value; int32_t i32_value; int64_t i64_value; bool b_value;
-		switch (var_type) {
-			case double_type:
-				d_value = atof(s_value.c_str());
-				for (size_t i = 0; i < var_size; i++)
-					((double *)var_pointer)[i] = d_value;
-				break;
-			case float_type:
-				f_value = atof(s_value.c_str());
-				for (size_t i = 0; i < var_size; i++)
-					((float *)var_pointer)[i] = f_value;
-				break;
-			case int32_t_type:
-				i32_value = atoi(s_value.c_str());
-				for (size_t i = 0; i < var_size; i++)
-					((int32_t *)var_pointer)[i] = i32_value;
-				break;
-			case int64_t_type:
-				i64_value = atol(s_value.c_str());
-				for (size_t i = 0; i < var_size; i++)
-					((int64_t *)var_pointer)[i] = i64_value;
-				break;
-			case char_type:
-				b_value = (s_value == "1" || s_value == "true" || s_value == "True");
-				for (size_t i = 0; i < var_size; i++)
-					((char *)var_pointer)[i] = b_value;
-				break;
-		}
-	}
-	else
-	{ // file name
-		ifstream f;
-		#ifdef DEBUG
-		std::cout << "Setting '" << owner_variable << "' from file '" << s_value << "'" << std::endl;
-		#endif
-		f.open(s_value, ios::in | ios::binary);
-		if (f.is_open())
-		{
-			if (is_dynamic)
-				//FIXME: Does even a wrong cast gives us a correct pointer here?
-				f.read(reinterpret_cast<char *>(&(*(std::vector<double> *)var_pointer)[0]), data_size);
-			else
-				f.read(reinterpret_cast<char *>(var_pointer), data_size);
-		}
-		else
-		{
-			std::cerr << "Could not read '" << s_value << "'" << std::endl;
-		}
-	}
+	// non-dynamic arrays
+	{% for var, varname in array_specs | dictsort(by='value') %}
+    {% if not var in dynamic_array_specs and not var.read_only %}
+    if (name == "{{var.owner.name}}.{{var.name}}") {
+        var_size = {{var.size}};
+        data_size = {{var.size}}*sizeof({{c_data_type(var.dtype)}});
+        if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9')) {
+            // set from single value
+            {% if c_data_type(var.dtype) == 'double' %}
+            set_variable_from_value<double>(name, {{get_array_name(var)}}, var_size, (double)atof(s_value.c_str()));
+            {% elif c_data_type(var.dtype) == 'float' %}
+            set_variable_from_value<float>(name, {{get_array_name(var)}}, var_size, (float)atof(s_value.c_str()));
+            {% elif c_data_type(var.dtype) == 'int32_t' %}
+            set_variable_from_value<int32_t>(name, {{get_array_name(var)}}, var_size, (int32_t)atoi(s_value.c_str()));
+            {% elif c_data_type(var.dtype) == 'int64_t' %}
+            set_variable_from_value<int64_t>(name, {{get_array_name(var)}}, var_size, (int64_t)atol(s_value.c_str()));
+            {% elif c_data_type(var.dtype) == 'char' %}
+            std::for_each(s_value.begin(), s_value.end(), [](char& c) // modify in-place
+            {
+                c = std::tolower(static_cast<unsigned char>(c));
+            });
+            const char b_value = (char)(s_value == "1" || s_value == "true");
+            set_variable_from_value<char>(name, {{get_array_name(var)}}, var_size, b_value);
+            {% endif %}
+        } else {
+            // set from file
+            set_variable_from_file(name, {{get_array_name(var)}}, data_size, s_value);
+        }
+        return;
+    }
+    {% endif %}
+    {% endfor %}
+    // dynamic arrays (1d)
+    {% for var, varname in dynamic_array_specs | dictsort(by='value') %}
+    {% if not var.read_only %}
+    if (name == "{{var.owner.name}}.{{var.name}}") {
+        var_size = {{get_array_name(var, access_data=False)}}.size();
+        data_size = var_size*sizeof({{c_data_type(var.dtype)}});
+        if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9')) {
+            // set from single value
+            {% if c_data_type(var.dtype) == 'double' %}
+            set_variable_from_value<double>(name, &{{get_array_name(var, False)}}[0], var_size, (double)atof(s_value.c_str()));
+            {% elif c_data_type(var.dtype) == 'float' %}
+            set_variable_from_value<float>(name, &{{get_array_name(var, False)}}[0], var_size, (float)atof(s_value.c_str()));
+            {% elif c_data_type(var.dtype) == 'int32_t' %}
+            set_variable_from_value<int32_t>(name, &{{get_array_name(var, False)}}[0], var_size, (int32_t)atoi(s_value.c_str()));
+            {% elif c_data_type(var.dtype) == 'int64_t' %}
+            set_variable_from_value<int64_t>(name, &{{get_array_name(var, False)}}[0], var_size, (int64_t)atol(s_value.c_str()));
+            {% elif c_data_type(var.dtype) == 'char' %}
+            std::for_each(s_value.begin(), s_value.end(), [](char& c) // modify in-place
+            {
+                c = std::tolower(static_cast<unsigned char>(c));
+            });
+            const char b_value = (char)(s_value == "1" || s_value == "true");
+            set_variable_from_value<char>(name, &{{get_array_name(var, False)}}[0], var_size, b_value);
+            {% endif %}
+        } else {
+            // set from file
+            set_variable_from_file(name, &{{get_array_name(var, False)}}[0], data_size, s_value);
+        }
+        return;
+    }
+    std::cerr << "Cannot set uknown variable " << name << std::endl;
+    exit(1);
+    {% endif %}
+    {% endfor %}
+
+
 }
 //////////////// arrays ///////////////////
 {% for var, varname in array_specs | dictsort(by='value') %}
@@ -210,20 +204,6 @@ void _init_arrays()
 	{{name}} = new {{dtype_spec}}[{{N}}];
 	{% endif %}
 	{% endfor %}
-
-	array_meta_data = {
-	{% for var, varname in array_specs | dictsort(by='value') %}
-		{% if not var in dynamic_array_specs and not var in dynamic_array_2d_specs and not var.read_only %}
-		{"{{var.owner.name}}.{{var.name}}", { false, {{var.size}}, {{c_data_type(var.dtype)}}_type, {{varname}} } },
-		{% endif %}
-	{% endfor %}
-	{% for var, varname in dynamic_array_specs | dictsort(by='value') %}
-	{% if not var.read_only %}
-		{# size will be directly requested from vector #}
-		{"{{var.owner.name}}.{{var.name}}", { true, 0, {{c_data_type(var.dtype)}}_type, &{{varname}} } },
-	{% endif %}
-	{% endfor %}
-	};
 
 	// Random number generator states
 	for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
@@ -392,11 +372,9 @@ extern Clock {{clock.name}};
 extern Network {{net.name}};
 {% endfor %}
 
-enum data_type { double_type, float_type, int64_t_type, int32_t_type, char_type };
+
 
 void set_variable_by_name(std::string, std::string);
-
-extern std::map<std::string, std::tuple<bool, size_t, data_type, void*>> array_meta_data;
 
 //////////////// dynamic arrays ///////////
 {% for var, varname in dynamic_array_specs | dictsort(by='value') %}

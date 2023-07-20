@@ -698,6 +698,41 @@ def test_change_parameter_without_recompile():
 
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
+def test_change_parameter_without_recompile():
+    set_device("cpp_standalone", directory=None, with_output=False)
+    G = NeuronGroup(
+        10,
+        """
+        x : 1
+        v : volt
+        """,
+        name="neurons",
+    )
+    G.x = np.arange(10)
+    G.v = np.arange(10) * volt
+
+    run(0 * ms)
+    assert array_equal(G.x, np.arange(10))
+    assert array_equal(G.v, np.arange(10) * volt)
+
+    device.run(run_args=["neurons.x=5", "neurons.v=3"])
+    assert array_equal(G.x, np.ones(10) * 5)
+    assert array_equal(G.v, np.ones(10) * 3 * volt)
+
+    ar = np.arange(10) * 2.0
+    ar.astype(G.x.dtype).tofile(os.path.join(device.project_dir, "init_values_x1.dat"))
+    ar.astype(G.v.dtype).tofile(os.path.join(device.project_dir, "init_values_v1.dat"))
+    device.run(
+        run_args=["neurons.v=init_values_v1.dat", "neurons.x=init_values_x1.dat"]
+    )
+    assert array_equal(G.x, ar)
+    assert array_equal(G.v, ar * volt)
+
+    reset_device()
+
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_change_parameter_without_recompile_errors():
     set_device("cpp_standalone", directory=None, with_output=False)
     G = NeuronGroup(10, "v:volt", name="neurons")
@@ -741,6 +776,27 @@ def test_change_parameter_without_recompile_dict_syntax():
     device.run(run_args={G.x: ar, G.v: ar * volt})
     assert array_equal(G.x, ar)
     assert array_equal(G.v, ar * volt)
+
+    reset_device()
+
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_change_synapse_parameter_without_recompile_dict_syntax():
+    set_device("cpp_standalone", directory=None, with_output=False)
+    G = NeuronGroup(10, "", name="neurons")
+    S = Synapses(G, G, "w:1", name="synapses")
+    S.connect(j="i")
+    S.w = np.arange(10)
+    run(0 * ms)
+    assert array_equal(S.w, np.arange(10))
+
+    device.run(run_args={S.w: 17})
+    assert array_equal(S.w, np.ones(10) * 17)
+
+    ar = np.arange(10) * 2.0
+    device.run(run_args={S.w: ar})
+    assert array_equal(S.w, ar)
 
     reset_device()
 
@@ -892,6 +948,7 @@ if __name__ == "__main__":
         test_change_parameter_without_recompile_errors,
         test_change_parameter_without_recompile_dict_syntax,
         test_change_parameter_without_recompile_dependencies,
+        test_change_synapse_parameter_without_recompile_dict_syntax,
         test_change_parameters_multiprocessing,
         test_header_file_inclusion,
     ]:
