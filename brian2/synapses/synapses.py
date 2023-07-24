@@ -980,9 +980,9 @@ class Synapses(Group):
         self._pathways = []
 
         if isinstance(on_event, str):
-            events_dict = defaultdict(lambda: on_event)
+            events_dict = {"pre": on_event, "post": on_event}
         else:
-            events_dict = defaultdict(lambda: "spike")
+            events_dict = {"pre": "spike", "post": "spike"}
             events_dict.update(on_event)
 
         #: "Events" for all the pathways
