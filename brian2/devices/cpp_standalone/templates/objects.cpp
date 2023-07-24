@@ -1,5 +1,19 @@
 {% macro cpp_file() %}
 
+{% macro set_from_value(var_dtype, array_name) %}
+{% if c_data_type(var_dtype) == 'double' %}
+set_variable_from_value<double>(name, {{array_name}}, var_size, (double)atof(s_value.c_str()));
+{% elif c_data_type(var_dtype) == 'float' %}
+set_variable_from_value<float>(name, {{array_name}}, var_size, (float)atof(s_value.c_str()));
+{% elif c_data_type(var_dtype) == 'int32_t' %}
+set_variable_from_value<int32_t>(name, {{array_name}}, var_size, (int32_t)atoi(s_value.c_str()));
+{% elif c_data_type(var_dtype) == 'int64_t' %}
+set_variable_from_value<int64_t>(name, {{array_name}}, var_size, (int64_t)atol(s_value.c_str()));
+{% elif c_data_type(var_dtype) == 'char' %}
+set_variable_from_value<char>(name, {{array_name}}, var_size, (char)atoi(s_value.c_str()));
+{% endif %}
+{%- endmacro %}
+
 #include "objects.h"
 #include "synapses_classes.h"
 #include "brianlib/clocks.h"
@@ -73,17 +87,7 @@ void set_variable_by_name(std::string name, std::string s_value) {
         data_size = {{var.size}}*sizeof({{c_data_type(var.dtype)}});
         if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9')) {
             // set from single value
-            {% if c_data_type(var.dtype) == 'double' %}
-            set_variable_from_value<double>(name, {{get_array_name(var)}}, var_size, (double)atof(s_value.c_str()));
-            {% elif c_data_type(var.dtype) == 'float' %}
-            set_variable_from_value<float>(name, {{get_array_name(var)}}, var_size, (float)atof(s_value.c_str()));
-            {% elif c_data_type(var.dtype) == 'int32_t' %}
-            set_variable_from_value<int32_t>(name, {{get_array_name(var)}}, var_size, (int32_t)atoi(s_value.c_str()));
-            {% elif c_data_type(var.dtype) == 'int64_t' %}
-            set_variable_from_value<int64_t>(name, {{get_array_name(var)}}, var_size, (int64_t)atol(s_value.c_str()));
-            {% elif c_data_type(var.dtype) == 'char' %}
-            set_variable_from_value<char>(name, {{get_array_name(var)}}, var_size, (char)atoi(s_value.c_str()));
-            {% endif %}
+            {{ set_from_value(var.dtype, get_array_name(var)) }}
         } else {
             // set from file
             set_variable_from_file(name, {{get_array_name(var)}}, data_size, s_value);
@@ -100,17 +104,7 @@ void set_variable_by_name(std::string name, std::string s_value) {
         data_size = var_size*sizeof({{c_data_type(var.dtype)}});
         if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9')) {
             // set from single value
-            {% if c_data_type(var.dtype) == 'double' %}
-            set_variable_from_value<double>(name, &{{get_array_name(var, False)}}[0], var_size, (double)atof(s_value.c_str()));
-            {% elif c_data_type(var.dtype) == 'float' %}
-            set_variable_from_value<float>(name, &{{get_array_name(var, False)}}[0], var_size, (float)atof(s_value.c_str()));
-            {% elif c_data_type(var.dtype) == 'int32_t' %}
-            set_variable_from_value<int32_t>(name, &{{get_array_name(var, False)}}[0], var_size, (int32_t)atoi(s_value.c_str()));
-            {% elif c_data_type(var.dtype) == 'int64_t' %}
-            set_variable_from_value<int64_t>(name, &{{get_array_name(var, False)}}[0], var_size, (int64_t)atol(s_value.c_str()));
-            {% elif c_data_type(var.dtype) == 'char' %}
-            set_variable_from_value<char>(name, &{{get_array_name(var, False)}}[0], var_size, (char)atoi(s_value.c_str()));
-            {% endif %}
+            {{ set_from_value(var.dtype, "&" + get_array_name(var, False) + "[0]") }}
         } else {
             // set from file
             set_variable_from_file(name, &{{get_array_name(var, False)}}[0], data_size, s_value);
@@ -125,18 +119,8 @@ void set_variable_by_name(std::string name, std::string s_value) {
         data_size = var_size*sizeof({{c_data_type(var.values.dtype)}});
         if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9')) {
             // set from single value
-            std::cout << "{{c_data_type(var.values.dtype)}}" << std::endl;
-            {% if c_data_type(var.values.dtype) == 'double' %}
-            set_variable_from_value<double>(name, {{varname}}_values, var_size, (double)atof(s_value.c_str()));
-            {% elif c_data_type(var.values.dtype) == 'float' %}
-            set_variable_from_value<float>(name, {{varname}}_values, var_size, (float)atof(s_value.c_str()));
-            {% elif c_data_type(var.values.dtype) == 'int32_t' %}
-            set_variable_from_value<int32_t>(name, {{varname}}_values, var_size, (int32_t)atoi(s_value.c_str()));
-            {% elif c_data_type(var.values.dtype) == 'int64_t' %}
-            set_variable_from_value<int64_t>(name, {{varname}}_values, var_size, (int64_t)atol(s_value.c_str()));
-            {% elif c_data_type(var.values.dtype) == 'char' %}
-            set_variable_from_value<char>(name, {{varname}}_values, var_size, (char)atoi(s_value.c_str()));
-            {% endif %}
+            {{ set_from_value(var.values.dtype, varname + "_values") }}
+
         } else {
             // set from file
             set_variable_from_file(name, {{varname}}_values, data_size, s_value);
@@ -144,7 +128,7 @@ void set_variable_by_name(std::string name, std::string s_value) {
         return;
     }
     {% endfor %}
-    std::cerr << "Cannot set unknown variable " << name << std::endl;
+    std::cerr << "Cannot set unknown variable '" << name << "'." << std::endl;
     exit(1);
 }
 //////////////// arrays ///////////////////
