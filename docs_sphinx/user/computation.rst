@@ -194,6 +194,23 @@ different initializations of ``v``, you could use::
         device.run(run_args={group.v: np.arange(10)*0.01 + 0.1*idx})
         results.append(mon.v[0])
 
+You can also overwrite the values in a `TimedArray` using this mechanism, by using the `TimedArray` as a key in the
+``run_args`` dictionary::
+
+    set_device('cpp_standalone', build_on_run=False)
+    stim = TimedArray(np.zeros(10), dt=10*ms)
+    group = NeuronGroup(10, 'dv/dt = (stim(t) - v)/ (10*ms) : 1')  # time-dependent stimulus
+    mon = StateMonitor(group, 'v', record=True)
+    run(100 * ms)
+    device.build(run=False)
+    results = []
+    # Do 10 runs with a 10ms at a random time
+    for idx in range(10):
+        values = np.zeros(10)
+        values[np.random.randint(0, 10)] = 1
+        device.run(run_args={stim: values})
+        results.append(mon.v[0])
+
 By default, the initialization provided via ``run_args`` overwrites any initializations done in the usual way.
 This might not exactly do what you want if you use string-based variable initializations that refer to each other.
 For example, if your equations contain two synaptic time constants ``tau_exc`` and ``tau_inh``, and you always

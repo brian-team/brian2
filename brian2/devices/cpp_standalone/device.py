@@ -34,6 +34,7 @@ from brian2.core.variables import (
 )
 from brian2.devices.device import Device, all_devices, reset_device, set_device
 from brian2.groups.group import Group
+from brian2.input import TimedArray
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
 from brian2.units import second
@@ -195,6 +196,9 @@ class CPPStandaloneDevice(Device):
 
         #: Dict of all static saved arrays
         self.static_arrays = {}
+
+        #: Dict of all TimedArray objects
+        self.timed_arrays = {}
 
         self.code_objects = {}
         self.main_queue = []
@@ -714,6 +718,9 @@ class CPPStandaloneDevice(Device):
         if self.enable_profiling:
             self.profiled_codeobjects.append(codeobj.name)
 
+        for var in codeobj.variables.values():
+            if isinstance(var, TimedArray):
+                self.timed_arrays[var] = var.name
         # We mark all writeable (i.e. not read-only) variables used by the code
         # as "dirty" to avoid that the cache contains incorrect values. This
         # might remove a number of variables from the cache unnecessarily,
@@ -763,7 +770,13 @@ class CPPStandaloneDevice(Device):
                 )
 
     def generate_objects_source(
-        self, writer, arange_arrays, synapses, static_array_specs, networks
+        self,
+        writer,
+        arange_arrays,
+        synapses,
+        static_array_specs,
+        networks,
+        timed_arrays,
     ):
         arr_tmp = self.code_object_class().templater.objects(
             None,
@@ -781,6 +794,7 @@ class CPPStandaloneDevice(Device):
             get_array_name=self.get_array_name,
             profiled_codeobjects=self.profiled_codeobjects,
             code_objects=list(self.code_objects.values()),
+            timed_arrays=timed_arrays,
         )
         writer.write("objects.*", arr_tmp)
 
@@ -1235,37 +1249,34 @@ class CPPStandaloneDevice(Device):
         elif isinstance(run_args, Mapping):
             list_rep = []
             for key, value in run_args.items():
-                if not isinstance(key, VariableView):
+                if isinstance(key, VariableView):
+                    (
+                        name,
+                        string_value,
+                        value_name,
+                        value_ar,
+                    ) = self._prepare_variableview_run_arg(key, value)
+                elif isinstance(key, TimedArray):
+                    (
+                        name,
+                        string_value,
+                        value_name,
+                        value_ar,
+                    ) = self._prepare_timed_array_run_arg(key, value)
+                else:
                     raise TypeError(
                         "The keys for 'run_args' need to be 'VariableView' objects,"
-                        " i.e. attributes of groups such as 'neurongroup.v'. Key has"
-                        f" type '{type(key)}' instead."
+                        " i.e. attributes of groups such as 'neurongroup.v', or a"
+                        f" 'TimedArray'. Key has type '{type(key)}' instead."
                     )
-                fail_for_dimension_mismatch(
-                    key.dim, value
-                )  # TODO: Give name of variable
-                value_ar = np.array(value, dtype=key.dtype)
-                if value_ar.ndim == 0 or value_ar.size == 1:
-                    # single value, give value directly on command line
-                    string_value = repr(value_ar.item())
-                else:
-                    # TODO: Check size for dynamic arrays in C++ code
-                    if value_ar.ndim != 1 or (
-                        not key.variable.dynamic and value_ar.size != key.shape[0]
-                    ):
-                        raise TypeError(
-                            "Incorrect size for variable"
-                            f" '{key.group_name}.{key.name}'. Shape {key.shape} ≠"
-                            f" {value_ar.shape}."
-                        )
-                    value_name = f"init_{key.group_name}_{key.name}_{md5(value_ar.data).hexdigest()}.dat"
+                if value_name:
                     fname = os.path.join(self.project_dir, "static_arrays", value_name)
                     # Make sure processes trying to write the same file don't clash
                     with FileLock(fname + ".lock"):
                         if not os.path.exists(fname):
                             value_ar.tofile(fname)
-                    string_value = os.path.join("static_arrays", value_name)
-                list_rep.append(f"{key.group_name}.{key.name}={string_value}")
+                list_rep.append(f"{name}={string_value}")
+
             run_args = list_rep
 
         # Invalidate array cache for all variables set on the command line
@@ -1350,6 +1361,48 @@ class CPPStandaloneDevice(Device):
                     already_checked.add(owner.name)
             except ReferenceError:
                 pass
+
+    def _prepare_variableview_run_arg(self, key, value):
+        fail_for_dimension_mismatch(key.dim, value)  # TODO: Give name of variable
+        value_ar = np.asarray(value, dtype=key.dtype)
+        if value_ar.ndim == 0 or value_ar.size == 1:
+            # single value, give value directly on command line
+            string_value = repr(value_ar.item())
+            value_name = None
+        else:
+            if value_ar.ndim != 1 or (
+                not key.variable.dynamic and value_ar.size != key.shape[0]
+            ):
+                raise TypeError(
+                    "Incorrect size for variable"
+                    f" '{key.group_name}.{key.name}'. Shape {key.shape} ≠"
+                    f" {value_ar.shape}."
+                )
+            value_name = (
+                f"init_{key.group_name}_{key.name}_{md5(value_ar.data).hexdigest()}.dat"
+            )
+            string_value = os.path.join("static_arrays", value_name)
+        name = f"{key.group_name}.{key.name}"
+        return name, string_value, value_name, value_ar
+
+    def _prepare_timed_array_run_arg(self, key, value):
+        fail_for_dimension_mismatch(key.dim, value)  # TODO: Give name of variable
+        value_ar = np.asarray(value, dtype=key.values.dtype)
+        if value_ar.ndim == 0 or value_ar.size == 1:
+            # single value, give value directly on command line
+            string_value = repr(value_ar.item())
+            value_name = None
+        elif value_ar.shape == key.values.shape:
+            value_name = f"init_{key.name}_values_{md5(value_ar.data).hexdigest()}.dat"
+            string_value = os.path.join("static_arrays", value_name)
+        else:
+            raise TypeError(
+                "Incorrect size for variable"
+                f" '{key.name}.values'. Shape {key.values.shape} ≠"
+                f" {value_ar.shape}."
+            )
+        name = f"{key.name}.values"
+        return name, string_value, value_name, value_ar
 
     def build(
         self,
@@ -1567,6 +1620,7 @@ class CPPStandaloneDevice(Device):
             self.synapses,
             self.static_array_specs,
             self.networks,
+            self.timed_arrays,
         )
         self.generate_main_source(self.writer)
         self.generate_codeobj_source(self.writer)

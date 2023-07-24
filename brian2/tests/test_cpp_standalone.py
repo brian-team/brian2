@@ -699,35 +699,79 @@ def test_change_parameter_without_recompile():
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
 def test_change_parameter_without_recompile():
-    set_device("cpp_standalone", directory=None, with_output=False)
+    set_device("cpp_standalone", directory=None, with_output=True, debug=True)
+    on_off = TimedArray([True, False, True], dt=defaultclock.dt, name="on_off")
+    stim = TimedArray(
+        np.arange(30).reshape(3, 10) * nA, dt=defaultclock.dt, name="stim"
+    )
     G = NeuronGroup(
         10,
         """
         x : 1
         v : volt
+        s = int(on_off(t))*stim(t, i) : amp
         """,
         name="neurons",
     )
     G.x = np.arange(10)
     G.v = np.arange(10) * volt
-
-    run(0 * ms)
+    mon = StateMonitor(G, "s", record=True)
+    run(3 * defaultclock.dt)
     assert array_equal(G.x, np.arange(10))
     assert array_equal(G.v, np.arange(10) * volt)
+    assert array_equal(
+        mon.s.T,
+        np.array(
+            [
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # on_off(t) == False
+                [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+            ]
+        )
+        * nA,
+    )
 
-    device.run(run_args=["neurons.x=5", "neurons.v=3"])
+    device.run(run_args=["neurons.x=5", "neurons.v=3", "on_off.values=True"])
     assert array_equal(G.x, np.ones(10) * 5)
     assert array_equal(G.v, np.ones(10) * 3 * volt)
-
+    assert array_equal(
+        mon.s.T,
+        np.array(
+            [
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+                [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+            ]
+        )
+        * nA,
+    )
     ar = np.arange(10) * 2.0
     ar.astype(G.x.dtype).tofile(os.path.join(device.project_dir, "init_values_x1.dat"))
     ar.astype(G.v.dtype).tofile(os.path.join(device.project_dir, "init_values_v1.dat"))
+    ar2 = 2 * np.arange(30).reshape(3, 10) * nA
+    ar2.astype(stim.values.dtype).tofile(
+        os.path.join(device.project_dir, "init_stim_values.dat")
+    )
     device.run(
-        run_args=["neurons.v=init_values_v1.dat", "neurons.x=init_values_x1.dat"]
+        run_args=[
+            "neurons.v=init_values_v1.dat",
+            "neurons.x=init_values_x1.dat",
+            "stim.values=init_stim_values.dat",
+        ]
     )
     assert array_equal(G.x, ar)
     assert array_equal(G.v, ar * volt)
-
+    assert array_equal(
+        mon.s.T,
+        np.array(
+            [
+                [0, 2, 4, 6, 8, 10, 12, 14, 16, 18],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # on_off(t) == False
+                [40, 42, 44, 46, 48, 50, 52, 54, 56, 58],
+            ]
+        )
+        * nA,
+    )
     reset_device()
 
 
@@ -754,29 +798,66 @@ def test_change_parameter_without_recompile_errors():
 @pytest.mark.standalone_only
 def test_change_parameter_without_recompile_dict_syntax():
     set_device("cpp_standalone", directory=None, with_output=False)
+    on_off = TimedArray([True, False, True], dt=defaultclock.dt, name="on_off")
+    stim = TimedArray(
+        np.arange(30).reshape(3, 10) * nA, dt=defaultclock.dt, name="stim"
+    )
     G = NeuronGroup(
         10,
         """
         x : 1
         v : volt
+        s = int(on_off(t))*stim(t, i) : amp
         """,
         name="neurons",
     )
     G.x = np.arange(10)
     G.v = np.arange(10) * volt
-    run(0 * ms)
+    mon = StateMonitor(G, "s", record=True)
+    run(3 * defaultclock.dt)
     assert array_equal(G.x, np.arange(10))
     assert array_equal(G.v, np.arange(10) * volt)
-
-    device.run(run_args={G.x: 5, G.v: 3 * volt})
+    assert array_equal(
+        mon.s.T,
+        np.array(
+            [
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # on_off(t) == False
+                [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+            ]
+        )
+        * nA,
+    )
+    device.run(run_args={G.x: 5, G.v: 3 * volt, on_off: True})
     assert array_equal(G.x, np.ones(10) * 5)
     assert array_equal(G.v, np.ones(10) * 3 * volt)
-
+    assert array_equal(
+        mon.s.T,
+        np.array(
+            [
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+                [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+            ]
+        )
+        * nA,
+    )
     ar = np.arange(10) * 2.0
-    device.run(run_args={G.x: ar, G.v: ar * volt})
+    ar2 = 2 * np.arange(30).reshape(3, 10) * nA
+    device.run(run_args={G.x: ar, G.v: ar * volt, stim: ar2})
     assert array_equal(G.x, ar)
     assert array_equal(G.v, ar * volt)
-
+    assert array_equal(
+        mon.s.T,
+        np.array(
+            [
+                [0, 2, 4, 6, 8, 10, 12, 14, 16, 18],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # on_off(t) == False
+                [40, 42, 44, 46, 48, 50, 52, 54, 56, 58],
+            ]
+        )
+        * nA,
+    )
     reset_device()
 
 

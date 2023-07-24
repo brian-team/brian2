@@ -55,9 +55,16 @@ template<class T> void set_variable_from_file(std::string varname, T* var_pointe
 
 //////////////// set arrays by name ///////
 void set_variable_by_name(std::string name, std::string s_value) {
-	{# Add code to set initial values for variables by name #}
 	size_t var_size;
 	size_t data_size;
+	std::for_each(s_value.begin(), s_value.end(), [](char& c) // modify in-place
+    {
+        c = std::tolower(static_cast<unsigned char>(c));
+    });
+    if (s_value == "true")
+        s_value = "1";
+    else if (s_value == "false")
+        s_value = "0";
 	// non-dynamic arrays
 	{% for var, varname in array_specs | dictsort(by='value') %}
     {% if not var in dynamic_array_specs and not var.read_only %}
@@ -75,12 +82,7 @@ void set_variable_by_name(std::string name, std::string s_value) {
             {% elif c_data_type(var.dtype) == 'int64_t' %}
             set_variable_from_value<int64_t>(name, {{get_array_name(var)}}, var_size, (int64_t)atol(s_value.c_str()));
             {% elif c_data_type(var.dtype) == 'char' %}
-            std::for_each(s_value.begin(), s_value.end(), [](char& c) // modify in-place
-            {
-                c = std::tolower(static_cast<unsigned char>(c));
-            });
-            const char b_value = (char)(s_value == "1" || s_value == "true");
-            set_variable_from_value<char>(name, {{get_array_name(var)}}, var_size, b_value);
+            set_variable_from_value<char>(name, {{get_array_name(var)}}, var_size, (char)atoi(s_value.c_str()));
             {% endif %}
         } else {
             // set from file
@@ -107,12 +109,7 @@ void set_variable_by_name(std::string name, std::string s_value) {
             {% elif c_data_type(var.dtype) == 'int64_t' %}
             set_variable_from_value<int64_t>(name, &{{get_array_name(var, False)}}[0], var_size, (int64_t)atol(s_value.c_str()));
             {% elif c_data_type(var.dtype) == 'char' %}
-            std::for_each(s_value.begin(), s_value.end(), [](char& c) // modify in-place
-            {
-                c = std::tolower(static_cast<unsigned char>(c));
-            });
-            const char b_value = (char)(s_value == "1" || s_value == "true");
-            set_variable_from_value<char>(name, &{{get_array_name(var, False)}}[0], var_size, b_value);
+            set_variable_from_value<char>(name, &{{get_array_name(var, False)}}[0], var_size, (char)atoi(s_value.c_str()));
             {% endif %}
         } else {
             // set from file
@@ -120,12 +117,35 @@ void set_variable_by_name(std::string name, std::string s_value) {
         }
         return;
     }
-    std::cerr << "Cannot set uknown variable " << name << std::endl;
-    exit(1);
     {% endif %}
     {% endfor %}
-
-
+    {% for var, varname in timed_arrays | dictsort(by='value') %}
+    if (name == "{{varname}}.values") {
+        var_size = {{var.values.size}};
+        data_size = var_size*sizeof({{c_data_type(var.values.dtype)}});
+        if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9')) {
+            // set from single value
+            std::cout << "{{c_data_type(var.values.dtype)}}" << std::endl;
+            {% if c_data_type(var.values.dtype) == 'double' %}
+            set_variable_from_value<double>(name, {{varname}}_values, var_size, (double)atof(s_value.c_str()));
+            {% elif c_data_type(var.values.dtype) == 'float' %}
+            set_variable_from_value<float>(name, {{varname}}_values, var_size, (float)atof(s_value.c_str()));
+            {% elif c_data_type(var.values.dtype) == 'int32_t' %}
+            set_variable_from_value<int32_t>(name, {{varname}}_values, var_size, (int32_t)atoi(s_value.c_str()));
+            {% elif c_data_type(var.values.dtype) == 'int64_t' %}
+            set_variable_from_value<int64_t>(name, {{varname}}_values, var_size, (int64_t)atol(s_value.c_str()));
+            {% elif c_data_type(var.values.dtype) == 'char' %}
+            set_variable_from_value<char>(name, {{varname}}_values, var_size, (char)atoi(s_value.c_str()));
+            {% endif %}
+        } else {
+            // set from file
+            set_variable_from_file(name, {{varname}}_values, data_size, s_value);
+        }
+        return;
+    }
+    {% endfor %}
+    std::cerr << "Cannot set unknown variable " << name << std::endl;
+    exit(1);
 }
 //////////////// arrays ///////////////////
 {% for var, varname in array_specs | dictsort(by='value') %}

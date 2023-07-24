@@ -276,6 +276,7 @@ class StateMonitor(Group, CodeRunner):
             dimensions=second.dim,
             constant=False,
             dtype=self._clock.variables["t"].dtype,
+            read_only=True,
         )
         self.variables.add_array(
             "N", dtype=np.int32, size=1, scalar=True, read_only=True
