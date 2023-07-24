@@ -34,14 +34,23 @@ template<class T> void set_variable_from_value(std::string varname, T* var_point
 
 template<class T> void set_variable_from_file(std::string varname, T* var_pointer, size_t data_size, std::string filename) {
     ifstream f;
+    streampos size;
     #ifdef DEBUG
     std::cout << "Setting '" << varname << "' from file '" << filename << "'" << std::endl;
     #endif
-    f.open(filename, ios::in | ios::binary);
+    f.open(filename, ios::in | ios::binary | ios::ate);
+    size = f.tellg();
+    if (size != data_size) {
+        std::cerr << "Error reading '" << filename << "': file size " << size << " does not match expected size " << data_size << std::endl;
+        return;
+    }
+    f.seekg(0, ios::beg);
     if (f.is_open())
         f.read(reinterpret_cast<char *>(var_pointer), data_size);
     else
         std::cerr << "Could not read '" << filename << "'" << std::endl;
+    if (f.fail())
+        std::cerr << "Error reading '" << filename << "'" << std::endl;
 }
 
 //////////////// set arrays by name ///////
