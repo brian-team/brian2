@@ -980,10 +980,11 @@ class Synapses(Group):
         self._pathways = []
 
         if isinstance(on_event, str):
-            events_dict = {"pre": on_event, "post": on_event}
+            self.default_event = on_event
+            events_dict = {}
         else:
-            events_dict = {"pre": "spike", "post": "spike"}
-            events_dict.update(on_event)
+            self.default_event = "spike"
+            events_dict = dict(on_event)
 
         #: "Events" for all the pathways
         self.events = events_dict
@@ -993,7 +994,10 @@ class Synapses(Group):
             if isinstance(argument, str):
                 pathway_delay = delay.get(prepost, None)
                 self._add_updater(
-                    argument, prepost, delay=pathway_delay, event=self.events[prepost]
+                    argument,
+                    prepost,
+                    delay=pathway_delay,
+                    event=self.events.get(prepost, self.default_event),
                 )
             elif isinstance(argument, Mapping):
                 for key, value in argument.items():
@@ -1010,7 +1014,7 @@ class Synapses(Group):
                         prepost,
                         objname=key,
                         delay=pathway_delay,
-                        event=self.events[key],
+                        event=self.events.get(prepost, self.default_event),
                     )
 
         # Check whether any delays were specified for pathways that don't exist
