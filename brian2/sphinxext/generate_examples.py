@@ -195,12 +195,11 @@ def main(rootpath, destdir):
         full_name = relpath.replace("/", ".").replace("\\", ".") + "." + file + ".rst"
         category_data_files[relpath].append((file, full_name))
         output = file + "\n" + "=" * len(file) + "\n\n"
-        print(relpath)
         output += (
             "Download:"
             f" :download:`{file} <{os.path.join('/../examples/', relpath, file)}>`\n\n"
         )
-        with open(os.path.join(destdir, full_name), "w", "utf-8") as f:
+        with open(os.path.join(destdir, full_name), "w", encoding="utf-8") as f:
             f.write(output)
 
     mainpage_text = "Examples\n"
