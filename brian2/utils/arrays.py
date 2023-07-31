@@ -25,13 +25,13 @@ def calc_repeats(delay):
     """
     # We use merge sort because it preserves the input order of equal
     # elements in the sorted output
-    I = np.argsort(delay, kind="mergesort")
-    xs = delay[I]
+    sort_indices = np.argsort(delay, kind="mergesort")
+    xs = delay[sort_indices]
     J = xs[1:] != xs[:-1]
     A = np.hstack((0, np.cumsum(J)))
     B = np.hstack((0, np.cumsum(np.logical_not(J))))
     BJ = np.hstack((0, B[:-1][J]))
     ei = B - BJ[A]
     ofs = np.zeros_like(delay, dtype=np.int32)
-    ofs[I] = np.array(ei, dtype=ofs.dtype)
+    ofs[sort_indices] = np.array(ei, dtype=ofs.dtype)
     return ofs

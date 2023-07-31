@@ -138,7 +138,7 @@ def test_multiple_noise_variables_extended():
                 net = Network(G, mon)
                 # We run it deterministically, but still we'd detect major errors (e.g.
                 # non-stochastic terms that are added twice, see #330
-                net.run(10 * ms, namespace={"noise_factor": 0})
+                net.run(10 * ms, namespace={"noise_factor": 0.0})
             assert_allclose(
                 mon.x[:],
                 no_noise_x,
@@ -267,7 +267,7 @@ def test_multiplicative_noise():
 
 
 def test_pure_noise_deterministic(fake_randn_randn_fixture):
-    sigma = 3
+    sigma = 3.0
     eqs = Equations("dx/dt = sigma*xi/sqrt(ms) : 1")
     dt = 0.1 * ms
     for method in ["euler", "heun", "milstein"]:

@@ -1381,7 +1381,7 @@ class Quantity(np.ndarray):
                     s += f" * {repr(u.dim)}"
                 else:
                     s += f" {str(u.dim)}"
-        elif python_code == True:  # Make a quantity without unit recognisable
+        elif python_code:  # Make a quantity without unit recognisable
             return f"{self.__class__.__name__}({s.strip()})"
         return s.strip()
 
@@ -1474,6 +1474,10 @@ class Quantity(np.ndarray):
         single integer or a tuple of integers) retain their unit.
         """
         return Quantity(np.ndarray.__getitem__(self, key), self.dim)
+
+    def item(self, *args):
+        """Overwritten to assure that the returned element retains its unit."""
+        return Quantity(np.ndarray.item(self, *args), self.dim)
 
     def __setitem__(self, key, value):
         fail_for_dimension_mismatch(self, value, "Inconsistent units in assignment")

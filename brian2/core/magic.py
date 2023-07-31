@@ -37,16 +37,16 @@ def _get_contained_objects(obj):
 
     Returns
     -------
-    l : list of `BrianObject`
+    objects : list of `BrianObject`
         A list of all the objects contained in `obj`
     """
-    l = []
+    objects = []
     contained_objects = getattr(obj, "contained_objects", [])
-    l.extend(contained_objects)
+    objects.extend(contained_objects)
     for contained_obj in contained_objects:
-        l.extend(_get_contained_objects(contained_obj))
+        objects.extend(_get_contained_objects(contained_obj))
 
-    return l
+    return objects
 
 
 def get_objects_in_namespace(level):
@@ -69,7 +69,7 @@ def get_objects_in_namespace(level):
     # Get the locals and globals from the stack frame
     objects = set()
     frame = inspect.stack()[level + 1][0]
-    for k, v in itertools.chain(frame.f_globals.items(), frame.f_locals.items()):
+    for _, v in itertools.chain(frame.f_globals.items(), frame.f_locals.items()):
         # We are only interested in numbers and functions, not in
         # everything else (classes, modules, etc.)
         if isinstance(v, BrianObject):

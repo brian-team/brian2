@@ -357,7 +357,7 @@ class EventMonitor(Group, CodeRunner):
                 "them."
             )
         indices = self.i[:]
-        sort_indices = np.argsort(indices)
+        sort_indices = np.argsort(indices, kind="mergesort")
         used_indices, first_pos = np.unique(self.i[:][sort_indices], return_index=True)
         all_values_dict = {}
         for varname in self.record_variables - {"i"}:

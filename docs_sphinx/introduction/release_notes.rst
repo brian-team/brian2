@@ -1,6 +1,127 @@
 Release notes
 =============
 
+Brian 2.5.4
+-----------
+Yet another minor release that fixes an issue with the documentation build. As a bonus, we now provide wheels built
+with the `musl <https://musl.libc.org/>`_ standard library, which allows installing Brian on distributions such as
+`Alpine Linux <https://alpinelinux.org/>`_.
+
+Selected bug fixes
+~~~~~~~~~~~~~~~~~~
+- Re-introduce the tutorials and example plots that were omitted from the documentation by accident. Thanks to Felix Kern for making us aware of the issue.
+
+Infrastructure improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Provide ``musllinux`` (see `PEP 656 <https://peps.python.org/pep-0656/>`_) wheels for distributions such as Alpine Linux (:issue:`1478`).
+
+Contributions
+~~~~~~~~~~~~~
+
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Felix Benjamin Kern (`@kernfel <https://github.com/kernfel>`_)
+
+Brian 2.5.3
+-----------
+This new minor release only fixes two infrastructure issues that came up with the previous release.
+
+Selected bug fixes
+~~~~~~~~~~~~~~~~~~
+- Re-introduce the reference documentation that was no longer created on https://brian2.readthedocs.org with the latest release (:issue:`1474`). Thanks to Michalis Pagkalos for making us aware of the issue.
+
+Infrastructure improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Brian's packaging infrastructure now switches to modern tools such as ``pyproject.toml`` for metadata declaration, ``build`` for source package creation, and ``setuptools_scm`` for versioning (:issue:`1475`). 
+
+
+Contributions
+~~~~~~~~~~~~~
+
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+
+
+Brian 2.5.2
+-----------
+This new minor release fixes incompatibility issues with the latest numpy release, and a number of other issues.
+To make it easier to contribute to Brian, we have now adopted a consistent code style and updated our infrastructure so
+that the style gets enforced for all new code contributions (see :ref:`code_style` for details). Following
+`NEP 29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_, this release supports Python 3.9 & numpy 1.21 and
+newer.
+
+New features
+~~~~~~~~~~~~
+- We now provide Python wheels for the ``linux-aarch64`` architecture (:issue:`1463`), making it easier to install Brian
+  on ARM-based systems running Linux (including recent Apple hardware).
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Fix compability with numpy 1.25 and avoid deprecation warnings (:issue:`1473`)
+- Add missing ``volume`` attribute to `~.SpatialNeuron` (:issue:`1430`). Thanks to Sebastian Schmitt for contributing this
+  fix.
+- Fix an issue with pickling `~.Quantity` objects (:issue:`1438`). Thanks to Shailesh Appukuttan for making us aware of
+  this issue.
+- No longer use the deprecated ``distutils`` package (:issue:`1442`).
+- Fix an issue with log files on Windows (:issue:`1454`). Thanks to discourse user
+  ``@NiKnight`` for making us aware of the issue.
+- Fix an issue that prevents building the documentation on recent Python versions (:issue:`1450`). Thanks to Étienne
+  Mollier for contributing this fix.
+- Fix an issue with the upcoming Cython version for GSL integration (:issue:`1471`).
+- Fix a broken error message (:issue:`1467`). Thanks to ``@pjsph`` for contributing the fix.
+- Fix an issue with user-provided header files (:issue:`1436`). Thanks to ``@wxie2013`` for reporting the issue.
+- Fix an issue when using `SpatialNeuron` with `TimedArray` on Cython (:issue:`1428`). Thanks to Sebastian Schmitt for
+  reporting the issue.
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- We now enforce a consistent code style for all new code contributions, and check/enforce the code style with tools
+  such as ``black``, ``isort``, ``flake8``, and ``pyupgrade`` (:issue:`1435`, :issue:`1444`, :issue:`1446`).
+  See :ref:`code_style` for details. Thanks to Oleksii Leonov for contributing this feature.
+- A number of new examples have been added: :doc:`../examples/frompapers.Tetzlaff_2015`, :doc:`../examples/frompapers.Nicola_Clopath_2017`
+  (contributed by Sebastian Schmitt) and :doc:`../examples/coupled_oscillators`.
+- The development container has been updated, and the repository now contains a file with all the places where
+  dependency versions are listed (:issue:`1451`, :issue:`1468`).
+
+Backwards incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Using `SpatialNeuron` with the ``numpy`` code generation target now requires the ``scipy`` package to be installed
+  (:issue:`1460`).
+
+Contributions
+~~~~~~~~~~~~~
+
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* Oleksii Leonov (`@oleksii-leonov <https://github.com/oleksii-leonov>`_)
+* Sebastian Schmitt (`@schmitts <https://github.com/schmitts>`_)
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* Shailesh Appukuttan (`@appukuttan-shailesh <https://github.com/appukuttan-shailesh>`_)
+* `@TheSquake <https://github.com/TheSquake>`_
+* `@tim-ufer <https://github.com/tim-ufer>`_
+* Akalanka (`@boneyag <https://github.com/boneyag>`_)
+* `@pjsph <https://github.com/pjsph>`_
+* `@Bitloader22 <https://github.com/Bitloader22>`_
+* `@MunozatABI <https://github.com/MunozatABI>`_
+* Étienne Mollier (`@emollier <https://github.com/emollier>`_)
+* `@KarimHabashy <https://github.com/KarimHabashy>`_
+* `@hunjunlee <https://github.com/hunjunlee>`_
+* Arash Golmohammadi (`@arashgmn <https://github.com/arashgmn>`_)
+* Steathy Spikes (`@steathy-spikes <https://github.com/steathy-spikes>`_)
+* Adam Willats (`@awillats <https://github.com/awillats>`_)
+
+Other contributions outside of github (ordered alphabetically, apologies to
+anyone we forgot...):
+* `@NiKnight <https://brian.discourse.group/u/niknight/summary>`_
+
 Brian 2.5.1
 -----------
 This new minor release contains a large number of bug fixes and improvements, in particular for the C++ standalone mode,
@@ -87,6 +208,7 @@ A new build to provide binary
 for Python 3.10.
 
 .. _brian2.5:
+
 Brian 2.5
 ---------
 This new major release contains a large number of bug fixes and improvements, as well as

@@ -41,9 +41,13 @@ class GSLContainer:
         method_options,
         integrator,
         abstract_code=None,
-        needed_variables=[],
-        variable_flags=[],
+        needed_variables=None,
+        variable_flags=None,
     ):
+        if needed_variables is None:
+            needed_variables = []
+        if variable_flags is None:
+            variable_flags = []
         self.method_options = method_options
         self.integrator = integrator
         self.abstract_code = abstract_code

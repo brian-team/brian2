@@ -500,8 +500,8 @@ def test_state_monitor_resize():
 @pytest.mark.standalone_compatible
 def test_state_monitor_synapses():
     # Check that recording from synapses works correctly
-    G = NeuronGroup(5, "")
-    S1 = Synapses(G, G, "w : 1")
+    G = NeuronGroup(5, "v : 1", threshold="False", reset="v = 0")
+    S1 = Synapses(G, G, "w : 1", on_pre="v_post += w")
     S1.run_regularly("w += 1")
     S1.connect(i=[0, 1], j=[2, 3])
     S1.w = "i"
@@ -514,7 +514,7 @@ def test_state_monitor_synapses():
     with pytest.raises(IndexError):
         StateMonitor(S1, "w", record=[0, 2])
 
-    S2 = Synapses(G, G, "w : 1")
+    S2 = Synapses(G, G, "w : 1", on_pre="v_post += w")
     S2.run_regularly("w += 1")
     S2.connect("i==j")  # Not yet executed for standalone mode
     S2.w = "i"

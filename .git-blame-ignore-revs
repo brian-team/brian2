@@ -5,10 +5,12 @@
 #
 
 # Unify string formatting and single versus double quotes
-d3ae59251c753ae0737d6ae6242b7e85b60908c4
+9e862585b6f1a2bf286be2484db47cebcd1c938f
 # Reformatting with black
 1e9ea598491444fe7c4ee9ece2ec94ad7c5020ec
 # Reformatting with isort
 67bf6d3760fa3fb8b3aa121b1b972d6cf36ec048
 # Update syntax to Python 3.8 with pyupgrade
 28b02c51545298cb9a76d8295e64a5df391b9207
+# Fix a number of issues flagged by flake8
+0344b005e6ffd232f55e69621630ef01876bc0fb

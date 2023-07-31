@@ -41,12 +41,14 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
    :target: https://aur.archlinux.org/packages/python-brian2
 
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5910837.svg
-   :target: https://doi.org/10.5281/zenodo.5910837
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.8099373.svg
+   :target: https://doi.org/10.5281/zenodo.8099373
 
-.. image:: https://archive.softwareheritage.org/badge/swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9/
-    :target: https://archive.softwareheritage.org/swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:06606ee7c757a47bc7dc168d0bfa8b0a5aecb620
+.. image:: https://archive.softwareheritage.org/badge/origin/https://github.com/brian-team/brian2/
+    :target: https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/brian-team/brian2
 
+.. image:: https://archive.softwareheritage.org/badge/swh:1:rel:e4d609023553bfbd62bf57960dd6f9d342a1d0e8/
+    :target: https://archive.softwareheritage.org/swh:1:rel:e4d609023553bfbd62bf57960dd6f9d342a1d0e8;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:becb452d988ab8ea1386d27f3ad4c2221ec0ae7b
 
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
         :target: CODE_OF_CONDUCT.md

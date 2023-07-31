@@ -36,14 +36,14 @@ def evaluate_expr(expr, ns):
 
     Returns either (value, True) if successful, or (expr, False) otherwise.
 
-    Example
-    -------
-    >>> assumptions = {'sin': DEFAULT_FUNCTIONS['sin'].pyfunc,
-    ...                'pi': DEFAULT_CONSTANTS['pi'].value}
+    Examples
+    --------
+    >>> assumptions = {'exp': DEFAULT_FUNCTIONS['exp'].pyfunc,
+    ...                'inf': DEFAULT_CONSTANTS['inf'].value}
     >>> evaluate_expr('1/2', assumptions)
     (0.5, True)
-    >>> evaluate_expr('sin(pi/2)', assumptions)
-    (1.0, True)
+    >>> evaluate_expr('exp(-inf)', assumptions)
+    (0.0, True)
     >>> evaluate_expr('sin(2*pi*freq*t)', assumptions)
     ('sin(2*pi*freq*t)', False)
     >>> evaluate_expr('1/0', assumptions)

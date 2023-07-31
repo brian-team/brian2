@@ -7,6 +7,7 @@ Instead edit the template:
     dev/tools/static_codegen/units_template.py
 """
 # fmt: off
+# flake8: noqa
 import itertools
 
 from .fundamentalunits import (Unit, get_or_create_dimension,

@@ -5,7 +5,7 @@ data in and out of groups in various formats (see `Group.get_states` and
 """
 
 import abc
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 
 
 class ImportExport(metaclass=abc.ABCMeta):

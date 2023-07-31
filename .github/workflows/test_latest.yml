@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-10.15]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
@@ -36,7 +36,7 @@ jobs:
         shell: bash -l {0}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 

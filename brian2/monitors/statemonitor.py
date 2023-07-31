@@ -301,7 +301,7 @@ class StateMonitor(Group, CodeRunner):
             self.variables.add_reference(
                 f"_source_{varname}", source, varname, index=index
             )
-            if not index in ("_idx", "0") and index not in variables:
+            if index not in ("_idx", "0") and index not in variables:
                 self.variables.add_reference(index, source)
             self.variables.add_dynamic_array(
                 varname,

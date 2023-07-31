@@ -11,6 +11,8 @@ explicit rather than abbreviated and consistent across Brian. See Romain's paper
 <http://briansimulator.org/WordPress/wp-content/uploads/2012/05/On-the-design-of-script-languages-for-neural-simulation.pdf>`__ 
 for a discussion.
 
+.. _code_style:
+
 Code style
 ~~~~~~~~~~
 

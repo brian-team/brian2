@@ -1,6 +1,6 @@
 """
     Automatically generate Brian's reference documentation.
-    
+
     Based on sphinx-apidoc, published under a BSD license: http://sphinx-doc.org/
 """
 
@@ -42,9 +42,7 @@ def write_file(name, text, destdir, suffix):
 
 def format_heading(level, text):
     """Create a heading of <level> [1, 2 or 3 supported]."""
-    underlining = ["=", "-", "~",][
-        level - 1
-    ] * len(text)
+    underlining = ["=", "-", "~"][level - 1] * len(text)
     return f"{text}\n{underlining}\n\n"
 
 
@@ -208,7 +206,7 @@ def recurse_tree(rootpath, exclude_dirs, exclude_files, destdir):
             [
                 f
                 for f in files
-                if (path.splitext(f)[1] == ".py" and not f in exclude_files)
+                if (path.splitext(f)[1] == ".py" and f not in exclude_files)
             ]
         )
         is_pkg = INITPY in py_files
@@ -280,4 +278,4 @@ def main(rootpath, exclude_dirs, exclude_files, destdir):
         os.makedirs(destdir)
 
     exclude_dirs = normalize_excludes(rootpath, exclude_dirs)
-    modules = recurse_tree(rootpath, exclude_dirs, exclude_files, destdir)
+    recurse_tree(rootpath, exclude_dirs, exclude_files, destdir)

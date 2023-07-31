@@ -159,11 +159,10 @@ class CythonCodeGenerator(CodeGenerator):
     def translate_to_statements(self, statements, conditional_write_vars):
         lines = []
         for stmt in statements:
-            if stmt.op == ":=" and not stmt.var in self.variables:
+            if stmt.op == ":=" and stmt.var not in self.variables:
                 self.temporary_vars.add((stmt.var, stmt.dtype))
             line = self.translate_statement(stmt)
             if stmt.var in conditional_write_vars:
-                subs = {}
                 condvar = conditional_write_vars[stmt.var]
                 lines.append(f"if {condvar}:")
                 lines.append(indent(line))

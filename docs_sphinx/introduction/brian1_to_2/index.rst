@@ -9,6 +9,7 @@ have any Brian 1 code to convert, go directly to the main
    :maxdepth: 1
    :titlesonly:
 
+   container
    neurongroup
    synapses
    inputs

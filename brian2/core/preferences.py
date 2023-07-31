@@ -159,7 +159,7 @@ class BrianGlobalPreferences(MutableMapping):
             deindent(
                 """
             from numpy import *
-            from brian2.units import *            
+            from brian2.units import *
             from brian2.units.stdunits import *
             """
             ),
@@ -236,11 +236,11 @@ class BrianGlobalPreferences(MutableMapping):
         if "pref_register" in self.__dict__ and name in self.pref_register:
             raise PreferenceError("Cannot delete a preference category.")
         else:
-            MutableMapping.__delattr__(self, name, value)
+            MutableMapping.__delattr__(self, name)
 
     toplevel_categories = property(
         fget=lambda self: [
-            category for category in self.pref_register if not "." in category
+            category for category in self.pref_register if "." not in category
         ],
         doc="The toplevel preference categories",
     )
@@ -303,7 +303,7 @@ class BrianGlobalPreferences(MutableMapping):
         """
 
         s = ""
-        if not basename in self.pref_register:
+        if basename not in self.pref_register:
             raise ValueError(
                 f"No preferences under the name '{basename}' are registered"
             )

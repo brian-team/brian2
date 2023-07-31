@@ -3,14 +3,15 @@ import pydoc
 import re
 import textwrap
 
-import sphinx
 from sphinx.pycode import ModuleAnalyzer
 
 from .docscrape import ClassDoc, FunctionDoc, NumpyDocString
 
 
 class SphinxDocString(NumpyDocString):
-    def __init__(self, docstring, config={}):
+    def __init__(self, docstring, config=None):
+        if config is None:
+            config = {}
         NumpyDocString.__init__(self, docstring, config=config)
 
     # string conversion routines
@@ -231,23 +232,31 @@ class SphinxDocString(NumpyDocString):
 
 
 class SphinxFunctionDoc(SphinxDocString, FunctionDoc):
-    def __init__(self, obj, doc=None, config={}):
+    def __init__(self, obj, doc=None, config=None):
+        if config is None:
+            config = {}
         FunctionDoc.__init__(self, obj, doc=doc, config=config)
 
 
 class SphinxClassDoc(SphinxDocString, ClassDoc):
-    def __init__(self, obj, doc=None, func_doc=None, name=None, config={}):
+    def __init__(self, obj, doc=None, func_doc=None, name=None, config=None):
+        if config is None:
+            config = {}
         self.name = name
         ClassDoc.__init__(self, obj, doc=doc, func_doc=None, config=config)
 
 
 class SphinxObjDoc(SphinxDocString):
-    def __init__(self, obj, doc=None, config={}):
+    def __init__(self, obj, doc=None, config=None):
+        if config is None:
+            config = {}
         self._f = obj
         SphinxDocString.__init__(self, doc, config=config)
 
 
-def get_doc_object(obj, what=None, doc=None, name=None, config={}):
+def get_doc_object(obj, what=None, doc=None, name=None, config=None):
+    if config is None:
+        config = {}
     if what is None:
         if inspect.isclass(obj):
             what = "class"

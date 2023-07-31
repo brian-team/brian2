@@ -1,3 +1,4 @@
+brian2/_version.py
 /dev/ideas/randomkit/CUBA
 /brian2/random/randomkit/randkit.c
 /dev/benchmarks/compare_to_brian1.png
@@ -26,9 +27,6 @@ output/
 # Test cache
 .pytest_cache
 
-# VS Code devcontainer metadata
-.devcontainer/frozen-requirements.txt
-
 # Eclipse project files and settings
 .project
 .pydevproject
@@ -41,9 +39,15 @@ output/
 # VisualStudio Code
 .vscode/
 
+# VS Code devcontainer metadata
+.devcontainer/frozen-requirements.txt
+
 # vim files
 *.swp
 .rope*
 
 # IPython
 .ipynb_checkpoints
+
+# System files
+.DS_Store

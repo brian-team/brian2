@@ -66,7 +66,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to delete the log and script file on exit.
-            
+
             If set to ``True`` (the default), log files (and the copy of the main
             script) will be deleted after the brian process has exited, unless an
             uncaught exception occurred. If set to ``False``, all log files will be
@@ -77,7 +77,7 @@ if "logging" not in prefs.pref_register:
             default="DEBUG",
             docs="""
             What log level to use for the log written to the log file.
-            
+
             In case file logging is activated (see `logging.file_log`), which log
             level should be used for logging. Has to be one of CRITICAL, ERROR,
             WARNING, INFO, DEBUG or DIAGNOSTIC.
@@ -88,7 +88,7 @@ if "logging" not in prefs.pref_register:
             default="INFO",
             docs="""
             What log level to use for the log written to the console.
-            
+
             Has to be one of CRITICAL, ERROR, WARNING, INFO, DEBUG or DIAGNOSTIC.
             """,
             validator=log_level_validator,
@@ -97,7 +97,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to log to a file or not.
-            
+
             If set to ``True`` (the default), logging information will be written
             to a file. The log level can be set via the `logging.file_log_level`
             preference.
@@ -122,7 +122,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to save a copy of the script that is run.
-            
+
             If set to ``True`` (the default), a copy of the currently run script
             is saved to a temporary location. It is deleted after a successful
             run (unless `logging.delete_log_on_exit` is ``False``) but is kept after
@@ -134,7 +134,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether or not to redirect stdout/stderr to null at certain places.
-            
+
             This silences a lot of annoying compiler output, but will also hide
             error messages making it harder to debug problems. You can always
             temporarily switch it off when debugging. If
@@ -147,7 +147,7 @@ if "logging" not in prefs.pref_register:
             default=True,
             docs="""
             Whether to redirect stdout/stderr to a file.
-    
+
             If both ``logging.std_redirection`` and this preference are set to
             ``True``, all standard output/error (most importantly output from
             the compiler) will be stored in files and if an error occurs the name
@@ -155,7 +155,7 @@ if "logging" not in prefs.pref_register:
             and this preference is ``False``, then all standard output/error will
             be completely suppressed, i.e. neither be displayed nor stored in a
             file.
-    
+
             The value of this preference is ignore if `logging.std_redirection` is
             set to ``False``.
             """,
@@ -165,7 +165,7 @@ if "logging" not in prefs.pref_register:
             docs="""
             Whether to display a text for uncaught errors, mentioning the location
             of the log file, the mailing list and the github issues.
-            
+
             Defaults to ``True``.""",
         ),
     )
@@ -311,6 +311,18 @@ class NameFilter:
         return self.name != record_name
 
 
+class RemoveBrian2Filter(logging.Filter):
+    """
+    A class for removing the ``brian2`` prefix from log messages.
+    Will be used for extension packages that use the Brian logging system.
+    """
+
+    def filter(self, record):
+        assert record.name.startswith("brian2."), record.name
+        record.name = record.name[7:]
+        return True
+
+
 class BrianLogger:
     """
     Convenience object for logging. Call `get_logger` to get an instance of
@@ -319,7 +331,16 @@ class BrianLogger:
     Parameters
     ----------
     name : str
-        The name used for logging, normally the name of the module.
+        The name used for logging, normally the name of the module. If the name
+        does not start with ``brian2.``, it will be prepended automatically when
+        interacting with the `logging` module. This means that from the logging's
+        system point of view, it will use the configuration for the logger in the
+        ``brian2`` hierachy. However, when displaying the name in the log messages,
+        the ``brian2.`` prefix will be removed. This is useful for extension
+        modules, which can use the Brian logging system, but will be displayed as
+        ``myextension`` instead of ``brian2.myextension``. This is also used in
+        Brian's test suite, which only considers log messages starting with
+        ``brian2``.
     """
 
     #: Class attribute to remember whether any exception occured
@@ -349,7 +370,12 @@ class BrianLogger:
     _pid = None
 
     def __init__(self, name):
-        self.name = name
+        if not name.startswith("brian2."):
+            self.name = "brian2." + name
+            self.filter_name = True
+        else:
+            self.name = name
+            self.filter_name = False
 
     def _log(self, log_level, msg, name_suffix, once):
         """
@@ -385,7 +411,12 @@ class BrianLogger:
                 BrianLogger._log_messages.add(log_tuple)
 
         the_logger = logging.getLogger(name)
+        if self.filter_name:
+            filter = RemoveBrian2Filter()
+            the_logger.addFilter(filter)
         the_logger.log(LOG_LEVELS[log_level], msg)
+        if self.filter_name:
+            the_logger.removeFilter(filter)
 
     def diagnostic(self, msg, name_suffix=None, once=False):
         """
@@ -592,6 +623,7 @@ class BrianLogger:
                     mode="a",
                     maxBytes=prefs["logging.file_log_max_size"],
                     backupCount=1,
+                    encoding="utf-8",
                 )
                 BrianLogger.file_handler.setLevel(
                     LOG_LEVELS[prefs["logging.file_log_level"].upper()]
@@ -710,7 +742,9 @@ class catch_logs:
     ----------
     log_level : int or str, optional
         The log level above which messages are caught.
-
+    only_from : list, optional
+        A list of module names from which messages are caught. Defaults to
+        the ``brian2`` module.
     Examples
     --------
     >>> logger = get_logger('brian2.logtest')
@@ -726,9 +760,9 @@ class catch_logs:
 
     _entered = False
 
-    def __init__(self, log_level=logging.WARN):
+    def __init__(self, log_level=logging.WARN, only_from=("brian2",)):
         self.log_list = []
-        self.handler = LogCapture(self.log_list, log_level)
+        self.handler = LogCapture(self.log_list, log_level, only_from=only_from)
         self._entered = False
 
     def __enter__(self):
@@ -750,42 +784,38 @@ class LogCapture(logging.Handler):
     way as with `warnings.catch_warnings`.
     """
 
-    captured_loggers = ["brian2", "py.warnings"]
-
-    def __init__(self, log_list, log_level=logging.WARN):
+    def __init__(self, log_list, log_level=logging.WARN, only_from=("brian2",)):
         logging.Handler.__init__(self, level=log_level)
         self.log_list = log_list
+        self.only_from = only_from
         # make a copy of the previous handlers
-        self.handlers = {}
-        for logger_name in LogCapture.captured_loggers:
-            self.handlers[logger_name] = list(logging.getLogger(logger_name).handlers)
+        self.handlers = list(logging.getLogger("brian2").handlers)
         self.install()
 
     def emit(self, record):
         # Append a tuple consisting of (level, name, msg) to the list of
         # warnings
-        self.log_list.append((record.levelname, record.name, record.msg))
+        if any(record.name.startswith(name) for name in self.only_from):
+            self.log_list.append((record.levelname, record.name, record.msg))
 
     def install(self):
         """
         Install this handler to catch all warnings. Temporarily disconnect all
         other handlers.
         """
-        for logger_name in LogCapture.captured_loggers:
-            the_logger = logging.getLogger(logger_name)
-            for handler in self.handlers[logger_name]:
-                the_logger.removeHandler(handler)
-            the_logger.addHandler(self)
+        the_logger = logging.getLogger("brian2")
+        for handler in self.handlers:
+            the_logger.removeHandler(handler)
+        the_logger.addHandler(self)
 
     def uninstall(self):
         """
         Uninstall this handler and re-connect the previously installed
         handlers.
         """
-        for logger_name in LogCapture.captured_loggers:
-            the_logger = logging.getLogger(logger_name)
-            for handler in self.handlers[logger_name]:
-                the_logger.addHandler(handler)
+        the_logger = logging.getLogger("brian2")
+        for handler in self.handlers:
+            the_logger.addHandler(handler)
 
 
 # See http://stackoverflow.com/questions/26126160/redirecting-standard-out-in-err-back-after-os-dup2

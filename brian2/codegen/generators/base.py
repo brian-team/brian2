@@ -120,7 +120,7 @@ class CodeGenerator:
         used for example by the `CPPCodeGenerator` to set up all the supporting
         code
         """
-        raise NotImplementedError
+        return {}
 
     def translate_one_statement_sequence(self, statements, scalar=False):
         raise NotImplementedError

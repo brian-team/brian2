@@ -1,32 +1,79 @@
+[project]
+name = "Brian2"
+authors = [
+    {name = 'Marcel Stimberg'},
+    {name = 'Dan Goodman'},
+    {name ='Romain Brette'}
+]
+requires-python = '>=3.9'
+dependencies = [
+    'numpy>=1.21',
+    'cython>=0.29',
+    'sympy>=1.2',
+    'pyparsing',
+    'jinja2>=2.7',
+    'py-cpuinfo;platform_system=="Windows"',
+    'setuptools>=61',
+    'packaging',
+]
+dynamic = ["version", "readme"]
+description = 'A clock-driven simulator for spiking neural networks'
+keywords = ['computational neuroscience', 'simulation', 'neural networks', 'spiking neurons', 'biological neural networks', 'research']
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: CEA CNRS Inria Logiciel Libre License, version 2.1 (CeCILL-2.1)',
+    'Natural Language :: English',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Topic :: Scientific/Engineering :: Bio-Informatics'
+]
+
+[project.optional-dependencies]
+test = ['pytest', 'pytest-xdist>=1.22.3']
+docs = ['sphinx>=1.8', 'ipython>=5', 'sphinx-tabs']
+
+[project.urls]
+Homepage = 'https://briansimulator.org'
+Documentation ='https://brian2.readthedocs.io/'
+Source = 'https://github.com/brian-team/brian2'
+Tracker = 'https://github.com/brian-team/brian2/issues'
+
+[tool.setuptools]
+zip-safe = false
+packages = ['brian2']
+
+[tool.setuptools.dynamic]
+readme = {file = 'README.rst', content-type = "text/x-rst"}
+
+[tool.setuptools_scm]
+version_scheme = 'post-release'
+local_scheme = 'no-local-version'
+write_to = 'brian2/_version.py'
+tag_regex = '^(?P<version>\d+(?:\.\d+){0,2}[^\+]*(?:\+.*)?)$'
+fallback_version = 'unknown'
+
 [build-system]
 requires = [
-    "setuptools>=42",
+    "setuptools>=61",
+    "numpy>=1.10",
     "wheel",
     "Cython",
     "oldest-supported-numpy",
-    "versioneer[toml]",
+    "setuptools_scm[toml]>=6.2"
 ]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
-target-version = ['py38']
+target-version = ['py39']
 include = '^/brian2/.*\.pyi?$'
-extend-exclude = '^/brian2/_version.py$'
 preview = true
 
 [tool.isort]
 atomic = true
 profile = "black"
-py_version = "38"
+py_version = "39"
 skip_gitignore = true
 # NOTE: isort has no "include" option, only "skip".
-extend_skip = ["brian2/_version.py"]
 skip_glob = ["dev/*", "docs_sphinx/*", "examples/*", "tutorials/*"]
-
-[tool.versioneer]
-VCS = 'git'
-style = 'pep440-pre'
-versionfile_source = 'brian2/_version.py'
-versionfile_build = 'brian2/_version.py'
-tag_prefix = ''
-parentdir_prefix = 'brian2-'
