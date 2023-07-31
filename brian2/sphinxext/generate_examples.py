@@ -41,13 +41,23 @@ def main(rootpath, destdir):
         shutil.os.makedirs(destdir)
 
     examplesfnames = [fname for fname in GlobDirectoryWalker(rootpath, "*.py")]
+    allowed_additional_file_extensions = [".rst", ".md", ".txt", ".mplstyle"]
     additional_files = [
         fname
-        for fname in GlobDirectoryWalker(rootpath, "*.[!py]*")
-        if not os.path.basename(fname) == ".gitignore"
+        for fname in GlobDirectoryWalker(rootpath, "*.*")
+        if os.path.splitext(fname)[1] in allowed_additional_file_extensions
+    ]
+
+    data_file_extensions = [".npy"]
+    data_files = [
+        fname
+        for fname in GlobDirectoryWalker(rootpath, "*.*")
+        if os.path.splitext(fname)[1] in data_file_extensions
     ]
 
     print(f"Documenting {len(examplesfnames)} examples")
+    print(f"Documenting {len(additional_files)} additional files")
+    print(f"Documenting {len(data_files)} data files")
 
     examplespaths = []
     examplesbasenames = []
@@ -166,15 +176,31 @@ def main(rootpath, destdir):
             relpath = ""
         full_name = relpath.replace("/", ".").replace("\\", ".") + "." + file + ".rst"
         category_additional_files[relpath].append((file, full_name))
-        with open(fname, encoding="utf-8") as f:
-            print(fname)
+        with open(fname, "rU", encoding="utf-8") as f:
             content = f.read()
         output = file + "\n" + "=" * len(file) + "\n\n"
-        output += ".. code:: none\n\n"
-        content_lines = ["\t" + line for line in content.split("\n")]
+        output += ".. code-block:: none\n\n"
+        content_lines = ["\t" + l for l in content.split("\n")]
         output += "\n".join(content_lines)
         output += "\n\n"
         with open(os.path.join(destdir, full_name), "w", encoding="utf-8") as f:
+            f.write(output)
+
+    category_data_files = defaultdict(list)
+    for fname in data_files:
+        path, file = os.path.split(fname)
+        relpath = os.path.relpath(path, rootpath)
+        if relpath == ".":
+            relpath = ""
+        full_name = relpath.replace("/", ".").replace("\\", ".") + "." + file + ".rst"
+        category_data_files[relpath].append((file, full_name))
+        output = file + "\n" + "=" * len(file) + "\n\n"
+        print(relpath)
+        output += (
+            "Download:"
+            f" :download:`{file} <{os.path.join('/../examples/', relpath, file)}>`\n\n"
+        )
+        with open(os.path.join(destdir, full_name), "w", "utf-8") as f:
             f.write(output)
 
     mainpage_text = "Examples\n"
@@ -190,6 +216,8 @@ def main(rootpath, destdir):
         for exname, basename in sorted(categories[category]):
             mainpage_text += f"   {basename} <{exname}>\n"
         for fname, full_name in sorted(category_additional_files[category]):
+            mainpage_text += f"   {fname} <{full_name}>\n"
+        for fname, full_name in sorted(category_data_files[category]):
             mainpage_text += f"   {fname} <{full_name}>\n"
         return mainpage_text
 
