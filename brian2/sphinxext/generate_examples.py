@@ -176,11 +176,11 @@ def main(rootpath, destdir):
             relpath = ""
         full_name = relpath.replace("/", ".").replace("\\", ".") + "." + file + ".rst"
         category_additional_files[relpath].append((file, full_name))
-        with open(fname, "rU", encoding="utf-8") as f:
+        with open(fname, encoding="utf-8") as f:
             content = f.read()
         output = file + "\n" + "=" * len(file) + "\n\n"
         output += ".. code-block:: none\n\n"
-        content_lines = ["\t" + l for l in content.split("\n")]
+        content_lines = ["\t" + line for line in content.split("\n")]
         output += "\n".join(content_lines)
         output += "\n\n"
         with open(os.path.join(destdir, full_name), "w", encoding="utf-8") as f:
