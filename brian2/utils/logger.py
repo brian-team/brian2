@@ -412,8 +412,11 @@ class BrianLogger:
 
         the_logger = logging.getLogger(name)
         if self.filter_name:
-            the_logger.addFilter(RemoveBrian2Filter())
+            filter = RemoveBrian2Filter()
+            the_logger.addFilter(filter)
         the_logger.log(LOG_LEVELS[log_level], msg)
+        if self.filter_name:
+            the_logger.removeFilter(filter)
 
     def diagnostic(self, msg, name_suffix=None, once=False):
         """
