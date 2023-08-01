@@ -6,7 +6,7 @@ Reproduction of Fig. 2 (b and c) of Spreizer et al. 2019 in Brian:
 
 Spreizer S, Aertsen A, Kumar A. From space to time: Spatial inhomogeneities lead to the emergence of spatiotemporal sequences in spiking neuronal networks. PLOS Computational Biology. 2019;15(10):e1007432. doi:10.1371/journal.pcbi.1007432
 
-- noise: For setting up the Perlin landscape with freshly generated noise. Otherwise,
+- Requires the ``noise`` package for setting up the Perlin landscape with freshly generated noise. Otherwise,
   the landscapes for different network sizes (scaled down by a factor of 1 to 5) can be
   loaded from the provided files.
 
@@ -36,7 +36,7 @@ def round_to_even(gs, scaler):
 # ---------------- CONFIGURATIONS ---------------- #
 
 # NETWORK TOPOLOGY
-SCALE_DOWN = 2  # For faster computation I recommend running with SCALE_DOWN 2 or 3
+SCALE_DOWN = 5  # For faster computation I recommend running with SCALE_DOWN 2 or 3
 GRID_SIZE = round_to_even(100, SCALE_DOWN)
 NCONN = round_to_even(1000, SCALE_DOWN**2)
 
@@ -70,15 +70,13 @@ EQ_NRN = """
     E = -70*mV       : volt (shared)
 """
 
-EQ_SYN = """
+EQ_SYN = f"""
     dg/dt = (-g+h) / tau_s : 1 (clock-driven)
     dh/dt = -h / tau_s     : 1 (clock-driven)
     I_syn_post = J*g  : amp  (summed)
-    J = -{}*10*pA           : amp (shared)
+    J = -{SCALE_DOWN}*10*pA           : amp (shared)
     tau_s = 5*ms           : second (shared)
-""".format(
-    SCALE_DOWN**2
-)
+"""
 
 ON_PRE = "h += exp(1)"  # to match NEST's normalization
 
@@ -127,10 +125,8 @@ def landscape(anisotropy="perlin"):
             phis = balance_landscape(phis)
             phis -= phis.min()
             phis *= 2 * np.pi / phis.max()
-
     elif anisotropy == "homog":
         phis = np.ones(GRID_SIZE**2) * PHI_H
-
     else:  # both random and symmetric have the same landscape
         phis = np.random.uniform(0, 2 * np.pi, size=GRID_SIZE**2)
 
@@ -156,8 +152,8 @@ def setup_net(phis):
         name="I",
         model=EQ_NRN,
         refractory=5 * ms,
-        threshold="v>{}*mV".format(THR / mV),
-        reset="v={}*mV".format(RESET / mV),
+        threshold=f"v>{THR / mV}*mV",
+        reset=f"v={RESET / mV}*mV",
         method="euler",
     )
     I.mu = MU
@@ -226,7 +222,7 @@ def simulate(phis, dur=3000 * ms):
     net.add(mon)
 
     warmup(net)
-    net.run(3000 * ms)
+    net.run(dur)
 
     return net, mon
 
@@ -255,14 +251,10 @@ def plot_firing_rate_disto(idxs, ts, ax, name):
 
 def plot_in_deg(in_deg, ax, ax_hist, name):
     """plots distribution as well as the heat map of in-degree from each neuron."""
-
-    syn = net["syn_II"]
-    in_deg = syn.N_incoming_post.reshape((GRID_SIZE, GRID_SIZE))
-
     # field map & distribution of in-degrees
     m = ax.pcolormesh(in_deg, shading="flat", vmin=0.5 * NCONN, vmax=1.5 * NCONN)
     ax_hist.hist(
-        syn.N_incoming_post,
+        in_deg.flatten(),
         bins=50,
         density=True,
         label=name,
@@ -298,7 +290,7 @@ def animator(fig, all_imgs, all_vals):
 
     return anim
 
-def plot_animations(all_idxs, all_ts, duration, fig, axs, cax, ss_dur=25, fps=10):
+def plot_animations(all_idxs, all_ts, duration, fig, axs, cax, ss_dur=25):
     """Plots neuronal activity as an animation"""
 
     ts_bins = np.arange(0, duration / ms + 1, ss_dur) * ms
@@ -329,7 +321,7 @@ fig, axs = plt.subplots(
 all_idxs, all_ts = [], []
 
 for idx, lscp in enumerate(["symmetric", "random", "perlin", "homog"]):
-    print("Simulating {} landscape.".format(lscp))
+    print(f"Simulating {lscp} landscape.")
 
     phis = landscape(lscp)
     net, mon = simulate(phis)
