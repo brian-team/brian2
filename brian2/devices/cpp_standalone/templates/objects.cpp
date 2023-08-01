@@ -10,7 +10,7 @@ set_variable_from_value<int32_t>(name, {{array_name}}, var_size, (int32_t)atoi(s
 {% elif c_data_type(var_dtype) == 'int64_t' %}
 set_variable_from_value<int64_t>(name, {{array_name}}, var_size, (int64_t)atol(s_value.c_str()));
 {% elif c_data_type(var_dtype) == 'char' %}
-set_variable_from_value<char>(name, {{array_name}}, var_size, (char)atoi(s_value.c_str()));
+set_variable_from_value(name, {{array_name}}, var_size, (char)atoi(s_value.c_str()));
 {% endif %}
 {%- endmacro %}
 
@@ -38,6 +38,13 @@ std::vector< rk_state* > _mersenne_twister_states;
 {% for net in networks | sort(attribute='name') %}
 Network {{net.name}};
 {% endfor %}
+
+void set_variable_from_value(std::string varname, char* var_pointer, size_t size, char value) {
+    #ifdef DEBUG
+    std::cout << "Setting '" << varname << "' to " << (value == 1 ? "True" : "False") << std::endl;
+    #endif
+    std::fill(var_pointer, var_pointer+size, value);
+}
 
 template<class T> void set_variable_from_value(std::string varname, T* var_pointer, size_t size, T value) {
     #ifdef DEBUG
