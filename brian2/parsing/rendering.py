@@ -90,14 +90,20 @@ class NodeRenderer:
     def render_func(self, node):
         return self.render_Name(node)
 
+    def render_NameConstant(self, node):
+        return str(node.value)
+
     def render_Name(self, node):
         return node.id
 
     def render_Num(self, node):
         return repr(get_node_value(node))
 
-    def render_Constant(self, node):
-        return self.render_Num(node)
+    def render_Constant(self, node):  # For literals in Python 3.8
+        if node.value is True or node.value is False or node.value is None:
+            return self.render_NameConstant(node)
+        else:
+            return self.render_Num(node)
 
     def render_Call(self, node):
         if len(node.keywords):
@@ -349,6 +355,9 @@ class CPPNodeRenderer(NodeRenderer):
             )
         else:
             return NodeRenderer.render_BinOp(self, node)
+
+    def render_NameConstant(self, node):
+        return {True: "true", False: "false"}.get(node.value, node.value)
 
     def render_Name(self, node):
         # Replace Python's True and False with their C++ bool equivalents
