@@ -173,7 +173,7 @@ class BrianASTRenderer:
         node.stateless = True
         return node
 
-    def render_Constant(self, node):  # For literals in Python 3.8
+    def render_Constant(self, node):  # For literals in Python >= 3.8
         if node.value is True or node.value is False or node.value is None:
             return self.render_NameConstant(node)
         else:

@@ -16,7 +16,14 @@ __all__ = [
 
 def get_node_value(node):
     """Helper function to mask differences between Python versions"""
-    value = getattr(node, "n", getattr(node, "value", None))
+    try:
+        value = node.value
+    except AttributeError:
+        try:
+            value = node.n
+        except AttributeError:
+            value = None
+
     if value is None:
         raise AttributeError(f'Node {node} has neither "n" nor "value" attribute')
     return value
@@ -83,20 +90,14 @@ class NodeRenderer:
     def render_func(self, node):
         return self.render_Name(node)
 
-    def render_NameConstant(self, node):
-        return str(node.value)
-
     def render_Name(self, node):
         return node.id
 
     def render_Num(self, node):
         return repr(get_node_value(node))
 
-    def render_Constant(self, node):  # For literals in Python 3.8
-        if node.value is True or node.value is False or node.value is None:
-            return self.render_NameConstant(node)
-        else:
-            return self.render_Num(node)
+    def render_Constant(self, node):
+        return self.render_Num(node)
 
     def render_Call(self, node):
         if len(node.keywords):
@@ -121,7 +122,7 @@ class NodeRenderer:
         Render an element with parentheses around it or leave them away for
         numbers, names and function calls.
         """
-        if node.__class__.__name__ in ["Name", "NameConstant"]:
+        if node.__class__.__name__ == "Name":
             return self.render_node(node)
         elif (
             node.__class__.__name__ in ["Num", "Constant"] and get_node_value(node) >= 0
@@ -271,17 +272,11 @@ class SympyNodeRenderer(NodeRenderer):
         else:
             return sympy.Symbol(node.id, real=True)
 
-    def render_NameConstant(self, node):
-        if node.value in [True, False]:
-            return node.value
-        else:
-            return str(node.value)
-
     def render_Num(self, node):
-        if isinstance(node.n, numbers.Integral):
-            return sympy.Integer(node.n)
+        if isinstance(get_node_value(node), numbers.Integral):
+            return sympy.Integer(get_node_value(node))
         else:
-            return sympy.Float(node.n)
+            return sympy.Float(get_node_value(node))
 
     def render_BinOp(self, node):
         op_name = node.op.__class__.__name__
@@ -354,10 +349,6 @@ class CPPNodeRenderer(NodeRenderer):
             )
         else:
             return NodeRenderer.render_BinOp(self, node)
-
-    def render_NameConstant(self, node):
-        # In Python 3.4, None, True and False go here
-        return {True: "true", False: "false"}.get(node.value, node.value)
 
     def render_Name(self, node):
         # Replace Python's True and False with their C++ bool equivalents

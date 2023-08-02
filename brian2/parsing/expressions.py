@@ -4,7 +4,7 @@ AST parsing based analysis of expressions
 import ast
 
 from brian2.core.functions import Function
-from brian2.parsing.rendering import NodeRenderer
+from brian2.parsing.rendering import NodeRenderer, get_node_value
 from brian2.units.fundamentalunits import (
     DIMENSIONLESS,
     DimensionMismatchError,
@@ -70,10 +70,7 @@ def is_boolean_expression(expr, variables):
             raise SyntaxError(
                 "Expression ought to be boolean but is not (e.g. 'x<y and 3')"
             )
-    elif expr.__class__ in [
-        getattr(ast, "NameConstant", None),
-        getattr(ast, "Constant", None),
-    ]:
+    elif expr.__class__ is ast.Constant:
         value = expr.value
         if value is True or value is False:
             return True
@@ -140,21 +137,8 @@ def _get_value_from_expression(expr, variables):
             return 1.0 if name == "True" else 0.0
         else:
             raise ValueError(f"Unknown identifier {name}")
-    elif expr.__class__ is getattr(ast, "NameConstant", None):
-        value = expr.value
-        if value is True or value is False:
-            return 1.0 if value else 0.0
-        else:
-            raise ValueError(f"Do not know how to deal with value {value}")
-    elif expr.__class__ is ast.Num or expr.__class__ is getattr(
-        ast, "Constant", None
-    ):  # Python 3.8
-        # In Python 3.8, boolean values are represented by Constant, not by
-        # NameConstant
-        if expr.n is True or expr.n is False:
-            return 1.0 if expr.n else 0.0
-        else:
-            return expr.n
+    elif expr.__class__ is ast.Constant:
+        return get_node_value(expr)
     elif expr.__class__ is ast.BoolOp:
         raise SyntaxError(
             "Cannot determine the numerical value for a boolean operation."
@@ -231,13 +215,6 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
         orig_expr = expr
         mod = ast.parse(expr, mode="eval")
         expr = mod.body
-    if expr.__class__ is getattr(ast, "NameConstant", None):
-        # new class for True, False, None in Python 3.4
-        value = expr.value
-        if value is True or value is False:
-            return DIMENSIONLESS
-        else:
-            raise ValueError(f"Do not know how to handle value {value}")
     if expr.__class__ is ast.Name:
         name = expr.id
         # Raise an error if a function is called as if it were a variable
@@ -253,9 +230,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
             return DIMENSIONLESS
         else:
             raise KeyError(f"Unknown identifier {name}")
-    elif expr.__class__ is ast.Num or expr.__class__ is getattr(
-        ast, "Constant", None
-    ):  # Python 3.8
+    elif expr.__class__ is ast.Constant:
         return DIMENSIONLESS
     elif expr.__class__ is ast.BoolOp:
         # check that the units are valid in each subexpression

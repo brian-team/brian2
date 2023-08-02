@@ -167,14 +167,14 @@ def _replace_with_zero(zero_node, node):
 
     Parameters
     ----------
-    zero_node : `ast.Num`
+    zero_node : `ast.Constant`
         The node to replace
     node : `ast.Node`
         The node that determines the type
 
     Returns
     -------
-    zero_node : `ast.Num`
+    zero_node : `ast.Constant`
         The original ``zero_node`` with its value replaced by 0 or 0.0.
     """
     # must not change the dtype of the output,
@@ -244,10 +244,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
             else:
                 val = prefs.core.default_float_dtype(val)
             if node.dtype != "boolean":
-                if hasattr(ast, "Constant"):
-                    newnode = ast.Constant(val)
-                else:
-                    newnode = ast.Num(val)
+                newnode = ast.Constant(val)
             newnode.dtype = node.dtype
             newnode.scalar = True
             newnode.stateless = node.stateless
@@ -588,10 +585,7 @@ def collect(node):
     # if the fully evaluated node is just the identity/null element then we
     # don't have to make it into an explicit term
     if x != op_null:
-        if hasattr(ast, "Constant"):
-            num_node = ast.Constant(x)
-        else:
-            num_node = ast.Num(x)
+        num_node = ast.Constant(x)
     else:
         num_node = None
     terms_primary = remaining_terms_primary
@@ -612,22 +606,16 @@ def collect(node):
         node = reduced_node([node, prod_primary], op_primary)
         if prod_inverted is not None:
             if node is None:
-                if hasattr(ast, "Constant"):
-                    node = ast.Constant(op_null_with_dtype)
-                else:
-                    node = ast.Num(op_null_with_dtype)
+                node = ast.Constant(op_null_with_dtype)
             node = ast.BinOp(node, op_inverted(), prod_inverted)
 
     if node is None:  # everything cancelled
-        if hasattr(ast, "Constant"):
-            node = ast.Constant(op_null_with_dtype)
-        else:
-            node = ast.Num(op_null_with_dtype)
+        node = ast.Constant(op_null_with_dtype)
     if (
         hasattr(node, "dtype")
         and dtype_hierarchy[node.dtype] < dtype_hierarchy[orignode_dtype]
     ):
-        node = ast.BinOp(ast.Num(op_null_with_dtype), op_primary(), node)
+        node = ast.BinOp(ast.Constant(op_null_with_dtype), op_primary(), node)
     node.collected = True
     return node
 
