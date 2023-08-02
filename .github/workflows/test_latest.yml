@@ -62,7 +62,7 @@ jobs:
           ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
           ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
-        run: ${{ steps.python.outputs.python-path }} -m pip install .
+        run: ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
         run: |
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
