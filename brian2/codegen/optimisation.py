@@ -17,7 +17,7 @@ from brian2.parsing.bast import (
     brian_dtype_from_dtype,
     dtype_hierarchy,
 )
-from brian2.parsing.rendering import NodeRenderer, get_node_value
+from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.stringtools import get_identifiers, word_substitute
 
 from .statements import Statement
@@ -271,7 +271,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
         if op.__class__.__name__ == "Mult":
             for operand, other in [(left, right), (right, left)]:
                 if operand.__class__.__name__ in ["Num", "Constant"]:
-                    op_value = get_node_value(operand)
+                    op_value = operand.value
                     if op_value == 0:
                         # Do not remove stateful functions
                         if node.stateless:
@@ -286,23 +286,20 @@ class ArithmeticSimplifier(BrianASTRenderer):
         # Handle division by 1, or 0/x
         elif op.__class__.__name__ == "Div":
             if (
-                left.__class__.__name__ in ["Num", "Constant"]
-                and get_node_value(left) == 0
+                left.__class__.__name__ in ["Num", "Constant"] and left.value == 0
             ):  # 0/x
                 if node.stateless:
                     # Do not remove stateful functions
                     return _replace_with_zero(left, node)
             if (
-                right.__class__.__name__ in ["Num", "Constant"]
-                and get_node_value(right) == 1
+                right.__class__.__name__ in ["Num", "Constant"] and right.value == 1
             ):  # x/1
                 # only simplify this if the type wouldn't be cast by the operation
                 if dtype_hierarchy[right.dtype] <= dtype_hierarchy[left.dtype]:
                     return left
         elif op.__class__.__name__ == "FloorDiv":
             if (
-                left.__class__.__name__ in ["Num", "Constant"]
-                and get_node_value(left) == 0
+                left.__class__.__name__ in ["Num", "Constant"] and left.value == 0
             ):  # 0//x
                 if node.stateless:
                     # Do not remove stateful functions
@@ -313,7 +310,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
             if (
                 left.dtype == right.dtype == "integer"
                 and right.__class__.__name__ in ["Num", "Constant"]
-                and get_node_value(right) == 1
+                and right.value == 1
             ):  # x//1
                 return left
         # Handle addition of 0
@@ -321,17 +318,14 @@ class ArithmeticSimplifier(BrianASTRenderer):
             for operand, other in [(left, right), (right, left)]:
                 if (
                     operand.__class__.__name__ in ["Num", "Constant"]
-                    and get_node_value(operand) == 0
+                    and operand.value == 0
                 ):
                     # only simplify this if the type wouldn't be cast by the operation
                     if dtype_hierarchy[operand.dtype] <= dtype_hierarchy[other.dtype]:
                         return other
         # Handle subtraction of 0
         elif op.__class__.__name__ == "Sub":
-            if (
-                right.__class__.__name__ in ["Num", "Constant"]
-                and get_node_value(right) == 0
-            ):
+            if right.__class__.__name__ in ["Num", "Constant"] and right.value == 0:
                 # only simplify this if the type wouldn't be cast by the operation
                 if dtype_hierarchy[right.dtype] <= dtype_hierarchy[left.dtype]:
                     return left
@@ -346,12 +340,10 @@ class ArithmeticSimplifier(BrianASTRenderer):
         ]:
             for subnode in [node.left, node.right]:
                 if subnode.__class__.__name__ in ["Num", "Constant"] and not (
-                    get_node_value(subnode) is True or get_node_value(subnode) is False
+                    subnode.value is True or subnode.value is False
                 ):
                     subnode.dtype = "float"
-                    subnode.value = prefs.core.default_float_dtype(
-                        get_node_value(subnode)
-                    )
+                    subnode.value = prefs.core.default_float_dtype(subnode.value)
         return node
 
 

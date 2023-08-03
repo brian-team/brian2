@@ -4,7 +4,7 @@ AST parsing based analysis of expressions
 import ast
 
 from brian2.core.functions import Function
-from brian2.parsing.rendering import NodeRenderer, get_node_value
+from brian2.parsing.rendering import NodeRenderer
 from brian2.units.fundamentalunits import (
     DIMENSIONLESS,
     DimensionMismatchError,
@@ -138,7 +138,7 @@ def _get_value_from_expression(expr, variables):
         else:
             raise ValueError(f"Unknown identifier {name}")
     elif expr.__class__ is ast.Constant:
-        return get_node_value(expr)
+        return expr.value
     elif expr.__class__ is ast.BoolOp:
         raise SyntaxError(
             "Cannot determine the numerical value for a boolean operation."

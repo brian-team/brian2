@@ -10,23 +10,7 @@ __all__ = [
     "NumpyNodeRenderer",
     "CPPNodeRenderer",
     "SympyNodeRenderer",
-    "get_node_value",
 ]
-
-
-def get_node_value(node):
-    """Helper function to mask differences between Python versions"""
-    try:
-        value = node.value
-    except AttributeError:
-        try:
-            value = node.n
-        except AttributeError:
-            value = None
-
-    if value is None:
-        raise AttributeError(f'Node {node} has neither "n" nor "value" attribute')
-    return value
 
 
 class NodeRenderer:
@@ -97,9 +81,9 @@ class NodeRenderer:
         return node.id
 
     def render_Num(self, node):
-        return repr(get_node_value(node))
+        return repr(node.value)
 
-    def render_Constant(self, node):  # For literals in Python 3.8
+    def render_Constant(self, node):
         if node.value is True or node.value is False or node.value is None:
             return self.render_NameConstant(node)
         else:
@@ -130,9 +114,7 @@ class NodeRenderer:
         """
         if node.__class__.__name__ == "Name":
             return self.render_node(node)
-        elif (
-            node.__class__.__name__ in ["Num", "Constant"] and get_node_value(node) >= 0
-        ):
+        elif node.__class__.__name__ in ["Num", "Constant"] and node.value >= 0:
             return self.render_node(node)
         elif node.__class__.__name__ == "Call":
             return self.render_node(node)
@@ -285,10 +267,10 @@ class SympyNodeRenderer(NodeRenderer):
             return str(node.value)
 
     def render_Num(self, node):
-        if isinstance(get_node_value(node), numbers.Integral):
-            return sympy.Integer(get_node_value(node))
+        if isinstance(node.value, numbers.Integral):
+            return sympy.Integer(node.value)
         else:
-            return sympy.Float(get_node_value(node))
+            return sympy.Float(node.value)
 
     def render_BinOp(self, node):
         op_name = node.op.__class__.__name__
