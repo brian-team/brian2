@@ -278,6 +278,12 @@ class SympyNodeRenderer(NodeRenderer):
         else:
             return sympy.Symbol(node.id, real=True)
 
+    def render_NameConstant(self, node):
+        if node.value in [True, False]:
+            return node.value
+        else:
+            return str(node.value)
+
     def render_Num(self, node):
         if isinstance(get_node_value(node), numbers.Integral):
             return sympy.Integer(get_node_value(node))
