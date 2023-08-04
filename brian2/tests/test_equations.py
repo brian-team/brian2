@@ -82,8 +82,8 @@ def test_utility_functions():
 
 @pytest.mark.codegen_independent
 def test_identifier_checks():
-    legal_identifiers = ["v", "Vm", "V", "x", "ge", "g_i", "a2", "gaba_123"]
-    illegal_identifiers = ["_v", "1v", "ü", "ge!", "v.x", "for", "else", "if"]
+    legal_identifiers = ["v", "Vm", "V", "x", "ge", "g_i", "a2", "gaba_123", "σ"]
+    illegal_identifiers = ["_v", "1v", "ge!", "v.x", "for", "else", "if"]
 
     for identifier in legal_identifiers:
         try:

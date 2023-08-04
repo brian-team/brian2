@@ -6,13 +6,14 @@ from pyparsing import (
     Regex,
     Suppress,
     Word,
-    alphas,
-    nums,
+    pyparsing_unicode,
 )
 
 from brian2.utils.caching import cached
 
-VARIABLE = Word(f"{alphas}_", f"{alphas + nums}_").setResultsName("variable")
+VARIABLE = Word(
+    pyparsing_unicode.alphas + "_", pyparsing_unicode.alphanums + "_"
+).setResultsName("variable")
 
 OP = Regex(r"(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=").setResultsName("operation")
 EXPR = Combine(

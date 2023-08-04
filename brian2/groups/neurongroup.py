@@ -3,12 +3,10 @@ This model defines the `NeuronGroup`, the core of most simulations.
 """
 
 import numbers
-import string
 from collections.abc import MutableMapping, Sequence
 
 import numpy as np
 import sympy
-from pyparsing import Word
 
 from brian2.codegen.translation import analyse_identifiers
 from brian2.core.preferences import prefs
@@ -21,6 +19,7 @@ from brian2.core.variables import (
 )
 from brian2.equations.equations import (
     DIFFERENTIAL_EQUATION,
+    IDENTIFIER,
     PARAMETER,
     SUBEXPRESSION,
     Equations,
@@ -49,11 +48,6 @@ from .subgroup import Subgroup
 __all__ = ["NeuronGroup"]
 
 logger = get_logger(__name__)
-
-
-IDENTIFIER = Word(
-    f"{string.ascii_letters}_", f"{string.ascii_letters + string.digits}_"
-).setResultsName("identifier")
 
 
 def _valid_event_name(event_name):

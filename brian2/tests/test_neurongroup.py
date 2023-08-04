@@ -7,6 +7,7 @@ from numpy.testing import assert_equal, assert_raises
 
 from brian2.core.base import BrianObjectException
 from brian2.core.clocks import defaultclock
+from brian2.core.functions import implementation
 from brian2.core.magic import run
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
@@ -19,7 +20,11 @@ from brian2.monitors.statemonitor import StateMonitor
 from brian2.synapses.synapses import Synapses
 from brian2.tests.utils import assert_allclose, exc_isinstance
 from brian2.units.allunits import second, volt
-from brian2.units.fundamentalunits import DimensionMismatchError, have_same_dimensions
+from brian2.units.fundamentalunits import (
+    DimensionMismatchError,
+    check_units,
+    have_same_dimensions,
+)
 from brian2.units.stdunits import Hz, ms, mV
 from brian2.units.unitsafefunctions import linspace
 from brian2.utils.logger import catch_logs
@@ -2217,6 +2222,41 @@ def test_semantics_mod():
     assert_allclose(G.y[:], float_values % 98)
 
 
+@pytest.mark.standalone_compatible
+def test_unicode_identifiers():
+    # Test support for unicode variable names, function names, and constants
+    τ = 10 * ms
+
+    @implementation(
+        "cpp",
+        """
+    double π_times(double x) {
+        return M_PI*x;
+    }
+    """,
+    )
+    @implementation(
+        "cython",
+        """
+    cdef double π_times(double x):
+        return M_PI*x
+    """,
+    )
+    @check_units(x=1 / second, result=1 / second)
+    def π_times(x):
+        return np.pi * x
+
+    eqs = """
+    dv/dt = -v / τ + π_times(σ) : 1
+    σ : 1/second"""
+    group = NeuronGroup(2, eqs)
+    group.σ = [1, 2] * Hz
+
+    run(5 * ms)
+    assert_allclose(group.v, [0.012361203888596196, 0.024722407777192392])
+    assert_equal(group.σ, [1, 2] * Hz)
+
+
 if __name__ == "__main__":
     test_set_states()
     test_creation()
@@ -2292,3 +2332,4 @@ if __name__ == "__main__":
     test_semantics_floor_division()
     test_semantics_floating_point_division()
     test_semantics_mod()
+    test_unicode_identifiers()
