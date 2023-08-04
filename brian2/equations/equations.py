@@ -20,6 +20,7 @@ from pyparsing import (
     Suppress,
     Word,
     ZeroOrMore,
+    pyparsing_unicode,
     restOfLine,
 )
 
@@ -73,7 +74,7 @@ BOOLEAN = "boolean"
 # Note that the check_identifiers function later performs more checks, e.g.
 # names starting with underscore should only be used internally
 IDENTIFIER = Word(
-    string.ascii_letters + "_", string.ascii_letters + string.digits + "_"
+    pyparsing_unicode.alphas + "_", pyparsing_unicode.alphanums + "_"
 ).setResultsName("identifier")
 
 # very broad definition here, expression will be analysed by sympy anyway
@@ -139,10 +140,9 @@ def check_identifier_basic(identifier):
     Check an identifier (usually resulting from an equation string provided by
     the user) for conformity with the rules. The rules are:
 
-        1. Only ASCII characters
-        2. Starts with a character, then mix of alphanumerical characters and
+        1. Starts with a character, then mix of alphanumerical characters and
            underscore
-        3. Is not a reserved keyword of Python
+        2. Is not a reserved keyword of Python
 
     Parameters
     ----------

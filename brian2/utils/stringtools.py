@@ -3,7 +3,6 @@ A collection of tools for string formatting tasks.
 """
 
 import re
-import string
 
 __all__ = [
     "indent",
@@ -17,6 +16,8 @@ __all__ = [
     "code_representation",
     "SpellChecker",
 ]
+
+from pyparsing import pyparsing_unicode
 
 
 def indent(text, numtabs=1, spacespertab=4, tab=None):
@@ -164,7 +165,7 @@ def get_identifiers(expr, include_numbers=False):
     """
     Return all the identifiers in a given string ``expr``, that is everything
     that matches a programming language variable like expression, which is
-    here implemented as the regexp ``\\b[A-Za-z_][A-Za-z0-9_]*\\b``.
+    here implemented as the regexp ``\b([^\\W\\d]|_)\\w*\b``.
 
     Parameters
     ----------
@@ -180,15 +181,15 @@ def get_identifiers(expr, include_numbers=False):
 
     Examples
     --------
-    >>> expr = '3-a*_b+c5+8+f(A - .3e-10, tau_2)*17'
+    >>> expr = '3-a*_b+c5+8+f(A - .3e-10, tau_2, σ)*17'
     >>> ids = get_identifiers(expr)
     >>> print(sorted(list(ids)))
-    ['A', '_b', 'a', 'c5', 'f', 'tau_2']
+    ['A', '_b', 'a', 'c5', 'f', 'tau_2', 'σ']
     >>> ids = get_identifiers(expr, include_numbers=True)
     >>> print(sorted(list(ids)))
-    ['.3e-10', '17', '3', '8', 'A', '_b', 'a', 'c5', 'f', 'tau_2']
+    ['.3e-10', '17', '3', '8', 'A', '_b', 'a', 'c5', 'f', 'tau_2', 'σ']
     """
-    identifiers = set(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", expr))
+    identifiers = set(re.findall(r"\b(?:[^\W\d]|_)\w*\b", expr))
     if include_numbers:
         # only the number, not a + or -
         numbers = set(
@@ -286,10 +287,10 @@ class SpellChecker:
         The known words
     alphabet : iterable of str, optional
         The allowed characters. Defaults to the characters allowed for
-        identifiers, i.e. ascii characters, digits and the underscore.
+        identifiers, i.e. characters, digits and the underscore.
     """
 
-    def __init__(self, words, alphabet=f"{string.ascii_lowercase + string.digits}_"):
+    def __init__(self, words, alphabet=f"{pyparsing_unicode.alphanums}_"):
         self.words = words
         self.alphabet = alphabet
 
