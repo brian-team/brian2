@@ -822,7 +822,7 @@ class NeuronGroup(Group, SpikeSource):
             if value.index is not None:
                 try:
                     index_array = np.asarray(value.index)
-                    if not np.issubsctype(index_array.dtype, int):
+                    if not np.issubdtype(index_array.dtype, int):
                         raise TypeError()
                 except TypeError:
                     raise TypeError(

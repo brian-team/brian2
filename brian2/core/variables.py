@@ -58,7 +58,7 @@ def get_dtype(obj):
     if hasattr(obj, "dtype"):
         return obj.dtype
     else:
-        return np.obj2sctype(type(obj))
+        return np.dtype(type(obj))
 
 
 def get_dtype_str(val):
@@ -353,11 +353,11 @@ class Constant(Variable):
         # Use standard Python types if possible for numpy scalars
         if getattr(value, "shape", None) == () and hasattr(value, "dtype"):
             numpy_type = value.dtype
-            if np.can_cast(numpy_type, np.int_):
+            if np.can_cast(numpy_type, int):
                 value = int(value)
-            elif np.can_cast(numpy_type, np.float_):
+            elif np.can_cast(numpy_type, float):
                 value = float(value)
-            elif np.can_cast(numpy_type, np.complex_):
+            elif np.can_cast(numpy_type, complex):
                 value = complex(value)
             elif value is np.True_:
                 value = True
