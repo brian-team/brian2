@@ -65,8 +65,8 @@ jobs:
         run: ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
         run: |
-          cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
-          ${{ steps.python.outputs.python-path }} -Wd $GITHUB_WORKSPACE/dev/continuous-integration/run_test_suite.py
+          cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import
+          ${{ steps.python.outputs.python-path }} -Wd ${{ github.workspace }}/dev/continuous-integration/run_test_suite.py
         env:
           DEPRECATION_ERROR: true
           AGENT_OS: ${{runner.os}}
