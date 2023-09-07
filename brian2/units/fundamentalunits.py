@@ -23,7 +23,12 @@ from typing import Callable
 from warnings import warn
 
 import numpy as np
-from numpy import VisibleDeprecationWarning
+
+try:
+    from numpy.exceptions import VisibleDeprecationWarning  # numpy 2.x
+except ImportError:
+    from numpy import VisibleDeprecationWarning  # numpy 1.x
+
 from sympy import latex
 
 __all__ = [
