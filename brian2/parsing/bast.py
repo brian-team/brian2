@@ -8,7 +8,6 @@ import weakref
 
 import numpy
 
-from brian2.parsing.rendering import get_node_value
 from brian2.utils.logger import get_logger
 
 __all__ = ["brian_ast", "BrianASTRenderer", "dtype_hierarchy"]
@@ -168,12 +167,12 @@ class BrianASTRenderer:
 
     def render_Num(self, node):
         node.complexity = 0
-        node.dtype = brian_dtype_from_value(get_node_value(node))
+        node.dtype = brian_dtype_from_value(node.value)
         node.scalar = True
         node.stateless = True
         return node
 
-    def render_Constant(self, node):  # For literals in Python 3.8
+    def render_Constant(self, node):  # For literals in Python >= 3.8
         if node.value is True or node.value is False or node.value is None:
             return self.render_NameConstant(node)
         else:
