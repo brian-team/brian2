@@ -325,7 +325,9 @@ class GSLCodeGenerator:
         set_dimension_code : str
             The code describing the target language function in a single string
         """
-        code = ["\n{start_declare}int set_dimension(size_t * dimension){open_function}"]
+        code = [
+            "\n{start_func_declare}int set_dimension(size_t * dimension){open_function}"
+        ]
         code += ["\tdimension[0] = %d{end_statement}" % diff_num]
         code += ["\treturn GSL_SUCCESS{end_statement}{end_function}"]
         return ("\n").join(code).format(**self.syntax)
@@ -352,11 +354,11 @@ class GSLCodeGenerator:
             ``_empty_y_vector``) as single string.
         """
         fill_y = [
-            "\n{start_declare}int _fill_y_vector(_dataholder *"
+            "\n{start_func_declare}int _fill_y_vector(_dataholder *"
             "_GSL_dataholder, double * _GSL_y, int _idx){open_function}"
         ]
         empty_y = [
-            "\n{start_declare}int _empty_y_vector(_dataholder * "
+            "\n{start_func_declare}int _empty_y_vector(_dataholder * "
             "_GSL_dataholder, double * _GSL_y, int _idx){"
             "open_function}"
         ]
@@ -397,11 +399,11 @@ class GSLCodeGenerator:
             code describing ``_GSL_func`` that is sent to GSL integrator.
         """
         code = [
-            "\n{start_declare}int _GSL_func(double t, const double "
+            "\n{start_func_declare}int _GSL_func(double t, const double "
             "_GSL_y[], double f[], void * params){open_function}"
-            "\n\t{start_declare}_dataholder * _GSL_dataholder = {open_cast}"
+            "\n\t{start_var_declare}_dataholder * _GSL_dataholder = {open_cast}"
             "_dataholder *{close_cast} params{end_statement}"
-            "\n\t{start_declare}int _idx = _GSL_dataholder{access_pointer}_idx"
+            "\n\t{start_var_declare}int _idx = _GSL_dataholder{access_pointer}_idx"
             "{end_statement}"
         ]
         code += [lines]
@@ -449,7 +451,7 @@ class GSLCodeGenerator:
         code : str
             code for _dataholder struct
         """
-        code = ["\n{start_declare}struct _dataholder{open_struct}"]
+        code = ["\n{start_var_declare}struct _dataholder{open_struct}"]
         code += ["\tint _idx{end_statement}"]
         for var, var_obj in list(variables_in_vector.items()):
             if (
@@ -1053,7 +1055,8 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
     syntax = {
         "end_statement": "",
         "access_pointer": ".",
-        "start_declare": "cdef extern ",
+        "start_func_declare": "cdef extern ",
+        "start_var_declare": "cdef ",
         "open_function": ":",
         "open_struct": ":",
         "end_function": "",
@@ -1113,7 +1116,8 @@ class GSLCPPCodeGenerator(GSLCodeGenerator):
     syntax = {
         "end_statement": ";",
         "access_pointer": "->",
-        "start_declare": 'extern "C" ',
+        "start_func_declare": 'extern "C" ',
+        "start_var_declare": "",
         "open_function": "\n{",
         "open_struct": "\n{",
         "end_function": "\n}",
