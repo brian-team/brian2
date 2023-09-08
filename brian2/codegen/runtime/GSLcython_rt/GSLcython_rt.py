@@ -3,6 +3,8 @@ Module containing the Cython CodeObject for code generation for integration usin
 GNU Scientific Library (GSL)
 """
 
+import os
+import subprocess
 import sys
 from distutils.errors import CompileError
 
@@ -47,6 +49,15 @@ class GSLCythonCodeObject(CythonCodeObject):
             self.define_macros += [("WIN32", "1"), ("GSL_DLL", "1")]
         if prefs.GSL.directory is not None:
             self.include_dirs += [prefs.GSL.directory]
+        else:
+            try:
+                p = subprocess.run(
+                    "gsl-config --prefix", shell=True, capture_output=True, check=True
+                )
+                output = p.stdout.decode("utf-8").strip()
+                self.include_dirs += [os.path.join(output, "include")]
+            except subprocess.CalledProcessError:
+                pass  # ignore
         try:
             super().compile()
         except CompileError as err:

@@ -2,7 +2,8 @@
 Module containg the StateUpdateMethod for integration using the ODE solver
 provided in the GNU Scientific Library (GSL)
 """
-
+import os
+import subprocess
 import sys
 
 from brian2.utils.logger import get_logger
@@ -105,6 +106,17 @@ class GSLContainer:
                     device.define_macros += [("WIN32", "1"), ("GSL_DLL", "1")]
                 if prefs.GSL.directory is not None:
                     device.include_dirs += [prefs.GSL.directory]
+                try:
+                    p = subprocess.run(
+                        "gsl-config --prefix",
+                        shell=True,
+                        capture_output=True,
+                        check=True,
+                    )
+                    output = p.stdout.decode("utf-8").strip()
+                    device.include_dirs += [os.path.join(output, "include")]
+                except subprocess.CalledProcessError:
+                    pass  # ignore
             return GSLCPPStandaloneCodeObject
 
         elif isinstance(device, RuntimeDevice):
