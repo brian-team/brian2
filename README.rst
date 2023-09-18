@@ -78,13 +78,13 @@ Dependencies
 ------------
 The following packages need to be installed to use Brian 2 (cf. `setup.py <setup.py>`_):
 
-* Python >= 3.7
-* NumPy >=1.17
+* Python >= 3.9
+* NumPy >=1.21
 * SymPy >= 1.2
-* Cython >= 0.29
+* Cython >= 0.29.21
 * PyParsing
 * Jinja2 >= 2.7
-* setuptools >= 24.2
+* setuptools >= 61
 * py-cpuinfo (only required on Windows)
 
 For full functionality, you might also want to install:
