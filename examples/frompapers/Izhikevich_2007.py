@@ -52,7 +52,7 @@ input_times = array([ 500,  550, 1000, 1010, 1500, 1510,
                      3500, 3550, 4000, 4010, 4500, 4510])*ms
 spike_input = SpikeGeneratorGroup(2, input_indices, input_times)
 
-neurons = NeuronGroup(2, '''dv/dt = (ge * (Ee-vr) + El - v) / taum : volt
+neurons = NeuronGroup(2, '''dv/dt = (ge * (Ee-v) + El - v) / taum : volt
                             dge/dt = -ge / taue : 1''',
                       threshold='v>vt', reset='v = vr',
                       method='exact')
