@@ -55,7 +55,7 @@ spike_input = SpikeGeneratorGroup(2, input_indices, input_times)
 neurons = NeuronGroup(2, '''dv/dt = (ge * (Ee-v) + El - v) / taum : volt
                             dge/dt = -ge / taue : 1''',
                       threshold='v>vt', reset='v = vr',
-                      method='exact')
+                      method='euler')
 neurons.v = vr
 neurons_monitor = SpikeMonitor(neurons)
 
