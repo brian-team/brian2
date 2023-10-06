@@ -1,6 +1,7 @@
 """
 Brian 2
 """
+import logging
 
 
 def _check_dependencies():
@@ -41,28 +42,40 @@ try:
     from pylab import *
 except ImportError:
     # Do the non-matplotlib pylab imports manually
-    from numpy import *
-    from numpy.fft import *
-    from numpy.random import *
-    from numpy.linalg import *
-    import numpy.ma as ma
-
     # don't let numpy's datetime hide stdlib
     import datetime
 
-from ._version import get_versions as _get_versions
-
-__version__ = _get_versions()["version"]
-__release_date__ = _get_versions()["date"]
-
-if __release_date__ is not None:
-    __release_date__ = __release_date__[:10]  # only use date part
-__git_revision__ = _get_versions()["full-revisionid"]
+    import numpy.ma as ma
+    from numpy import *
+    from numpy.fft import *
+    from numpy.linalg import *
+    from numpy.random import *
 
 # Make sure that Brian's unit-aware functions are used, even when directly
 # using names prefixed with numpy or np
 import brian2.numpy_ as numpy
 import brian2.numpy_ as np
+
+try:
+    from ._version import __version__, __version_tuple__
+except ImportError:
+    try:
+        from setuptools_scm import get_version
+
+        __version__ = get_version(
+            root="..",
+            relative_to=__file__,
+            version_scheme="post-release",
+            local_scheme="no-local-version",
+        )
+        __version_tuple__ = tuple(int(x) for x in __version__.split(".")[:3])
+    except ImportError:
+        logging.getLogger("brian2").warn(
+            "Cannot determine Brian version, running from source and "
+            "setuptools_scm is not installed."
+        )
+        __version__ = "unknown"
+        __version_tuple__ = (0, 0, 0)
 
 # delete some annoying names from the namespace
 if "x" in globals():
@@ -211,11 +224,3 @@ def _check_caches():
 
 
 _check_caches()
-
-from . import _version
-
-__version__ = _version.get_versions()["version"]
-
-from . import _version
-
-__version__ = _version.get_versions()["version"]

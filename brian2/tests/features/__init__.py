@@ -5,6 +5,6 @@ __all__ = [
     "Configuration",
     "run_feature_tests",
 ]
-
-from . import input, monitors, neurongroup, speed, synapses
+# isort: skip_file # We need to do the base import first to prevent a circular import later
 from .base import *
+from . import input, monitors, neurongroup, speed, synapses

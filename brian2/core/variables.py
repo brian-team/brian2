@@ -58,7 +58,7 @@ def get_dtype(obj):
     if hasattr(obj, "dtype"):
         return obj.dtype
     else:
-        return np.obj2sctype(type(obj))
+        return np.dtype(type(obj))
 
 
 def get_dtype_str(val):
@@ -183,6 +183,15 @@ class Variable(CacheKey):
 
         #: Whether the variable is an array
         self.array = array
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["owner"] = state["owner"].__repr__.__self__  # replace proxy
+        return state
+
+    def __setstate__(self, state):
+        state["owner"] = weakproxy_with_fallback(state["owner"])
+        self.__dict__ = state
 
     @property
     def is_boolean(self):
@@ -344,11 +353,11 @@ class Constant(Variable):
         # Use standard Python types if possible for numpy scalars
         if getattr(value, "shape", None) == () and hasattr(value, "dtype"):
             numpy_type = value.dtype
-            if np.can_cast(numpy_type, np.int_):
+            if np.can_cast(numpy_type, int):
                 value = int(value)
-            elif np.can_cast(numpy_type, np.float_):
+            elif np.can_cast(numpy_type, float):
                 value = float(value)
-            elif np.can_cast(numpy_type, np.complex_):
+            elif np.can_cast(numpy_type, complex):
                 value = complex(value)
             elif value is np.True_:
                 value = True
@@ -1561,18 +1570,24 @@ class VariableView:
 
         return f"<{self.group_name}.{varname}: {values}>"
 
+    def __hash__(self):
+        return hash((self.group_name, self.name))
+
     # Get access to some basic properties of the underlying array
     @property
     def shape(self):
-        return self.get_item(slice(None), level=1).shape
+        if self.ndim == 1:
+            return (self.variable.size,)
+        else:
+            return self.variable.size
 
     @property
     def ndim(self):
-        return self.get_item(slice(None), level=1).ndim
+        return getattr(self.variable, "ndim", 1)
 
     @property
     def dtype(self):
-        return self.get_item(slice(None), level=1).dtype
+        return self.variable.dtype
 
 
 class Variables(Mapping):
@@ -1606,6 +1621,15 @@ class Variables(Mapping):
         self.indices = collections.defaultdict(functools.partial(str, default_index))
         # Note that by using functools.partial (instead of e.g. a lambda
         # function) above, this object remains pickable.
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["owner"] = state["owner"].__repr__.__self__
+        return state
+
+    def __setstate__(self, state):
+        state["owner"] = weakproxy_with_fallback(state["owner"])
+        self.__dict__ = state
 
     def __getitem__(self, item):
         return self._variables[item]

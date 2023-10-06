@@ -358,7 +358,7 @@ class TimedArray(Function, Nameable, CacheKey):
                 "dt of the TimedArray is not an integer multiple of "
                 "the group's dt, the TimedArray's return value can "
                 "therefore not be considered constant over one "
-                "timestep, making linear integration impossible.",
+                "timestep, making exact integration impossible.",
                 once=True,
             )
             return False

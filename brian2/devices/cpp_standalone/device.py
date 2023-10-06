@@ -12,7 +12,9 @@ import tempfile
 import time
 import zlib
 from collections import Counter, defaultdict
+from collections.abc import Mapping
 from distutils import ccompiler
+from hashlib import md5
 
 import numpy as np
 
@@ -34,10 +36,12 @@ from brian2.core.variables import (
 )
 from brian2.devices.device import Device, all_devices, reset_device, set_device
 from brian2.groups.group import Group
+from brian2.input import TimedArray
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
 from brian2.units import second
-from brian2.units.fundamentalunits import Quantity
+from brian2.units.fundamentalunits import Quantity, fail_for_dimension_mismatch
+from brian2.utils.filelock import FileLock
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.logger import get_logger, std_silent
 from brian2.utils.stringtools import word_substitute
@@ -169,6 +173,9 @@ class CPPStandaloneDevice(Device):
         #: Whether the simulation has been run
         self.has_been_run = False
 
+        #: Whether apply_run_args has been called
+        self.run_args_applied = False
+
         #: Whether a run should trigger a build
         self.build_on_run = False
 
@@ -177,6 +184,9 @@ class CPPStandaloneDevice(Device):
 
         #: The directory which contains the generated code and results
         self.project_dir = None
+
+        #: The directory which contains the results (relative to `project_dir``)
+        self.results_dir = None
 
         #: Whether to generate profiling information (stored in an instance
         #: variable to be accessible during CodeObject generation)
@@ -188,6 +198,9 @@ class CPPStandaloneDevice(Device):
 
         #: Dict of all static saved arrays
         self.static_arrays = {}
+
+        #: Dict of all TimedArray objects
+        self.timed_arrays = {}
 
         self.code_objects = {}
         self.main_queue = []
@@ -291,6 +304,14 @@ class CPPStandaloneDevice(Device):
         else:
             logger.warn(f"Ignoring device code, unknown slot: {slot}, code: {code}")
 
+    def apply_run_args(self):
+        if self.run_args_applied:
+            raise RuntimeError(
+                "The 'apply_run_args()' function can only be called once."
+            )
+        self.insert_code("main", "set_from_command_line(args);")
+        self.run_args_applied = True
+
     def static_array(self, name, arr):
         arr = np.atleast_1d(arr)
         assert len(arr), f"length for {name}: {len(arr)}"
@@ -326,7 +347,7 @@ class CPPStandaloneDevice(Device):
         else:
             raise TypeError(f"Do not have a name for variable of type {type(var)}.")
 
-    def get_array_filename(self, var, basedir="results"):
+    def get_array_filename(self, var, basedir=None):
         """
         Return a file name for a variable.
 
@@ -336,23 +357,24 @@ class CPPStandaloneDevice(Device):
             The variable to get a filename for.
         basedir : str
             The base directory for the filename, defaults to ``'results'``.
+            DEPRECATED: Will raise an error if specified.
         Returns
         -------
         filename : str
             A filename of the form
-            ``'results/'+varname+'_'+str(zlib.crc32(varname))``, where varname
+            ``varname+'_'+str(zlib.crc32(varname))``, where varname
             is the name returned by `get_array_name`.
 
         Notes
         -----
-        The reason that the filename is not simply ``'results/' + varname`` is
+        The reason that the filename is not simply ``varname`` is
         that this could lead to file names that are not unique in file systems
         that are not case sensitive (e.g. on Windows).
         """
+        if basedir is not None:
+            raise ValueError("Specifying 'basedir' is no longer supported.")
         varname = self.get_array_name(var, access_data=False)
-        return os.path.join(
-            basedir, f"{varname}_{str(zlib.crc32(varname.encode('utf-8')))}"
-        )
+        return f"{varname}_{str(zlib.crc32(varname.encode('utf-8')))}"
 
     def add_array(self, var):
         # Note that a dynamic array variable is added to both the arrays and
@@ -541,7 +563,7 @@ class CPPStandaloneDevice(Device):
             # disk
             if self.has_been_run:
                 dtype = var.dtype
-                fname = os.path.join(self.project_dir, self.get_array_filename(var))
+                fname = os.path.join(self.results_dir, self.get_array_filename(var))
                 with open(fname, "rb") as f:
                     data = np.fromfile(f, dtype=dtype)
                 if (
@@ -733,6 +755,9 @@ class CPPStandaloneDevice(Device):
         if self.enable_profiling:
             self.profiled_codeobjects.append(codeobj.name)
 
+        for var in codeobj.variables.values():
+            if isinstance(var, TimedArray):
+                self.timed_arrays[var] = var.name
         # We mark all writeable (i.e. not read-only) variables used by the code
         # as "dirty" to avoid that the cache contains incorrect values. This
         # might remove a number of variables from the cache unnecessarily,
@@ -782,7 +807,13 @@ class CPPStandaloneDevice(Device):
                 )
 
     def generate_objects_source(
-        self, writer, arange_arrays, synapses, static_array_specs, networks
+        self,
+        writer,
+        arange_arrays,
+        synapses,
+        static_array_specs,
+        networks,
+        timed_arrays,
     ):
         arr_tmp = self.code_object_class().templater.objects(
             None,
@@ -800,6 +831,7 @@ class CPPStandaloneDevice(Device):
             get_array_name=self.get_array_name,
             profiled_codeobjects=self.profiled_codeobjects,
             code_objects=list(self.code_objects.values()),
+            timed_arrays=timed_arrays,
         )
         writer.write("objects.*", arr_tmp)
 
@@ -1230,7 +1262,75 @@ class CPPStandaloneDevice(Device):
         """
         self.main_queue.append(("seed", seed))
 
-    def run(self, directory, with_output, run_args):
+    def run(
+        self, directory=None, results_directory=None, with_output=True, run_args=None
+    ):
+        if directory is None:
+            directory = self.project_dir
+        if results_directory is None:
+            results_directory = self.results_dir
+        else:
+            if os.path.isabs(results_directory):
+                raise TypeError(
+                    "The 'results_directory' argument needs to be a relative path but"
+                    f" was '{results_directory}'."
+                )
+            # Translate path to absolute path which ends with /
+            self.results_dir = os.path.join(
+                os.path.abspath(os.path.join(directory, results_directory)), ""
+            )
+        ensure_directory(self.results_dir)
+
+        if run_args is None:
+            run_args = []
+        elif isinstance(run_args, Mapping):
+            list_rep = []
+            for key, value in run_args.items():
+                if isinstance(key, VariableView):
+                    (
+                        name,
+                        string_value,
+                        value_name,
+                        value_ar,
+                    ) = self._prepare_variableview_run_arg(key, value)
+                elif isinstance(key, TimedArray):
+                    (
+                        name,
+                        string_value,
+                        value_name,
+                        value_ar,
+                    ) = self._prepare_timed_array_run_arg(key, value)
+                else:
+                    raise TypeError(
+                        "The keys for 'run_args' need to be 'VariableView' objects,"
+                        " i.e. attributes of groups such as 'neurongroup.v', or a"
+                        f" 'TimedArray'. Key has type '{type(key)}' instead."
+                    )
+                if value_name:
+                    fname = os.path.join(self.project_dir, "static_arrays", value_name)
+                    # Make sure processes trying to write the same file don't clash
+                    with FileLock(fname + ".lock"):
+                        if not os.path.exists(fname):
+                            value_ar.tofile(fname)
+                list_rep.append(f"{name}={string_value}")
+
+            run_args = list_rep
+
+        # Invalidate array cache for all variables set on the command line
+        for arg in run_args:
+            s = arg.split("=")
+            if len(s) == 2:
+                for var in self.array_cache:
+                    if (
+                        hasattr(var.owner, "name")
+                        and var.owner.name + "." + var.name == s[0]
+                    ):
+                        self.array_cache[var] = None
+        run_args = ["--results_dir", self.results_dir] + run_args
+        # Invalidate the cached end time of the clock and network, to deal with stopped simulations
+        for clock in self.clocks:
+            self.array_cache[clock.variables["t"]] = None
+
         with in_directory(directory):
             # Set environment variables
 
@@ -1246,7 +1346,7 @@ class CPPStandaloneDevice(Device):
                     )
                 os.environ[key] = value
             if not with_output:
-                stdout = open("results/stdout.txt", "w")
+                stdout = open(os.path.join(self.results_dir, "stdout.txt"), "w")
             else:
                 stdout = None
             if os.name == "nt":
@@ -1263,16 +1363,18 @@ class CPPStandaloneDevice(Device):
             if stdout is not None:
                 stdout.close()
             if x:
-                if os.path.exists("results/stdout.txt"):
-                    with open("results/stdout.txt") as f:
+                stdout_fname = os.path.join(self.results_dir, "stdout.txt")
+                if os.path.exists(stdout_fname):
+                    with open(stdout_fname) as f:
                         print(f.read())
                 raise RuntimeError(
                     "Project run failed (project directory:"
                     f" {os.path.abspath(directory)})"
                 )
             self.has_been_run = True
-            if os.path.isfile("results/last_run_info.txt"):
-                with open("results/last_run_info.txt") as f:
+            run_info_fname = os.path.join(self.results_dir, "last_run_info.txt")
+            if os.path.isfile(run_info_fname):
+                with open(run_info_fname) as f:
                     last_run_info = f.read()
                 run_time, completed_fraction = last_run_info.split()
                 self._last_run_time = float(run_time)
@@ -1289,7 +1391,7 @@ class CPPStandaloneDevice(Device):
         already_checked = set()
         for owner in owners:
             try:
-                if owner.name in already_checked:
+                if not hasattr(owner, "name") or owner.name in already_checked:
                     continue
                 if isinstance(owner, Group):
                     owner._check_for_invalid_states()
@@ -1309,9 +1411,52 @@ class CPPStandaloneDevice(Device):
                 new_size = tuple(np.loadtxt(fname, delimiter=" ", dtype=np.int32))
                 var.size = new_size
 
+    def _prepare_variableview_run_arg(self, key, value):
+        fail_for_dimension_mismatch(key.dim, value)  # TODO: Give name of variable
+        value_ar = np.asarray(value, dtype=key.dtype)
+        if value_ar.ndim == 0 or value_ar.size == 1:
+            # single value, give value directly on command line
+            string_value = repr(value_ar.item())
+            value_name = None
+        else:
+            if value_ar.ndim != 1 or (
+                not key.variable.dynamic and value_ar.size != key.shape[0]
+            ):
+                raise TypeError(
+                    "Incorrect size for variable"
+                    f" '{key.group_name}.{key.name}'. Shape {key.shape} ≠"
+                    f" {value_ar.shape}."
+                )
+            value_name = (
+                f"init_{key.group_name}_{key.name}_{md5(value_ar.data).hexdigest()}.dat"
+            )
+            string_value = os.path.join("static_arrays", value_name)
+        name = f"{key.group_name}.{key.name}"
+        return name, string_value, value_name, value_ar
+
+    def _prepare_timed_array_run_arg(self, key, value):
+        fail_for_dimension_mismatch(key.dim, value)  # TODO: Give name of variable
+        value_ar = np.asarray(value, dtype=key.values.dtype)
+        if value_ar.ndim == 0 or value_ar.size == 1:
+            # single value, give value directly on command line
+            string_value = repr(value_ar.item())
+            value_name = None
+        elif value_ar.shape == key.values.shape:
+            value_name = f"init_{key.name}_values_{md5(value_ar.data).hexdigest()}.dat"
+            string_value = os.path.join("static_arrays", value_name)
+        else:
+            raise TypeError(
+                "Incorrect size for variable"
+                f" '{key.name}.values'. Shape {key.values.shape} ≠"
+                f" {value_ar.shape}."
+            )
+        name = f"{key.name}.values"
+        return name, string_value, value_name, value_ar
+
     def build(
         self,
         directory="output",
+        results_directory="results",
         compile=True,
         run=True,
         debug=False,
@@ -1401,6 +1546,15 @@ class CPPStandaloneDevice(Device):
             directory = tempfile.mkdtemp(prefix="brian_standalone_")
         self.project_dir = directory
         ensure_directory(directory)
+        if os.path.isabs(results_directory):
+            raise TypeError(
+                "The 'results_directory' argument needs to be a relative path but was "
+                f"'{results_directory}'."
+            )
+        # Translate path to absolute path which ends with /
+        self.results_dir = os.path.join(
+            os.path.abspath(os.path.join(directory, results_directory)), ""
+        )
 
         # Determine compiler flags and directories
         compiler, default_extra_compile_args = get_compiler_and_args()
@@ -1515,6 +1669,7 @@ class CPPStandaloneDevice(Device):
             self.synapses,
             self.static_array_specs,
             self.networks,
+            self.timed_arrays,
         )
         self.generate_main_source(self.writer)
         self.generate_codeobj_source(self.writer)
@@ -1537,7 +1692,7 @@ class CPPStandaloneDevice(Device):
         if compile:
             self.compile_source(directory, compiler, debug, clean)
             if run:
-                self.run(directory, with_output, run_args)
+                self.run(directory, results_directory, with_output, run_args)
         time_measurements = {
             "'make clean'": self.timers["compile"]["clean"],
             "'make'": self.timers["compile"]["make"],
@@ -1565,13 +1720,13 @@ class CPPStandaloneDevice(Device):
 
         # Delete data
         if data:
-            results_dir = os.path.join(self.project_dir, "results")
+            results_dir = self.results_dir
             logger.debug(f"Deleting data files in '{results_dir}'")
-            fnames.append(os.path.join("results", "last_run_info.txt"))
+            fnames.append(os.path.join(results_dir, "last_run_info.txt"))
             if self.profiled_codeobjects:
-                fnames.append(os.path.join("results", "profiling_info.txt"))
+                fnames.append(os.path.join(results_dir, "profiling_info.txt"))
             for var in self.arrays:
-                fnames.append(self.get_array_filename(var))
+                fnames.append(os.path.join(results_dir, self.get_array_filename(var)))
 
         # Delete code
         if code:
@@ -1827,6 +1982,9 @@ class CPPStandaloneDevice(Device):
                 run_lines.append(f"{net.name}.add(&{clock.name}, NULL);")
 
         run_lines.extend(self.code_lines["before_network_run"])
+        if not self.run_args_applied:
+            run_lines.append("set_from_command_line(args);")
+            self.run_args_applied = True
         run_lines.append(
             f"{net.name}.run({float(duration)!r}, {report_call},"
             f" {float(report_period)!r});"

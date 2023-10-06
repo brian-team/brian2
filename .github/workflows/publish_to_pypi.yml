@@ -2,7 +2,21 @@ name: Build and publish to TestPyPI or PyPI
 on: [push, pull_request]
 
 jobs:
+  get_python_versions:
+    name: "Determine Python versions"
+    runs-on: ubuntu-latest
+    outputs:
+      min-python: ${{ steps.nep29.outputs.min-python }}
+      max-python: ${{ steps.nep29.outputs.max-python }}
+    steps:
+      - name: "calculate versions according to NEP29"
+        id: nep29
+        uses: mstimberg/github-calc-nep29@v0.5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: [get_python_versions]
     name: Build 🎡 on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -22,11 +36,11 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_TEST_SKIP: '*_arm64 *_universal2:arm64'
-          CIBW_SKIP: 'pp* *-musllinux_*'
+          CIBW_SKIP: 'pp*'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
       - name: store distribution 📦
@@ -36,6 +50,7 @@ jobs:
           path: dist
 
   build-linux:
+    needs: [get_python_versions]
     name: Build ${{ matrix.arch }} 🎡 and source 📦 on Linux
     runs-on: ubuntu-latest
     strategy:
@@ -52,9 +67,9 @@ jobs:
           python-version: '3.x'
       - name: Build source tarball
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install "cython>=0.29" oldest-supported-numpy setuptools versioneer
-          python setup.py sdist --formats=gztar --with-cython --fail-on-error
+          python -m pip install --upgrade pip build
+          python -m pip install "cython>=0.29" oldest-supported-numpy "setuptools>=61" "setuptools_scm[toml]>=6.2"
+          python -m build --sdist --config-setting=--formats=gztar --config-setting=--with-cython --config-setting=--fail-on-error
         if: ${{ matrix.arch == 'auto64' }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -65,10 +80,10 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_SKIP: 'pp* *-musllinux_*'
+          CIBW_SKIP: 'pp* *-musllinux_aarch64'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
       - name: store distribution 📦
@@ -77,11 +92,11 @@ jobs:
           name: packages
           path: dist
 
-  deploy:
-    name: Publish to (Test)PyPI
+  deploy_dev:
+    name: Publish development 📦 to TestPyPI
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' && github.repository == 'brian-team/brian2'
-    environment: release
+    if: github.repository == 'brian-team/brian2' && github.ref == 'refs/heads/master'
+    environment: development_release
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
     needs:
@@ -97,6 +112,22 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+
+  deploy:
+    name: Publish release 📦 to PyPI
+    runs-on: ubuntu-latest
+    if: github.repository == 'brian-team/brian2' && startsWith(github.ref, 'refs/tags')
+    environment: release
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    needs:
+      - build
+      - build-linux
+    steps:
+      - name: load distribution 📦
+        uses: actions/download-artifact@v3
+        with:
+          name: packages
+          path: dist/
       - name: Publish distribution release 📦 to PyPI
-        if: ${{ startsWith(github.ref, 'refs/tags') && github.repository == 'brian-team/brian2' }}
         uses: pypa/gh-action-pypi-publish@release/v1

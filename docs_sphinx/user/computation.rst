@@ -3,7 +3,7 @@ Computational methods and efficiency
 
 .. contents::
     :local:
-    :depth: 1
+    :depth: 2
 
 Brian has several different methods for running the computations in a
 simulation. The default mode is :ref:`runtime`, which runs the simulation loop
@@ -94,7 +94,7 @@ At the beginning of the script, i.e. after the import statements, add::
 
     set_device('cpp_standalone')
 
-The `CPPStandaloneDevice.build` function will be automatically called with default arguments right after the `run`
+The `Device.build` function will be automatically called with default arguments right after the `run`
 call. If you need non-standard arguments then you can specify them as part of the `set_device` call::
 
     set_device('cpp_standalone', directory='my_directory', debug=True)
@@ -105,28 +105,195 @@ At the beginning of the script, i.e. after the import statements, add::
 
     set_device('cpp_standalone', build_on_run=False)
 
-After the last `run` call, call `device.build` explicitly::
+After the last `run` call, call `CPPStandaloneDevice.build` explicitly::
 
-    device.build(directory='output', compile=True, run=True, debug=False)
+    device.build()
 
-The `~CPPStandaloneDevice.build` function has several arguments to specify the output directory, whether or not to
+The `~Device.build` function has several arguments to specify the output directory, whether or not to
 compile and run the project after creating it and whether or not to compile it with debugging support or not.
 
-Multiple builds
-~~~~~~~~~~~~~~~
-To run multiple full simulations (i.e. multiple ``device.build`` calls, not just
-multiple `run` calls as discussed above), you have to reinitialize the device
-again::
+.. _standalone_multiple_full_runs:
 
-    device.reinit()
-    device.activate()
+Multiple full simulation runs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Note that the device "forgets" about all previously set build options provided
-to `set_device` (most importantly the ``build_on_run`` option, but also e.g. the
-directory), you'll have to specify them as part of the `Device.activate` call.
-Also, `Device.activate` will reset the `defaultclock`, you'll therefore have to
-set its ``dt`` *after* the ``activate`` call if you want to use a non-default
-value.
+To run multiple full, independent, simulations (i.e. not just multiple `run` calls as discussed above), you can 
+use the device's `~brian2.devices.cpp_standalone.device.CPPStandaloneDevice.run` function after an initial build. This will use the previously
+generated and compiled code, and will therefore run immediately. Note that you cannot change the model or its
+parameters in the usual way between the `~brian2.devices.cpp_standalone.device.CPPStandaloneDevice.build` and
+`~brian2.devices.cpp_standalone.device.CPPStandaloneDevice.run` calls.
+If you want to change some of its parameters, you will have to use the ``run_args`` argument as described below.
+
+Running multiple simulations with same parameters
++++++++++++++++++++++++++++++++++++++++++++++++++
+
+By default, a device's `~brian2.devices.cpp_standalone.device.CPPStandaloneDevice.run` will run the simulation again,
+using the same model parameters and initializations. This can be useful, when the model is itself stochastic
+(e.g. using the ``xi`` noise term  in the equations, using a stochastic group such as `PoissonGroup` or
+`PoissonInput`, etc.), when it uses random synaptic connections, or when it uses random variable initialization::
+
+    set_device('cpp_standalone')
+    group = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')  # a simple IF neuron without threshold
+    group.v = 'rand()'  # v is randomly initialized between 0 and 1
+    mon = StateMonitor(group, 'v', record=0)
+    run(100*ms)  # calls device.build and device.run
+    results = [mon.v[0]]
+    # Do 9 more runs without recompiling, each time initializing v to a new value
+    for _ in range(9):
+        device.run()
+        results.append(mon.v[0])
+
+For more consistent code, you might consider to disable the automatic ``device.build``/``device.run`` call, so
+that the initial run of the simulation is not different to subsequent runs::
+
+    set_device('cpp_standalone', build_on_run=False)
+    # ... Set up model as before
+    run(100*ms)  # will not call device.build/device.run
+    device.build(run=False)  # Compile the code
+    results = []
+    # Do 10 runs without recompiling, each time initializing v to a new value
+    for _ in range(10):
+        device.run()
+        results.append(mon.v[0])
+
+
+Running multiple simulations with different parameters
+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+When launching new simulation runs as described above, you can also change parameters of the model. Note that this
+only concerns parameters that are included in equations, you cannot change externally defined constants. You can
+easily work around this limitation, however, by declaring such constants in the equations, using the ``(shared, constant)``
+flags. Here's a similar example to the one shown before, now exploring the effect of the time constant ``tau``, while
+assuring via a `seed` call that the random initializations are identical across runs::
+
+    set_device('cpp_standalone', build_on_run=False)
+    seed(111)  # same random numbers for each run
+    group = NeuronGroup(10, '''dv/dt = -v / tau : 1
+                               tau : second (shared, constant)''')  # 10 simple IF neuron without threshold
+    group.v = 'rand()'
+    mon = StateMonitor(group, 'v', record=0)
+    run(100*ms)
+    device.build(run=False)  # Compile the code
+    results = []
+    # Do 10 runs without recompiling, each time setting group.tau to a new value
+    for tau_value in (np.arange(10)+1)*5*ms:
+        device.run(run_args={group.tau: tau_value})
+        results.append(mon.v[:])
+
+You can use the same mechanism to provide an array of initial values for a group. E.g., to systematically try out
+different initializations of ``v``, you could use::
+
+    set_device('cpp_standalone', build_on_run=False)
+    group = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1')  # ten simple IF neurons without threshold
+    mon = StateMonitor(group, 'v', record=True)
+    run(100*ms)  # will not call device.build/device.run
+    device.build(run=False)  # Compile the code
+    results = []
+    # Do 10 runs without recompiling, each time initializing v differently
+    for idx in range(10):
+        device.run(run_args={group.v: np.arange(10)*0.01 + 0.1*idx})
+        results.append(mon.v[0])
+
+You can also overwrite the values in a `TimedArray` using this mechanism, by using the `TimedArray` as a key in the
+``run_args`` dictionary::
+
+    set_device('cpp_standalone', build_on_run=False)
+    stim = TimedArray(np.zeros(10), dt=10*ms)
+    group = NeuronGroup(10, 'dv/dt = (stim(t) - v)/ (10*ms) : 1')  # time-dependent stimulus
+    mon = StateMonitor(group, 'v', record=True)
+    run(100 * ms)
+    device.build(run=False)
+    results = []
+    # Do 10 runs with a 10ms at a random time
+    for idx in range(10):
+        values = np.zeros(10)
+        values[np.random.randint(0, 10)] = 1
+        device.run(run_args={stim: values})
+        results.append(mon.v[0])
+
+By default, the initialization provided via ``run_args`` overwrites any initializations done in the usual way.
+This might not exactly do what you want if you use string-based variable initializations that refer to each other.
+For example, if your equations contain two synaptic time constants ``tau_exc`` and ``tau_inh``, and you always
+want the latter to be twice the value of the former, you can write::
+
+    group.tau_exc = 5*ms
+    group.tau_inh = 'tau_exc * 2'
+
+If you now use the ``run_args`` argument to set ``tau_exc`` to a different value, this will not be taken into account
+for setting ``tau_inh``, since the value change for ``tau_exc`` happens *after* the initialization of ``tau_inh``.
+Of course you can simply set the value for ``tau_inh`` manually using ``run_args`` as well, but a more general solution
+is to move the point where the ``run_args`` are applied. You can do this by calling the device's
+`~brian2.devices.cpp_standalone.device.CPPStandaloneDevice.apply_run_args` function::
+
+    group.tau_exc = 5*ms
+    device.apply_run_args()
+    group.tau_inh = 'tau_exc * 2'
+
+With this change, setting ``tau_exc`` via ``run_args`` will affect the value of ``tau_inh``.
+
+Running multiple simulations in parallel
+++++++++++++++++++++++++++++++++++++++++
+
+The techniques mentioned above cannot be directly used to run simulations in parallel (e.g. with Python's
+`multiprocessing` module), since all of them will try to write the results to the same place. You can
+circumvent this problem by specifying the ``results_directory`` argument, and setting it to a different value
+for each run. Note that using the standalone device with `multiprocessing` can be a bit tricky, since the
+currently selected device is stored globally in the ``device`` module. Use the approach presented below to
+make sure the device is selected correctly. Here's a variant of the previously shown example running a
+simulation with random initialization repeatedly, this time running everything in parallel using Python's
+`multiprocessing` module::
+
+    class SimWrapper:
+        def __init__(self):
+            # Runs once to set up the simulation
+            group = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1', name='group')
+            group.v = 'rand()'  # v is randomly initialized between 0 and 1
+            mon = StateMonitor(group, 'v', record=0, name='monitor')
+            # Store everything in a network
+            self.network = Network([group, mon])
+            self.network.run(100*ms)
+            device.build(run=False)
+            self.device = get_device()  # store device object
+
+        def do_run(self, result_dir):
+            # Runs in every process
+            # Workaround to set the device globally in this context
+            from brian2.devices import device_module
+            device_module.active_device = self.device
+            self.device.run(results_directory=result_dir)
+            # Return the results
+            return self.network['monitor'].v[0]
+    
+    if __name__ == '__main__':  # Important for running on Windows and OS X
+        set_device('cpp_standalone', build_on_run=False)
+        sim = SimWrapper()
+        import multiprocessing
+        with multiprocessing.Pool() as p:
+            # Run 10 simulations in parallel
+            results = p.map(sim.do_run, [f'result_{idx}' for idx in range(10)])
+
+You can also use parallel runs with the ``run_args`` argument. For example, to do 10 simulations
+with different (deterministic) initial values for ``v``::
+
+    class SimWrapper:
+        # ... model definition without random initialization
+
+        def do_run(self, v_init):
+            # Set result directory based on variable
+            result_dir = f'result_{v_init}'
+            self.device.run(run_args={self.network['group'].v: v_init},
+                            results_directory=result_dir)
+            # Return the results
+            return self.network['monitor'].v[0]
+    
+    if __name__ == '__main__':  # Important for running on Windows and OS X
+        set_device('cpp_standalone', build_on_run=False)
+        sim = SimWrapper()
+        import multiprocessing
+        with multiprocessing.Pool() as p:
+            # Run 10 simulations in parallel
+            results = p.map(sim.do_run, np.linspace(0, 1, 10))
+
 
 Limitations
 ~~~~~~~~~~~
@@ -146,12 +313,14 @@ If you need to do loops or other features not supported automatically, you can d
 C++ source code and modifying it, or by inserting code directly into the main loop as described below.
 
 .. _standalone_variables:
+
 Variables
 ~~~~~~~~~
 In standalone mode, code will only be executed when the simulation is run (after the `run` call by default, or after a call
-to `.Device.build`, if `set_device` has been called with ``build_on_run`` set to ``False``). This means that it is not
-possible to access state variables and synaptic connection indices in the Python script doing the set up of the model. For
-example, the following code would work fine in runtime mode, but raise a ``NotImplementedError`` in standalone mode::
+to `~brian2.devices.cpp_standalone.device..build`, if `set_device` has been called with ``build_on_run`` set to ``False``).
+This means that it is not possible to access state variables and synaptic connection indices in the Python script doing the
+set up of the model. For example, the following code would work fine in runtime mode, but raise a ``NotImplementedError``
+in standalone mode::
 
     neuron = NeuronGroup(10, 'v : volt')
     neuron.v = '-70*mV + rand()*10*mV'

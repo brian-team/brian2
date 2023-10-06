@@ -1254,6 +1254,15 @@ class CodeRunner(BrianObject):
         self.generate_empty_code = generate_empty_code
         self.codeobj = None
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["group"] = state["group"].__repr__.__self__
+        return state
+
+    def __setstate__(self, state):
+        state["group"] = weakproxy_with_fallback(state["group"])
+        self.__dict__ = state
+
     def update_abstract_code(self, run_namespace):
         """
         Update the abstract code for the code object. Will be called in

@@ -93,11 +93,9 @@ def test_version():
     version = brian2.__version__
     assert version.startswith("2.")
 
-    # Check that the release date has the correct format
-    release_date = brian2.__release_date__
-    import datetime
-
-    datetime.datetime.strptime(release_date, "%Y-%m-%d")
+    # Check that the version tuple is correct
+    version_tuple = brian2.__version_tuple__
+    assert version_tuple == tuple(int(i) for i in version.split(".")[:3])
 
 
 if __name__ == "__main__":
