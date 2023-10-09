@@ -1005,6 +1005,8 @@ def test_numpy_functions_same_dimensions():
     values = [np.array([1, 2]), np.ones((3, 3))]
     units = [volt, second, siemens, mV, kHz]
 
+    from brian2.units.unitsafefunctions import ptp
+
     # numpy functions
     keep_dim_funcs = [
         np.abs,
@@ -1013,7 +1015,7 @@ def test_numpy_functions_same_dimensions():
         np.mean,
         np.min,
         np.negative,
-        np.ptp,
+        ptp,
         np.round,
         np.squeeze,
         np.std,
