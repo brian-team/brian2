@@ -86,6 +86,14 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx_tabs.tabs']
 
+# Set readthedocs theme if available
+try:
+    import sphinx_rtd_theme
+    extensions += ['sphinx_rtd_theme']
+    html_theme = 'sphinx_rtd_theme'
+except ImportError:
+    pass
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
