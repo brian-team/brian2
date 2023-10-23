@@ -51,7 +51,7 @@ if __name__ == '__main__':
         float_dtype = None
 
     if deprecation_error:
-        args = ['-W', 'error::DeprecationWarning']
+        args = ['-W', 'error::DeprecationWarning', '--tb=short']
     else:
         args = []
 
