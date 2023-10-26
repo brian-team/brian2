@@ -228,12 +228,21 @@ class TimedArray(Function, Nameable, CacheKey):
 
     @check_units(dt=second)
     def __init__(self, values, dt, name=None):
+        from brian2.core.preferences import prefs
+
         if name is None:
             name = "_timedarray*"
         Nameable.__init__(self, name)
         dimensions = get_dimensions(values)
         self.dim = dimensions
-        values = np.asarray(values, dtype=np.float64)
+        values = np.asarray(values)  # infer dtype
+        if values.dtype == np.object:
+            raise TypeError("TimedArray does not support arrays with dtype 'object'")
+        elif (
+            values.dtype == np.float64 and prefs.core.default_float_dtype != np.float64
+        ):
+            # Reduce the precision of the values array to the default scalar type
+            values = values.astype(prefs.core.default_float_dtype)
         self.values = values
         dt = float(dt)
         self.dt = dt
