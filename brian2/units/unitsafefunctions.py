@@ -13,6 +13,7 @@ from .fundamentalunits import (
     fail_for_dimension_mismatch,
     is_dimensionless,
     wrap_function_dimensionless,
+    wrap_function_keep_dimensions,
     wrap_function_remove_dimensions,
 )
 
@@ -44,6 +45,7 @@ __all__ = [
     "zeros_like",
     "arange",
     "linspace",
+    "ptp",
 ]
 
 
@@ -92,6 +94,8 @@ log10 = wrap_function_dimensionless(np.log10)
 exp = wrap_function_dimensionless(np.exp)
 expm1 = wrap_function_dimensionless(np.expm1)
 log1p = wrap_function_dimensionless(np.log1p)
+
+ptp = wrap_function_keep_dimensions(np.ptp)
 
 
 @check_units(x=1, result=1)

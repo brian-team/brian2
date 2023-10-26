@@ -8,3 +8,4 @@ sphinx==1.8.6
 Jinja2<3.1.0
 commonmark==0.9.1
 recommonmark==0.5.0
+sphinx_rtd_theme
