@@ -246,6 +246,8 @@ class CPPStandaloneDevice(Device):
             self.libraries += ["advapi32"]
         self.extra_link_args = []
         self.writer = None
+        # List of variables to invalidate
+        self.invalidate_on_run = []
 
     def reinit(self):
         # Remember the build_on_run setting and its options -- important during
@@ -785,7 +787,7 @@ class CPPStandaloneDevice(Device):
                 and var not in do_not_invalidate
                 and (not var.read_only or var in written_readonly_vars)
             ):
-                self.array_cache[var] = None
+                self.invalidate_on_run.append(var)
 
         return codeobj
 
@@ -1315,7 +1317,6 @@ class CPPStandaloneDevice(Device):
                 list_rep.append(f"{name}={string_value}")
 
             run_args = list_rep
-
         # Invalidate array cache for all variables set on the command line
         for arg in run_args:
             s = arg.split("=")
@@ -1326,6 +1327,9 @@ class CPPStandaloneDevice(Device):
                         and var.owner.name + "." + var.name == s[0]
                     ):
                         self.array_cache[var] = None
+        # Invalidate array cache for all variables written by code objects
+        for var in self.invalidate_on_run:
+            self.array_cache[var] = None
         run_args = ["--results_dir", self.results_dir] + run_args
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
         for clock in self.clocks:
@@ -1416,7 +1420,11 @@ class CPPStandaloneDevice(Device):
         value_ar = np.asarray(value, dtype=key.dtype)
         if value_ar.ndim == 0 or value_ar.size == 1:
             # single value, give value directly on command line
-            string_value = repr(value_ar.item())
+            value = value_ar.item()
+            if value is True or value is None:  # translate True/False to 1/0
+                string_value = "1" if value else "0"
+            else:
+                string_value = repr(value)
             value_name = None
         else:
             if value_ar.ndim != 1 or (
@@ -1439,7 +1447,11 @@ class CPPStandaloneDevice(Device):
         value_ar = np.asarray(value, dtype=key.values.dtype)
         if value_ar.ndim == 0 or value_ar.size == 1:
             # single value, give value directly on command line
-            string_value = repr(value_ar.item())
+            value = value_ar.item()
+            if value is True or value is None:  # translate True/False to 1/0
+                string_value = "1" if value else "0"
+            else:
+                string_value = repr(value)
             value_name = None
         elif value_ar.shape == key.values.shape:
             value_name = f"init_{key.name}_values_{md5(value_ar.data).hexdigest()}.dat"
