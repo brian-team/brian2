@@ -108,8 +108,12 @@ class CPPStandaloneCodeObject(CodeObject):
         super().__init__(*args, **kwds)
         #: Store whether this code object defines before/after blocks
         self.before_after_blocks = []
+        #: Store variables that are updated by this code object and therefore invalidate the cache
+        self.invalidate_cache_variables = set()
 
     def __call__(self, **kwds):
+        for var in self.invalidate_cache_variables:
+            get_device().array_cache[var] = None
         return self.run()
 
     def compile_block(self, block):

@@ -246,8 +246,6 @@ class CPPStandaloneDevice(Device):
             self.libraries += ["advapi32"]
         self.extra_link_args = []
         self.writer = None
-        # List of variables to invalidate
-        self.invalidate_on_run = []
 
     def reinit(self):
         # Remember the build_on_run setting and its options -- important during
@@ -787,7 +785,7 @@ class CPPStandaloneDevice(Device):
                 and var not in do_not_invalidate
                 and (not var.read_only or var in written_readonly_vars)
             ):
-                self.invalidate_on_run.append(var)
+                codeobj.invalidate_cache_variables.add(var)
 
         return codeobj
 
@@ -1327,9 +1325,12 @@ class CPPStandaloneDevice(Device):
                         and var.owner.name + "." + var.name == s[0]
                     ):
                         self.array_cache[var] = None
+
         # Invalidate array cache for all variables written by code objects
-        for var in self.invalidate_on_run:
-            self.array_cache[var] = None
+        for codeobj in self.code_objects.values():
+            for var in codeobj.invalidate_cache_variables:
+                self.array_cache[var] = None
+
         run_args = ["--results_dir", self.results_dir] + run_args
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
         for clock in self.clocks:
@@ -2005,6 +2006,11 @@ class CPPStandaloneDevice(Device):
         self.main_queue.append(("run_network", (net, run_lines)))
 
         net.after_run()
+
+        # Invalidate array cache for all variables written by code objects
+        for _, codeobj in code_objects:
+            for var in codeobj.invalidate_cache_variables:
+                self.array_cache[var] = None
 
         # Manually set the cache for the clocks, simulation scripts might
         # want to access the time (which has been set in code and is therefore
