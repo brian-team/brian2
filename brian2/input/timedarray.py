@@ -5,6 +5,7 @@ Implementation of `TimedArray`.
 
 import numpy as np
 
+from brian2.codegen.generators import c_data_type
 from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function
 from brian2.core.names import Nameable
@@ -45,7 +46,7 @@ def _generate_cpp_code_1d(values, dt, name):
         K = _find_K(owner.clock.dt_, dt)
         code = (
             """
-        static inline double %NAME%(const double t)
+        static inline %TYPE% %NAME%(const double t)
         {
             const double epsilon = %DT% / %K%;
             int i = (int)((t/epsilon + 0.5)/%K%);
@@ -61,6 +62,7 @@ def _generate_cpp_code_1d(values, dt, name):
             .replace("%DT%", f"{dt:.18f}")
             .replace("%K%", str(K))
             .replace("%NUM_VALUES%", str(len(values)))
+            .replace("%TYPE%", c_data_type(values.dtype))
         )
 
         return code
@@ -72,7 +74,7 @@ def _generate_cpp_code_2d(values, dt, name):
     def cpp_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
         support_code = """
-        static inline double %NAME%(const double t, const int i)
+        static inline %TYPE% %NAME%(const double t, const int i)
         {
             const double epsilon = %DT% / %K%;
             if (i < 0 || i >= %COLS%)
@@ -93,6 +95,7 @@ def _generate_cpp_code_2d(values, dt, name):
                 "%K%": str(K),
                 "%COLS%": str(values.shape[1]),
                 "%ROWS%": str(values.shape[0]),
+                "%TYPE%": c_data_type(values.dtype),
             },
         )
         return code
@@ -105,7 +108,7 @@ def _generate_cython_code_1d(values, dt, name):
         K = _find_K(owner.clock.dt_, dt)
         code = (
             """
-        cdef double %NAME%(const double t):
+        cdef %TYPE% %NAME%(const double t):
             global _namespace%NAME%_values
             cdef double epsilon = %DT% / %K%
             cdef int i = (int)((t/epsilon + 0.5)/%K%)
@@ -120,6 +123,7 @@ def _generate_cython_code_1d(values, dt, name):
             .replace("%DT%", f"{dt:.18f}")
             .replace("%K%", str(K))
             .replace("%NUM_VALUES%", str(len(values)))
+            .replace("%TYPE%", c_data_type(values.dtype))
         )
 
         return code
@@ -131,7 +135,7 @@ def _generate_cython_code_2d(values, dt, name):
     def cython_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
         code = """
-        cdef double %NAME%(const double t, const int i):
+        cdef %TYPE% %NAME%(const double t, const int i):
             global _namespace%NAME%_values
             cdef double epsilon = %DT% / %K%
             if i < 0 or i >= %COLS%:
@@ -151,6 +155,7 @@ def _generate_cython_code_2d(values, dt, name):
                 "%K%": str(K),
                 "%COLS%": str(values.shape[1]),
                 "%ROWS%": str(values.shape[0]),
+                "%TYPE%": c_data_type(values.dtype),
             },
         )
         return code
@@ -236,7 +241,7 @@ class TimedArray(Function, Nameable, CacheKey):
         dimensions = get_dimensions(values)
         self.dim = dimensions
         values = np.asarray(values)  # infer dtype
-        if values.dtype == np.object:
+        if values.dtype == object:
             raise TypeError("TimedArray does not support arrays with dtype 'object'")
         elif (
             values.dtype == np.float64 and prefs.core.default_float_dtype != np.float64
@@ -347,7 +352,9 @@ class TimedArray(Function, Nameable, CacheKey):
         self.implementations.add_dynamic_implementation(
             "numpy", create_numpy_implementation
         )
-        values_flat = self.values.astype(np.double, order="C", copy=False).ravel()
+        values_flat = self.values.astype(
+            self.values.dtype, order="C", copy=False
+        ).ravel()
         namespace = lambda owner: {f"{self.name}_values": values_flat}
 
         for target, (_, func_2d) in TimedArray.implementations.items():
