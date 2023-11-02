@@ -1363,45 +1363,55 @@ class Synapses(Group):
         self.variables.add_reference("_presynaptic_idx", self, "_synaptic_pre")
         self.variables.add_reference("_postsynaptic_idx", self, "_synaptic_post")
 
-        # Except for subgroups (which potentially add an offset), the "i" and
-        # "j" variables are simply equivalent to `_synaptic_pre` and
-        # `_synaptic_post`
-        if getattr(self.source, "start", 0) == 0:
-            self.variables.add_reference("i", self, "_synaptic_pre")
-        else:
-            if isinstance(self.source, Subgroup) and not self.source.contiguous:
-                raise TypeError(
-                    "Cannot use a non-contiguous subgroup as a "
-                    "source group for Synapses."
-                )
+        # Except for subgroups, the "i" and "j" variables are simply equivalent to
+        # `_synaptic_pre` and `_synaptic_post`
+        if (
+            isinstance(self.source, Subgroup)
+            and not getattr(self.source, "start", -1) == 0
+        ):
             self.variables.add_reference(
                 "_source_i", self.source.source, "i", index="_presynaptic_idx"
             )
-            self.variables.add_reference("_source_offset", self.source, "_offset")
-            self.variables.add_subexpression(
-                "i",
-                dtype=self.source.source.variables["i"].dtype,
-                expr="_source_i - _source_offset",
-                index="_presynaptic_idx",
-            )
-        if getattr(self.target, "start", 0) == 0:
-            self.variables.add_reference("j", self, "_synaptic_post")
-        else:
-            if isinstance(self.target, Subgroup) and not self.target.contiguous:
-                raise TypeError(
-                    "Cannot use a non-contiguous subgroup as a "
-                    "target group for Synapses."
+            if getattr(self.source, "contiguous", True):
+                # Contiguous subgroup simply shift the indices
+                self.variables.add_subexpression(
+                    "i",
+                    dtype=self.source.source.variables["i"].dtype,
+                    expr="_source_i - _source_offset",
+                    index="_presynaptic_idx",
                 )
+            else:
+                # Non-contiguous subgroups need a full translation
+                self.variables.add_reference(
+                    "i", self.source, "i", index="_presynaptic_idx"
+                )
+        else:
+            # No subgroup or subgroup starting at 0
+            self.variables.add_reference("i", self, "_synaptic_pre")
+
+        if (
+            isinstance(self.target, Subgroup)
+            and not getattr(self.target, "start", -1) == 0
+        ):
             self.variables.add_reference(
                 "_target_j", self.target.source, "i", index="_postsynaptic_idx"
             )
-            self.variables.add_reference("_target_offset", self.target, "_offset")
-            self.variables.add_subexpression(
-                "j",
-                dtype=self.target.source.variables["i"].dtype,
-                expr="_target_j - _target_offset",
-                index="_postsynaptic_idx",
-            )
+            if getattr(self.target, "contiguous", True):
+                # Contiguous subgroup simply shift the indices
+                self.variables.add_subexpression(
+                    "j",
+                    dtype=self.target.source.variables["i"].dtype,
+                    expr="_target_j - _target_offset",
+                    index="_postsynaptic_idx",
+                )
+            else:
+                # Non-contiguous subgroups need a full translation
+                self.variables.add_reference(
+                    "j", self.target, "i", index="_postsynaptic_idx"
+                )
+        else:
+            # No subgroup or subgroup starting at 0
+            self.variables.add_reference("j", self, "_synaptic_post")
 
         # Add the standard variables
         self.variables.add_array(
@@ -1934,11 +1944,21 @@ class Synapses(Group):
         if "_offset" in self.source.variables:
             variables.add_reference("_source_offset", self.source, "_offset")
             abstract_code += "_real_sources = sources + _source_offset\n"
+        elif not getattr(self.source, "contiguous", True):
+            variables.add_reference(
+                "_source_sub_idx", self.source, "_sub_idx", index="sources"
+            )
+            abstract_code += "_real_sources = _source_sub_idx\n"
         else:
             abstract_code += "_real_sources = sources\n"
         if "_offset" in self.target.variables:
             variables.add_reference("_target_offset", self.target, "_offset")
             abstract_code += "_real_targets = targets + _target_offset\n"
+        elif not getattr(self.target, "contiguous", True):
+            variables.add_reference(
+                "_target_sub_idx", self.target, "_sub_idx", index="targets"
+            )
+            abstract_code += "_real_targets = _target_sub_idx\n"
         else:
             abstract_code += "_real_targets = targets"
         logger.debug(
@@ -2022,11 +2042,25 @@ class Synapses(Group):
         outer_index_size = "N_pre" if over_presynaptic else "N_post"
         outer_index_array = "_pre_idx" if over_presynaptic else "_post_idx"
         outer_index_offset = "_source_offset" if over_presynaptic else "_target_offset"
+        outer_sub_idx = "_source_sub_idx" if over_presynaptic else "_target_sub_idx"
+        outer_contiguous = (
+            getattr(self.source, "contiguous", True)
+            if over_presynaptic
+            else getattr(self.target, "contiguous", True)
+        )
+
         result_index = "j" if over_presynaptic else "i"
         result_index_size = "N_post" if over_presynaptic else "N_pre"
         target_idx = "_postsynaptic_idx" if over_presynaptic else "_presynaptic_idx"
         result_index_array = "_post_idx" if over_presynaptic else "_pre_idx"
         result_index_offset = "_target_offset" if over_presynaptic else "_source_offset"
+        result_sub_idx = "_target_sub_idx" if over_presynaptic else "_source_sub_idx"
+        result_contiguous = (
+            getattr(self.target, "contiguous", True)
+            if over_presynaptic
+            else getattr(self.source, "contiguous", True)
+        )
+
         result_index_name = "postsynaptic" if over_presynaptic else "presynaptic"
         template_kwds.update(
             {
@@ -2034,11 +2068,15 @@ class Synapses(Group):
                 "outer_index_size": outer_index_size,
                 "outer_index_array": outer_index_array,
                 "outer_index_offset": outer_index_offset,
+                "outer_sub_idx": outer_sub_idx,
+                "outer_contiguous": outer_contiguous,
                 "result_index": result_index,
                 "result_index_size": result_index_size,
                 "result_index_name": result_index_name,
                 "result_index_array": result_index_array,
                 "result_index_offset": result_index_offset,
+                "result_sub_idx": result_sub_idx,
+                "result_contiguous": result_contiguous,
             }
         )
         abstract_code = {
@@ -2126,10 +2164,18 @@ class Synapses(Group):
         else:
             variables.add_constant("_source_offset", value=0)
 
+        if not getattr(self.source, "contiguous", True):
+            variables.add_reference("_source_sub_idx", self.source, "_sub_idx")
+            needed_variables.append("_source_sub_idx")
+
         if "_offset" in self.target.variables:
             variables.add_reference("_target_offset", self.target, "_offset")
         else:
             variables.add_constant("_target_offset", value=0)
+
+        if not getattr(self.target, "contiguous", True):
+            variables.add_reference("_target_sub_idx", self.target, "_sub_idx")
+            needed_variables.append("_target_sub_idx")
 
         variables.add_auxiliary_variable("_raw_pre_idx", dtype=np.int32)
         variables.add_auxiliary_variable("_raw_post_idx", dtype=np.int32)

@@ -379,6 +379,54 @@ def test_synapse_creation_generator():
 
 
 @pytest.mark.standalone_compatible
+def test_synapse_creation_generator_non_contiguous():
+    G1 = NeuronGroup(10, "v:1")
+    G2 = NeuronGroup(20, "v:1")
+    G1.v = "i"
+    G2.v = "10 + i"
+    SG1 = G1[[0, 2, 4, 6, 8]]
+    SG2 = G2[1::2]
+    S = Synapses(SG1, SG2, "w:1")
+    S.connect(j="i*2 + k for k in range(2)")  # diverging connections
+
+    # connect based on pre-/postsynaptic state variables
+    S2 = Synapses(SG1, SG2, "w:1")
+    S2.connect(j="k for k in range(N_post) if v_pre > 2")
+
+    S3 = Synapses(SG1, SG2, "w:1")
+    S3.connect(j="k for k in range(N_post) if v_post < 25")
+
+    S4 = Synapses(SG2, SG1, "w:1")
+    S4.connect(j="k for k in range(N_post) if v_post > 2")
+
+    S5 = Synapses(SG2, SG1, "w:1")
+    S5.connect(j="k for k in range(N_post) if v_pre < 25")
+
+    run(0 * ms)  # for standalone
+
+    # Internally, the "real" neuron indices should be used
+    assert_equal(S._synaptic_pre[:], np.arange(0, 10, 2).repeat(2))
+    assert_equal(S._synaptic_post[:], np.arange(1, 20, 2))
+    # For the user, the subgroup-relative indices should be presented
+    assert_equal(S.i[:], np.arange(5).repeat(2))
+    assert_equal(S.j[:], np.arange(10))
+
+    # N_incoming and N_outgoing should also be correct
+    assert all(S.N_outgoing[:] == 2)
+    assert all(S.N_incoming[:] == 1)
+
+    assert len(S2) == 3 * len(SG2), str(len(S2))
+    assert all(S2.v_pre[:] > 2)
+    assert len(S3) == 7 * len(SG1), f"{len(S3)} != {7 * len(SG1)} "
+    assert all(S3.v_post[:] < 25)
+
+    assert len(S4) == 3 * len(SG2), str(len(S4))
+    assert all(S4.v_post[:] > 2)
+    assert len(S5) == 7 * len(SG1), f"{len(S5)} != {7 * len(SG1)} "
+    assert all(S5.v_pre[:] < 25)
+
+
+@pytest.mark.standalone_compatible
 def test_synapse_creation_generator_multiple_synapses():
     G1 = NeuronGroup(10, "v:1")
     G2 = NeuronGroup(20, "v:1")
