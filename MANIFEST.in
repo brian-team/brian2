@@ -32,3 +32,5 @@ include brian2/codegen/runtime/numpy_rt/templates/*
 include brian2/codegen/runtime/GSLcython_rt/templates/*
 include brian2/codegen/runtime/cython_rt/templates/*
 include brian2/tests/*.ini
+include brian2/tests/*.pyx
+include brian2/tests/rallpack_data/*.0
