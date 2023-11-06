@@ -34,3 +34,4 @@ include brian2/codegen/runtime/cython_rt/templates/*
 include brian2/tests/*.ini
 include brian2/tests/*.pyx
 include brian2/tests/rallpack_data/*.0
+include brian2/tests/rallpack_data/*.x
