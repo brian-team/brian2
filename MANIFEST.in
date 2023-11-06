@@ -23,3 +23,12 @@ exclude .coveragerc
 exclude .gitattributes
 exclude .gitmodules
 include brian2/_version.py
+
+include brian2/devices/cpp_standalone/templates/*
+include brian2/devices/cpp_standalone/templates_GSL/*
+include brian2/tests/test_templates/fake_package_1/templates/*
+include brian2/tests/test_templates/fake_package_2/templates/*
+include brian2/codegen/runtime/numpy_rt/templates/*
+include brian2/codegen/runtime/GSLcython_rt/templates/*
+include brian2/codegen/runtime/cython_rt/templates/*
+include brian2/tests/*.ini
