@@ -42,7 +42,10 @@ Tracker = 'https://github.com/brian-team/brian2/issues'
 
 [tool.setuptools]
 zip-safe = false
-packages = ['brian2']
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["brian2*"]
 
 [tool.setuptools.dynamic]
 readme = {file = 'README.rst', content-type = "text/x-rst"}
