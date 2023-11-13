@@ -2774,7 +2774,7 @@ def check_units(**au):
                         value = newkeyset[k]
                         error_message = (
                             f"Function '{f.__name__}' "
-                            "expected a quantitity with unit "
+                            "expected a quantity with unit "
                             f"{unit} for argument '{k}' but got "
                             f"'{value}'"
                         )
