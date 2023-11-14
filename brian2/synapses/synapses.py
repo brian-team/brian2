@@ -1331,10 +1331,14 @@ class Synapses(Group):
             self.variables.add_reference("_target_offset", self.target, "_offset")
         else:
             self.variables.add_constant("_target_offset", value=0)
+        if "_sub_idx" in self.source.variables:
+            self.variables.add_reference("_source_sub_idx", self.source, "_sub_idx")
         if "_offset" in self.source.variables:
             self.variables.add_reference("_source_offset", self.source, "_offset")
         else:
             self.variables.add_constant("_source_offset", value=0)
+        if "_sub_idx" in self.target.variables:
+            self.variables.add_reference("_target_sub_idx", self.target, "_sub_idx")
         # To cope with connections to/from other synapses, N_incoming/N_outgoing
         # will be resized when synapses are created
         self.variables.add_dynamic_array(
@@ -1823,13 +1827,19 @@ class Synapses(Group):
         self.variables["N"].set_value(number)
 
     def _update_synapse_numbers(self, old_num_synapses):
-        source_offset = self.variables["_source_offset"].get_value()
-        target_offset = self.variables["_target_offset"].get_value()
-        # This resizing is only necessary if we are connecting to/from synapses
-        post_with_offset = self.variables["N_post"].item() + target_offset
-        pre_with_offset = self.variables["N_pre"].item() + source_offset
+        if "_source_sub_idx" in self.variables:
+            pre_with_offset = self.variables["_source_sub_idx"].get_value()[-1] + 1
+        else:
+            source_offset = self.variables["_source_offset"].get_value()
+            pre_with_offset = self.variables["N_pre"].item() + source_offset
+        if "_target_sub_idx" in self.variables:
+            post_with_offset = self.variables["_target_sub_idx"].get_value()[-1] + 1
+        else:
+            target_offset = self.variables["_target_offset"].get_value()
+            post_with_offset = self.variables["N_post"].item() + target_offset
         self.variables["N_incoming"].resize(post_with_offset)
         self.variables["N_outgoing"].resize(pre_with_offset)
+
         N_outgoing = self.variables["N_outgoing"].get_value()
         N_incoming = self.variables["N_incoming"].get_value()
         synaptic_pre = self.variables["_synaptic_pre"].get_value()
@@ -1945,9 +1955,6 @@ class Synapses(Group):
             variables.add_reference("_source_offset", self.source, "_offset")
             abstract_code += "_real_sources = sources + _source_offset\n"
         elif not getattr(self.source, "contiguous", True):
-            variables.add_reference(
-                "_source_sub_idx", self.source, "_sub_idx", index="sources"
-            )
             abstract_code += "_real_sources = _source_sub_idx\n"
         else:
             abstract_code += "_real_sources = sources\n"
@@ -1955,9 +1962,6 @@ class Synapses(Group):
             variables.add_reference("_target_offset", self.target, "_offset")
             abstract_code += "_real_targets = targets + _target_offset\n"
         elif not getattr(self.target, "contiguous", True):
-            variables.add_reference(
-                "_target_sub_idx", self.target, "_sub_idx", index="targets"
-            )
             abstract_code += "_real_targets = _target_sub_idx\n"
         else:
             abstract_code += "_real_targets = targets"
@@ -2165,7 +2169,6 @@ class Synapses(Group):
             variables.add_constant("_source_offset", value=0)
 
         if not getattr(self.source, "contiguous", True):
-            variables.add_reference("_source_sub_idx", self.source, "_sub_idx")
             needed_variables.append("_source_sub_idx")
 
         if "_offset" in self.target.variables:
@@ -2174,7 +2177,6 @@ class Synapses(Group):
             variables.add_constant("_target_offset", value=0)
 
         if not getattr(self.target, "contiguous", True):
-            variables.add_reference("_target_sub_idx", self.target, "_sub_idx")
             needed_variables.append("_target_sub_idx")
 
         variables.add_auxiliary_variable("_raw_pre_idx", dtype=np.int32)
