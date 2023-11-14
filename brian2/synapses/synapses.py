@@ -122,7 +122,7 @@ class SummedVariableUpdater(CodeRunner):
     def __init__(
         self, expression, target_varname, synapses, target, target_size_name, index_var
     ):
-        # Handling sumped variables using the standard mechanisms is not
+        # Handling summed variables using the standard mechanisms is not
         # possible, we therefore also directly give the names of the arrays
         # to the template.
 
@@ -139,14 +139,21 @@ class SummedVariableUpdater(CodeRunner):
             "_index_var": synapses.variables[index_var],
             "_target_start": getattr(target, "start", 0),
             "_target_stop": getattr(target, "stop", -1),
+            "_target_contiguous": True,
         }
+        needed_variables = [target_varname, target_size_name, index_var]
+        self.variables = Variables(synapses)
+        if not getattr(target, "contiguous", True):
+            self.variables.add_reference("_target_indices", target, "_sub_idx")
+            needed_variables.append("_target_indices")
+            template_kwds["_target_contiguous"] = False
 
         CodeRunner.__init__(
             self,
             group=synapses,
             template="summed_variable",
             code=code,
-            needed_variables=[target_varname, target_size_name, index_var],
+            needed_variables=needed_variables,
             # We want to update the summed variable before
             # the target group gets updated
             clock=target.clock,

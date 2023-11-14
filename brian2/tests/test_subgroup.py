@@ -644,20 +644,28 @@ def test_synapses_access_subgroups_problematic():
 @pytest.mark.standalone_compatible
 def test_subgroup_summed_variable():
     # Check in particular that only neurons targeted are reset to 0 (see github issue #925)
-    source = NeuronGroup(1, "")
-    target = NeuronGroup(5, "Iin : 1")
+    source = NeuronGroup(1, "x : 1")
+    target = NeuronGroup(
+        7,
+        """Iin : 1
+                                          x : 1""",
+    )
+    source.x = 5
     target.Iin = 10
+    target.x = "i"
     target1 = target[1:2]
-    target2 = target[3:]
-
-    syn1 = Synapses(source, target1, "Iin_post = 5 : 1  (summed)")
+    target2 = target[3:5]
+    target3 = target[[0, 6]]
+    syn1 = Synapses(source, target1, "Iin_post = x_pre + x_post : 1  (summed)")
     syn1.connect(True)
-    syn2 = Synapses(source, target2, "Iin_post = 1 : 1  (summed)")
+    syn2 = Synapses(source, target2, "Iin_post = x_pre + x_post : 1  (summed)")
     syn2.connect(True)
+    syn3 = Synapses(source, target3, "Iin_post = x_pre + x_post : 1  (summed)")
+    syn3.connect(True)
 
     run(2 * defaultclock.dt)
 
-    assert_array_equal(target.Iin, [10, 5, 10, 1, 1])
+    assert_array_equal(target.Iin, [5, 6, 10, 8, 9, 10, 11])
 
 
 def test_subexpression_references():
