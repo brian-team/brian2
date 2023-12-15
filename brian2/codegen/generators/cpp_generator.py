@@ -91,7 +91,6 @@ prefs.register_preferences(
 
 
 typestrs = ["int32_t", "int64_t", "float", "double", "long double"]
-floattypestrs = ["float", "double", "long double"]
 hightype_support_code = "template < typename T1, typename T2 > struct _higher_type;\n"
 for ix, xtype in enumerate(typestrs):
     for iy, ytype in enumerate(typestrs):
