@@ -2219,6 +2219,7 @@ def test_semantics_mod():
     assert_allclose(G.x[:], float_values % 98)
     assert_allclose(G.y[:], float_values % 98)
 
+
 if __name__ == "__main__":
     test_set_states()
     test_creation()
