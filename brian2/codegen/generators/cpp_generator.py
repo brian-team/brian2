@@ -111,13 +111,43 @@ _brian_mod(T1 x, T2 y)
 """
 
 floordiv_support_code = """
-
+// General template for floating point types
 template < typename T1, typename T2 >
 static inline typename _higher_type<T1,T2>::type
 _brian_floordiv(T1 x, T2 y)
 {{
     return floor(1.0*x/y);
 }}
+
+// Specific templates for integer types
+template <>
+inline int _brian_floordiv<int, int>(int a, int b) {
+    long q = a / b;
+    long r = a - q*b;
+    q -= ((r != 0) & ((r ^ b) < 0));
+    return q;
+}
+template <>
+inline long _brian_floordiv<int, long>(int a, long b) {
+    long q = a / b;
+    long r = a - q*b;
+    q -= ((r != 0) & ((r ^ b) < 0));
+    return q;
+}
+template <>
+inline long _brian_floordiv<long, int>(long a, int b) {
+    long q = a / b;
+    long r = a - q*b;
+    q -= ((r != 0) & ((r ^ b) < 0));
+    return q;
+}
+template <>
+inline long _brian_floordiv<long, long>(long a, long b) {
+    long q = a / b;
+    long r = a - q*b;
+    q -= ((r != 0) & ((r ^ b) < 0));
+    return q;
+}
 """
 
 pow_support_code = """
