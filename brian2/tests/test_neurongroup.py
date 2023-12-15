@@ -2188,7 +2188,7 @@ def test_semantics_floating_point_division():
 def test_semantics_mod():
     # See github issues #815 and #661
     G = NeuronGroup(
-        11,
+        300,
         """
         a : integer
         b : integer
@@ -2199,26 +2199,25 @@ def test_semantics_mod():
         """,
         dtype={"a": np.int32, "b": np.int64, "x": float, "y": float},
     )
-    int_values = np.arange(-5, 6)
-    float_values = np.arange(-5.0, 6.0, dtype=np.float64)
+    int_values = np.arange(-150, 150)
+    float_values = np.linspace(-100, 100, 300, dtype=np.float64)
     G.ivalue = int_values
     G.fvalue = float_values
     with catch_logs() as l:
         G.run_regularly(
             """
-            a = ivalue % 3
-            b = ivalue % 3
-            x = fvalue % 3
-            y = fvalue % 3
+            a = ivalue % 98
+            b = ivalue % 98
+            x = fvalue % 98
+            y = fvalue % 98
             """
         )
         run(defaultclock.dt)
     assert len(l) == 0
-    assert_equal(G.a[:], int_values % 3)
-    assert_equal(G.b[:], int_values % 3)
-    assert_allclose(G.x[:], float_values % 3)
-    assert_allclose(G.y[:], float_values % 3)
-
+    assert_equal(G.a[:], int_values % 98)
+    assert_equal(G.b[:], int_values % 98)
+    assert_allclose(G.x[:], float_values % 98)
+    assert_allclose(G.y[:], float_values % 98)
 
 if __name__ == "__main__":
     test_set_states()
