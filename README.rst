@@ -95,7 +95,7 @@ For full functionality, you might also want to install:
 
 To build the documentation:
 
-* Sphinx (>=1.8)
+* Sphinx (>=7)
 
 To run the test suite:
 
