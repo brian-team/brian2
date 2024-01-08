@@ -90,8 +90,7 @@ prefs.register_preferences(
 )
 
 
-typestrs = ["int", "long", "long long", "float", "double", "long double"]
-floattypestrs = ["float", "double", "long double"]
+typestrs = ["int32_t", "int64_t", "float", "double", "long double"]
 hightype_support_code = "template < typename T1, typename T2 > struct _higher_type;\n"
 for ix, xtype in enumerate(typestrs):
     for iy, ytype in enumerate(typestrs):
@@ -101,23 +100,88 @@ template < > struct _higher_type<{xtype},{ytype}> {{ typedef {hightype} type; }}
         """
 
 mod_support_code = """
-
+// General template, used for floating point types
 template < typename T1, typename T2 >
 static inline typename _higher_type<T1,T2>::type
 _brian_mod(T1 x, T2 y)
-{{
+{
     return x-y*floor(1.0*x/y);
-}}
+}
+
+// Specific implementations for integer types
+// (from Cython, see LICENSE file)
+template <>
+inline int32_t _brian_mod(int32_t x, int32_t y)
+{
+    int32_t r = x % y;
+    r += ((r != 0) & ((r ^ y) < 0)) * y;
+    return r;
+}
+
+template <>
+inline int64_t _brian_mod(int32_t x, int64_t y)
+{
+    int64_t r = x % y;
+    r += ((r != 0) & ((r ^ y) < 0)) * y;
+    return r;
+}
+
+template <>
+inline int64_t _brian_mod(int64_t x, int32_t y)
+{
+    int64_t r = x % y;
+    r += ((r != 0) & ((r ^ y) < 0)) * y;
+    return r;
+}
+
+template <>
+inline int64_t _brian_mod(int64_t x, int64_t y)
+{
+    int64_t r = x % y;
+    r += ((r != 0) & ((r ^ y) < 0)) * y;
+    return r;
+}
 """
 
 floordiv_support_code = """
-
+// General implementation, used for floating point types
 template < typename T1, typename T2 >
 static inline typename _higher_type<T1,T2>::type
 _brian_floordiv(T1 x, T2 y)
 {{
     return floor(1.0*x/y);
 }}
+
+// Specific implementations for integer types
+// (from Cython, see LICENSE file)
+template <>
+inline int32_t _brian_floordiv<int32_t, int32_t>(int32_t a, int32_t b) {
+    int32_t q = a / b;
+    int32_t r = a - q*b;
+    q -= ((r != 0) & ((r ^ b) < 0));
+    return q;
+}
+template <>
+inline int64_t _brian_floordiv<int32_t, int64_t>(int32_t a, int64_t b) {
+    int64_t q = a / b;
+    int64_t r = a - q*b;
+    q -= ((r != 0) & ((r ^ b) < 0));
+    return q;
+}
+template <>
+inline int64_t _brian_floordiv<int64_t, int>(int64_t a, int32_t b) {
+    int64_t q = a / b;
+    int64_t r = a - q*b;
+    q -= ((r != 0) & ((r ^ b) < 0));
+    return q;
+}
+template <>
+inline int64_t _brian_floordiv<int64_t, int64_t>(int64_t a, int64_t b) {
+    int64_t q = a / b;
+    int64_t r = a - q*b;
+    q -= ((r != 0) & ((r ^ b) < 0));
+    return q;
+}
 """
 
 pow_support_code = """
