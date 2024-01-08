@@ -124,7 +124,7 @@ else:
             "-mtune=native",
             "-std=c++11",
         ]
-    elif re.match("^(parisc.*|riscv.*|mips.*)$", machine):
+    elif re.match("^(parisc.*|riscv.*|mips.*|loong64.*)$", machine):
         default_buildopts = [
             "-w",
             "-O3",
