@@ -50,7 +50,7 @@ to the ``main`` binary. A call such as::
 
 will be executed by calling the compiled binary as follows:
 
-.. code-block:: verbatim
+.. code-block:: shell
 
     ./main --results_dir /full/path/to/results_1 neurongroup.tau=0.01
 
@@ -64,7 +64,7 @@ For initializations with a vector of values, the values are written to disk (in 
 binary format that is used elsewhere, e.g. for the results). The command line argument then
 specifies the file name instead of a value:
 
-.. code-block:: verbatim
+.. code-block:: shell
 
     ./main neurongroup.tau=static_arrays/init_neurongroup_v_aca4cd6a3f7e526a61bb5a07468b377e.dat
 

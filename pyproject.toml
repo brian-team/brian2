@@ -32,7 +32,7 @@ classifiers = [
 
 [project.optional-dependencies]
 test = ['pytest', 'pytest-xdist>=1.22.3']
-docs = ['sphinx>=1.8', 'ipython>=5', 'sphinx-tabs']
+docs = ['sphinx>=7', 'ipython>=5', 'sphinx-tabs']
 
 [project.urls]
 Homepage = 'https://briansimulator.org'
