@@ -58,9 +58,9 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
         :target: https://brian.discourse.group
         :alt: Discourse topics
 
-.. image:: https://badges.gitter.im/Join%20Chat.svg
-   :alt: Join the chat at https://gitter.im/brian-team/brian2
-   :target: https://gitter.im/brian-team/brian2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+.. image:: https://img.shields.io/badge/discourse-chat-4EC820?logo=discourse&link=https%3A%2F%2Fbrian.discourse.group%2Fchat
+   :alt: Discourse chat
+   :target: https://brian.discourse.group/chat
 
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
