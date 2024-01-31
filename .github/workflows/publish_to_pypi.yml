@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest, macOS-latest ]
+        os: [ windows-latest, macOS-12, macOS-14 ]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -37,9 +37,8 @@ jobs:
           output-dir: dist
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
-          CIBW_ARCHS_WINDOWS: auto64
-          CIBW_ARCHS_MACOS: x86_64 universal2
-          CIBW_TEST_SKIP: '*_arm64 *_universal2:arm64'
+          CIBW_ARCHS: auto64
+          # Do not build for PyPy
           CIBW_SKIP: 'pp*'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest

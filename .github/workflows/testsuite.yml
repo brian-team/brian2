@@ -38,16 +38,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-11]
+        os: [ubuntu-22.04, windows-2022, macOS-12, macOS-14]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             standalone: false
             python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             standalone: true
             python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
