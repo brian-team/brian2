@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install GSL
@@ -52,7 +52,7 @@ jobs:
           token: ${{ github.token }}
       - name: Install Python
         id: python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
@@ -85,7 +85,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install GSL
@@ -99,7 +99,7 @@ jobs:
           token: ${{ github.token }}
       - name: Install Python
         id: python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
