@@ -66,15 +66,14 @@ jobs:
         with:
           auto-update-conda: true
           auto-activate-base: false
-          channels: conda-forge,defaults
-          channel-priority: true
+          miniforge-version: latest
           activate-environment: 'test_env'
           python-version: ${{ matrix.python-version }}
 
       - name: Install Brian2 and dependencies
         run: |
-          conda install -n test_env --quiet --yes -c conda-forge pip pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
-          pip install .
+          conda install --quiet --yes pip gsl
+          python -m pip install .[test] coverage
 
       - name: Run Tests
         run: |
@@ -130,8 +129,7 @@ jobs:
       with:
         auto-update-conda: true
         auto-activate-base: false
-        channels: conda-forge,defaults
-        channel-priority: true
+        miniforge-version: latest
         activate-environment: 'test_env'
         python-version: "${{ needs.get_python_versions.outputs.max-python }}"
 
