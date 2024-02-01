@@ -20,8 +20,8 @@ jobs:
     name: Run linters with pre-commit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -38,16 +38,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-11]
+        os: [ubuntu-22.04, windows-2022, macOS-12, macOS-14]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             standalone: false
             python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             standalone: true
             python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
@@ -57,24 +57,23 @@ jobs:
         shell: bash -l {0}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Conda and Python
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           auto-activate-base: false
-          channels: conda-forge,defaults
-          channel-priority: true
+          miniforge-version: latest
           activate-environment: 'test_env'
           python-version: ${{ matrix.python-version }}
 
       - name: Install Brian2 and dependencies
         run: |
-          conda install -n test_env --quiet --yes -c conda-forge pip pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
-          pip install .
+          conda install --quiet --yes pip gsl
+          python -m pip install .[test] coverage
 
       - name: Run Tests
         run: |
@@ -120,18 +119,17 @@ jobs:
         shell: bash -l {0}
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: true
 
     - name: Setup Conda and Python
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
         auto-activate-base: false
-        channels: conda-forge,defaults
-        channel-priority: true
+        miniforge-version: latest
         activate-environment: 'test_env'
         python-version: "${{ needs.get_python_versions.outputs.max-python }}"
 

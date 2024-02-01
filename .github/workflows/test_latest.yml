@@ -30,14 +30,15 @@ jobs:
       matrix:
         os: [{image: ubuntu-latest, triplet: x64-linux},
              {image: windows-latest, triplet: x64-windows},
-             {image: macOS-latest, triplet: x64-osx}]
+             {image: macOS-12, triplet: x64-osx},
+             {image: macOS-14, truplet: arm64-osx}]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install GSL
@@ -51,7 +52,7 @@ jobs:
           token: ${{ github.token }}
       - name: Install Python
         id: python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
@@ -84,7 +85,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install GSL
@@ -98,7 +99,7 @@ jobs:
           token: ${{ github.token }}
       - name: Install Python
         id: python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}

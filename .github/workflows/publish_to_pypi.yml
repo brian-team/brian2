@@ -22,24 +22,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest, macOS-latest ]
+        os: [ windows-latest, macOS-12, macOS-14 ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python 3.x
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.16.5
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.12.1
-        with:
-          output-dir: dist
+        run: python -m cibuildwheel --output-dir dist
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
-          CIBW_ARCHS_WINDOWS: auto64
-          CIBW_ARCHS_MACOS: x86_64 universal2
-          CIBW_TEST_SKIP: '*_arm64 *_universal2:arm64'
+          CIBW_ARCHS: auto64
+          # Do not build for PyPy
           CIBW_SKIP: 'pp*'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
@@ -58,11 +57,11 @@ jobs:
       matrix:
         arch: [ auto64, aarch64 ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python 3.x
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Build source tarball
@@ -75,10 +74,10 @@ jobs:
         uses: docker/setup-qemu-action@v2
         with:
           platforms: all
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.16.5
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.12.1
-        with:
-          output-dir: dist
+        run: python -m cibuildwheel --output-dir dist
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
