@@ -198,16 +198,30 @@ def arange(*args, **kwargs):
         step=step,
     )
     dim = getattr(stop, "dim", DIMENSIONLESS)
-    return Quantity(
-        np.arange(
-            start=np.asarray(start),
-            stop=np.asarray(stop),
-            step=np.asarray(step),
-            **kwargs,
-        ),
-        dim=dim,
-        copy=False,
-    )
+    # start is a position-only argument in numpy 2.0
+    # https://numpy.org/devdocs/release/2.0.0-notes.html#arange-s-start-argument-is-positional-only
+    # TODO: check whether this is still the case in the final release
+    if start == 0:
+        return Quantity(
+            np.arange(
+                stop=np.asarray(stop),
+                step=np.asarray(step),
+                **kwargs,
+            ),
+            dim=dim,
+            copy=False,
+        )
+    else:
+        return Quantity(
+            np.arange(
+                np.asarray(start),
+                stop=np.asarray(stop),
+                step=np.asarray(step),
+                **kwargs,
+            ),
+            dim=dim,
+            copy=False,
+        )
 
 
 arange._do_not_run_doctests = True
