@@ -187,6 +187,24 @@ def test_bool_to_int():
     assert_equal(s_mon.intexpr2.flatten(), [1, 0])
 
 
+@pytest.mark.standalone_compatible
+def test_integer_power():
+    # See github issue #1500
+    G = NeuronGroup(
+        3,
+        """
+        intval1 : integer
+        intval2 : integer
+        k : integer (constant)
+        """,
+    )
+    G.k = [0, 1, 2]
+    G.run_regularly("intval1 = 2**k; intval2 = (-1)**k")
+    run(defaultclock.dt)
+    assert_equal(G.intval1[:], [1, 2, 4])
+    assert_equal(G.intval2[:], [1, -1, 1])
+
+
 @pytest.mark.codegen_independent
 def test_timestep_function():
     dt = defaultclock.dt_
