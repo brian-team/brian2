@@ -3,6 +3,7 @@
 #cython: boundscheck=False
 #cython: wraparound=False
 #cython: cdivision=False
+#cython: cpow=True
 #cython: infer_types=True
 {% endmacro %}
 
