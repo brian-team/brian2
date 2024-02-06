@@ -38,6 +38,11 @@ example that creates a single neuron and connects a `StateMonitor` to record
 the voltage.
 
 For more details see the `discussion in the Brian forum <https://brian.discourse.group/t/multiprocessing-in-standalone-mode/142/2>`_.
+
+Note that Python's `multiprocessing` module cannot deal with user-defined functions (including `TimedArray`) and other
+complex code structures. If you run into `PicklingError` or `AttributeError` exceptions, you might
+have to use the `pathos` (https://pypi.org/project/pathos) package instead, which can handle more complex
+code structures.
 """
 import os
 import multiprocessing

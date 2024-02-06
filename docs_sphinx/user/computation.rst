@@ -294,6 +294,12 @@ with different (deterministic) initial values for ``v``::
             # Run 10 simulations in parallel
             results = p.map(sim.do_run, np.linspace(0, 1, 10))
 
+.. note::
+
+    Python's `multiprocessing` module cannot deal with user-defined functions (including `~.TimedArray`) and other
+    complex code structures. If you run into `~.pickle.PicklingError` or `AttributeError` exceptions, you might
+    have to use the `pathos` (https://pypi.org/project/pathos) package instead, which can handle more complex
+    code structures.
 
 Limitations
 ~~~~~~~~~~~
