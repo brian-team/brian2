@@ -1198,7 +1198,7 @@ class Quantity(np.ndarray):
 
         return array
 
-    def __array_wrap__(self, array, context=None):
+    def __array_wrap__(self, array, context=None, return_scalar=False):
         dim = DIMENSIONLESS
 
         if context is not None:
