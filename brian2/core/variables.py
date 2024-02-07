@@ -1359,13 +1359,15 @@ class VariableView:
             else:
                 return array
 
-    def __array_wrap__(self, out_arr, context=None):
+    def __array_wrap__(self, out_arr, context=None, return_scalar=False):
         if self.dim is None:
             return out_arr
         else:
             this = self[:]
             if isinstance(this, Quantity):
-                return Quantity.__array_wrap__(self[:], out_arr, context=context)
+                return Quantity.__array_wrap__(
+                    self[:], out_arr, context=context, return_scalar=return_scalar
+                )
             else:
                 return out_arr
 
