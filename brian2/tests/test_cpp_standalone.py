@@ -844,6 +844,7 @@ def test_change_parameter_without_recompile_dict_syntax():
             G.n: ar,
             G.b: np.arange(10) % 2 != 0,
             stim: ar2,
+            on_off: [False, True, False],
         }
     )
     assert array_equal(G.x, ar)
@@ -854,9 +855,9 @@ def test_change_parameter_without_recompile_dict_syntax():
         mon.s.T / nA,
         np.array(
             [
-                [0, 2, 4, 6, 8, 10, 12, 14, 16, 18],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # on_off(t) == False
-                [40, 42, 44, 46, 48, 50, 52, 54, 56, 58],
+                [20, 22, 24, 26, 28, 30, 32, 34, 36, 38],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # on_off(t) == False
             ]
         ),
     )
