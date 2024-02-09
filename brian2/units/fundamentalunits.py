@@ -87,6 +87,7 @@ UFUNCS_PRESERVE_DIMENSIONS = [
     "absolute",
     "rint",
     "negative",
+    "positive",
     "conj",
     "conjugate",
     "floor",
@@ -795,6 +796,7 @@ def get_dimensions(obj):
         # The following is not very pretty, but it will avoid the costly
         # isinstance check for the common types
         if type(obj) in [
+            bool,
             int,
             float,
             np.int32,
@@ -802,6 +804,7 @@ def get_dimensions(obj):
             np.float32,
             np.float64,
             np.ndarray,
+            np.bool_,
         ] or isinstance(obj, (numbers.Number, np.number, np.ndarray)):
             return DIMENSIONLESS
         try:
@@ -1116,44 +1119,107 @@ class Quantity(np.ndarray):
     def __array_finalize__(self, orig):
         self.dim = getattr(orig, "dim", DIMENSIONLESS)
 
-    def __array_prepare__(self, array, context=None):
-        if context is None:
-            return array
-
-        uf, args, _ = context
-
-        if uf.__name__ in (
-            UFUNCS_PRESERVE_DIMENSIONS + UFUNCS_CHANGE_DIMENSIONS + UFUNCS_LOGICAL
-        ):
-            # always allowed
-            pass
+    def __array_ufunc__(self, uf, method, *inputs, **kwargs):
+        if method not in ("__call__", "reduce"):
+            return NotImplemented
+        uf_method = getattr(uf, method)
+        if "out" in kwargs:
+            # In contrast to numpy, we will not change a scalar value in-place,
+            # i.e. a scalar Quantity will act like a Python float and not like
+            # a numpy scalar in that regard.
+            if self.ndim == 0:
+                del kwargs["out"]
+            else:
+                # The output needs to be an array to avoid infinite recursion
+                # Note that it is also part of the input arguments, so we don't
+                # need to check its dimensions
+                assert len(kwargs["out"]) == 1
+                kwargs["out"] = (
+                    np.array(
+                        kwargs["out"][0],
+                        copy=False,
+                    ),
+                )
+        if uf.__name__ in (UFUNCS_LOGICAL + ["sign", "ones_like"]):
+            # do not touch return value
+            return uf_method(*[np.array(a, copy=False) for a in inputs], **kwargs)
+        elif uf.__name__ in UFUNCS_PRESERVE_DIMENSIONS:
+            return Quantity(
+                uf_method(*[np.array(a, copy=False) for a in inputs], **kwargs),
+                dim=self.dim,
+            )
+        elif uf.__name__ in UFUNCS_CHANGE_DIMENSIONS + ["power"]:
+            if uf.__name__ == "sqrt":
+                dim = self.dim**0.5
+            elif uf.__name__ == "power":
+                fail_for_dimension_mismatch(
+                    inputs[1],
+                    error_message=(
+                        "The exponent for a "
+                        "power operation has to "
+                        "be dimensionless but "
+                        "was {value}"
+                    ),
+                    value=inputs[1],
+                )
+                if np.array(inputs[1], copy=False).size != 1:
+                    raise TypeError(
+                        "Only length-1 arrays can be used as an exponent for"
+                        " quantities."
+                    )
+                dim = get_dimensions(inputs[0]) ** np.array(inputs[1], copy=False)
+            elif uf.__name__ == "square":
+                dim = self.dim**2
+            elif uf.__name__ in ("divide", "true_divide", "floor_divide"):
+                dim = get_dimensions(inputs[0]) / get_dimensions(inputs[1])
+            elif uf.__name__ == "reciprocal":
+                dim = get_dimensions(inputs[0]) ** -1
+            elif uf.__name__ in ("multiply", "dot", "matmul"):
+                if method == "__call__":
+                    dim = get_dimensions(inputs[0]) * get_dimensions(inputs[1])
+                else:
+                    dim = get_dimensions(inputs[0])
+            else:
+                return NotImplemented
+            return Quantity(
+                uf_method(*[np.array(a, copy=False) for a in inputs], **kwargs), dim=dim
+            )
         elif uf.__name__ in UFUNCS_INTEGERS:
             # Numpy should already raise a TypeError by itself
             raise TypeError(f"{uf.__name__} cannot be used on quantities.")
         elif uf.__name__ in UFUNCS_MATCHING_DIMENSIONS + UFUNCS_COMPARISONS:
-            # Ok if dimension of arguments match
-            fail_for_dimension_mismatch(
-                args[0],
-                args[1],
-                error_message=(
-                    "Cannot calculate {val1} %s {val2}, the units do not match"
+            # Ok if dimension of arguments match (for reductions, they always do)
+            if method == "__call__":
+                fail_for_dimension_mismatch(
+                    inputs[0],
+                    inputs[1],
+                    error_message=(
+                        "Cannot calculate {val1} %s {val2}, the units do not match"
+                    )
+                    % uf.__name__,
+                    val1=inputs[0],
+                    val2=inputs[1],
                 )
-                % uf.__name__,
-                val1=args[0],
-                val2=args[1],
-            )
+            if uf.__name__ in UFUNCS_COMPARISONS:
+                return uf_method(*[np.array(i, copy=False) for i in inputs], **kwargs)
+            else:
+                return Quantity(
+                    uf_method(*[np.array(i, copy=False) for i in inputs], **kwargs),
+                    dim=self.dim,
+                )
         elif uf.__name__ in UFUNCS_DIMENSIONLESS:
             # Ok if argument is dimensionless
             fail_for_dimension_mismatch(
-                args[0],
+                inputs[0],
                 error_message="%s expects a dimensionless argument but got {value}"
                 % uf.__name__,
-                value=args[0],
+                value=inputs[0],
             )
+            return uf_method(np.asarray(inputs[0], copy=False), *inputs[1:], **kwargs)
         elif uf.__name__ in UFUNCS_DIMENSIONLESS_TWOARGS:
             # Ok if both arguments are dimensionless
             fail_for_dimension_mismatch(
-                args[0],
+                inputs[0],
                 error_message=(
                     "Both arguments for "
                     '"%s" should be '
@@ -1162,10 +1228,10 @@ class Quantity(np.ndarray):
                     "{value}"
                 )
                 % uf.__name__,
-                value=args[0],
+                value=inputs[0],
             )
             fail_for_dimension_mismatch(
-                args[1],
+                inputs[1],
                 error_message=(
                     "Both arguments for "
                     '"%s" should be '
@@ -1174,70 +1240,16 @@ class Quantity(np.ndarray):
                     "{value}"
                 )
                 % uf.__name__,
-                value=args[1],
+                value=inputs[1],
             )
-        elif uf.__name__ == "power":
-            fail_for_dimension_mismatch(
-                args[1],
-                error_message=(
-                    "The exponent for a "
-                    "power operation has to "
-                    "be dimensionless but "
-                    "was {value}"
-                ),
-                value=args[1],
+            return uf_method(
+                np.array(inputs[0], copy=False),
+                np.array(inputs[1], copy=False),
+                *inputs[2:],
+                **kwargs,
             )
-            if np.array(args[1], copy=False).size != 1:
-                raise TypeError(
-                    "Only length-1 arrays can be used as an exponent for quantities."
-                )
-        elif uf.__name__ in ("sign", "ones_like"):
-            return np.array(array, copy=False)
         else:
-            warn(f"Unknown ufunc '{uf.__name__}' in __array_prepare__")
-
-        return array
-
-    def __array_wrap__(self, array, context=None, return_scalar=False):
-        dim = DIMENSIONLESS
-
-        if context is not None:
-            uf, args, _ = context
-            if uf.__name__ in (UFUNCS_PRESERVE_DIMENSIONS + UFUNCS_MATCHING_DIMENSIONS):
-                dim = self.dim
-            elif uf.__name__ in (UFUNCS_DIMENSIONLESS + UFUNCS_DIMENSIONLESS_TWOARGS):
-                # We should have been arrived here only for dimensionless
-                # quantities
-                dim = DIMENSIONLESS
-            elif uf.__name__ in (
-                UFUNCS_COMPARISONS + UFUNCS_LOGICAL + ["sign", "ones_like"]
-            ):
-                # Do not touch the return value (boolean or integer array)
-                return array
-            elif uf.__name__ == "sqrt":
-                dim = self.dim**0.5
-            elif uf.__name__ == "power":
-                dim = get_dimensions(args[0]) ** np.array(args[1], copy=False)
-            elif uf.__name__ == "square":
-                dim = self.dim**2
-            elif uf.__name__ in ("divide", "true_divide", "floor_divide"):
-                dim = get_dimensions(args[0]) / get_dimensions(args[1])
-            elif uf.__name__ == "reciprocal":
-                dim = get_dimensions(args[0]) ** -1
-            elif uf.__name__ in ("multiply", "dot", "matmul"):
-                dim = get_dimensions(args[0]) * get_dimensions(args[1])
-            else:
-                warn(f"Unknown ufunc '{uf.__name__}' in __array_wrap__")
-                # TODO: Remove units in this case?
-
-        # This seems to be better than using type(self) instead of quantity
-        # This may convert units to Quantities, e.g. np.square(volt) leads to
-        # a 1 * volt ** 2 quantitiy instead of volt ** 2. But this should
-        # rarely be an issue. The alternative leads to more confusing
-        # behaviour: np.float64(3) * mV would result in a dimensionless float64
-        result = array.view(Quantity)
-        result.dim = dim
-        return result
+            return NotImplemented
 
     def __deepcopy__(self, memo):
         return Quantity(self, copy=True)
@@ -1487,228 +1499,6 @@ class Quantity(np.ndarray):
     def __setitem__(self, key, value):
         fail_for_dimension_mismatch(self, value, "Inconsistent units in assignment")
         return super().__setitem__(key, value)
-
-    #### ARITHMETIC ####
-    def _binary_operation(
-        self,
-        other,
-        operation,
-        dim_operation=lambda a, b: a,
-        fail_for_mismatch=False,
-        operator_str=None,
-        inplace=False,
-    ):
-        """
-        General implementation for binary operations.
-
-        Parameters
-        ----------
-        other : {`Quantity`, `ndarray`, scalar}
-            The object with which the operation should be performed.
-        operation : function of two variables
-            The function with which the two objects are combined. For example,
-            `operator.mul` for a multiplication.
-        dim_operation : function of two variables, optional
-            The function with which the dimension of the resulting object is
-            calculated (as a function of the dimensions of the two involved
-            objects). For example, `operator.mul` for a multiplication. If not
-            specified, the dimensions of `self` are used for the resulting
-            object.
-        fail_for_mismatch : bool, optional
-            Whether to fail for a dimension mismatch between `self` and `other`
-            (defaults to ``False``)
-        operator_str : str, optional
-            The string to use for the operator in an error message.
-        inplace: bool, optional
-            Whether to do the operation in-place (defaults to ``False``).
-
-        Notes
-        -----
-        For in-place operations on scalar values, a copy of the original object
-        is returned, i.e. it rather works like a fundamental Python type and
-        not like a numpy array scalar, preventing weird effects when a reference
-        to the same value was stored in another variable. See github issue #469.
-        """
-        other_dim = None
-
-        if fail_for_mismatch:
-            if inplace:
-                message = (
-                    "Cannot calculate ... %s {value}, units do not match" % operator_str
-                )
-                _, other_dim = fail_for_dimension_mismatch(
-                    self, other, message, value=other
-                )
-            else:
-                message = (
-                    "Cannot calculate {value1} %s {value2}, units do not match"
-                    % operator_str
-                )
-                _, other_dim = fail_for_dimension_mismatch(
-                    self, other, message, value1=self, value2=other
-                )
-
-        if other_dim is None:
-            other_dim = get_dimensions(other)
-
-        if inplace:
-            if self.shape == ():
-                self_value = Quantity(self, copy=True)
-            else:
-                self_value = self
-            operation(self_value, other)
-            self_value.dim = dim_operation(self.dim, other_dim)
-            return self_value
-        else:
-            newdims = dim_operation(self.dim, other_dim)
-            self_arr = np.array(self, copy=False)
-            other_arr = np.array(other, copy=False)
-            result = operation(self_arr, other_arr)
-            return Quantity(result, newdims)
-
-    def __mul__(self, other):
-        return self._binary_operation(other, operator.mul, operator.mul)
-
-    def __rmul__(self, other):
-        return self.__mul__(other)
-
-    def __imul__(self, other):
-        return self._binary_operation(
-            other, np.ndarray.__imul__, operator.mul, inplace=True
-        )
-
-    def __div__(self, other):
-        return self._binary_operation(other, operator.truediv, operator.truediv)
-
-    def __truediv__(self, other):
-        return self.__div__(other)
-
-    def __rdiv__(self, other):
-        # division with swapped arguments
-        rdiv = lambda a, b: operator.truediv(b, a)
-        return self._binary_operation(other, rdiv, rdiv)
-
-    def __rtruediv__(self, other):
-        return self.__rdiv__(other)
-
-    def __idiv__(self, other):
-        return self._binary_operation(
-            other, np.ndarray.__itruediv__, operator.truediv, inplace=True
-        )
-
-    def __itruediv__(self, other):
-        return self._binary_operation(
-            other, np.ndarray.__itruediv__, operator.truediv, inplace=True
-        )
-
-    def __mod__(self, other):
-        return self._binary_operation(
-            other, operator.mod, fail_for_mismatch=True, operator_str=r"%"
-        )
-
-    def __add__(self, other):
-        return self._binary_operation(
-            other, operator.add, fail_for_mismatch=True, operator_str="+"
-        )
-
-    def __radd__(self, other):
-        return self.__add__(other)
-
-    def __iadd__(self, other):
-        return self._binary_operation(
-            other,
-            np.ndarray.__iadd__,
-            fail_for_mismatch=True,
-            operator_str="+=",
-            inplace=True,
-        )
-
-    def __sub__(self, other):
-        return self._binary_operation(
-            other, operator.sub, fail_for_mismatch=True, operator_str="-"
-        )
-
-    def __rsub__(self, other):
-        # We allow operations with 0 even for dimension mismatches, e.g.
-        # 0 - 3*mV is allowed. In this case, the 0 is not represented by a
-        # Quantity object so we cannot simply call Quantity.__sub__
-        if (not isinstance(other, Quantity) or other.dim is DIMENSIONLESS) and np.all(
-            other == 0
-        ):
-            return self.__neg__()
-        else:
-            return Quantity(other, copy=False, force_quantity=True).__sub__(self)
-
-    def __isub__(self, other):
-        return self._binary_operation(
-            other,
-            np.ndarray.__isub__,
-            fail_for_mismatch=True,
-            operator_str="-=",
-            inplace=True,
-        )
-
-    def __pow__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(
-                other,
-                error_message=(
-                    "Cannot calculate "
-                    "{base} ** {exponent}, "
-                    "the exponent has to be "
-                    "dimensionless"
-                ),
-                base=self,
-                exponent=other,
-            )
-            other = np.array(other, copy=False)
-            return Quantity(np.array(self, copy=False) ** other, self.dim**other)
-        else:
-            return NotImplemented
-
-    def __rpow__(self, other):
-        if self.is_dimensionless:
-            if isinstance(other, np.ndarray) or isinstance(other, np.ndarray):
-                new_array = np.array(other, copy=False) ** np.array(self, copy=False)
-                return Quantity(new_array, DIMENSIONLESS)
-            else:
-                return NotImplemented
-        else:
-            base = _short_str(other)
-            exponent = _short_str(self)
-            raise DimensionMismatchError(
-                f"Cannot calculate {base} ** {exponent}, "
-                "the exponent has to be dimensionless.",
-                self.dim,
-            )
-
-    def __ipow__(self, other):
-        if isinstance(other, np.ndarray) or is_scalar_type(other):
-            fail_for_dimension_mismatch(
-                other,
-                error_message=(
-                    "Cannot calculate "
-                    "... **= {exponent}, "
-                    "the exponent has to be "
-                    "dimensionless"
-                ),
-                exponent=other,
-            )
-            other = np.array(other, copy=False)
-            super().__ipow__(other)
-            self.dim = self.dim**other
-            return self
-        else:
-            return NotImplemented
-
-    def __neg__(self):
-        return Quantity(-np.array(self, copy=False), self.dim)
-
-    def __pos__(self):
-        return self
-
-    def __abs__(self):
-        return Quantity(abs(np.array(self, copy=False)), self.dim)
 
     def tolist(self):
         """
@@ -2311,74 +2101,103 @@ class Unit(Quantity):
     def _repr_latex_(self):
         return f"${latex(self)}$"
 
-    #### ARITHMETIC ####
-    def __mul__(self, other):
-        if isinstance(other, Unit):
-            name = f"{self.name} * {other.name}"
-            dispname = f"{self.dispname} {other.dispname}"
-            latexname = f"{self.latexname}\\,{other.latexname}"
-            scale = self.scale + other.scale
-            u = Unit(
-                10.0**scale,
-                dim=self.dim * other.dim,
-                name=name,
-                dispname=dispname,
-                latexname=latexname,
-                iscompound=True,
-                scale=scale,
-            )
-            return u
-        else:
-            return super().__mul__(other)
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if method != "__call__":
+            return NotImplemented
 
-    def __rmul__(self, other):
-        return self.__mul__(other)
-
-    def __div__(self, other):
-        if isinstance(other, Unit):
-            if self.iscompound:
-                dispname = f"({self.dispname})"
-                name = f"({self.name})"
+        if ufunc.__name__ == "multiply":
+            first, second = inputs
+            if isinstance(first, Unit) and isinstance(second, Unit):
+                name = f"{first.name} * {second.name}"
+                dispname = f"{self.dispname} {second.dispname}"
+                latexname = f"{first.latexname}\\,{second.latexname}"
+                scale = first.scale + second.scale
+                u = Unit(
+                    10.0**scale,
+                    dim=first.dim * second.dim,
+                    name=name,
+                    dispname=dispname,
+                    latexname=latexname,
+                    iscompound=True,
+                    scale=scale,
+                )
+                return u
             else:
-                dispname = self.dispname
-                name = self.name
-            dispname += "/"
-            name += " / "
-            if other.iscompound:
-                dispname += f"({other.dispname})"
-                name += f"({other.name})"
+                return ufunc(
+                    *[
+                        Quantity(i, dim=getattr(i, "dim", DIMENSIONLESS))
+                        for i in inputs
+                    ],
+                    **kwargs,
+                )
+        elif ufunc.__name__ == "divide":
+            first, second = inputs
+            if isinstance(first, Unit) and isinstance(second, Unit):
+                if first.iscompound:
+                    dispname = f"({self.dispname})"
+                    name = f"({self.name})"
+                else:
+                    dispname = self.dispname
+                    name = self.name
+                dispname += "/"
+                name += " / "
+                if second.iscompound:
+                    dispname += f"({second.dispname})"
+                    name += f"({second.name})"
+                else:
+                    dispname += second.dispname
+                    name += second.name
+
+                latexname = rf"\frac{{{first.latexname}}}{{{second.latexname}}}"
+                scale = first.scale - second.scale
+                u = Unit(
+                    10.0**scale,
+                    dim=first.dim / second.dim,
+                    name=name,
+                    dispname=dispname,
+                    latexname=latexname,
+                    scale=scale,
+                    iscompound=True,
+                )
+                return u
+            elif is_dimensionless(first) and np.array(first).shape == () and first == 1:
+                return np.reciprocal(second)
             else:
-                dispname += other.dispname
-                name += other.name
-
-            latexname = rf"\frac{{{self.latexname}}}{{{other.latexname}}}"
-            scale = self.scale - other.scale
-            u = Unit(
-                10.0**scale,
-                dim=self.dim / other.dim,
-                name=name,
-                dispname=dispname,
-                latexname=latexname,
-                scale=scale,
-                iscompound=True,
-            )
-            return u
-        else:
-            return super().__div__(other)
-
-    def __rdiv__(self, other):
-        if isinstance(other, Unit):
-            return other.__div__(self)
-        else:
-            try:
-                if is_dimensionless(other) and other == 1:
-                    return self**-1
-            except (ValueError, TypeError, DimensionMismatchError):
-                pass
-            return super().__rdiv__(other)
-
-    def __pow__(self, other):
-        if is_scalar_type(other):
+                return ufunc(
+                    *[
+                        Quantity(i, dim=getattr(i, "dim", DIMENSIONLESS))
+                        for i in inputs
+                    ],
+                    **kwargs,
+                )
+        elif ufunc.__name__ == "power":
+            first, second = inputs
+            if is_scalar_type(second):
+                if first.iscompound:
+                    dispname = f"({first.dispname})"
+                    name = f"({first.name})"
+                    latexname = r"\left(%s\right)" % first.latexname
+                else:
+                    dispname = first.dispname
+                    name = first.name
+                    latexname = first.latexname
+                dispname += f"^{str(second)}"
+                name += f" ** {repr(second)}"
+                latexname += "^{%s}" % latex(second)
+                scale = first.scale * second
+                u = Unit(
+                    10.0**scale,
+                    dim=first.dim**second,
+                    name=name,
+                    dispname=dispname,
+                    latexname=latexname,
+                    scale=scale,
+                    iscompound=True,
+                )  # To avoid issues with units like (second ** -1) ** -1
+                return u
+            else:
+                return super().__pow__(second)
+        elif ufunc.__name__ == "square":
             if self.iscompound:
                 dispname = f"({self.dispname})"
                 name = f"({self.name})"
@@ -2387,22 +2206,69 @@ class Unit(Quantity):
                 dispname = self.dispname
                 name = self.name
                 latexname = self.latexname
-            dispname += f"^{str(other)}"
-            name += f" ** {repr(other)}"
-            latexname += "^{%s}" % latex(other)
-            scale = self.scale * other
+            dispname += "^2"
+            name += " ** 2"
+            latexname += "^2"
+            scale = self.scale * 2
             u = Unit(
                 10.0**scale,
-                dim=self.dim**other,
+                dim=self.dim**2,
                 name=name,
                 dispname=dispname,
                 latexname=latexname,
                 scale=scale,
                 iscompound=True,
-            )  # To avoid issues with units like (second ** -1) ** -1
+            )
+            return u
+        elif ufunc.__name__ == "sqrt":
+            if self.iscompound:
+                dispname = f"({self.dispname})"
+                name = f"({self.name})"
+                latexname = r"\left(%s\right)" % self.latexname
+            else:
+                dispname = self.dispname
+                name = self.name
+                latexname = self.latexname
+            dispname += "^0.5"
+            name += " ** 0.5"
+            latexname += "^0.5"
+            scale = self.scale / 2
+            u = Unit(
+                10.0**scale,
+                dim=self.dim**0.5,
+                name=name,
+                dispname=dispname,
+                latexname=latexname,
+                scale=scale,
+                iscompound=True,
+            )
+            return u
+        elif ufunc.__name__ == "reciprocal":
+            if self.iscompound:
+                dispname = f"({self.dispname})"
+                name = f"({self.name})"
+                latexname = r"\left(%s\right)" % self.latexname
+            else:
+                dispname = self.dispname
+                name = self.name
+                latexname = self.latexname
+            dispname += "^-1"
+            name += " ** -1"
+            latexname += "^{-1}"
+            scale = -self.scale
+            u = Unit(
+                10.0**scale,
+                dim=self.dim**-1,
+                name=name,
+                dispname=dispname,
+                latexname=latexname,
+                scale=scale,
+                iscompound=True,
+            )
             return u
         else:
-            return super().__pow__(other)
+            # Treat the unit as a Quantity (e.g. meter + meter should not fail but give 2*meter)
+            return super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
 
     def __iadd__(self, other):
         raise TypeError("Units cannot be modified in-place")
@@ -2707,7 +2573,7 @@ def check_units(**au):
             arg_names = f.__code__.co_varnames[0 : f.__code__.co_argcount]
             for n, v in zip(arg_names, args[0 : f.__code__.co_argcount]):
                 if (
-                    not isinstance(v, (Quantity, str, bool))
+                    not isinstance(v, (Quantity, str, bool, np.bool_))
                     and v is not None
                     and n in au
                 ):
@@ -2737,8 +2603,8 @@ def check_units(**au):
                     and not newkeyset[k] is None
                     and not au[k] is None
                 ):
-                    if au[k] == bool:
-                        if not isinstance(newkeyset[k], bool):
+                    if au[k] in (bool, np.bool_):
+                        if not isinstance(newkeyset[k], (bool, np.bool_)):
                             value = newkeyset[k]
                             error_message = (
                                 f"Function '{f.__name__}' "
@@ -2784,12 +2650,15 @@ def check_units(**au):
 
             result = f(*args, **kwds)
             if "result" in au:
-                if isinstance(au["result"], Callable) and au["result"] != bool:
+                if isinstance(au["result"], Callable) and au["result"] not in (
+                    bool,
+                    np.bool_,
+                ):
                     expected_result = au["result"](*[get_dimensions(a) for a in args])
                 else:
                     expected_result = au["result"]
-                if au["result"] == bool:
-                    if not isinstance(result, bool):
+                if au["result"] in (bool, np.bool_):
+                    if not isinstance(result, (bool, np.bool_)):
                         error_message = (
                             "The return value of function "
                             f"'{f.__name__}' was expected to be "

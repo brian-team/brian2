@@ -836,6 +836,8 @@ class VariableView:
         ``G.var_``).
     """
 
+    __array_priority__ = 10
+
     def __init__(self, name, variable, group, dimensions=None):
         self.name = name
         self.variable = variable
@@ -1349,27 +1351,11 @@ class VariableView:
             )
         return np.asanyarray(self[:], dtype=dtype)
 
-    def __array_prepare__(self, array, context=None):
-        if self.dim is None:
-            return array
+    def __array__ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if method == "__call__":
+            return ufunc(self[:], *inputs, **kwargs)
         else:
-            this = self[:]
-            if isinstance(this, Quantity):
-                return Quantity.__array_prepare__(this, array, context=context)
-            else:
-                return array
-
-    def __array_wrap__(self, out_arr, context=None, return_scalar=False):
-        if self.dim is None:
-            return out_arr
-        else:
-            this = self[:]
-            if isinstance(this, Quantity):
-                return Quantity.__array_wrap__(
-                    self[:], out_arr, context=context, return_scalar=return_scalar
-                )
-            else:
-                return out_arr
+            return NotImplemented
 
     def __len__(self):
         return len(self.get_item(slice(None), level=1))
