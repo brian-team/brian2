@@ -1100,10 +1100,7 @@ def test_state_variables():
 
     G.v = -70 * mV
     # Numpy methods should be able to deal with state variables
-    # (discarding units)
-    assert_allclose(np.mean(G.v), float(-70 * mV))
-    # Getting the content should return a Quantity object which then natively
-    # supports numpy functions that access a method
+    assert_allclose(np.mean(G.v), -70 * mV)
     assert_allclose(np.mean(G.v[:]), -70 * mV)
 
     # You should also be able to set variables with a string
