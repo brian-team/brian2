@@ -288,4 +288,4 @@ group and the `Synapse` class' :ref:`summed variable syntax
     vm_averager.connect()
 
     # Monitor recording the average membrane potential
-    vm_monitor = StateMonitor(vm_container, 'average_vm', record=0)
+    vm_monitor = StateMonitor(vm_container, 'average_vm', record=True)
