@@ -272,10 +272,10 @@ Recording population averages
 Continuous recordings from large groups over long simulation times can
 fill up the working memory quickly: recording a single variable from
 1000 neurons for 100 seconds at the default time resolution results in
-a 1 gigabyte array. While this issue can be ameliorated using the
+an array of about 8 Gigabytes. While this issue can be ameliorated using the
 above approaches, the downstream data analysis is often based on
 population averages. These can be recorded efficiently using a dummy
-group and the `Synapse` class' :ref:`summed variable syntax
+group and the `Synapses` class' :ref:`summed variable syntax
 <summed_variables>`::
 
     group = NeuronGroup(..., 'dv/dt = ... : volt', ...)
