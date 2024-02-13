@@ -265,3 +265,27 @@ twice, and is therefore slightly less efficient. There's one additional caveat:
 you'll have to manually include ``and not_refractory`` in your ``events``
 definition if your neuron uses refractoriness. This is done automatically
 for the ``threshold`` condition, but not for any user-defined events.
+
+Recording population averages
+-----------------------------
+
+Continuous recordings from large groups over long simulation times can
+fill up the working memory quickly: recording a single variable from
+1000 neurons for 100 seconds at the default time resolution results in
+an array of about 8 Gigabytes. While this issue can be ameliorated using the
+above approaches, the downstream data analysis is often based on
+population averages. These can be recorded efficiently using a dummy
+group and the `Synapses` class' :ref:`summed variable syntax
+<summed_variables>`::
+
+    group = NeuronGroup(..., 'dv/dt = ... : volt', ...)
+
+    # Dummy group to store the average membrane potential at every time step
+    vm_container = NeuronGroup(1, 'average_vm : volt')
+
+    # Synapses averaging the membrane potential of all neurons in group
+    vm_averager = Synapses(group, vm_container, 'average_vm_post = v_pre/N_pre : volt (summed)')
+    vm_averager.connect()
+
+    # Monitor recording the average membrane potential
+    vm_monitor = StateMonitor(vm_container, 'average_vm', record=True)

@@ -439,6 +439,8 @@ incorrect size, i.e. a negative size or a size bigger than the
 total population size. With ``skip_if_invalid=True``, no error will
 be raised and a size of 0 or the population size will be used.
 
+.. _summed_variables:
+
 Summed variables
 ----------------
 In many cases, the postsynaptic neuron has a variable that represents a sum of variables over all
