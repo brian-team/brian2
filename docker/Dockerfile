@@ -33,24 +33,16 @@ RUN pip install \
 ARG USER="monty" \
     GROUP="monty" \
     PASSWORD="monty"
-# ENV USER="monty"
-    # HOME="/home/${USER}"
-    # GROUP "python"
-# RUN useradd -ms /bin/bash monty && echo "monty:monty" | chpasswd && adduser monty sudo
 # RUN useradd -ms /bin/bash ${USER} && echo "${USER}:${PASSWORD}" | chpasswd && adduser ${USER} sudo
 RUN groupadd ${GROUP} && \
     useradd -ms /bin/bash -g ${GROUP} -g sudo ${USER} && \
     echo "${USER}:${PASSWORD}" | chpasswd
-# RUN groupadd -g 999 python && \
-#     useradd -r -u 999 -g monty python
 ENV HOME="/home/${USER}"
 RUN chown -R ${USER}:${USER} ${HOME}
 USER ${USER}
 
 # Copy tutorial notebooks and example scripts to home directory
 WORKDIR ${HOME}
-# WORKDIR /home/${USER}
-
 RUN git clone https://github.com/brian-team/brian2.git \
     && mv brian2/examples examples \
     && mv brian2/tutorials tutorials \
@@ -64,8 +56,3 @@ EXPOSE 8888
 # CMD ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root"]
 CMD ["jupyter", "lab", "--ip=0.0.0.0"]
 # CMD [ "/bin/bash" ]
-
-
-# TODO: Create secrets for user and password
-# TODO: Ensure pypi is used for brian2 and brian2tools
-# TODO: Check sudo works
