@@ -35,7 +35,7 @@ ARG USER="monty" \
     PASSWORD="monty"
 # RUN useradd -ms /bin/bash ${USER} && echo "${USER}:${PASSWORD}" | chpasswd && adduser ${USER} sudo
 RUN groupadd ${GROUP} && \
-    useradd -ms /bin/bash -g ${GROUP} -g sudo ${USER} && \
+    useradd -ms /bin/bash -g ${GROUP} -G sudo ${USER} && \
     echo "${USER}:${PASSWORD}" | chpasswd
 ENV HOME="/home/${USER}"
 RUN chown -R ${USER}:${USER} ${HOME}
