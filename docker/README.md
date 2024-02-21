@@ -3,7 +3,7 @@ Instructions
 
 To build the image manually for testing on a local host for the native architecture:
 
-`docker buildx build -t briansimulator/brian -f docker/Dockerfile .`
+`docker build -t briansimulator/brian -f docker/Dockerfile .`
 
 Alternatively, to test multi-architeture builds and push to docker hub, use:
 
