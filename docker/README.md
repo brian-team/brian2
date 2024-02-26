@@ -12,3 +12,7 @@ Alternatively, to test multi-architeture builds and push to docker hub, use:
 Then to run the image:
 
 `docker run -it --init --rm -p 8888:8888 briansimulator/brian`
+
+Or to run the tests:
+
+`docker run -it --init --rm briansimulator/brian python -c 'import brian2; brian2.test(test_standalone="cpp_standalone")'`
