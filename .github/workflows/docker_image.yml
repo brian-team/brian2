@@ -1,4 +1,4 @@
-name: Docker Multi-Arch Release Image CI
+name: Build docker image
 
 on:
   release:
