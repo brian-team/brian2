@@ -1,7 +1,7 @@
 # docker buildx build --push --platform linux/amd64,linux/arm64/v8 -o type=image -t briansimulator/brian -f docker/Dockerfile .
 # docker run -it --init --rm -p 8888:8888 briansimulator/brian
 
-ARG BASE_IMAGE_TAG=3.12-bookworm
+ARG BASE_IMAGE_TAG=3.12-slim-bookworm
 FROM python:${BASE_IMAGE_TAG}
 
 LABEL maintainer="Ben Evans <B.D.Evans@sussex.ac.uk>" \
@@ -16,8 +16,15 @@ LABEL maintainer="Ben Evans <B.D.Evans@sussex.ac.uk>" \
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    g++ \
+    git \
     libgs-dev \
+    python3-dev \
     sudo
+
+# Update system to use Python3 by default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 # Install Brian and recommended packages
 RUN pip install \
@@ -33,7 +40,6 @@ RUN pip install \
 ARG USER="monty" \
     GROUP="monty" \
     PASSWORD="monty"
-# RUN useradd -ms /bin/bash ${USER} && echo "${USER}:${PASSWORD}" | chpasswd && adduser ${USER} sudo
 RUN groupadd ${GROUP} && \
     useradd -ms /bin/bash -g ${GROUP} -G sudo ${USER} && \
     echo "${USER}:${PASSWORD}" | chpasswd
@@ -52,7 +58,4 @@ RUN git clone https://github.com/brian-team/brian2.git \
     && rm -rf brian2
 
 EXPOSE 8888
-
-# CMD ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root"]
 CMD ["jupyter", "lab", "--ip=0.0.0.0"]
-# CMD [ "/bin/bash" ]
