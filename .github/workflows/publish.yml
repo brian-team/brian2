@@ -43,7 +43,7 @@ jobs:
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
       - name: store distribution 📦
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: packages
           path: dist
@@ -86,7 +86,7 @@ jobs:
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
       - name: store distribution 📦
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: packages
           path: dist
@@ -103,7 +103,7 @@ jobs:
       - build-linux
     steps:
       - name: load distribution 📦
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: packages
           path: dist/
@@ -124,7 +124,7 @@ jobs:
       - build-linux
     steps:
       - name: load distribution 📦
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: packages
           path: dist/
