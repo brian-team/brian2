@@ -23,6 +23,9 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
 .. image:: https://img.shields.io/conda/vn/conda-forge/brian2.svg
         :target: https://anaconda.org/conda-forge/brian2
 
+.. image:: https://github.com/brian-team/brian2/actions/workflows/publish.yml/badge.svg
+   :target: https://github.com/brian-team/brian2/actions/workflows/publish.yml
+   :alt: Publish status on GitHub Actions
 
 .. image:: https://img.shields.io/debian/v/python3-brian/testing
    :alt: Debian package
