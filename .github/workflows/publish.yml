@@ -45,7 +45,7 @@ jobs:
       - name: store distribution 📦
         uses: actions/upload-artifact@v4
         with:
-          name: packages-other
+          name: packages-${{ matrix.os }}
           path: dist
 
   build-linux:
@@ -88,7 +88,7 @@ jobs:
       - name: store distribution 📦
         uses: actions/upload-artifact@v4
         with:
-          name: packages-linux
+          name: packages-linux-${{ matrix.arch }}
           path: dist
 
   deploy_dev:
@@ -102,15 +102,30 @@ jobs:
       - build
       - build-linux
     steps:
-      - name: load Linux distribution 📦
+      - name: load Linux x86 distribution 📦
         uses: actions/download-artifact@v4
         with:
-          name: packages-linux
+          name: packages-linux-auto64
           path: dist/
-      - name: load other distribution 📦
+      - name: load Linux arm distribution 📦
         uses: actions/download-artifact@v4
         with:
-          name: packages-other
+          name: packages-linux-aarch64
+          path: dist/
+      - name: load Windows distribution 📦
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-windows-latest
+          path: dist/
+      - name: load macOS 12 distribution 📦
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-macOS-12
+          path: dist/
+      - name: load macOS 14 distribution 📦
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-macOS-14
           path: dist/
       - name: Publish distribution 📦 to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -128,15 +143,30 @@ jobs:
       - build
       - build-linux
     steps:
-      - name: load Linux distribution 📦
+      - name: load Linux x86 distribution 📦
         uses: actions/download-artifact@v4
         with:
-          name: packages-linux
+          name: packages-linux-auto64
           path: dist/
-      - name: load other distribution 📦
+      - name: load Linux arm distribution 📦
         uses: actions/download-artifact@v4
         with:
-          name: packages-other
+          name: packages-linux-aarch64
+          path: dist/
+      - name: load Windows distribution 📦
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-windows-latest
+          path: dist/
+      - name: load macOS 12 distribution 📦
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-macOS-12
+          path: dist/
+      - name: load macOS 14 distribution 📦
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-macOS-14
           path: dist/
       - name: Publish distribution release 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
