@@ -132,9 +132,8 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
   
   build-docker:
-    name: Build docker image for release
+    name: Build docker image
     runs-on: ubuntu-latest
-    environment: release
     needs: build-linux
     steps:
     - name: Checkout repository
