@@ -45,7 +45,7 @@ jobs:
       - name: store distribution 📦
         uses: actions/upload-artifact@v4
         with:
-          name: packages
+          name: packages-other
           path: dist
 
   build-linux:
@@ -88,7 +88,7 @@ jobs:
       - name: store distribution 📦
         uses: actions/upload-artifact@v4
         with:
-          name: packages
+          name: packages-linux
           path: dist
 
   deploy_dev:
@@ -102,10 +102,15 @@ jobs:
       - build
       - build-linux
     steps:
-      - name: load distribution 📦
+      - name: load Linux distribution 📦
         uses: actions/download-artifact@v4
         with:
-          name: packages
+          name: packages-linux
+          path: dist/
+      - name: load other distribution 📦
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-other
           path: dist/
       - name: Publish distribution 📦 to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -123,10 +128,15 @@ jobs:
       - build
       - build-linux
     steps:
-      - name: load distribution 📦
+      - name: load Linux distribution 📦
         uses: actions/download-artifact@v4
         with:
-          name: packages
+          name: packages-linux
+          path: dist/
+      - name: load other distribution 📦
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-other
           path: dist/
       - name: Publish distribution release 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -169,10 +179,10 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-    - name: load distribution 📦
+    - name: load Linux distribution 📦
       uses: actions/download-artifact@v4
       with:
-        name: packages
+        name: packages-linux
         pattern: "*cp312*.whl"
         path: dist/
     - name: Build (and potentially push) the Docker image
