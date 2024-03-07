@@ -40,6 +40,9 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
    :alt: AUR version   
    :target: https://aur.archlinux.org/packages/python-brian2
 
+.. image:: https://img.shields.io/docker/pulls/briansimulator/brian
+   :alt: Docker Pulls
+
 
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.8099373.svg
    :target: https://doi.org/10.5281/zenodo.8099373
