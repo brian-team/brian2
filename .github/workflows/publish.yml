@@ -213,13 +213,13 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: packages-linux-auto64
-        pattern: "*cp312*.whl"
+        pattern: "*cp312-manylinux*.whl"
         path: dist/
     - name: load Linux arm distribution 📦
       uses: actions/download-artifact@v4
       with:
         name: packages-linux-aarch64
-        pattern: "*cp312*.whl"
+        pattern: "*cp312-manylinux*.whl"
         path: dist/
     - name: Build (and potentially push) the Docker image
       uses: docker/build-push-action@v5
