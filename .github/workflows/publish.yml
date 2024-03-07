@@ -1,4 +1,4 @@
-name: Build and publish to TestPyPI or PyPI
+name: Build and publish
 on: [push, pull_request]
 
 jobs:
