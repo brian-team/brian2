@@ -171,10 +171,10 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: load distribution 📦
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: packages
-        pattern: *cp312*.whl
+        pattern: "*cp312*.whl"
         path: dist/
     - name: Build (and potentially push) the Docker image
       uses: docker/build-push-action@v5
