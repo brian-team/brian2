@@ -209,10 +209,16 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-    - name: load Linux distribution 📦
+    - name: load Linux x86 distribution 📦
       uses: actions/download-artifact@v4
       with:
-        name: packages-linux
+        name: packages-linux-auto64
+        pattern: "*cp312*.whl"
+        path: dist/
+    - name: load Linux arm distribution 📦
+      uses: actions/download-artifact@v4
+      with:
+        name: packages-linux-aarch64
         pattern: "*cp312*.whl"
         path: dist/
     - name: Build (and potentially push) the Docker image
