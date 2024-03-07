@@ -27,14 +27,14 @@ COPY dist /tmp/dist
 
 # Install Brian2 and recommended packages
 ARG TARGETARCH
-RUN pip install --no-cache-dir --only-binary=:all: \
+RUN python -m pip install --no-cache-dir --only-binary=:all: \
     scipy \
     matplotlib \
     jupyterlab \
     pytest \
     pytest-xdist \
     && if [ "${TARGETARCH}" = "arm64" ]; then WHEEL_ARCH=aarch64; else WHEEL_ARCH=x86_64; fi \
-    && pip install /tmp/dist/Brian2*_${WHEEL_ARCH}.whl brian2tools \
+    && python -m pip install /tmp/dist/Brian2*_${WHEEL_ARCH}.whl brian2tools \
     && rm -rf /tmp/dist
 
 # Create a non-root user
