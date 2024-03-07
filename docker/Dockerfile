@@ -19,22 +19,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     g++ \
     git \
-    libgs-dev \
-    python3-dev \
-    sudo
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
 
-# Update system to use Python3 by default
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+# Copy wheels into the image
+COPY dist /tmp/dist
 
-# Install Brian and recommended packages
-RUN pip install \
-    brian2 \
-    brian2tools \
+# Install Brian2 and recommended packages
+ARG TARGETARCH
+RUN pip install --no-cache-dir --only-binary=:all: \
     scipy \
     matplotlib \
     jupyterlab \
     pytest \
-    pytest-xdist
+    pytest-xdist \
+    && if [ "${TARGETARCH}" = "arm64" ]; then WHEEL_ARCH=aarch64; else WHEEL_ARCH=x86_64; fi \
+    && pip install /tmp/dist/Brian2*_${WHEEL_ARCH}.whl brian2tools \
+    && rm -rf /tmp/dist
 
 # Create a non-root user
 ARG USER="monty" \
@@ -58,4 +59,4 @@ RUN git clone https://github.com/brian-team/brian2.git \
     && rm -rf brian2
 
 EXPOSE 8888
-CMD ["jupyter", "lab", "--ip=0.0.0.0"]
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--no-browser"]

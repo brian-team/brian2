@@ -135,7 +135,7 @@ jobs:
     name: Build docker image for release
     runs-on: ubuntu-latest
     environment: release
-    needs: deploy
+    needs: build-linux
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -170,7 +170,13 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-    - name: Build and push the Docker image
+    - name: load distribution 📦
+      uses: actions/download-artifact@v3
+      with:
+        name: packages
+        pattern: *cp312*.whl
+        path: dist/
+    - name: Build (and potentially push) the Docker image
       uses: docker/build-push-action@v5
       # https://github.com/docker/build-push-action
       with:
