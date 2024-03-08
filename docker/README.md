@@ -60,11 +60,13 @@ docker buildx create \
 ```
 Then execute:
 
-`docker buildx build \
+```
+docker buildx build \
   --builder=container \
   --push \
   --platform linux/amd64,linux/arm64/v8 \
   -o type=image \
   -t briansimulator/brian \
   -f docker/Dockerfile \
-  .`
+  .
+```
