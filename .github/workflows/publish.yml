@@ -193,24 +193,15 @@ jobs:
         push: ${{ github.repository == 'brian-team/brian2' && startsWith(github.ref, 'refs/tags') }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-    - name: Make docker image available
+    - name: Push docker image to dev repository
+      if: ${{ github.repository == 'brian-team/brian2' && github.event_name == 'push' && !startsWith(github.ref, 'refs/tags') }} 
       uses: docker/build-push-action@v5
-      # https://github.com/docker/build-push-action
       with:
-        # Note that this should re-use the image from cache
         context: .
         file: docker/Dockerfile
         build-args: |
             'BASE_IMAGE_TAG=3.12-bookworm'
-        platforms: 'amd64'
-        push: false
-        load: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-    - name: Save docker image
-      run: docker save briansimulator/brian:latest > brian-docker-image.tar
-    - name: Upload docker image
-      uses: actions/upload-artifact@v4
-      with:
-        name: brian-docker-image
-        path: brian-docker-image.tar
+        platforms: 'amd64,arm64'
+        push: true
+        tags: briansimulator/brian-dev:dev-${{ github.ref_name }}
+        labels: ${{ steps.meta.outputs.labels }}        
