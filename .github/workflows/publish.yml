@@ -191,5 +191,13 @@ jobs:
             'BASE_IMAGE_TAG=3.12-bookworm'
         platforms: 'amd64,arm64'
         push: ${{ github.repository == 'brian-team/brian2' && startsWith(github.ref, 'refs/tags') }}
+        load: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+    - name: Save docker image
+      run: docker save briansimulator/brian:latest > brian-docker-image.tar
+    - name: Upload docker image
+      uses: actions/upload-artifact@v4
+      with:
+        name: brian-docker-image
+        path: brian-docker-image.tar
