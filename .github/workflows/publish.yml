@@ -102,30 +102,11 @@ jobs:
       - build
       - build-linux
     steps:
-      - name: load Linux x86 distribution 📦
+      - name: load distribution 📦
         uses: actions/download-artifact@v4
         with:
-          name: packages-linux-auto64
-          path: dist/
-      - name: load Linux arm distribution 📦
-        uses: actions/download-artifact@v4
-        with:
-          name: packages-linux-aarch64
-          path: dist/
-      - name: load Windows distribution 📦
-        uses: actions/download-artifact@v4
-        with:
-          name: packages-windows-latest
-          path: dist/
-      - name: load macOS 12 distribution 📦
-        uses: actions/download-artifact@v4
-        with:
-          name: packages-macOS-12
-          path: dist/
-      - name: load macOS 14 distribution 📦
-        uses: actions/download-artifact@v4
-        with:
-          name: packages-macOS-14
+          pattern: packages-*
+          merge-multiple: true
           path: dist/
       - name: Publish distribution 📦 to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -143,30 +124,11 @@ jobs:
       - build
       - build-linux
     steps:
-      - name: load Linux x86 distribution 📦
+      - name: load distribution 📦
         uses: actions/download-artifact@v4
         with:
-          name: packages-linux-auto64
-          path: dist/
-      - name: load Linux arm distribution 📦
-        uses: actions/download-artifact@v4
-        with:
-          name: packages-linux-aarch64
-          path: dist/
-      - name: load Windows distribution 📦
-        uses: actions/download-artifact@v4
-        with:
-          name: packages-windows-latest
-          path: dist/
-      - name: load macOS 12 distribution 📦
-        uses: actions/download-artifact@v4
-        with:
-          name: packages-macOS-12
-          path: dist/
-      - name: load macOS 14 distribution 📦
-        uses: actions/download-artifact@v4
-        with:
-          name: packages-macOS-14
+          pattern: packages-*
+          merge-multiple: true
           path: dist/
       - name: Publish distribution release 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -212,15 +174,13 @@ jobs:
     - name: load Linux x86 distribution 📦
       uses: actions/download-artifact@v4
       with:
-        name: packages-linux-auto64
-        pattern: "*cp312-manylinux*.whl"
-        path: dist/
-    - name: load Linux arm distribution 📦
-      uses: actions/download-artifact@v4
-      with:
-        name: packages-linux-aarch64
-        pattern: "*cp312-manylinux*.whl"
-        path: dist/
+        pattern: packages-linux-*
+        merge-multiple: true
+        path: packages
+    - run: |
+        mkdir dist
+        cp packages/Brian2*cp312-manylinux*_x86_64.whl dist
+        cp packages/Brian2*cp312-manylinux*_aarch64.whl dist
     - name: Build (and potentially push) the Docker image
       uses: docker/build-push-action@v5
       # https://github.com/docker/build-push-action
