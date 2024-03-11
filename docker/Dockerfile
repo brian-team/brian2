@@ -18,8 +18,8 @@ LABEL maintainer="Ben Evans <B.D.Evans@sussex.ac.uk>" \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     g++ \
-    libgsl-dev \
     git \
+    libgsl-dev \
     sudo \
     && rm -rf /var/lib/apt/lists/*
 
