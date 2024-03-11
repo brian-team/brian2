@@ -57,12 +57,6 @@ class NodeRenderer:
         node = ast.parse(expr, mode="eval")
         return self.render_node(node.body)
 
-    def render_code(self, code):
-        lines = []
-        for node in ast.parse(code).body:
-            lines.append(self.render_node(node))
-        return "\n".join(lines)
-
     def render_node(self, node):
         nodename = node.__class__.__name__
         methname = f"render_{nodename}"

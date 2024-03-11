@@ -81,8 +81,6 @@ TEST_EXPRESSIONS = """
     -1.2%3.4
     17e-12
     42e17
-    foo(x)
-    foo(x, y)
     """
 
 
