@@ -488,6 +488,25 @@ def test_automatic_augmented_assignments():
             )
 
 
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize(
+    "s",
+    [
+        "x, y = 3",
+        "x * y",
+        "x = ",
+        "x.a = 3",
+        "x++",
+        "x[0] = 3",
+        "dx/dt = -v / tau",
+        "x = 3 +",
+    ],
+)
+def test_incorrect_statements(s):
+    with pytest.raises(ValueError):
+        parse_statement(s)
+
+
 def test_clear_cache():
     target = prefs.codegen.target
     if target == "numpy":
