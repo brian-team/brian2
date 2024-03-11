@@ -44,6 +44,7 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
    :alt: Publish status on GitHub Actions
 
 .. image:: https://img.shields.io/docker/pulls/briansimulator/brian
+   :target: https://hub.docker.com/r/briansimulator/brian
    :alt: Docker Pulls
 
 
