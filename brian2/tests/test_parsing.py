@@ -81,6 +81,8 @@ TEST_EXPRESSIONS = """
     -1.2%3.4
     17e-12
     42e17
+    foo(x)
+    foo(x, y)
     """
 
 
@@ -542,6 +544,9 @@ def test_error_messages():
         ("int(not_refractory | (v > 30))", "|", "or"),
         ("int((v > 30) & (w < 20))", "&", "and"),
         ("x +* 3", "", ""),
+        ("v[index]", "indexing", ""),
+        ("v.value", "attribute", ""),
+        ("(v, w)", "tuple", ""),
     ]
     for expr, expected_1, expected_2 in expr_expected:
         try:

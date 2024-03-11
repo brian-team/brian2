@@ -69,7 +69,22 @@ class NodeRenderer:
         try:
             return getattr(self, methname)(node)
         except AttributeError:
-            raise SyntaxError(f"Unknown syntax: {nodename}")
+            if nodename == "Subscript":
+                raise SyntaxError(
+                    "Brian equations/expressions do not support indexing with '[...]'."
+                )
+            elif nodename == "Attribute":
+                raise SyntaxError(
+                    "Brian equations/expressions do not support accessing attributes"
+                    " with the '.' syntax."
+                )
+            elif nodename == "Tuple":
+                raise SyntaxError("Brian equations/expressions do not support tuples.")
+            else:
+                raise SyntaxError(
+                    f"Brian equations/expressions do not support the '{nodename}'"
+                    " syntax."
+                )
 
     def render_func(self, node):
         return self.render_Name(node)
