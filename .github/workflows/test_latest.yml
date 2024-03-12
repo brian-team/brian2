@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: "calculate versions according to NEP29"
         id: nep29
-        uses: mstimberg/github-calc-nep29@v0.6
+        uses: mstimberg/github-calc-nep29@v0.7
         with:
           include-release-candidates: true
           include-beta-releases: true
