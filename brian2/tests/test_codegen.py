@@ -499,7 +499,7 @@ def test_automatic_augmented_assignments():
         "x++",
         "x[0] = 3",
         "dx/dt = -v / tau",
-        "x = 3 +",
+        "v == 3*mV",
     ],
 )
 def test_incorrect_statements(s):

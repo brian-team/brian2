@@ -1,5 +1,6 @@
 from pyparsing import (
     CharsNotIn,
+    Combine,
     Optional,
     ParseException,
     Regex,
@@ -14,8 +15,10 @@ from brian2.utils.caching import cached
 VARIABLE = Word(f"{alphas}_", f"{alphas + nums}_").setResultsName("variable")
 
 OP = Regex(r"(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=").setResultsName("operation")
-EXPR = CharsNotIn("#").setResultsName("expression")
-COMMENT = CharsNotIn("#").setResultsName("comment")
+EXPR = Combine(
+    CharsNotIn("=", min=1, max=1) + Optional(CharsNotIn("#"))
+).setResultsName("expression")
+COMMENT = Optional(CharsNotIn("#")).setResultsName("comment")
 STATEMENT = VARIABLE + OP + EXPR + Optional(Suppress("#") + COMMENT)
 
 
@@ -55,8 +58,6 @@ def parse_statement(code):
             + "^\n"
             + str(p_exc)
         )
-    if len(parsed["expression"].strip()) == 0:
-        raise ValueError(f"Empty expression in the RHS of the statement:'{code}' ")
     parsed_statement = (
         parsed["variable"].strip(),
         parsed["operation"],
