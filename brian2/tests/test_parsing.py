@@ -542,6 +542,9 @@ def test_error_messages():
         ("int(not_refractory | (v > 30))", "|", "or"),
         ("int((v > 30) & (w < 20))", "&", "and"),
         ("x +* 3", "", ""),
+        ("v[index]", "indexing", ""),
+        ("v.value", "attribute", ""),
+        ("(v, w)", "tuple", ""),
     ]
     for expr, expected_1, expected_2 in expr_expected:
         try:
