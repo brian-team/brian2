@@ -79,7 +79,8 @@ jobs:
         run: |
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
           coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
-          cp .coverage $GITHUB_WORKSPACE/
+          coverage lcov --rcfile=$GITHUB_WORKSPACE/.coveragerc
+          cp coverage.lcov $GITHUB_WORKSPACE/
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           SPHINX_DIR: ${{ github.workspace }}/docs_sphinx
@@ -88,9 +89,11 @@ jobs:
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
       - name: Send coverage to Coveralls (parallel)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
-        uses: coverallsapp/github-action@v1
+        uses: coverallsapp/github-action@v2.2.3
         with:
           parallel: true
+          format: lcov
+          file: coverage.lcov
           flag-name: run ${{ join(matrix.*, ' - ') }}
 
   coveralls:
@@ -100,7 +103,7 @@ jobs:
     container: python:3-slim
     steps:
       - name: Close parallel build
-        uses: coverallsapp/github-action@v1
+        uses: coverallsapp/github-action@v2.2.3
         with:
           parallel-finished: true
 
