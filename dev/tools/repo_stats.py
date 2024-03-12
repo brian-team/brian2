@@ -1,16 +1,17 @@
 import collections
 import datetime
+import os
 
 try:
     from github import Github
 except ImportError:
     raise ImportError('Install PyGithub from https://github.com/PyGithub/PyGithub or via pip')
-API_TOKEN = None
+API_TOKEN = os.environ.get('GITHUB_API_TOKEN', None)
 if API_TOKEN is None:
     raise ValueError('Need to specify an API token')
 
 p = Github(API_TOKEN)
-last_release = datetime.datetime(year=2020, month=9, day=28)
+last_release = datetime.datetime(year=2023, month=7, day=7)
 authors = []
 comments = p.get_repo('brian-team/brian2').get_issues_comments(since=last_release)
 comment_counter = 0
