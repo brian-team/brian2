@@ -100,7 +100,6 @@ jobs:
     name: Indicate completion to coveralls.io
     needs: testing
     runs-on: ubuntu-latest
-    container: python:3-slim
     steps:
       - name: Close parallel build
         uses: coverallsapp/github-action@v2.2.3
