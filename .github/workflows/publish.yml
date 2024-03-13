@@ -198,6 +198,7 @@ jobs:
       uses: docker/setup-buildx-action@v3
       # https://github.com/docker/setup-buildx-action
     - name: Login to DockerHub
+      if: ${{ github.repository == 'brian-team/brian2' && github.actor != 'dependabot[bot]'}}
       uses: docker/login-action@v3
       # https://github.com/docker/login-action
       with:
@@ -222,11 +223,11 @@ jobs:
         build-args: |
             'BASE_IMAGE_TAG=3.12-bookworm'
         platforms: 'amd64,arm64'
-        push: ${{ github.repository == 'brian-team/brian2' && startsWith(github.ref, 'refs/tags') }}
+        push: ${{ github.repository == 'brian-team/brian2' && startsWith(github.ref, 'refs/tags') && github.actor != 'dependabot[bot]'}}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
     - name: Push docker image to dev repository
-      if: ${{ github.repository == 'brian-team/brian2' && github.event_name == 'push' && !startsWith(github.ref, 'refs/tags') }} 
+      if: ${{ github.repository == 'brian-team/brian2' && github.event_name == 'push' && !startsWith(github.ref, 'refs/tags') && github.actor != 'dependabot[bot]'}} 
       uses: docker/build-push-action@v5
       with:
         context: .
