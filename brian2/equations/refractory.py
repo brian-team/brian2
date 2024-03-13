@@ -2,7 +2,6 @@
 Module implementing Brian's refractory mechanism.
 """
 
-
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import DIMENSIONLESS
 

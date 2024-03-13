@@ -5,6 +5,7 @@ the pylab (numpy + matplotlib) namespace.
 Usage: ``from brian2.only import *``
 
 """
+
 # To minimize the problems with imports, import the packages in a sensible
 # order
 

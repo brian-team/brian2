@@ -611,8 +611,7 @@ class BrianGlobalPreferences(MutableMapping):
                 "The following preferences values have been set but "
                 "are not registered preferences:\n%s\nThis is usually "
                 "because of a spelling mistake or missing library "
-                "import."
-                % ", ".join(self.prefs_unvalidated),
+                "import." % ", ".join(self.prefs_unvalidated),
                 once=True,
             )
 

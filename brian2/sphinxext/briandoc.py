@@ -16,6 +16,7 @@ It will:
 .. [1] https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 """
+
 import inspect
 import pydoc
 import re

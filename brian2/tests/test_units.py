@@ -697,9 +697,7 @@ def test_power():
     for value in values:
         assert_quantity(value**3, np.asarray(value) ** 3, kilogram**3)
         # Test raising to a dimensionless quantity
-        assert_quantity(
-            value ** (3 * volt / volt), np.asarray(value) ** 3, kilogram**3
-        )
+        assert_quantity(value ** (3 * volt / volt), np.asarray(value) ** 3, kilogram**3)
         with pytest.raises(DimensionMismatchError):
             # FIXME: Not that if float(exponent) is a special value such as 1 or 2
             # numpy will actually use a ufunc such as identity or square, which will

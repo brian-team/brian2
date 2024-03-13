@@ -2,6 +2,7 @@
 Classes used to specify the type of a function, variable or common
 sub-expression.
 """
+
 import collections
 import functools
 import numbers

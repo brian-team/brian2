@@ -560,12 +560,12 @@ def run_speed_tests(
                     suffixtime[suffix] += proftime
                     overheadstime -= float(proftime)
                 for suffix, proftime in list(suffixtime.items()):
-                    full_results[
-                        configuration.name, ft.fullname(), n, suffix
-                    ] = proftime
-                full_results[
-                    configuration.name, ft.fullname(), n, "Overheads"
-                ] = overheadstime
+                    full_results[configuration.name, ft.fullname(), n, suffix] = (
+                        proftime
+                    )
+                full_results[configuration.name, ft.fullname(), n, "Overheads"] = (
+                    overheadstime
+                )
             if verbose:
                 print("]", end=" ")
         if verbose:

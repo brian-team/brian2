@@ -1,6 +1,7 @@
 """
 Package contain all unit/integration tests for the `brian2` package.
 """
+
 import os
 import sys
 import tempfile
@@ -68,9 +69,9 @@ class XDistPreferencePlugin:
             if isinstance(v, type):
                 prefs[k] = ("TYPE", repr(v))
         node.workerinput["brian_prefs"] = prefs
-        node.workerinput[
-            "fail_for_not_implemented"
-        ] = self._pref_plugin.fail_for_not_implemented
+        node.workerinput["fail_for_not_implemented"] = (
+            self._pref_plugin.fail_for_not_implemented
+        )
         node.workerinput["device"] = self._pref_plugin.device
         node.workerinput["device_options"] = self._pref_plugin.device_options
 

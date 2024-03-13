@@ -1,6 +1,7 @@
 """
 Module providing the `Synapses` class and related helper classes/functions.
 """
+
 import functools
 import numbers
 import re
@@ -402,8 +403,7 @@ class SynapticPathway(CodeRunner, Group):
                 "it has not created synapses with 'connect'. "
                 "Set its active attribute to False if you "
                 "intend to do only do this for a subsequent"
-                " run."
-                % self.synapses.name
+                " run." % self.synapses.name
             )
 
         # Update the dt (might have changed between runs)
@@ -1639,8 +1639,7 @@ class Synapses(Group):
         except IndexError as e:
             raise IndexError(
                 "Tried to create synapse indices outside valid "
-                "range. Original error message: "
-                + str(e)
+                "range. Original error message: " + str(e)
             )
 
     # Helper functions for Synapses.connect ↑

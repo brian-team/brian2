@@ -1,6 +1,7 @@
 """
 Module implementing the C++ "standalone" device.
 """
+
 import inspect
 import itertools
 import numbers
@@ -233,9 +234,7 @@ class CPPStandaloneDevice(Device):
         self.run_environment_variables = {}
         if sys.platform.startswith("darwin"):
             if "DYLD_LIBRARY_PATH" in os.environ:
-                dyld_library_path = (
-                    f"{os.environ['DYLD_LIBRARY_PATH']}:{os.path.join(sys.prefix, 'lib')}"
-                )
+                dyld_library_path = f"{os.environ['DYLD_LIBRARY_PATH']}:{os.path.join(sys.prefix, 'lib')}"
             else:
                 dyld_library_path = os.path.join(sys.prefix, "lib")
             self.run_environment_variables["DYLD_LIBRARY_PATH"] = dyld_library_path
@@ -387,9 +386,9 @@ class CPPStandaloneDevice(Device):
             # use the same name in the two dictionaries, not for example
             # ``_dynamic_array_source_name_2`` and ``_array_source_name_1``
             # (this would work fine, but it would make the code harder to read).
-            orig_dynamic_name = (
-                dynamic_name
-            ) = f"_dynamic_array_{var.owner.name}_{var.name}"
+            orig_dynamic_name = dynamic_name = (
+                f"_dynamic_array_{var.owner.name}_{var.name}"
+            )
             orig_array_name = array_name = f"_array_{var.owner.name}_{var.name}"
             suffix = 0
 

@@ -400,6 +400,7 @@ def test_value_from_expression():
     # This function is used to get the value of an exponent, necessary for unit checking
 
     constants = {"c": 3}
+
     # dummy class
     class C:
         pass

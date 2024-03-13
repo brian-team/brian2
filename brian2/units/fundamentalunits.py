@@ -1879,6 +1879,7 @@ class Unit(Quantity):
      3. * joule
 
     """
+
     __slots__ = ["dim", "scale", "_dispname", "_name", "_latexname", "iscompound"]
 
     __array_priority__ = 100

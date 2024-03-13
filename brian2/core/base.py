@@ -1,6 +1,7 @@
 """
 All Brian objects should derive from `BrianObject`.
 """
+
 import functools
 import os
 import sys
@@ -81,8 +82,7 @@ class BrianObject(Nameable):
         #: A string indicating where this object was created (traceback with any parts of Brian code removed)
         self._creation_stack = (
             "Object was created here (most recent call only, full details in "
-            "debug log):\n"
-            + creation_stack[-1]
+            "debug log):\n" + creation_stack[-1]
         )
         self._full_creation_stack = "Object was created here:\n" + "\n".join(
             creation_stack

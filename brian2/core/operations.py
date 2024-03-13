@@ -170,6 +170,7 @@ def network_operation(*args, **kwds):
 
     NetworkOperation, Network, BrianObject
     """
+
     # Notes on this decorator:
     # Normally, a decorator comes in two types, with or without arguments. If
     # it has no arguments, e.g.

@@ -7,7 +7,6 @@ multiprocessing module, and any import of cpuinfo that is not within a
 The CPU flags are printed to stdout encoded as JSON.
 """
 
-
 import json
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 """
 This model defines the `NeuronGroup`, the core of most simulations.
 """
+
 import numbers
 import string
 from collections.abc import MutableMapping, Sequence

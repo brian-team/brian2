@@ -297,8 +297,7 @@ class CodeGenerator:
                     "well-defined: the outcome may depend on the "
                     "order of execution. You can ignore this warning if "
                     "you are sure that the order of operations does not "
-                    "matter. "
-                    + error_msg
+                    "matter. " + error_msg
                 )
 
         translated = self.translate_statement_sequence(
