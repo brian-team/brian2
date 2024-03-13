@@ -31,8 +31,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==2.16.5
       - name: Display cibuildwheel cache dir
         id: cibuildwheel-cache
         run: |
@@ -43,12 +41,12 @@ jobs:
             f.write(f"dir={str(user_cache_path(appname='cibuildwheel', appauthor='pypa'))}")
         shell: python
       - name: Cache cibuildwheel tools
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.cibuildwheel-cache.outputs.dir }}
           key: ${{ runner.os }}-cibuildwheel
       - name: Build wheels
-        run: python -m cibuildwheel --output-dir dist
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS: auto64
@@ -56,6 +54,8 @@ jobs:
           CIBW_SKIP: 'pp*'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
+        with:
+          output-dir: dist
       - name: store distribution 📦
         uses: actions/upload-artifact@v4
         with:
@@ -88,8 +88,6 @@ jobs:
         uses: docker/setup-qemu-action@v2
         with:
           platforms: all
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==2.16.5
       - name: Display cibuildwheel cache dir
         id: cibuildwheel-cache
         run: |
@@ -100,12 +98,12 @@ jobs:
             f.write(f"dir={str(user_cache_path(appname='cibuildwheel', appauthor='pypa'))}")
         shell: python
       - name: Cache cibuildwheel tools
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.cibuildwheel-cache.outputs.dir }}
           key: ${{ runner.os }}-${{ matrix.arch }}-cibuildwheel
       - name: Build wheels
-        run: python -m cibuildwheel --output-dir dist
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_LINUX: ${{ matrix.arch }}
@@ -113,6 +111,8 @@ jobs:
           CIBW_SKIP: 'pp* *-musllinux_aarch64'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
+        with:
+          output-dir: dist
       - name: store distribution 📦
         uses: actions/upload-artifact@v4
         with:
