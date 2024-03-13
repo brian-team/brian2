@@ -95,7 +95,6 @@ class Timeout(TimeoutError):
         """ """
         #: The path of the file lock.
         self.lock_file = lock_file
-        return None
 
     def __str__(self):
         temp = f"The file lock '{self.lock_file}' could not be acquired."
@@ -104,6 +103,7 @@ class Timeout(TimeoutError):
 
 # Classes
 # ------------------------------------------------
+
 
 # This is a helper class which is returned by :meth:`BaseFileLock.acquire`
 # and wraps the lock to make sure __enter__ is not called twice when entering
@@ -116,7 +116,6 @@ class Timeout(TimeoutError):
 class _Acquire_ReturnProxy:
     def __init__(self, lock):
         self.lock = lock
-        return None
 
     def __enter__(self):
         return self.lock
@@ -152,7 +151,6 @@ class BaseFileLock:
         # mechanism. Whenever the lock is acquired, the counter is increased and
         # the lock is only released, when this value is 0 again.
         self._lock_counter = 0
-        return None
 
     @property
     def lock_file(self):

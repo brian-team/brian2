@@ -1,6 +1,7 @@
 """
 AST parsing based analysis of expressions
 """
+
 import ast
 
 from brian2.core.functions import Function

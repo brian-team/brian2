@@ -1,6 +1,7 @@
 """
 Module defining `PopulationRateMonitor`.
 """
+
 import numpy as np
 
 from brian2.core.variables import Variables

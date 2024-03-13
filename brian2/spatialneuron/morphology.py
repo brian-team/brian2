@@ -2,6 +2,7 @@
 Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
 """
+
 import abc
 import numbers
 import os
@@ -1988,10 +1989,7 @@ class Section(Morphology):
         d_1 = self.start_diameter
         d_2 = self.end_diameter
         return (
-            np.pi
-            / 2
-            * (d_1 + d_2)
-            * np.sqrt(((d_1 - d_2) ** 2) / 4 + self._length**2)
+            np.pi / 2 * (d_1 + d_2) * np.sqrt(((d_1 - d_2) ** 2) / 4 + self._length**2)
         )
 
     @property

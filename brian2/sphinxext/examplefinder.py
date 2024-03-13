@@ -2,7 +2,6 @@
 Automatically find examples of a Brian object or function.
 """
 
-
 import os
 from collections import defaultdict
 

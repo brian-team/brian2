@@ -217,14 +217,18 @@ class SchedulingSummary:
             [
                 [
                     f"{entry.name} ({entry.type})",
-                    f"{entry.owner_name} ({entry.owner_type})"
-                    if entry.owner_name is not None
-                    else "--",
+                    (
+                        f"{entry.owner_name} ({entry.owner_type})"
+                        if entry.owner_name is not None
+                        else "--"
+                    ),
                     "{} (every {})".format(
                         str(entry.dt),
-                        "step"
-                        if self.steps[float(entry.dt)] == 1
-                        else f"{self.steps[float(entry.dt)]} steps",
+                        (
+                            "step"
+                            if self.steps[float(entry.dt)] == 1
+                            else f"{self.steps[float(entry.dt)]} steps"
+                        ),
                     ),
                     entry.when,
                     entry.order,
@@ -248,14 +252,18 @@ class SchedulingSummary:
         </tr>
         """.format(
                 f"<b>{entry.name}</b> (<em>{entry.type}</em>)",
-                f"{entry.owner_name} (<em>{entry.owner_type}</em>)"
-                if entry.owner_name is not None
-                else "&ndash;",
+                (
+                    f"{entry.owner_name} (<em>{entry.owner_type}</em>)"
+                    if entry.owner_name is not None
+                    else "&ndash;"
+                ),
                 "{} (every {})".format(
                     str(entry.dt),
-                    "step"
-                    if self.steps[float(entry.dt)] == 1
-                    else f"{self.steps[float(entry.dt)]} steps",
+                    (
+                        "step"
+                        if self.steps[float(entry.dt)] == 1
+                        else f"{self.steps[float(entry.dt)]} steps"
+                    ),
                 ),
                 entry.when,
                 entry.order,

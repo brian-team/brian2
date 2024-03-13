@@ -2,7 +2,6 @@
 File system tools
 """
 
-
 import os
 
 __all__ = [

@@ -1,6 +1,7 @@
 """
 Numerical integration functions.
 """
+
 import operator
 import string
 from functools import reduce

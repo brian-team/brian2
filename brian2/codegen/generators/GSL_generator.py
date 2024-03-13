@@ -642,9 +642,9 @@ class GSLCodeGenerator:
                 continue
             if isinstance(var_obj, ArrayVariable):
                 pointer_name = self.get_array_name(var_obj, access_data=True)
-                to_replace[
-                    pointer_name
-                ] = f"_GSL_dataholder{access_pointer}{pointer_name}"
+                to_replace[pointer_name] = (
+                    f"_GSL_dataholder{access_pointer}{pointer_name}"
+                )
             else:
                 to_replace[var] = f"_GSL_dataholder{access_pointer}{var}"
 
@@ -933,8 +933,7 @@ class GSLCodeGenerator:
                     "well-defined: the outcome may depend on the "
                     "order of execution. You can ignore this warning if "
                     "you are sure that the order of operations does not "
-                    "matter. "
-                    + error_msg
+                    "matter. " + error_msg
                 )
 
         # save function names because self.generator.translate_statement_sequence
@@ -1019,9 +1018,7 @@ class GSLCodeGenerator:
         )
         # rewrite scalar code, keep variables that are needed in scalar code normal
         # and add variables to _dataholder for vector_code
-        GSL_main_code += (
-            f"\n{self.translate_scalar_code(scalar_func_code, variables_in_scalar, variables_in_vector)}"
-        )
+        GSL_main_code += f"\n{self.translate_scalar_code(scalar_func_code, variables_in_scalar, variables_in_vector)}"
         if len(self.variables_to_be_processed) > 0:
             raise AssertionError(
                 "Not all variables that will be used in the vector "

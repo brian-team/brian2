@@ -1,6 +1,7 @@
 """
 Tests for `SpikeGeneratorGroup`
 """
+
 import os
 import tempfile
 

@@ -4,7 +4,6 @@
     Based on sphinx-apidoc, published under a BSD license: http://sphinx-doc.org/
 """
 
-
 import inspect
 import os
 import sys

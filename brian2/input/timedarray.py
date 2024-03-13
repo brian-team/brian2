@@ -2,7 +2,6 @@
 Implementation of `TimedArray`.
 """
 
-
 import numpy as np
 
 from brian2.core.clocks import defaultclock

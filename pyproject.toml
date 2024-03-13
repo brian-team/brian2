@@ -71,7 +71,6 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 target-version = ['py39']
 include = '^/brian2/.*\.pyi?$'
-preview = true
 
 [tool.isort]
 atomic = true

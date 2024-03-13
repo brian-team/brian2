@@ -6,6 +6,7 @@ Preferences
 .. document_brian_prefs:: codegen.cpp
 
 """
+
 import distutils
 import json
 import os
@@ -266,9 +267,10 @@ def _determine_flag_compatibility(compiler, flagname):
     import tempfile
     from distutils.errors import CompileError
 
-    with tempfile.TemporaryDirectory(
-        prefix="brian_flag_test_"
-    ) as temp_dir, std_silent():
+    with (
+        tempfile.TemporaryDirectory(prefix="brian_flag_test_") as temp_dir,
+        std_silent(),
+    ):
         fname = os.path.join(temp_dir, "flag_test.cpp")
         with open(fname, "w") as f:
             f.write("int main (int argc, char **argv) { return 0; }")

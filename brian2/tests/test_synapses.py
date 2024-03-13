@@ -2300,8 +2300,7 @@ def test_permutation_analysis():
                 raise AssertionError(
                     "Test unexpectedly raised a numerical "
                     "OrderDependenceError on these "
-                    "statements:\n"
-                    + example
+                    "statements:\n" + example
                 )
         try:
             check_permutation_code(example)
@@ -2309,8 +2308,7 @@ def test_permutation_analysis():
             raise AssertionError(
                 "Test unexpectedly raised an "
                 "OrderDependenceError on these "
-                "statements:\n"
-                + example
+                "statements:\n" + example
             )
 
     for example in permutation_analysis_bad_examples:
