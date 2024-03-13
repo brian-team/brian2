@@ -87,7 +87,7 @@ jobs:
           python -m build --sdist --config-setting=--formats=gztar --config-setting=--with-cython --config-setting=--fail-on-error
         if: ${{ matrix.arch == 'auto64' }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: all
       - name: Install platformdirs
