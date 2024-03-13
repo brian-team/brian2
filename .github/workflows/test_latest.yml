@@ -42,7 +42,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install GSL
-        uses: johnwason/vcpkg-action@v5
+        uses: johnwason/vcpkg-action@v6
         id: vcpkg
         with:
           pkgs: gsl
@@ -89,7 +89,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install GSL
-        uses: johnwason/vcpkg-action@v5
+        uses: johnwason/vcpkg-action@v6
         id: vcpkg
         with:
           pkgs: gsl
