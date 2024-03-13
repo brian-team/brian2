@@ -8,7 +8,7 @@ updates:
       interval: "weekly"
 
   # Maintain dependencies for the dev container
-  - package-ecosystem: "devcontainer"
+  - package-ecosystem: "devcontainers"
     directory: "/"
     schedule:
       interval: "weekly"
