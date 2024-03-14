@@ -1,5 +1,63 @@
 Release notes
 =============
+Brian 2.6.0
+-----------
+This release introduces a major new feature for running standalone simulations repeatedly (or in parallel), without having to recompile the code.
+It also fixes a number of compatiblity issues with the upcoming numpy 2.0 release, and offers compiled wheels for Python 3.12. Finally, we now
+offer pre-built docker images containing a full installation of Brian and related tools for convenient testing and development.
+
+New features
+~~~~~~~~~~~~
+- The new ``run_args`` argument makes it possible to run standalone simulations repeatedly (or in parallel) with different parameters without
+  recompiling the code. See :ref:`standalone_multiple_full_runs` for details (:issue:`1429`).
+- We now provide regularly updated Docker images with a full installation of Brian and related tools. You can find the latest release images
+  on https://hub.docker.com/repository/docker/briansimulator/brian/general, and temporary images for development versions on 
+  https://hub.docker.com/repository/docker/briansimulator/brian-dev/general
+  (:issue:`1503`).
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Various fixes for compatibility with recent Python versions and the future numpy 2.0 release (:issue:`1482`, :issue:`1484`, :issue:`1488`, :issue:`1510`).
+- Do not assume that the test directory is writeable (:issue:`1507``)
+- Fix the power operator for integer values in Cython (:issue:`1502`). Thanks to Hong Zhu for reporting this issue.
+- Fix floor division on C++ (:issue:`1496`). Thanks to Brian forum user ``ansuz`` for reporting this issue.
+  
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- We now build wheels and test against for Python 3.12 (:issue:`1481`).
+- We now build and test on Apple Silicon (M1) hardware (:issue:`1501`).
+- Improved support for 3rd-party packages to use Brian's logging system (:issue:`1480`).
+- New examples: :doc:`../examples/frompapers.Spreizer_et_al_2019.Spreizer_et_al_2019`, :doc:`../examples/frompapers.Wang_2002` (:issue:`1447`, :issue:`1489`)
+- Use dependabot to keep GitHub actions and the dev container up-to-date (:issue:`1513`).
+
+Contributions
+~~~~~~~~~~~~~
+
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* Jannik Luboeinski (`@jlubo <https://github.com/jlubo>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Arash Golmohammadi (`@arashgmn <https://github.com/arashgmn>`_)
+* xyz (`@DHRUVJ2003 <https://github.com/DHRUVJ2003>`_)
+* Kyle Johnsen (`@kjohnsen <https://github.com/kjohnsen>`_)
+* McCoy R. Becker (`@femtomc <https://github.com/femtomc>`_)
+* Max Talanov (`@max-talanov <https://github.com/max-talanov>`_)
+* `@lysea-haggie <https://github.com/lysea-haggie>`_
+* Hong Zhu (`@Jasmine969 <https://github.com/Jasmine969>`_)
+* Paul Brodersen (`@paulbrodersen <https://github.com/paulbrodersen>`_)
+* `@MichielMoe <https://github.com/MichielMoe>`_
+* Ian Quah  (`@IanQS <https://github.com/IanQS>`_)
+* Adam Willats (`@awillats <https://github.com/awillats>`_)
+* `@flomlo <https://github.com/flomlo>`_
+
+Other contributions outside of GitHub (ordered alphabetically, apologies to
+anyone we forgot...):
+* `ansuz <https://brian.discourse.group/u/ansuz/summary>`_`
+* `@l-luo1 <https://github.com/l-luo1>_``
+* Klaus Wimmer (`@wklausitor <https://github.com/wklausito>_`)
 
 Brian 2.5.4
 -----------
