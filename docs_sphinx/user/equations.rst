@@ -21,35 +21,35 @@ Equations are used both in `NeuronGroup` and `Synapses` to:
     and papers. See :doc:`converting_from_integrated_form` for details on how
     to convert between these representations.
 
-Equations are defined by multiline strings.
+Equations are defined by multiline strings, where each line takes of one of three forms:
 
-An Equation is a set of single lines in a string:
+1. ``dx/dt = f : unit (flags)`` (differential equation)
+2. ``x = f : unit (flags)`` (subexpression)
+3. ``x : unit (flags)`` (parameter)
 
- (1) ``dx/dt = f : unit`` (differential equation)
- (2) ``x = f : unit`` (subexpression)
- (3) ``x : unit`` (parameter)
+Each of these definitions can take optional ``flags`` in parentheses after the ``unit`` declaration (see :ref:`flags` below).
 
-Each equation may be spread out over multiple lines to improve formatting.
-Comments using ``#`` may also be included. Subunits are not allowed, i.e., one must write ``volt``, not ``mV``. This is
-to make it clear that the values are internally always saved in the basic units, so no confusion can arise when getting
-the values out of a `NeuronGroup` and discarding the units. Compound units are of course allowed as well (e.g. ``farad/meter**2``).
+The first form defines a differential equation that determines how a variable evolves over time.
+The second form defines a subexpression, which is useful to make complex equations more readable, and to have a
+name for expressions that can be recorded with a `StateMonitor`. Such subexpressions are computed
+"on demand" and are not stored. Their use is therefore mostly for convenience and does not affect simulation time
+or memory usage. The third form defines a parameter, which is a value that is unique to each neuron or synapse.
+Its value can either be constant (e.g. to have a heterogeneous population of neurons) or can be a value that gets
+updated by synaptic events, or by `~.Group.run_regularly` operations.
+
+Each definition may be spread out over multiple lines to improve readability, and can include comments after ``#``.
+The ``unit`` definition defines the dimension of the variable. Note that these are always the dimensions of the
+*variable* defined in the line, even in the case of differential equations. Therefore, the unit for the membrane
+potential would be ``volt`` and not ``volt/second`` (the dimensions of its derivative). The ``unit`` always has to
+be a *base unit*, i.e., one must write ``volt``, not ``mV``. This is to make it clear that the values are
+internally always saved in the base units, so no confusion can arise when getting the values out of a `NeuronGroup`
+and discarding the units. Compound units are of course allowed as well (e.g. ``farad/meter**2``).
 There are also three special "units" that can be used: ``1`` denotes a dimensionless floating point variable,
 ``boolean`` and ``integer`` denote dimensionless variables of the respective kind.
 
 .. note:: For molar concentration, the base unit that has to be used in the equations is ``mmolar`` (or ``mM``), *not*
           ``molar``. This is because 1 molar is 10³ mol/m³ in SI units (i.e., it has a "scale" of 10³), whereas
           1 millimolar corresponds to 1 mol/m³.
-
-Some special variables are defined: `t`, `dt` (time) and `xi` (white noise).
-Variable names starting with an underscore and a couple of other names that have special meanings under certain
-circumstances (e.g. names ending in ``_pre`` or ``_post``) are forbidden.
-
-For stochastic equations with several ``xi`` values it is necessary to make clear whether they correspond to the same
-or different noise instantiations. To make this distinction, an arbitrary suffix can be used, e.g. using ``xi_1`` several times
-refers to the same variable, ``xi_2`` (or ``xi_inh``, ``xi_alpha``, etc.) refers to another. An error will be raised if
-you use more than one plain ``xi``. Note that noise is always independent across neurons, you can only work around this
-restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. with `~Group.run_regularly`),
-or create a group that models the noise and link to its variable (see :ref:`linked_variables`).
 
 Arithmetic operations and functions
 -----------------------------------
@@ -61,7 +61,12 @@ the corresponding in-place assignments such as ``+=`` can be used as well.
 For comparisons, the operations ``==`` (equality), ``!=`` (inequality), ``<``,
 ``<=``, ``>``, and ``>=`` are available. Truth values can be combined using
 ``and`` and ``or``, or negated using ``not``. Note that Brian does not support
-any operations specific to integers, e.g. "bitwise AND" or shift operations.
+any operations specific to integers, e.g. "bitwise AND" or shift operations. Importantly, while equations use Python
+syntax, they are not Python code; they are parsed and translated to the target language by Brian, and can therefore
+not use arbitrary Python syntax or functions. They are also written in a "for each neuron/synapse" style, so their
+interpretation depends on the context in which they are used. For example, when a synaptic pre/post statement refers to a
+variable of a pre- or post-synaptic neurons, it only refers to the subset of neurons that spiked. This also means that
+you cannot (and usually don't need to) use Python's indexing syntax to refer to specific elements of a group.
 
 .. warning::
 
@@ -88,12 +93,26 @@ directly refer to arbitrary functions from ``numpy`` or other libraries. For
 details on how to extend the support to non-default functions see
 :ref:`user_functions`.
 
+Special variables
+-----------------
+
+Some special variables are defined, e.g. `t`, `dt` (time) and `xi` (white noise). For a full list see :ref:`special_symbols` below.
+Variable names starting with an underscore and a couple of other names that have special meanings under certain
+circumstances (e.g. names ending in ``_pre`` or ``_post``) are forbidden.
+
+For stochastic equations with several ``xi`` values it is necessary to make clear whether they correspond to the same
+or different noise instantiations. To make this distinction, an arbitrary suffix can be used, e.g. using ``xi_1`` several times
+refers to the same variable, ``xi_2`` (or ``xi_inh``, ``xi_alpha``, etc.) refers to another. An error will be raised if
+you use more than one plain ``xi`` without any suffix. Note that noise is always independent across neurons, you can only work around this
+restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. with `~Group.run_regularly`),
+or create a group that models the noise and link to its variable (see :ref:`linked_variables`).
+
 .. _external-variables:
 
-External variables
-------------------
+External references
+-------------------
 Equations defining neuronal or synaptic equations can contain references to
-external parameters or functions. These references are looked up at the time
+external constants or functions. These references are looked up at the time
 that the simulation is run. If you don't specify where to look them up, it
 will look in the Python local/global namespace (i.e. the block of code where
 you call `run`). If you want to override this, you can specify an explicit
@@ -167,6 +186,8 @@ qualifies the equations. There are several keywords:
 Multiple flags may be specified as follows::
 
 	dx/dt = f : unit (flag1,flag2)
+
+.. _special_symbols:
 
 List of special symbols
 -----------------------
