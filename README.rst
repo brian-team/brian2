@@ -54,8 +54,8 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
 .. image:: https://archive.softwareheritage.org/badge/origin/https://github.com/brian-team/brian2/
     :target: https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/brian-team/brian2
 
-.. image:: https://archive.softwareheritage.org/badge/swh:1:rel:e4d609023553bfbd62bf57960dd6f9d342a1d0e8/
-    :target: https://archive.softwareheritage.org/swh:1:rel:e4d609023553bfbd62bf57960dd6f9d342a1d0e8;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:becb452d988ab8ea1386d27f3ad4c2221ec0ae7b
+.. image:: https://archive.softwareheritage.org/badge/swh:1:rel:2d4c5c8c8a6d2318332889df93ab74aef53e2c61/
+    :target: https://archive.softwareheritage.org/swh:1:rel:2d4c5c8c8a6d2318332889df93ab74aef53e2c61;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:a90ab7416901a9c5cf6f56d68b3455c65d322afc
 
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
         :target: CODE_OF_CONDUCT.md
