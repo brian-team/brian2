@@ -48,8 +48,8 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
    :alt: Docker Pulls
 
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.8099373.svg
-   :target: https://doi.org/10.5281/zenodo.8099373
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.654861.svg
+   :target: https://zenodo.org/doi/10.5281/zenodo.654861
 
 .. image:: https://archive.softwareheritage.org/badge/origin/https://github.com/brian-team/brian2/
     :target: https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/brian-team/brian2
