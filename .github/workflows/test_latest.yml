@@ -64,7 +64,9 @@ jobs:
           ${{ steps.python.outputs.python-path }} -m pip install mpmath  # install stable version
           ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
-        run: ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
+        run: |
+          cp numpy2.pyproject.toml pyproject.toml
+          ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
         run: |
           cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import
