@@ -61,6 +61,7 @@ jobs:
         run: |
           ${{ steps.python.outputs.python-path }} -m pip install --upgrade pip setuptools
           ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
+          ${{ steps.python.outputs.python-path }} -m pip install mpmath  # install stable version
           ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
         run: ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
