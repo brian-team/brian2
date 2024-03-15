@@ -258,11 +258,10 @@ class EventMonitor(Group, CodeRunner):
                             first_pos[current_pos] : first_pos[current_pos + 1]
                         ],
                         dim=dim,
-                        copy=False,
                     )
                 else:
                     event_values[idx] = Quantity(
-                        sorted_values[first_pos[current_pos] :], dim=dim, copy=False
+                        sorted_values[first_pos[current_pos] :], dim=dim
                     )
                 current_pos += 1
             else:

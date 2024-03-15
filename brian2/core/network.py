@@ -451,10 +451,8 @@ class Network(Nameable):
         self._schedule = None
 
     t = property(
-        fget=lambda self: Quantity(self.t_, dim=second.dim, copy=False),
-        doc="""
-                     Current simulation time in seconds (`Quantity`)
-                     """,
+        fget=lambda self: Quantity(self.t_, dim=second.dim),
+        doc="Current simulation time in seconds (`Quantity`)",
     )
 
     @device_override("network_get_profiling_info")

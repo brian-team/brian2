@@ -209,7 +209,6 @@ def arange(*args, **kwargs):
                 **kwargs,
             ),
             dim=dim,
-            copy=False,
         )
     else:
         return Quantity(
@@ -220,7 +219,6 @@ def arange(*args, **kwargs):
                 **kwargs,
             ),
             dim=dim,
-            copy=False,
         )
 
 
@@ -247,7 +245,7 @@ def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
         retstep=retstep,
         dtype=dtype,
     )
-    return Quantity(result, dim=dim, copy=False)
+    return Quantity(result, dim=dim)
 
 
 linspace._do_not_run_doctests = True

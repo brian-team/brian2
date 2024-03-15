@@ -1326,7 +1326,7 @@ class VariableView:
         else:
             indices = self.indexing(item, self.index_var)
 
-            q = Quantity(value, copy=False)
+            q = Quantity(value)
             if len(q.shape):
                 if not len(q.shape) == 1 or len(q) != 1 and len(q) != len(indices):
                     raise ValueError(
