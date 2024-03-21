@@ -794,8 +794,11 @@ class LogCapture(logging.Handler):
 
     def emit(self, record):
         # Append a tuple consisting of (level, name, msg) to the list of
-        # warnings
-        if any(record.name.startswith(name) for name in self.only_from):
+        # log messages
+        if any(
+            record.name == name or record.name.startswith(name + ".")
+            for name in self.only_from
+        ):
             self.log_list.append((record.levelname, record.name, record.msg))
 
     def install(self):
