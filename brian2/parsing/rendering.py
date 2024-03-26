@@ -339,7 +339,12 @@ class CPPNodeRenderer(NodeRenderer):
             return NodeRenderer.render_BinOp(self, node)
 
     def render_Constant(self, node):
-        return {True: "true", False: "false"}.get(node.value, repr(node.value))
+        if node.value is True:
+            return "true"
+        elif node.value is False:
+            return "false"
+        else:
+            return repr(node.value)
 
     def render_Name(self, node):
         if node.id == "inf":
