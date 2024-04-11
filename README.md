@@ -23,6 +23,7 @@ If you use Brian for your published research, we kindly ask you to cite our arti
 [![AUR version](https://img.shields.io/aur/version/python-brian2)](https://aur.archlinux.org/packages/python-brian2)
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/briansimulator/brian)](https://hub.docker.com/r/briansimulator/brian)
+[![Publish status on GitHub Actions](https://github.com/brian-team/brian2/actions/workflows/publish.yml/badge.svg)](https://github.com/brian-team/brian2/actions/workflows/publish.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.654861.svg)](https://zenodo.org/doi/10.5281/zenodo.654861)
 [![Software Heritage (repository)](https://archive.softwareheritage.org/badge/origin/https://github.com/brian-team/brian2/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/brian-team/brian2)
 [![Software Heritage (release)](https://archive.softwareheritage.org/badge/swh:1:rel:2d4c5c8c8a6d2318332889df93ab74aef53e2c61/)](https://archive.softwareheritage.org/swh:1:rel:2d4c5c8c8a6d2318332889df93ab74aef53e2c61;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:a90ab7416901a9c5cf6f56d68b3455c65d322afc)
