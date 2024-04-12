@@ -67,5 +67,6 @@ To run the test suite:
 ## Testing status for master branch
 
 [![Test status on GitHub Actions](https://github.com/brian-team/brian2/actions/workflows/testsuite.yml/badge.svg)](https://github.com/brian-team/brian2/actions/workflows/testsuite.yml)
+[![Publish status on GitHub Actions](https://github.com/brian-team/brian2/actions/workflows/publish.yml/badge.svg)](https://github.com/brian-team/brian2/actions/workflows/publish.yml)
 [![Test coverage](https://img.shields.io/coveralls/brian-team/brian2/master.svg)](https://coveralls.io/r/brian-team/brian2?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/brian2/badge/?version=stable)](https://brian2.readthedocs.io/en/stable/?badge=stable)
