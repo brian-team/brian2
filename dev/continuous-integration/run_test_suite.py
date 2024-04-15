@@ -19,6 +19,7 @@ if __name__ == '__main__':
     # If TRAVIS_OS_NAME is not defined, we are testing on appveyor
     operating_system = os.environ.get('AGENT_OS', 'unknown').lower()
     cross_compiled = os.environ.get('CROSS_COMPILED', 'FALSE').lower() in ['yes', 'true']
+    do_not_reset_preferences = os.environ.get('DO_NOT_RESET_PREFERENCES', 'false').lower() in ['yes', 'true']
     report_coverage = os.environ.get('REPORT_COVERAGE', 'no').lower() in ['yes', 'true']
     dtype_32_bit = os.environ.get('FLOAT_DTYPE_32', 'no').lower() in ['yes', 'true']
     sphinx_dir = os.environ.get('SPHINX_DIR')
@@ -44,7 +45,7 @@ if __name__ == '__main__':
     else:
         openmp = False
 
-    reset_preferences = not cross_compiled
+    reset_preferences = not (cross_compiled or do_not_reset_preferences)
     if dtype_32_bit:
         float_dtype = np.float32
     else:

@@ -82,6 +82,7 @@ jobs:
           AGENT_OS: ${{runner.os}}
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
+          DO_NOT_RESET_PREFERENCES: true  # Make sure that GSL setting is used
 
   test-deprecations:
     needs: [ get_python_versions ]
