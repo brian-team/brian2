@@ -1337,11 +1337,13 @@ class VariableView:
         variable.get_value()[indices] = value
 
     # Allow some basic calculations directly on the ArrayView object
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         try:
             # This will fail for subexpressions that refer to external
             # parameters
-            self[:]
+            values = self[:]
+            # Never hand over copy = None
+            return np.array(values, dtype=dtype, copy=copy is not False, subok=True)
         except ValueError:
             var = self.variable.name
             raise ValueError(
@@ -1350,7 +1352,6 @@ class VariableView:
                 f"variables, use 'group.{var}[:]' instead of "
                 f"'group.{var}'"
             )
-        return np.asanyarray(self[:], dtype=dtype)
 
     def __array__ufunc__(self, ufunc, method, *inputs, **kwargs):
         if method == "__call__":
