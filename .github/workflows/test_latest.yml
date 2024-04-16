@@ -50,6 +50,13 @@ jobs:
           cache-key: gsl-${{ matrix.os.triplet }}
           revision: master
           token: ${{ github.token }}
+      - name: Set GSL preference for vcpkg
+        shell: bash
+        run: |
+          mkdir ~/.brian/
+          # Replaces backslashes with forward slashes
+          echo "GSL.directory=\"${{ github.workspace }}\\vcpkg\\installed\${{ matrix.os.triplet }}\\include"\" | tr '\\' '/' > ~/.brian/user_preferences
+          cat ~/.brian/user_preferences
       - name: Install Python
         id: python
         uses: actions/setup-python@v5
