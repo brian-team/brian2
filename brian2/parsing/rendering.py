@@ -1,6 +1,7 @@
 import ast
 import numbers
 
+import numpy as np
 import sympy
 
 from brian2.core.functions import DEFAULT_CONSTANTS, DEFAULT_FUNCTIONS
@@ -87,6 +88,9 @@ class NodeRenderer:
         return node.id
 
     def render_Constant(self, node):
+        if isinstance(node.value, np.number):
+            # repr prints the dtype in numpy 2.0
+            return repr(node.value.item())
         return repr(node.value)
 
     def render_Call(self, node):
@@ -344,7 +348,7 @@ class CPPNodeRenderer(NodeRenderer):
         elif node.value is False:
             return "false"
         else:
-            return repr(node.value)
+            return super().render_Constant(node)
 
     def render_Name(self, node):
         if node.id == "inf":

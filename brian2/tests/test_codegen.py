@@ -10,6 +10,7 @@ import pytest
 from brian2 import _cache_dirs_and_extensions, clear_cache, prefs
 from brian2.codegen.codeobject import CodeObject
 from brian2.codegen.cpp_prefs import compiler_supports_c99, get_compiler_and_args
+from brian2.codegen.generators.cython_generator import CythonNodeRenderer
 from brian2.codegen.optimisation import optimise_statements
 from brian2.codegen.runtime.cython_rt import CythonCodeObject
 from brian2.codegen.statements import Statement
@@ -22,6 +23,7 @@ from brian2.codegen.translation import (
 from brian2.core.functions import DEFAULT_CONSTANTS, DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import ArrayVariable, Constant, Subexpression, Variable
 from brian2.devices.device import auto_target, device
+from brian2.parsing.rendering import CPPNodeRenderer, NodeRenderer, NumpyNodeRenderer
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.units import ms, second
 from brian2.units.fundamentalunits import Unit
@@ -616,6 +618,25 @@ def test_msvc_flags():
     hostname = socket.gethostname()
     assert hostname in previously_stored_flags
     assert len(previously_stored_flags[hostname])
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize(
+    "renderer",
+    [
+        NodeRenderer(),
+        NumpyNodeRenderer(),
+        CythonNodeRenderer(),
+        CPPNodeRenderer(),
+    ],
+)
+def test_number_rendering(renderer):
+    import ast
+
+    for number in [0.5, np.float32(0.5), np.float64(0.5)]:
+        # In numpy 2.0, repr(np.float64(0.5)) is 'np.float64(0.5)'
+        node = ast.Constant(value=number)
+        assert renderer.render_node(node) == "0.5"
 
 
 if __name__ == "__main__":
