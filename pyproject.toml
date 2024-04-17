@@ -5,9 +5,9 @@ authors = [
     {name = 'Dan Goodman'},
     {name ='Romain Brette'}
 ]
-requires-python = '>=3.9'
+requires-python = '>=3.10'
 dependencies = [
-    'numpy>=1.21',
+    'numpy>=1.23.5',
     'cython>=0.29.21',
     'sympy>=1.2',
     'pyparsing',
@@ -60,10 +60,11 @@ fallback_version = 'unknown'
 [build-system]
 requires = [
     "setuptools>=61",
-    "numpy>=1.10",
+    # By building against numpy 2.0, we make sure that the wheel is compatible with
+    # both numpy 2.0 and numpy>=1.23
+    "numpy>=2.0.0rc1",
     "wheel",
     "Cython",
-    "oldest-supported-numpy",
     "setuptools_scm[toml]>=6.2"
 ]
 build-backend = "setuptools.build_meta"
