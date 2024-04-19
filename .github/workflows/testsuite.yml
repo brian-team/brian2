@@ -75,6 +75,13 @@ jobs:
           conda install --quiet --yes pip gsl
           python -m pip install .[test] coverage
 
+      - name: restore Cython cache
+        uses: actions/cache@v4
+        if: ${{ ! matrix.standalone }}
+        with:
+          key: cython-extensions-${{ matrix.os }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
+          path: ~/.cython/brian_extensions
+
       - name: Run Tests
         run: |
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import

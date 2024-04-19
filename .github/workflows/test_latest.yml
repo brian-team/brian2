@@ -122,6 +122,12 @@ jobs:
           ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
         run: ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
+      - name: restore Cython cache
+        uses: actions/cache@v4
+        if: ${{ ! matrix.standalone }}
+        with:
+          key: cython-extensions-latest-${{ matrix.os }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
+          path: ~/.cython/brian_extensions
       - name: Run Tests
         run: |
           cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import
