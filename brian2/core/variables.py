@@ -1435,6 +1435,13 @@ class VariableView:
         self[:] = rhs
         return self
 
+    # Support matrix multiplication with @
+    def __matmul__(self, other):
+        return self.get_item(slice(None), level=1) @ np.asanyarray(other)
+
+    def __rmatmul__(self, other):
+        return np.asanyarray(other) @ self.get_item(slice(None), level=1)
+
     def __isub__(self, other):
         if isinstance(other, str):
             raise TypeError(
