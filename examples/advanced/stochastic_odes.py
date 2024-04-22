@@ -55,8 +55,8 @@ figure(2, figsize=(16, 7))
 methods = ['milstein', 'heun']
 dts = [1*ms, 0.5*ms, 0.2*ms, 0.1*ms, 0.05*ms, 0.025*ms, 0.01*ms, 0.005*ms]
 
-rows = floor(sqrt(len(dts)))
-cols = ceil(1.0 * len(dts) / rows)
+rows = int(sqrt(len(dts)))
+cols = int(ceil(1.0 * len(dts) / rows))
 errors = dict([(method, zeros(len(dts))) for method in methods])
 for dt_idx, dt in enumerate(dts):
     print('dt: %s' % dt)

@@ -127,11 +127,13 @@ class LazyArange(Iterable):
             return iter(self.indices)
 
     # Allow conversion to a proper array with np.array(...)
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("LazyArange does not support copy=False")
         if self.indices is None:
-            return np.arange(self.start, self.stop)
+            return np.arange(self.start, self.stop, dtype=dtype)
         else:
-            return self.indices + self.start
+            return (self.indices + self.start).astype(dtype)
 
     # Allow basic arithmetics (used when shifting stuff for subgroups)
     def __add__(self, other):

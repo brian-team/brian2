@@ -40,8 +40,8 @@ Try out Brian on the [mybinder](https://mybinder.org/) service:
 ## Dependencies
 The following packages need to be installed to use Brian 2 (cf. [`pyproject.toml`](pyproject.toml)):
 
-* Python >= 3.9
-* NumPy >=1.21
+* Python >= 3.10
+* NumPy >=1.23
 * SymPy >= 1.2
 * Cython >= 0.29.21
 * PyParsing
