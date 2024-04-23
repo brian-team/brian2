@@ -129,10 +129,10 @@ class CPPWriter:
             return
         fullfilename = os.path.join(self.project_dir, filename)
         if os.path.exists(fullfilename):
-            with open(fullfilename) as f:
+            with open(fullfilename, encoding="utf8") as f:
                 if f.read() == contents:
                     return
-        with open(fullfilename, "w") as f:
+        with open(fullfilename, "w", encoding="utf8") as f:
             f.write(contents)
 
 
@@ -1026,10 +1026,10 @@ class CPPStandaloneDevice(Device):
             source_list = " ".join(source_bases)
             source_list_fname = os.path.join(self.project_dir, "sourcefiles.txt")
             if os.path.exists(source_list_fname):
-                with open(source_list_fname) as f:
+                with open(source_list_fname, encoding="utf8") as f:
                     if f.read() == source_list:
                         return
-            with open(source_list_fname, "w") as f:
+            with open(source_list_fname, "w", encoding="utf8") as f:
                 f.write(source_list)
         else:
             # Generate the makefile
@@ -1141,10 +1141,10 @@ class CPPStandaloneDevice(Device):
                 if os.path.exists("winmake.log"):
                     os.remove("winmake.log")
                 if vcvars_cmd:
-                    with open("winmake.log", "w") as f:
+                    with open("winmake.log", "w", encoding="utf8") as f:
                         f.write(f"{vcvars_cmd}\n")
                 else:
-                    with open("winmake.log", "w") as f:
+                    with open("winmake.log", "w", encoding="utf8") as f:
                         f.write("MSVC environment: \n")
                         for key, value in msvc_env.items():
                             f.write(f"{key}={value}\n")
@@ -1175,7 +1175,7 @@ class CPPStandaloneDevice(Device):
 
                     if x != 0:
                         if os.path.exists("winmake.log"):
-                            with open("winmake.log") as f:
+                            with open("winmake.log", encoding="utf8") as f:
                                 print(f.read())
                         error_message = (
                             "Project compilation failed (error code: %u)." % x
@@ -1308,7 +1308,9 @@ class CPPStandaloneDevice(Device):
                     )
                 os.environ[key] = value
             if not with_output:
-                stdout = open(os.path.join(self.results_dir, "stdout.txt"), "w")
+                stdout = open(
+                    os.path.join(self.results_dir, "stdout.txt"), "w", encoding="utf8"
+                )
             else:
                 stdout = None
             if os.name == "nt":
@@ -1327,7 +1329,7 @@ class CPPStandaloneDevice(Device):
             if x:
                 stdout_fname = os.path.join(self.results_dir, "stdout.txt")
                 if os.path.exists(stdout_fname):
-                    with open(stdout_fname) as f:
+                    with open(stdout_fname, encoding="utf8") as f:
                         print(f.read())
                 raise RuntimeError(
                     "Project run failed (project directory:"
@@ -1336,7 +1338,7 @@ class CPPStandaloneDevice(Device):
             self.has_been_run = True
             run_info_fname = os.path.join(self.results_dir, "last_run_info.txt")
             if os.path.isfile(run_info_fname):
-                with open(run_info_fname) as f:
+                with open(run_info_fname, encoding="utf8") as f:
                     last_run_info = f.read()
                 run_time, completed_fraction = last_run_info.split()
                 self._last_run_time = float(run_time)
@@ -1982,7 +1984,7 @@ class CPPStandaloneDevice(Device):
                 "No profiling info collected (did you run with 'profile=True'?)"
             )
         net._profiling_info = []
-        with open(fname) as f:
+        with open(fname, encoding="utf8") as f:
             for line in f:
                 (key, val) = line.split()
                 net._profiling_info.append((key, float(val) * second))
