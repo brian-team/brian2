@@ -74,6 +74,20 @@ jobs:
         run: |
           conda install --quiet --yes pip gsl
           python -m pip install .[test] coverage
+      
+      - name: Determine Cython cache dir
+        id: cython-cache
+        run: |
+          CACHE_DIR=$(python -c 'import os; from Cython.Utils import get_cython_cache_dir; print(os.path.join(get_cython_cache_dir(), "brian_extensions"))')
+          echo "Cython cache dir: $CACHE_DIR"
+          echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: restore Cython cache
+        uses: actions/cache@v4
+        if: ${{ ! matrix.standalone }}
+        with:
+          key: cython-extensions-${{ matrix.os }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
+          path: ${{ steps.cython-cache.outputs.cachedir }}
 
       - name: Run Tests
         run: |
