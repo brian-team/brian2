@@ -54,7 +54,7 @@ if __name__ == '__main__':
     if deprecation_error:
         args = ['-W', 'error::DeprecationWarning', '--tb=short']
     else:
-        args = []
+        args = ['-x', '-vv']
 
     if standalone:
         result = brian2.test([],
