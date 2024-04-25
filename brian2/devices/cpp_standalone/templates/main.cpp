@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <filesystem>
 #include "objects.h"
 #include <ctime>
 #include <time.h>
@@ -24,24 +25,28 @@
 
 {{report_func|autoindent}}
 
-void set_from_command_line(const std::vector<std::string> args)
+void set_from_command_line(const std::vector<std::wstring> args)
 {
     for (const auto& arg : args) {
 		// Split into two parts
-		size_t equal_sign = arg.find("=");
+		size_t equal_sign = arg.find(L"=");
 		auto name = arg.substr(0, equal_sign);
 		auto value = arg.substr(equal_sign + 1, arg.length());
 		brian::set_variable_by_name(name, value);
 	}
 }
-int main(int argc, char **argv)
+#ifdef __WIN32
+int wmain(int argc, wchar_t* argv[])
+#else
+int main(int argc, wchar_t* argv[])
+#endif
 {
-	std::vector<std::string> args(argv + 1, argv + argc);
-	if (args.size() >=2 && args[0] == "--results_dir")
+	std::vector<std::wstring> args(argv + 1, argv + argc);
+	if (args.size() >=2 && args[0] == L"--results_dir")
 	{
 		brian::results_dir = args[1];
 		#ifdef DEBUG
-		std::cout << "Setting results dir to '" << brian::results_dir << "'" << std::endl;
+		std::cout << "Setting results dir to '" << std::filesystem::path(brian::results_dir) << "'" << std::endl;
 		#endif
 		args.erase(args.begin(), args.begin()+2);
 	}

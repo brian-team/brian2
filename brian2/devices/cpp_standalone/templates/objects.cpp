@@ -2,15 +2,15 @@
 
 {% macro set_from_value(var_dtype, array_name) %}
 {% if c_data_type(var_dtype) == 'double' %}
-set_variable_from_value<double>(name, {{array_name}}, var_size, (double)atof(s_value.c_str()));
+set_variable_from_value<double>(name, {{array_name}}, var_size, (double)std::stof(s_value));
 {% elif c_data_type(var_dtype) == 'float' %}
-set_variable_from_value<float>(name, {{array_name}}, var_size, (float)atof(s_value.c_str()));
+set_variable_from_value<float>(name, {{array_name}}, var_size, (float)std::stof(s_value));
 {% elif c_data_type(var_dtype) == 'int32_t' %}
-set_variable_from_value<int32_t>(name, {{array_name}}, var_size, (int32_t)atoi(s_value.c_str()));
+set_variable_from_value<int32_t>(name, {{array_name}}, var_size, (int32_t)std::stoi(s_value));
 {% elif c_data_type(var_dtype) == 'int64_t' %}
-set_variable_from_value<int64_t>(name, {{array_name}}, var_size, (int64_t)atol(s_value.c_str()));
+set_variable_from_value<int64_t>(name, {{array_name}}, var_size, (int64_t)std::stoi(s_value));
 {% elif c_data_type(var_dtype) == 'char' %}
-set_variable_from_value(name, {{array_name}}, var_size, (char)atoi(s_value.c_str()));
+set_variable_from_value(name, {{array_name}}, var_size, (char)std::stoi(s_value));
 {% endif %}
 {%- endmacro %}
 
@@ -24,6 +24,7 @@ set_variable_from_value(name, {{array_name}}, var_size, (char)atoi(s_value.c_str
 #include<vector>
 #include<iostream>
 #include<fstream>
+#include<filesystem>
 #include<map>
 #include<tuple>
 #include<cstdlib>
@@ -31,7 +32,7 @@ set_variable_from_value(name, {{array_name}}, var_size, (char)atoi(s_value.c_str
 
 namespace brian {
 
-std::string results_dir = "results/";  // can be overwritten by --results_dir command line arg
+std::filesystem::path results_dir = L"results/";  // can be overwritten by --results_dir command line arg
 std::vector< rk_state* > _mersenne_twister_states;
 
 //////////////// networks /////////////////
@@ -39,60 +40,60 @@ std::vector< rk_state* > _mersenne_twister_states;
 Network {{net.name}};
 {% endfor %}
 
-void set_variable_from_value(std::string varname, char* var_pointer, size_t size, char value) {
+void set_variable_from_value(std::wstring varname, char* var_pointer, size_t size, wchar_t value) {
     #ifdef DEBUG
-    std::cout << "Setting '" << varname << "' to " << (value == 1 ? "True" : "False") << std::endl;
+    std::cout << "Setting '" << varname.c_str() << "' to " << (value == 1 ? "True" : "False") << std::endl;
     #endif
     std::fill(var_pointer, var_pointer+size, value);
 }
 
-template<class T> void set_variable_from_value(std::string varname, T* var_pointer, size_t size, T value) {
+template<class T> void set_variable_from_value(std::wstring varname, T* var_pointer, size_t size, T value) {
     #ifdef DEBUG
-    std::cout << "Setting '" << varname << "' to " << value << std::endl;
+    std::cout << "Setting '" << varname.c_str() << "' to " << value << std::endl;
     #endif
     std::fill(var_pointer, var_pointer+size, value);
 }
 
-template<class T> void set_variable_from_file(std::string varname, T* var_pointer, size_t data_size, std::string filename) {
+template<class T> void set_variable_from_file(std::wstring varname, T* var_pointer, size_t data_size, std::wstring filename) {
     ifstream f;
     streampos size;
     #ifdef DEBUG
-    std::cout << "Setting '" << varname << "' from file '" << filename << "'" << std::endl;
+    std::cout << "Setting '" << varname.c_str() << "' from file '" << filename.c_str() << "'" << std::endl;
     #endif
     f.open(filename, ios::in | ios::binary | ios::ate);
     size = f.tellg();
     if (size != data_size) {
-        std::cerr << "Error reading '" << filename << "': file size " << size << " does not match expected size " << data_size << std::endl;
+        std::cerr << "Error reading '" << filename.c_str() << "': file size " << size << " does not match expected size " << data_size << std::endl;
         return;
     }
     f.seekg(0, ios::beg);
     if (f.is_open())
         f.read(reinterpret_cast<char *>(var_pointer), data_size);
     else
-        std::cerr << "Could not read '" << filename << "'" << std::endl;
+        std::cerr << "Could not read '" << filename.c_str() << "'" << std::endl;
     if (f.fail())
-        std::cerr << "Error reading '" << filename << "'" << std::endl;
+        std::cerr << "Error reading '" << filename.c_str() << "'" << std::endl;
 }
 
 //////////////// set arrays by name ///////
-void set_variable_by_name(std::string name, std::string s_value) {
+void set_variable_by_name(std::wstring name, std::wstring s_value) {
 	size_t var_size;
 	size_t data_size;
-	std::for_each(s_value.begin(), s_value.end(), [](char& c) // modify in-place
+	std::for_each(s_value.begin(), s_value.end(), [](wchar_t& c) // modify in-place
     {
-        c = std::tolower(static_cast<unsigned char>(c));
+        c = std::tolower(static_cast<unsigned wchar_t>(c));
     });
-    if (s_value == "true")
-        s_value = "1";
-    else if (s_value == "false")
-        s_value = "0";
+    if (s_value == L"true")
+        s_value = L"1";
+    else if (s_value == L"false")
+        s_value = L"0";
 	// non-dynamic arrays
 	{% for var, varname in array_specs | dictsort(by='value') %}
     {% if not var in dynamic_array_specs and not var.read_only %}
-    if (name == "{{var.owner.name}}.{{var.name}}") {
+    if (name == L"{{var.owner.name}}.{{var.name}}") {
         var_size = {{var.size}};
         data_size = {{var.size}}*sizeof({{c_data_type(var.dtype)}});
-        if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9')) {
+        if (s_value[0] == L'-' || (s_value[0] >= L'0' && s_value[0] <= L'9')) {
             // set from single value
             {{ set_from_value(var.dtype, get_array_name(var)) }}
         } else {
@@ -106,10 +107,10 @@ void set_variable_by_name(std::string name, std::string s_value) {
     // dynamic arrays (1d)
     {% for var, varname in dynamic_array_specs | dictsort(by='value') %}
     {% if not var.read_only %}
-    if (name == "{{var.owner.name}}.{{var.name}}") {
+    if (name == L"{{var.owner.name}}.{{var.name}}") {
         var_size = {{get_array_name(var, access_data=False)}}.size();
         data_size = var_size*sizeof({{c_data_type(var.dtype)}});
-        if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9')) {
+        if (s_value[0] == L'-' || (s_value[0] >= L'0' && s_value[0] <= L'9')) {
             // set from single value
             {{ set_from_value(var.dtype, "&" + get_array_name(var, False) + "[0]") }}
         } else {
@@ -121,10 +122,10 @@ void set_variable_by_name(std::string name, std::string s_value) {
     {% endif %}
     {% endfor %}
     {% for var, varname in timed_arrays | dictsort(by='value') %}
-    if (name == "{{varname}}.values") {
+    if (name == L"{{varname}}.values") {
         var_size = {{var.values.size}};
         data_size = var_size*sizeof({{c_data_type(var.values.dtype)}});
-        if (s_value[0] == '-' || (s_value[0] >= '0' && s_value[0] <= '9')) {
+        if (s_value[0] == L'-' || (s_value[0] >= L'0' && s_value[0] <= L'9')) {
             // set from single value
             {{ set_from_value(var.values.dtype, varname + "_values") }}
 
@@ -135,7 +136,7 @@ void set_variable_by_name(std::string name, std::string s_value) {
         return;
     }
     {% endfor %}
-    std::cerr << "Cannot set unknown variable '" << name << "'." << std::endl;
+    std::cerr << "Cannot set unknown variable '" << name.c_str() << "'." << std::endl;
     exit(1);
 }
 //////////////// arrays ///////////////////
@@ -233,10 +234,10 @@ void _init_arrays()
 void _load_arrays()
 {
 	using namespace brian;
-
+	namespace fs = std::filesystem;
 	{% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
 	ifstream f{{name}};
-	f{{name}}.open("static_arrays/{{name}}", ios::in | ios::binary);
+	f{{name}}.open(fs::path(L"static_arrays/{{name}}"), ios::in | ios::binary);
 	if(f{{name}}.is_open())
 	{
 	    {% if name in dynamic_array_specs.values() %}
@@ -254,11 +255,11 @@ void _load_arrays()
 void _write_arrays()
 {
 	using namespace brian;
-
+	namespace fs = std::filesystem;
 	{% for var, varname in array_specs | dictsort(by='value') %}
 	{% if not (var in dynamic_array_specs or var in dynamic_array_2d_specs) %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open(results_dir + "{{get_array_filename(var)}}", ios::binary | ios::out);
+	outfile_{{varname}}.open(results_dir / fs::path(L"{{get_array_filename(var)}}"), ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
 		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{get_array_name(var)}}[0]));
@@ -272,7 +273,7 @@ void _write_arrays()
 
 	{% for var, varname in dynamic_array_specs | dictsort(by='value') %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open(results_dir + "{{get_array_filename(var)}}", ios::binary | ios::out);
+	outfile_{{varname}}.open(results_dir / fs::path(L"{{get_array_filename(var)}}"), ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
         if (! {{varname}}.empty() )
@@ -288,7 +289,7 @@ void _write_arrays()
 
 	{% for var, varname in dynamic_array_2d_specs | dictsort(by='value') %}
 	ofstream outfile_{{varname}};
-	outfile_{{varname}}.open(results_dir + "{{get_array_filename(var)}}", ios::binary | ios::out);
+	outfile_{{varname}}.open(results_dir / fs::path(L"{{get_array_filename(var)}}"), ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
         for (int n=0; n<{{varname}}.n; n++)
@@ -307,7 +308,7 @@ void _write_arrays()
     {% if profiled_codeobjects is defined and profiled_codeobjects %}
 	// Write profiling info to disk
 	ofstream outfile_profiling_info;
-	outfile_profiling_info.open(results_dir + "profiling_info.txt", ios::out);
+	outfile_profiling_info.open(results_dir / fs::path("profiling_info.txt"), ios::out);
 	if(outfile_profiling_info.is_open())
 	{
 	{% for codeobj in profiled_codeobjects | sort %}
@@ -321,7 +322,7 @@ void _write_arrays()
     {% endif %}
 	// Write last run info to disk
 	ofstream outfile_last_run_info;
-	outfile_last_run_info.open(results_dir + "last_run_info.txt", ios::out);
+	outfile_last_run_info.open(results_dir / fs::path("last_run_info.txt"), ios::out);
 	if(outfile_last_run_info.is_open())
 	{
 		outfile_last_run_info << (Network::_last_run_time) << " " << (Network::_last_run_completed_fraction) << std::endl;
@@ -373,12 +374,13 @@ void _dealloc_arrays()
 #include "brianlib/stdint_compat.h"
 #include "network.h"
 #include "randomkit.h"
+#include<filesystem>
 #include<vector>
 {{ openmp_pragma('include') }}
 
 namespace brian {
 
-extern std::string results_dir;
+extern std::filesystem::path results_dir;
 // In OpenMP we need one state per thread
 extern std::vector< rk_state* > _mersenne_twister_states;
 
@@ -394,7 +396,7 @@ extern Network {{net.name}};
 
 
 
-void set_variable_by_name(std::string, std::string);
+void set_variable_by_name(std::wstring, std::wstring);
 
 //////////////// dynamic arrays ///////////
 {% for var, varname in dynamic_array_specs | dictsort(by='value') %}

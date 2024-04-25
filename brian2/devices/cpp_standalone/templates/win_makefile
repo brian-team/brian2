@@ -7,7 +7,7 @@ clean:
 
 {% for fname, base in zip(source_files, source_bases) | sort(attribute='0')%}
 {{base}}.obj: win_makefile
-    cl /c /EHsc /I. {{compiler_flags}} {{openmp_flag}} {{fname}} /Fo{{base}}.obj {{compiler_debug_flags}}
+    cl /c /EHsc /I. /source-charset:utf-8 /std:c++17 {{compiler_flags}} {{openmp_flag}} {{fname}} /Fo{{base}}.obj {{compiler_debug_flags}}
     
 {% endfor %}
 
