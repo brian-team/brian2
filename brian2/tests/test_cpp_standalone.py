@@ -868,7 +868,7 @@ def test_change_parameter_without_recompile_dict_syntax():
 def test_change_synapse_parameter_without_recompile_dict_syntax():
     set_device("cpp_standalone", directory=None, with_output=False)
     G = NeuronGroup(10, "", name="neurons")
-    S = Synapses(G, G, "w:1", name="synapses")
+    S = Synapses(G, G, "w:1", name="Synapses")
     S.connect(j="i")
     S.w = np.arange(10)
     run(0 * ms)
