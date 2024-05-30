@@ -78,13 +78,10 @@ template<class T> void set_variable_from_file(std::string varname, T* var_pointe
 void set_variable_by_name(std::string name, std::string s_value) {
 	size_t var_size;
 	size_t data_size;
-	std::for_each(s_value.begin(), s_value.end(), [](char& c) // modify in-place
-    {
-        c = std::tolower(static_cast<unsigned char>(c));
-    });
-    if (s_value == "true")
+	// C-style or Python-style capitalization is allowed for boolean values
+    if (s_value == "true" || s_value == "True")
         s_value = "1";
-    else if (s_value == "false")
+    else if (s_value == "false" || s_value == "False")
         s_value = "0";
 	// non-dynamic arrays
 	{% for var, varname in array_specs | dictsort(by='value') %}
