@@ -6,7 +6,7 @@ if not sphinx.version_info >= (1, 8):
 from sphinx.cmd.build import main as sphinx_main
 import sys
 
-os.chdir('../../../docs_sphinx')
+os.chdir(os.path.join(os.path.dirname(__file__), '../../../docs_sphinx'))
 if os.path.exists('../docs'):
     shutil.rmtree('../docs')
 # Some code (e.g. the definition of preferences) might need to know that Brian
