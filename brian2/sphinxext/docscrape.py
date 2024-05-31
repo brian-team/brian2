@@ -148,7 +148,7 @@ class NumpyDocString:
                 stop = i
                 break
 
-        return doc[start:-stop]
+        return doc[start : len(doc) - stop]
 
     def _read_to_next_section(self):
         section = self._doc.read_to_next_empty_line()
