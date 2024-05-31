@@ -13,7 +13,7 @@ os.environ['BRIAN2_DOCS_QUICK_REBUILD'] = '1'
 # a documentation build
 os.environ['READTHEDOCS'] = 'True'
 
-os.chdir('../../../docs_sphinx')
+os.chdir(os.path.join(os.path.dirname(__file__), '../../../docs_sphinx'))
 if os.path.exists('../docs'):
     shutil.rmtree('../docs')
 sys.exit(sphinx_main(['-b', 'html', '.', '../docs']))

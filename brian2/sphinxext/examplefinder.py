@@ -64,8 +64,12 @@ def auto_find_examples(obj, headersymbol="="):
     make mistakes but is usually going to be correct).
     """
     name = obj.__name__
-    examples = sorted(the_examples_map[name])
-    tutorials = sorted(the_tutorials_map[name])
+    # These will only go through the examples/tutorials once. The dictionaries are cached in the
+    # module variables `the_examples_map` and `the_tutorials_map`.
+    examples_map = get_examples_map()
+    examples = sorted(examples_map[name])
+    tutorials_map = get_tutorials_map()
+    tutorials = sorted(tutorials_map[name])
     if len(examples + tutorials) == 0:
         return ""
     txt = "Tutorials and examples using this"
