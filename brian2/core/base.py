@@ -80,13 +80,8 @@ class BrianObject(Nameable):
                 creation_stack.append(s)
         creation_stack = [""] + creation_stack
         #: A string indicating where this object was created (traceback with any parts of Brian code removed)
-        self._creation_stack = (
-            "Object was created here (most recent call only, full details in "
-            "debug log):\n" + creation_stack[-1]
-        )
-        self._full_creation_stack = "Object was created here:\n" + "\n".join(
-            creation_stack
-        )
+        self._creation_stack = creation_stack[-1]
+        self._full_creation_stack = "\n".join(creation_stack)
 
         if dt is not None and clock is not None:
             raise ValueError("Can only specify either a dt or a clock, not both.")
@@ -365,11 +360,15 @@ class BrianObjectException(Exception):
     def __init__(self, message, brianobj):
         self._brian_message = message
         self._brian_objname = brianobj.name
-        self._brian_objcreate = brianobj._creation_stack
+        self._brian_objcreate = (
+            "Object was created here (most recent call only, full details in "
+            "debug log):\n" + brianobj._creation_stack
+        )
+        full_stack = "Object was created here:\n" + brianobj._full_creation_stack
         logger.diagnostic(
             "Error was encountered with object "
             f"'{self._brian_objname}':\n"
-            f"{brianobj._full_creation_stack}"
+            f"{full_stack}"
         )
 
     def __str__(self):
