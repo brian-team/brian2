@@ -121,3 +121,8 @@ class Subgroup(Group, SpikeSource):
             f"<{classname} {self.name!r} of {self.source.name!r} "
             f"from {self.start} to {self.stop}>"
         )
+
+    def __del__(self):
+        # Do not raise a warning if the subgroup gets deleted (subgroups do not need
+        # to be part of a network to be useful)
+        pass
