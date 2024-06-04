@@ -240,6 +240,7 @@ def clean_up_logging():
     Shutdown the logging system and delete the debug log file if no error
     occured.
     """
+    BrianLogger.initialized = False
     logging.shutdown()
     if not BrianLogger.exception_occured and prefs["logging.delete_log_on_exit"]:
         if BrianLogger.tmp_log is not None:
@@ -343,6 +344,9 @@ class BrianLogger:
         ``brian2``.
     """
 
+    #: Global flag to know whether the logging system is in a usable state
+    initialized = False
+
     #: Class attribute to remember whether any exception occured
     exception_occured = False
 
@@ -392,6 +396,9 @@ class BrianLogger:
         once : bool
             Whether to suppress identical messages if they are logged again.
         """
+        if not BrianLogger.initialized:
+            # Prevent logging errors on exit
+            return
         name = self.name
         if name_suffix:
             name += f".{name_suffix}"
@@ -712,6 +719,8 @@ class BrianLogger:
             logger.log(logging.DEBUG, f"{_name} version is: {str(_version)}")
         # Handle uncaught exceptions
         sys.excepthook = brian_excepthook
+
+        BrianLogger.initialized = True
 
 
 def get_logger(module_name="brian2"):
