@@ -8,6 +8,7 @@ Preferences
 
 """
 
+import gc
 import os
 import pickle as pickle
 import sys
@@ -1102,6 +1103,8 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         """
+        # This will trigger warnings for objects that have not been included in a network
+        gc.collect()
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
 
         if profile is None:
