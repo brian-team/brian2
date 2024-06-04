@@ -482,6 +482,8 @@ class BrianLogger:
         """
         self._log("WARNING", msg, name_suffix, once)
 
+    warning = warn
+
     def error(self, msg, name_suffix=None, once=False):
         """
         Log an error message.

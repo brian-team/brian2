@@ -180,6 +180,22 @@ class BrianObject(Nameable):
     #: dependent objects such as `StateUpdater`
     add_to_magic_network = False
 
+    def __del__(self):
+        # For objects that get garbage collected, raise a warning if they have
+        # never been part of a network
+        if (
+            getattr(self, "_network", "uninitialized") is None
+            and getattr(self, "group", None) is None
+        ):
+            logger.warn(
+                f"The object '{self.name}' is getting deleted, but was never included in a network. "
+                "This probably means that you did not store the object reference in a variable, "
+                "or that the variable was not used to construct the network.\n"
+                "The object was created here (most recent call only):\n"
+                + self._creation_stack,
+                name_suffix="unused_brian_object",
+            )
+
     def add_dependency(self, obj):
         """
         Add an object to the list of dependencies. Takes care of handling
