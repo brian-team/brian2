@@ -19,7 +19,7 @@ import itertools
 import numbers
 import operator
 import sys
-from typing import Callable
+from collections.abc import Callable
 from warnings import warn
 
 import numpy as np
