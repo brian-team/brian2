@@ -807,7 +807,7 @@ def test_namespace_errors():
 
 @pytest.mark.codegen_independent
 def test_namespace_warnings():
-    G = NeuronGroup(
+    G1 = NeuronGroup(
         1,
         """
         x : 1
@@ -819,7 +819,7 @@ def test_namespace_warnings():
     # conflicting variable in namespace
     y = 5
     with catch_logs() as l:
-        G.x = "y"
+        G1.x = "y"
         assert len(l) == 1, f"got {str(l)} as warnings"
         assert l[0][1].endswith(".resolution_conflict")
 
@@ -829,7 +829,7 @@ def test_namespace_warnings():
     i = 5
     N = 3
     with catch_logs() as l:
-        G.x = "i // N"
+        G1.x = "i // N"
         assert len(l) == 2, f"got {str(l)} as warnings"
         assert l[0][1].endswith(".resolution_conflict")
         assert l[1][1].endswith(".resolution_conflict")
@@ -838,7 +838,7 @@ def test_namespace_warnings():
     del N
     # conflicting variables in equations
     y = 5 * Hz
-    G = NeuronGroup(
+    G2 = NeuronGroup(
         1,
         """
         y : Hz
@@ -848,7 +848,7 @@ def test_namespace_warnings():
         name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}",
     )
 
-    net = Network(G)
+    net = Network(G2)
     with catch_logs() as l:
         net.run(0 * ms)
         assert len(l) == 1, f"got {str(l)} as warnings"
@@ -857,13 +857,13 @@ def test_namespace_warnings():
 
     i = 5
     # i is referring to the neuron number:
-    G = NeuronGroup(
+    G3 = NeuronGroup(
         1,
         "dx/dt = i*Hz : 1",
         # unique names to get warnings every time:
         name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}",
     )
-    net = Network(G)
+    net = Network(G3)
     with catch_logs() as l:
         net.run(0 * ms)
         assert len(l) == 1, f"got {str(l)} as warnings"
@@ -875,13 +875,13 @@ def test_namespace_warnings():
     N = 3
     i = 5
     dt = 1 * ms
-    G = NeuronGroup(
+    G4 = NeuronGroup(
         1,
         "dx/dt = x/(10*ms) : 1",
         # unique names to get warnings every time:
         name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}",
     )
-    net = Network(G)
+    net = Network(G4)
     with catch_logs() as l:
         net.run(0 * ms)
         assert len(l) == 0, f"got {str(l)} as warnings"
@@ -893,22 +893,22 @@ def test_threshold_reset():
     Test that threshold and reset work in the expected way.
     """
     # Membrane potential does not change by itself
-    G = NeuronGroup(3, "dv/dt = 0 / second : 1", threshold="v > 1", reset="v=0.5")
-    G.v = np.array([0, 1, 2])
+    G1 = NeuronGroup(3, "dv/dt = 0 / second : 1", threshold="v > 1", reset="v=0.5")
+    G1.v = np.array([0, 1, 2])
     run(defaultclock.dt)
-    assert_allclose(G.v[:], np.array([0, 1, 0.5]))
+    assert_allclose(G1.v[:], np.array([0, 1, 0.5]))
 
     with catch_logs() as logs:
-        G = NeuronGroup(1, "v : 1", threshold="True")
+        G2 = NeuronGroup(1, "v : 1", threshold="True")
         assert len(logs) == 1
         assert logs[0][0] == "WARNING" and logs[0][1].endswith("only_threshold")
 
     with catch_logs() as logs:
-        G = NeuronGroup(1, "v : 1", threshold="True", reset="")
+        G3 = NeuronGroup(1, "v : 1", threshold="True", reset="")
         assert len(logs) == 0
 
     with catch_logs() as logs:
-        G = NeuronGroup(1, "v : 1", threshold="True", refractory=1 * ms)
+        G4 = NeuronGroup(1, "v : 1", threshold="True", refractory=1 * ms)
         assert len(logs) == 0
 
 
