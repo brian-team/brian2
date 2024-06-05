@@ -70,13 +70,13 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.black]
-target-version = ['py39']
+target-version = ['py310']
 include = '^/brian2/.*\.pyi?$'
 
 [tool.isort]
 atomic = true
 profile = "black"
-py_version = "39"
+py_version = "310"
 skip_gitignore = true
 # NOTE: isort has no "include" option, only "skip".
 skip_glob = ["dev/*", "docs_sphinx/*", "examples/*", "tutorials/*"]
