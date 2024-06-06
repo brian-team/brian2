@@ -1,5 +1,48 @@
 Release notes
 =============
+Brian 2.7.0
+-----------
+This release contains a number of bug fixes and improvements. Notably, it is fully compatible with the upcoming numpy 2.0 release and can be installed 
+alongside either numpy versions 1.23–1.26, or numpy 2.0.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Objects (e.g. `NeuronGroup` or `Synapses`) that are not used now raise warnings, avoiding errors for accidentally unused objects (:issue:`1536`). Thanks
+  to Jannik Luboeinski for suggesting this feature.
+- Fix the :doc:`run_args <../user/computation>` feature for object names with upper case letters (:issue:`1533`). Thanks to DavidKing2020 for making us aware of this issue.
+- Extremely short refractoriness periods were not converted into code correctly, truncating their value (:issue:`1521`). Thanks to YannaelB for reporting this issue.
+- The numbers 0 and 1 were converted into ``true``/``false`` in C++ code, breaking tests expecting the numbers to appear (:issue:`1520`)
+- The logging system was broken for 3rd-party packages that have names starting with ``brian`` (:issue:`1519`)
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- The reference documentation was not correctly built, missing a lot of the information present in the source code. Thanks to Harsh Khilawala for making us aware of
+  this issue (:issue:`1534`)
+- Binary wheels are built against numpy 2.0. These wheels are still backwards compatible with numpy >= 1.23 (:issue:`1527`)
+- Faster tests on GitHub actions by caching the compiled Cython code (:issue:`1528`)
+- The test suite was no longer testing the GSL integration (:issue:`1523` and :issue:`1526`)
+- Brian no longer includes the date in its documentation for `reproducible builds <https://reproducible-builds.org/docs/source-date-epoch/>`_ (:issue:`1518`).
+
+Contributions
+~~~~~~~~~~~~~
+
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Harsh Khilawala (`@HarshKhilawala <https://github.com/HarshKhilawala>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* Jannik Luboeinski (`@jlubo <https://github.com/jlubo>`_)
+* `@flomlo <https://github.com/flomlo>`_
+* Sven Leach (`@SvennoNito <https://github.com/SvennoNito>`_)
+
+Other contributions outside of GitHub (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* `DavidKing2020 <https://brian.discourse.group/u/davidking2020/summary>`_
+* `YannaelB <https://brian.discourse.group/u/YannaelB/summary>`_
+
 Brian 2.6.0
 -----------
 This release introduces a major new feature for running standalone simulations repeatedly (or in parallel), without having to recompile the code.
@@ -55,6 +98,7 @@ contributions):
 
 Other contributions outside of GitHub (ordered alphabetically, apologies to
 anyone we forgot...):
+
 * `ansuz <https://brian.discourse.group/u/ansuz/summary>`_`
 * `@l-luo1 <https://github.com/l-luo1>_``
 * Klaus Wimmer (`@wklausitor <https://github.com/wklausito>_`)

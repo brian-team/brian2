@@ -7,7 +7,7 @@ repos:
     rev: v3.15.1
     hooks:
       - id: pyupgrade
-        args: [--py39-plus]
+        args: [--py310-plus]
         files: '^brian2/.*\.pyi?$'
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
