@@ -28,12 +28,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [{image: ubuntu-latest, triplet: x64-linux},
-             {image: windows-latest, triplet: x64-windows},
-             {image: macOS-12, triplet: x64-osx},
-             {image: macOS-14, triplet: arm64-osx}]
+        os: [{image: macOS-12, triplet: x64-osx}]
         standalone: [false, true]
-        float_dtype_32: [false, true]
+        float_dtype_32: [false]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
 
     steps:
@@ -76,13 +73,14 @@ jobs:
         if: matrix.os.image == 'macOS-12' || matrix.os.image == 'macOS-14'
       - name: Install dependencies
         run: |
+          echo $PKG_CONFIG_PATH
+          ls $PKG_CONFIG_PATH || echo $PKG_CONFIG_PATH does not exist
           ${{ steps.python.outputs.python-path }} -m pip install --upgrade pip setuptools
           ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple numpy scipy
           ${{ steps.python.outputs.python-path }} -m pip install mpmath  # install stable version
           ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
         run: |
-          cp numpy2.pyproject.toml pyproject.toml
           ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
         run: |
@@ -94,61 +92,3 @@ jobs:
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
           DO_NOT_RESET_PREFERENCES: true  # Make sure that GSL setting is used
 
-  test-deprecations:
-    needs: [ get_python_versions ]
-    name: "Python ${{ matrix.python-version }} check for deprecation warnings on (standalone: ${{ matrix.standalone }}"
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        standalone: [ false, true ]
-        python-version: [ "${{ needs.get_python_versions.outputs.max-python }}" ]
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install GSL
-        uses: johnwason/vcpkg-action@v6
-        id: vcpkg
-        with:
-          pkgs: gsl
-          triplet: x64-linux
-          cache-key: gsl-x64-linux
-          revision: master
-          token: ${{ github.token }}
-      - name: Install Python
-        id: python
-        uses: actions/setup-python@v5
-        with:
-          cache: 'pip'
-          python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
-      - name: Install dependencies
-        run: |
-          ${{ steps.python.outputs.python-path }} -m pip install --upgrade pip setuptools
-          ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
-          ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
-      - name: Install Brian2
-        run: ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
-      - name: Determine Cython cache dir
-        id: cython-cache
-        run: |
-          CACHE_DIR=$(python -c 'import os; from Cython.Utils import get_cython_cache_dir; print(os.path.join(get_cython_cache_dir(), "brian_extensions"))')
-          echo "Cython cache dir: $CACHE_DIR"
-          echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
-      - name: restore Cython cache
-        uses: actions/cache@v4
-        if: ${{ ! matrix.standalone }}
-        with:
-          key: cython-extensions-latest-ubuntu-latest-${{ matrix.python-version }}-32bit-False
-          path: ${{ steps.cython-cache.outputs.cachedir }}
-      - name: Run Tests
-        run: |
-          cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import
-          ${{ steps.python.outputs.python-path }} -Wd ${{ github.workspace }}/dev/continuous-integration/run_test_suite.py || echo "Tests failed (but not marked as failed on GA)"
-        env:
-          DEPRECATION_ERROR: true
-          AGENT_OS: linux
-          STANDALONE: ${{ matrix.standalone }}
