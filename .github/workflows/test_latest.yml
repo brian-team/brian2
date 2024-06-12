@@ -67,12 +67,8 @@ jobs:
       - name: Install scipy build dependencies (mac OS)
         run: |
           sudo ln -s $(which gfortran-13) /usr/local/bin/gfortran 
-          brew install openblas pkg-config
-          brew --prefix openblas
-          ls $(brew --prefix openblas)
-          ls $(brew --prefix openblas)/lib/pkgconfig
           # Export PKG_CONFIG_PATH to GitHub Actions environment
-          echo "PKG_CONFIG_PATH=/opt/homebrew/opt/openblas/lib/pkgconfig" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$(brew --prefix openblas)/lib/pkgconfig" >> $GITHUB_ENV
         if: matrix.os.image == 'macOS-12' || matrix.os.image == 'macOS-14'
       - name: Install dependencies
         run: |
