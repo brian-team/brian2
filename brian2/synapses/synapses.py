@@ -1014,7 +1014,7 @@ class Synapses(Group):
                         prepost,
                         objname=key,
                         delay=pathway_delay,
-                        event=self.events.get(prepost, self.default_event),
+                        event=self.events.get(key, self.default_event),
                     )
 
         # Check whether any delays were specified for pathways that don't exist
