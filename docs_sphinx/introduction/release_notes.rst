@@ -1,5 +1,22 @@
 Release notes
 =============
+Next release
+------------
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Fix a bug in interpreting the ```on_event`` argument of `Synapses` for custom events and non-default pathways (a regression introduced with Brian 2.6). Thanks to forum users
+  ``mreynes`` and ``mmiekus`` for making us aware of this issue.
+
+Contributions
+~~~~~~~~~~~~~
+
+Other contributions outside of GitHub (ordered alphabetically, apologies to
+anyone we forgot...):
+
+- `mmiekus <https://brian.discourse.group/u/mmiekus/summary>`_
+- `mreynes <https://brian.discourse.group/u/mreynes/summary>`_
+
 Brian 2.7.0
 -----------
 This release contains a number of bug fixes and improvements. Notably, it is fully compatible with the upcoming numpy 2.0 release and can be installed 
