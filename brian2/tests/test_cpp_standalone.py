@@ -1,4 +1,5 @@
 import os
+import platform
 import tempfile
 
 import pytest
@@ -947,6 +948,10 @@ class RunSim:
 
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
+@pytest.mark.skipif(
+    platform.system() == "Darwin" and platform.processor() == "arm",
+    reason="multiprocessing hangs on macOS with Apple Silicon",
+)
 def test_change_parameters_multiprocessing():
     set_device("cpp_standalone", directory=None)
     sim = RunSim()
