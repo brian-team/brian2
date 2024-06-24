@@ -8,6 +8,7 @@ from brian2 import numpy as np
 from brian2.spatialneuron import *
 from brian2.tests.utils import assert_allclose
 from brian2.units import DimensionMismatchError, cm, second, um
+from brian2.utils.logger import catch_logs
 
 
 @pytest.mark.codegen_independent
@@ -716,6 +717,39 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
     # fmt: on
     with pytest.raises(ValueError):
         Morphology.from_points(points)
+
+
+@pytest.mark.codegen_independent
+def test_tree_soma_from_points_somas_not_at_start():
+    # A single soma in the middle (ununusal but possible)
+    points = [  # dendrite
+        (1, "dend", 100, 0, 0, 10, -1),
+        (2, "dend", 100, 0, 0, 10, 1),
+        (3, "dend", 100, 0, 0, 10, 2),
+        (4, "soma", 100, 0, 0, 30, 3),
+        (5, "dend2", 130, 0, 0, 10, 4),
+        (6, "dend2", 160, 0, 0, 10, 5),
+    ]
+    morpho = Morphology.from_points(points)
+    assert morpho.total_sections == 3
+    assert morpho.total_compartments == 5
+
+    # Several somata (probably an error)
+    points = [  # dendrite
+        (1, "dend", 0, 0, 0, 10, -1),
+        (2, "dend", 30, 0, 0, 10, 1),
+        (3, "dend", 60, 0, 0, 10, 2),
+        (4, "soma", 90, 0, 0, 30, 3),
+        (5, "dend2", 120, 70, 0, 10, 4),
+        (6, "dend2", 150, 70, 0, 10, 5),
+        (7, "soma", 180, 40, 0, 30, 6),
+    ]
+    with catch_logs() as logs:
+        morpho = Morphology.from_points(points)
+    assert len(logs) == 1
+    assert logs[0][1].endswith("soma_compartments")
+    assert morpho.total_sections == 4
+    assert morpho.total_compartments == 6
 
 
 @pytest.mark.codegen_independent
