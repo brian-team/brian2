@@ -926,6 +926,19 @@ def test_construction_incorrect_arguments():
 
 
 @pytest.mark.codegen_independent
+def test_from_points_long_chain():
+    # in previous versions, this led to a recursion error
+    points = [(1, "soma", 0, 0, 0, 1, -1)]
+    for i in range(2, 10000):
+        points.append((i, "dend", 0 + i * 10, 0, 0, 5, i - 1))
+    morph = Morphology.from_points(points)
+    assert (
+        morph.total_compartments == 10000 - 1
+    )  # compartments are in-between the points
+    assert morph.total_sections == 2
+
+
+@pytest.mark.codegen_independent
 def test_from_points_minimal():
     points = [(1, "soma", 10, 20, 30, 30, -1)]
     morph = Morphology.from_points(points)
