@@ -6,7 +6,7 @@ the logic into Windows batch/bash statements)
 # see https://github.com/scipy/scipy/issues/11835
 import multiprocessing
 # Prevent potential issues on multi-threaded execution
-multiprocessing.set_start_method('spawn')
+multiprocessing.set_start_method('spawn', force=True)
 import os
 import sys
 
