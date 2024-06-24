@@ -1146,8 +1146,8 @@ class Morphology(metaclass=abc.ABCMeta):
             length_1 = np.sqrt(np.sum((point_1 - point_0) ** 2))
             length_2 = np.sqrt(np.sum((point_2 - point_0) ** 2))
             if (
-                np.abs(length_1 - diameter / 2) > 0.01
-                or np.abs(length_2 - diameter / 2) > 0.01
+                np.abs(length_1 - diameter / 2) > 0.1
+                or np.abs(length_2 - diameter / 2) > 0.1
             ):
                 raise ValueError(
                     "Cannot replace '3-point-soma' by a single "
