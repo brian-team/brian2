@@ -1153,7 +1153,7 @@ class Morphology(metaclass=abc.ABCMeta):
                     "Cannot replace '3-point-soma' by a single "
                     "point, the second and third points should "
                     "be positioned one radius away from the "
-                    f"first point. Distances are {length_1:.3d}um and "
+                    f"first point. Distances are {length_1:.3f}um and "
                     f"{length_2:.3f}um, respectively, while the "
                     f"radius is {diameter / 2:.3f}um."
                 )

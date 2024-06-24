@@ -769,6 +769,58 @@ def test_tree_soma_from_swc_3_point_soma():
 
 
 @pytest.mark.codegen_independent
+def test_tree_soma_from_swc_3_point_soma_incorrect_points():
+    swc_content = """
+# Test file
+1    1  100  0  0  15  -1
+2    1  100  15  0  15  1
+3    1  100  -10  0  15  1
+4   2  114.14213562373095  14.142135623730949  0  4  1
+5   2  128.2842712474619  28.284271247461898  0  3  4
+6   2  142.42640687119285  42.426406871192846  0  2  5
+7   2  156.5685424949238  56.568542494923797  0  1  6
+8   2  170.71067811865476  70.710678118654741  0  0  7
+9   2  107.07106781186548  -7.0710678118654746  0  2.5  1
+10   2  114.14213562373095  -14.142135623730949  0  2.5  9
+11   2  121.21320343559643  -21.213203435596423  0  2.5  10
+12   2  128.2842712474619  -28.284271247461898  0  2.5  11
+13   2  135.35533905932738  -35.35533905932737  0  2.5  12
+"""
+    tmp_filename = tempfile.mktemp("cable_morphology.swc")
+    with open(tmp_filename, "w") as f:
+        f.write(swc_content)
+    with pytest.raises(ValueError, match=r".*radius is 15.000um.*"):
+        Morphology.from_file(tmp_filename)
+    os.remove(tmp_filename)
+
+
+@pytest.mark.codegen_independent
+def test_tree_soma_from_swc_3_point_soma_incorrect_radius():
+    swc_content = """
+# Test file
+1    1  100  0  0  15  -1
+2    1  100  15  0  10  1
+3    1  100  -15  0  15  1
+4   2  114.14213562373095  14.142135623730949  0  4  1
+5   2  128.2842712474619  28.284271247461898  0  3  4
+6   2  142.42640687119285  42.426406871192846  0  2  5
+7   2  156.5685424949238  56.568542494923797  0  1  6
+8   2  170.71067811865476  70.710678118654741  0  0  7
+9   2  107.07106781186548  -7.0710678118654746  0  2.5  1
+10   2  114.14213562373095  -14.142135623730949  0  2.5  9
+11   2  121.21320343559643  -21.213203435596423  0  2.5  10
+12   2  128.2842712474619  -28.284271247461898  0  2.5  11
+13   2  135.35533905932738  -35.35533905932737  0  2.5  12
+"""
+    tmp_filename = tempfile.mktemp("cable_morphology.swc")
+    with open(tmp_filename, "w") as f:
+        f.write(swc_content)
+    with pytest.raises(ValueError, match=r".*not all the diameters are identical.*"):
+        Morphology.from_file(tmp_filename)
+    os.remove(tmp_filename)
+
+
+@pytest.mark.codegen_independent
 def test_construction_incorrect_arguments():
     ### Morphology
     dummy_self = Soma(10 * um)  # To allow testing of Morphology.__init__
