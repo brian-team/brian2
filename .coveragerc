@@ -1,6 +1,9 @@
 # .coveragerc to control coverage.py
 # following the example at http://nedbatchelder.com/code/coverage/config.html
 [run]
+concurrency = multiprocessing
+parallel = True
+sigterm = True
 relative_files = True
 branch = True
 source_pkgs = brian2

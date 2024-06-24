@@ -73,7 +73,7 @@ jobs:
       - name: Install Brian2 and dependencies
         run: |
           conda install --quiet --yes pip gsl
-          python -m pip install .[test] coverage
+          python -m pip install .[test]
       
       - name: Determine Cython cache dir
         id: cython-cache
@@ -92,9 +92,8 @@ jobs:
       - name: Run Tests
         run: |
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
-          coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
-          coverage lcov --rcfile=$GITHUB_WORKSPACE/.coveragerc
-          cp coverage.lcov $GITHUB_WORKSPACE/
+          python $GITHUB_WORKSPACE/$SCRIPT_NAME
+          cp coverage.xml $GITHUB_WORKSPACE/
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           SPHINX_DIR: ${{ github.workspace }}/docs_sphinx
@@ -106,8 +105,6 @@ jobs:
         uses: coverallsapp/github-action@v2.3.0
         with:
           parallel: true
-          format: lcov
-          file: coverage.lcov
           flag-name: run ${{ join(matrix.*, ' - ') }}
 
   coveralls:

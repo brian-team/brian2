@@ -20,7 +20,6 @@ if __name__ == '__main__':
     operating_system = os.environ.get('AGENT_OS', 'unknown').lower()
     cross_compiled = os.environ.get('CROSS_COMPILED', 'FALSE').lower() in ['yes', 'true']
     do_not_reset_preferences = os.environ.get('DO_NOT_RESET_PREFERENCES', 'false').lower() in ['yes', 'true']
-    report_coverage = os.environ.get('REPORT_COVERAGE', 'no').lower() in ['yes', 'true']
     dtype_32_bit = os.environ.get('FLOAT_DTYPE_32', 'no').lower() in ['yes', 'true']
     sphinx_dir = os.environ.get('SPHINX_DIR')
     src_dir = os.environ.get('SRCDIR')
@@ -54,7 +53,18 @@ if __name__ == '__main__':
     if deprecation_error:
         args = ['-W', 'error::DeprecationWarning', '--tb=short']
     else:
-        args = []
+        # Use coverage when running on GitHub
+        if "GITHUB_WORKSPACE" in os.environ:
+            args = [
+                "--cov",
+                "--cov-append",
+                "--cov-report",
+                "xml",
+                "--cov-report",
+                "term",
+                "--cov-config",
+                os.path.join(os.environ["GITHUB_WORKSPACE"], ".coveragerc"),
+            ]
 
     if standalone:
         result = brian2.test([],
