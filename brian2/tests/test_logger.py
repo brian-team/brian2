@@ -59,7 +59,7 @@ def run_in_process_with_logger(x):
 @pytest.mark.codegen_independent
 def test_file_logging_multiprocessing():
     logger.info("info message before multiprocessing")
-    p = multiprocessing.Pool()
+    p = multiprocessing.Pool(3)
 
     try:
         p.map(run_in_process, range(3))
@@ -79,7 +79,7 @@ def test_file_logging_multiprocessing():
 def test_file_logging_multiprocessing_with_loggers():
     logger.info("info message before multiprocessing")
 
-    p = multiprocessing.Pool()
+    p = multiprocessing.Pool(3)
     try:
         log_files = p.map(run_in_process_with_logger, range(3))
     finally:
