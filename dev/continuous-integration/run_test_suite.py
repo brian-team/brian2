@@ -66,7 +66,10 @@ if __name__ == '__main__':
                 "term",
                 "--cov-config",
                 os.path.join(os.environ["GITHUB_WORKSPACE"], ".coveragerc"),
+                '-vv',
             ]
+        else:
+            args = []
 
     if standalone:
         result = brian2.test([],

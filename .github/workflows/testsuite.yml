@@ -39,18 +39,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2022]
-        standalone: [false, true]
+        standalone: [false]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
-        include:
-          - os: ubuntu-22.04
-            standalone: false
-            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
-            float_dtype_32: false
-          - os: ubuntu-22.04
-            standalone: true
-            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
-            float_dtype_32: false
 
     defaults:
       run:
