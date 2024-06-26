@@ -51,6 +51,7 @@ def run_in_process(x):
 def run_in_process_with_logger(x):
     prefs.logging.delete_log_on_exit = False
     BrianLogger.initialize()
+    print(f"in process {x}: {BrianLogger.tmp_log}")
     logger.info(f"subprocess info message {x}")
     BrianLogger.file_handler.flush()
     return BrianLogger.tmp_log
@@ -58,6 +59,7 @@ def run_in_process_with_logger(x):
 
 @pytest.mark.codegen_independent
 def test_file_logging_multiprocessing():
+    print("In main process: ", BrianLogger.tmp_log)
     logger.info("info message before multiprocessing")
     p = multiprocessing.Pool(3)
 
@@ -78,6 +80,7 @@ def test_file_logging_multiprocessing():
 @pytest.mark.codegen_independent
 def test_file_logging_multiprocessing_with_loggers():
     try:
+        print("In main process: ", BrianLogger.tmp_log)
         logger.info("info message before multiprocessing")
 
         p = multiprocessing.Pool(3)
@@ -99,7 +102,9 @@ def test_file_logging_multiprocessing_with_loggers():
             assert os.path.isfile(log_file)
             with open(log_file, encoding="utf-8") as f:
                 log_content = f.read().splitlines()
-            assert f"subprocess info message {x}" in log_content[-1]
+            assert (
+                f"subprocess info message {x}" in log_content[-1]
+            ), "log content: " + str(log_content)
 
     finally:
         prefs.logging.delete_log_on_exit = True
