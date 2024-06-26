@@ -9,6 +9,17 @@ from brian2.utils.logger import BrianLogger, catch_logs, get_logger
 logger = get_logger("brian2.tests.test_logger")
 
 
+def read_logfile(f):
+    """
+    Filter out empty lines and lines that are warnings from the Python interpreter
+    """
+    return [
+        line
+        for line in f.read().splitlines()
+        if len(line) and "py.warnings:" not in line
+    ]
+
+
 @pytest.mark.codegen_independent
 def test_file_logging():
     BrianLogger.initialize()
@@ -21,7 +32,7 @@ def test_file_logging():
     # By default, only >= debug messages should show up
     assert os.path.isfile(BrianLogger.tmp_log)
     with open(BrianLogger.tmp_log, encoding="utf-8") as f:
-        log_content = [line for line in f.read().splitlines() if len(line)]
+        log_content = read_logfile(f)
     for level, line in zip(["error", "warning", "info", "debug"], log_content[-4:]):
         assert "brian2.tests.test_logger" in line
         assert f"{level} message xxx" in line
@@ -38,7 +49,7 @@ def test_file_logging_special_characters():
     BrianLogger.file_handler.flush()
     assert os.path.isfile(BrianLogger.tmp_log)
     with open(BrianLogger.tmp_log, encoding="utf-8") as f:
-        log_content = [line for line in f.read().splitlines() if len(line)]
+        log_content = read_logfile(f)
     last_line = log_content[-1]
     assert "brian2.tests.test_logger" in last_line
     assert special_chars in last_line
@@ -72,7 +83,7 @@ def test_file_logging_multiprocessing():
     BrianLogger.file_handler.flush()
     assert os.path.isfile(BrianLogger.tmp_log)
     with open(BrianLogger.tmp_log, encoding="utf-8") as f:
-        log_content = [line for line in f.read().splitlines() if len(line)]
+        log_content = read_logfile(f)
     # The subprocesses should not have written to the log file
     assert "info message before multiprocessing" in log_content[-1]
 
@@ -101,10 +112,8 @@ def test_file_logging_multiprocessing_with_loggers():
         for x, log_file in enumerate(log_files):
             assert os.path.isfile(log_file)
             with open(log_file, encoding="utf-8") as f:
-                log_content = [line for line in f.read().splitlines() if len(line)]
-            assert (
-                f"subprocess info message {x}" in log_content[-1]
-            ), "last three entries: " + str(log_content[-3:])
+                log_content = read_logfile(f)
+            assert f"subprocess info message {x}" in log_content[-1]
 
     finally:
         prefs.logging.delete_log_on_exit = True
@@ -123,7 +132,7 @@ def test_submodule_logging():
     # By default, only >= debug messages should show up
     assert os.path.isfile(BrianLogger.tmp_log)
     with open(BrianLogger.tmp_log, encoding="utf-8") as f:
-        log_content = f.read().splitlines()
+        log_content = read_logfile(f)
     for level, line in zip(["error", "warning", "info", "debug"], log_content[-4:]):
         assert "submodule.dummy" in line
         # The logger name has brian2 internally prefixed, but this shouldn't show up in logs
@@ -157,7 +166,7 @@ def test_submodule_logging():
     # By default, only >= debug messages should show up
     assert os.path.isfile(BrianLogger.tmp_log)
     with open(BrianLogger.tmp_log, encoding="utf-8") as f:
-        log_content = f.read().splitlines()
+        log_content = read_logfile(f)
     for level, line in zip(["error", "warning", "info", "debug"], log_content[-4:]):
         assert "submodule.dummy" in line
         # The logger name has brian2 internally prefixed, but this shouldn't show up in logs
