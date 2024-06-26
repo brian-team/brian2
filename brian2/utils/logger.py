@@ -697,8 +697,6 @@ class BrianLogger:
         # interface...
         warn_logger = logging.getLogger("py.warnings")
         warn_logger.addHandler(BrianLogger.console_handler)
-        if BrianLogger.file_handler is not None:
-            warn_logger.addHandler(BrianLogger.file_handler)
 
         # Put some standard info into the log file
         logger.log(
