@@ -406,6 +406,8 @@ class BrianLogger:
         # Switch off file logging when using multiprocessing
         if BrianLogger.tmp_log is not None and BrianLogger._pid != os.getpid():
             BrianLogger.tmp_log = None
+            warn_logger = logging.getLogger("py.warnings")
+            warn_logger.removeHandler(BrianLogger.file_handler)
             logging.getLogger("brian2").removeHandler(BrianLogger.file_handler)
             BrianLogger.file_handler = None
 
@@ -625,6 +627,8 @@ class BrianLogger:
                 # Remove any previously existing file handler
                 if BrianLogger.file_handler is not None:
                     BrianLogger.file_handler.close()
+                    warn_logger = logging.getLogger("py.warnings")
+                    warn_logger.removeHandler(BrianLogger.file_handler)
                     logger.removeHandler(BrianLogger.file_handler)
                 # Rotate log file after prefs['logging.file_log_max_size'] bytes and keep one copy
                 BrianLogger.file_handler = RotatingFileHandler(
