@@ -5,6 +5,8 @@ the logic into Windows batch/bash statements)
 # Importing multiprocessing here seems to fix hangs in the test suite on OS X
 # see https://github.com/scipy/scipy/issues/11835
 import multiprocessing
+# Prevent potential issues on multi-threaded execution
+multiprocessing.set_start_method('spawn')
 import os
 import sys
 
