@@ -21,7 +21,7 @@ def test_file_logging():
     # By default, only >= debug messages should show up
     assert os.path.isfile(BrianLogger.tmp_log)
     with open(BrianLogger.tmp_log, encoding="utf-8") as f:
-        log_content = f.read().splitlines()
+        log_content = [line for line in f.read().splitlines() if len(line)]
     for level, line in zip(["error", "warning", "info", "debug"], log_content[-4:]):
         assert "brian2.tests.test_logger" in line
         assert f"{level} message xxx" in line
@@ -38,7 +38,7 @@ def test_file_logging_special_characters():
     BrianLogger.file_handler.flush()
     assert os.path.isfile(BrianLogger.tmp_log)
     with open(BrianLogger.tmp_log, encoding="utf-8") as f:
-        log_content = f.read().splitlines()
+        log_content = [line for line in f.read().splitlines() if len(line)]
     last_line = log_content[-1]
     assert "brian2.tests.test_logger" in last_line
     assert special_chars in last_line
@@ -72,7 +72,7 @@ def test_file_logging_multiprocessing():
     BrianLogger.file_handler.flush()
     assert os.path.isfile(BrianLogger.tmp_log)
     with open(BrianLogger.tmp_log, encoding="utf-8") as f:
-        log_content = f.read().splitlines()
+        log_content = [line for line in f.read().splitlines() if len(line)]
     # The subprocesses should not have written to the log file
     assert "info message before multiprocessing" in log_content[-1]
 
@@ -101,10 +101,10 @@ def test_file_logging_multiprocessing_with_loggers():
         for x, log_file in enumerate(log_files):
             assert os.path.isfile(log_file)
             with open(log_file, encoding="utf-8") as f:
-                log_content = f.read().splitlines()
+                log_content = [line for line in f.read().splitlines() if len(line)]
             assert (
                 f"subprocess info message {x}" in log_content[-1]
-            ), "log content: " + str(log_content)
+            ), "last three entries: " + str(log_content[-3:])
 
     finally:
         prefs.logging.delete_log_on_exit = True
