@@ -59,9 +59,13 @@ def run_in_process_with_logger(x):
 @pytest.mark.codegen_independent
 def test_file_logging_multiprocessing():
     logger.info("info message before multiprocessing")
+    p = multiprocessing.Pool()
 
-    with multiprocessing.Pool() as p:
+    try:
         p.map(run_in_process, range(3))
+    finally:
+        p.close()
+        p.join()
 
     BrianLogger.file_handler.flush()
     assert os.path.isfile(BrianLogger.tmp_log)
@@ -75,8 +79,12 @@ def test_file_logging_multiprocessing():
 def test_file_logging_multiprocessing_with_loggers():
     logger.info("info message before multiprocessing")
 
-    with multiprocessing.Pool() as p:
+    p = multiprocessing.Pool()
+    try:
         log_files = p.map(run_in_process_with_logger, range(3))
+    finally:
+        p.close()
+        p.join()
 
     BrianLogger.file_handler.flush()
     assert os.path.isfile(BrianLogger.tmp_log)

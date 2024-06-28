@@ -958,8 +958,12 @@ def test_change_parameters_multiprocessing():
 
     import multiprocessing
 
-    with multiprocessing.Pool() as p:
+    p = multiprocessing.Pool()
+    try:
         results = p.map(sim.run_sim, range(5))
+    finally:
+        p.close()
+        p.join()
 
     for idx, result in zip(range(5), results):
         v, w, x = result
