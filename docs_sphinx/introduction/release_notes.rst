@@ -1,21 +1,36 @@
 Release notes
 =============
-Next release
-------------
+Brian 2.7.1
+-----------
+This minor bug-fix release contains a fix for a regression in the handling of the ``on_event`` argument of `Synapses` for custom events and non-default pathways,
+which was introduced in Brian 2.6.0.
 
 Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- Fix a bug in interpreting the ```on_event`` argument of `Synapses` for custom events and non-default pathways (a regression introduced with Brian 2.6). Thanks to forum users
-  ``mreynes`` and ``mmiekus`` for making us aware of this issue.
+- Fix a bug in interpreting the ``on_event`` argument of `Synapses` for custom events and non-default pathways (a regression introduced with Brian 2.6). Thanks to forum users
+  ``mreynes`` and ``mmiekus`` for making us aware of this issue. (:issue:`1541`)
+- Make parsing SWC files more robust, by not being as strict for a correct 3-point-soma format (which is often slightly inexact on https://neuromorpho.org). Thanks to forum
+  user ``cbx`` for making us aware of this issue. (:issue:`1544`)
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Move to ``pytest-cov`` for coverage measurements – this fixes issues with wrong coverage reports on https://coveralls.io/github/brian-team/brian2. (:issue:`1545`)
 
 Contributions
 ~~~~~~~~~~~~~
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* `@mareba2030 <https://github.com/mareba2030>`_
+* Björn Lindqvist (`@bjourne <https://github.com/bjourne>`_)
 
 Other contributions outside of GitHub (ordered alphabetically, apologies to
 anyone we forgot...):
 
-- `mmiekus <https://brian.discourse.group/u/mmiekus/summary>`_
-- `mreynes <https://brian.discourse.group/u/mreynes/summary>`_
+* `cbx <https://brian.discourse.group/u/cbx/summary>`_
+* `mmiekus <https://brian.discourse.group/u/mmiekus/summary>`_
+* `mreynes <https://brian.discourse.group/u/mreynes/summary>`_
 
 Brian 2.7.0
 -----------
