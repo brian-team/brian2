@@ -85,6 +85,9 @@ differential equations for the target `NeuronGroup`, and ``on_pre`` is the argum
     '''
     on_pre = 'x += w'
 
+:math:`V(t)` must be normalized by using some factor. For peak value the factor can be 
+:math:`\frac{1.}{\frac{\tau_2}{\tau_2-\tau_1})(\frac{\tau_1}{\tau_2})^{\tau_1/(\tau_2-\tau_1)}-(\frac{\tau_1}{\tau_2}}^{\tau_2/(\tau_2-\tau_1)}`
+
 :math:`V(t)` reaches a maximum value of :math:`w` at time
 :math:`t=\frac{\tau_1\tau_2}{\tau_2-\tau_1}\log\left(\frac{\tau_2}{\tau_1}\right)`.
 
