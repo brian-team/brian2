@@ -179,6 +179,7 @@ jobs:
       with:
         images: |
           briansimulator/brian
+          ghcr.io/brian-team/brian
         flavor: latest=true
         tags: |
           # type=semver,pattern={{raw}}
@@ -203,6 +204,13 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Login to GitHub Container Registry
+      if: ${{ github.repository == 'brian-team/brian2' && github.actor != 'dependabot[bot]'}}
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - name: load Linux x86 distribution 📦
       uses: actions/download-artifact@v4
       with:
