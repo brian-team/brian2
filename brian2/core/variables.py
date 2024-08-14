@@ -1573,10 +1573,7 @@ class VariableView:
     # Get access to some basic properties of the underlying array
     @property
     def shape(self):
-        if self.ndim == 1:
-            return (self.variable.size,)
-        else:
-            return self.variable.size
+        return self[:].shape
 
     @property
     def ndim(self):
