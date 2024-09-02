@@ -1174,12 +1174,7 @@ class CPPStandaloneDevice(Device):
                         self.timers["compile"]["make"] = time.time() - start_time
 
                     if x != 0:
-                        if os.path.exists("winmake.log"):
-                            with open("winmake.log") as f:
-                                print(f.read())
-                        error_message = (
-                            "Project compilation failed (error code: %u)." % x
-                        )
+                        error_message = f"Project compilation failed (error code: {x}), consider having a look at 'winmake.log'."
                         if not clean:
                             error_message += (
                                 " Consider running with "
