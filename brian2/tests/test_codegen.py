@@ -450,7 +450,7 @@ def test_automatic_augmented_assignments():
         ("x = x - 3.0", "x += -3.0"),
         ("x = x/2.0", "x *= 0.5"),
         ("x = y + (x + 1.0)", "x += y + 1.0"),
-        ("x = x + x", "x *= 2.0"),
+        ("x = x + x", "x *= 2"),
         ("x = x + y + z", "x += y + z"),
         ("x = x + y + z", "x += y + z"),
         # examples that should not be rewritten
