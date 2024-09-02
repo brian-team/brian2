@@ -17,9 +17,8 @@ import struct
 import subprocess
 import sys
 import tempfile
+from distutils._msvccompiler import _get_vc_env
 from distutils.ccompiler import get_default_compiler
-
-from setuptools import msvc
 
 from brian2.core.preferences import BrianPreference, prefs
 from brian2.utils.filetools import ensure_directory
@@ -352,7 +351,7 @@ def get_msvc_env():
     # Search for MSVC environment if not already cached
     if _msvc_env is None:
         try:
-            _msvc_env = msvc.msvc14_get_vc_env(arch_name)
+            _msvc_env = _get_vc_env(arch_name)
         except distutils.errors.DistutilsPlatformError:
             raise OSError(
                 "Cannot find Microsoft Visual Studio, You "
