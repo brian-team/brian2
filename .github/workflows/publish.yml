@@ -184,8 +184,8 @@ jobs:
           ghcr.io/brian-team/brian
         flavor: latest=true
         tags: |
-          # type=semver,pattern={{raw}}
           type=ref,event=tag
+          type=ref,event=pr
         labels: |
           org.opencontainers.image.title="Brian Docker Image"
           org.opencontainers.image.description="Docker image for Brian - a free, open source simulator for spiking neural networks"
