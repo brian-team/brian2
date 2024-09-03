@@ -185,7 +185,7 @@ jobs:
         flavor: latest=true
         tags: |
           type=ref,event=tag
-          type=ref,event=pr
+          type=ref,event=branch
         labels: |
           org.opencontainers.image.title="Brian Docker Image"
           org.opencontainers.image.description="Docker image for Brian - a free, open source simulator for spiking neural networks"
