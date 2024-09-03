@@ -1174,12 +1174,7 @@ class CPPStandaloneDevice(Device):
                         self.timers["compile"]["make"] = time.time() - start_time
 
                     if x != 0:
-                        if os.path.exists("winmake.log"):
-                            with open("winmake.log") as f:
-                                print(f.read())
-                        error_message = (
-                            "Project compilation failed (error code: %u)." % x
-                        )
+                        error_message = f"Project compilation failed (error code: {x}), consider having a look at 'winmake.log'."
                         if not clean:
                             error_message += (
                                 " Consider running with "
@@ -1559,10 +1554,20 @@ class CPPStandaloneDevice(Device):
         libraries = self.libraries + prefs["codegen.cpp.libraries"] + codeobj_libraries
 
         compiler_obj = ccompiler.new_compiler(compiler=compiler)
+
+        # Distutils does not use the shell, so it does not need to quote filenames/paths
+        # Since we include the compiler flags in the makefile, we need to quote them
+        include_dirs = [f'"{include_dir}"' for include_dir in include_dirs]
+        library_dirs = [f'"{library_dir}"' for library_dir in library_dirs]
+        runtime_library_dirs = [
+            f'"{runtime_dir}"' for runtime_dir in runtime_library_dirs
+        ]
+
         compiler_flags = (
             ccompiler.gen_preprocess_options(define_macros, include_dirs)
             + extra_compile_args
         )
+
         linker_flags = (
             ccompiler.gen_lib_options(
                 compiler_obj,
