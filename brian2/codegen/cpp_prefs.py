@@ -17,7 +17,12 @@ import struct
 import subprocess
 import sys
 import tempfile
-from distutils._msvccompiler import _get_vc_env
+
+try:
+    from setuptools.msvc import msvc14_get_vc_env as _get_vc_env
+except ImportError:  # Setuptools 0.74.0 removed this function
+    from distutils._msvccompiler import _get_vc_env
+
 from distutils.ccompiler import get_default_compiler
 
 from brian2.core.preferences import BrianPreference, prefs
