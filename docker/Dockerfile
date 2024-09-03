@@ -36,13 +36,11 @@ RUN python -m pip install --no-cache-dir --only-binary=:all: \
     && python -m pip install /tmp/dist/Brian2*_$(uname -m).whl brian2tools \
     && rm -rf /tmp/dist
 
-# Create a non-root user
-ARG USER="monty" \
-    GROUP="monty" \
-    PASSWORD="monty"
-RUN groupadd ${GROUP} && \
-    useradd -ms /bin/bash -g ${GROUP} -G sudo ${USER} && \
-    echo "${USER}:${PASSWORD}" | chpasswd
+# Create a non-root user (password same as username)
+ARG USER="monty"
+RUN groupadd ${USER} && \
+    useradd -ms /bin/bash -g ${USER} -G sudo ${USER} && \
+    echo "${USER}:${USER}" | chpasswd
 ENV HOME="/home/${USER}"
 RUN chown -R ${USER}:${USER} ${HOME}
 USER ${USER}
