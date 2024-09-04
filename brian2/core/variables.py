@@ -1574,7 +1574,15 @@ class VariableView:
     @property
     def shape(self):
         if self.ndim == 1:
-            return (self.variable.size,)
+            if not self.variable.scalar:
+                # This is safer than using the variable size, since it also works for subgroups
+                # see GitHub issue #1555
+                size = self.group.stop - self.group.start
+                assert size <= self.variable.size
+            else:
+                size = self.variable.size
+
+            return (size,)
         else:
             return self.variable.size
 
