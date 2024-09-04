@@ -19,7 +19,11 @@ from brian2.monitors.statemonitor import StateMonitor
 from brian2.synapses.synapses import Synapses
 from brian2.tests.utils import assert_allclose, exc_isinstance
 from brian2.units.allunits import second, volt
-from brian2.units.fundamentalunits import DimensionMismatchError, have_same_dimensions
+from brian2.units.fundamentalunits import (
+    DIMENSIONLESS,
+    DimensionMismatchError,
+    have_same_dimensions,
+)
 from brian2.units.stdunits import Hz, ms, mV
 from brian2.units.unitsafefunctions import linspace
 from brian2.utils.logger import catch_logs
@@ -145,6 +149,31 @@ def test_variableview_calculations():
         3 + G.y
     with pytest.raises(TypeError):
         2**G.y  # raising to a power with units
+
+
+@pytest.mark.standalone_compatible
+def test_variableview_properties():
+    G = NeuronGroup(
+        10,
+        """
+    x : 1
+    y : volt
+    idx : integer
+    """,
+    )
+    # The below properties should not require access to the values
+    G.x = "rand()"
+    G.y = "rand()*mV"
+    G.idx = "int(rand()*10)"
+
+    assert have_same_dimensions(G.x.unit, DIMENSIONLESS)
+    assert have_same_dimensions(G.y.unit, volt)
+    assert have_same_dimensions(G.idx.unit, DIMENSIONLESS)
+
+    assert G.x.shape == G.y.shape == G.idx.shape == (10,)
+    assert G.x.ndim == G.y.ndim == G.idx.ndim == 1
+    assert G.x.dtype == G.y.dtype == prefs.core.default_float_dtype
+    assert G.idx.dtype == np.int32
 
 
 @pytest.mark.codegen_independent
