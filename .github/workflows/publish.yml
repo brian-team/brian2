@@ -185,7 +185,6 @@ jobs:
         flavor: latest=true
         tags: |
           type=ref,event=tag
-          type=ref,event=branch
         labels: |
           org.opencontainers.image.title="Brian Docker Image"
           org.opencontainers.image.description="Docker image for Brian - a free, open source simulator for spiking neural networks"
@@ -245,5 +244,7 @@ jobs:
             'BASE_IMAGE_TAG=3.12-bookworm'
         platforms: 'amd64,arm64'
         push: true
-        tags: briansimulator/brian-dev:dev-${{ github.ref_name }}
-        labels: ${{ steps.meta.outputs.labels }}        
+        tags: |
+            briansimulator/brian-dev:dev-${{ github.ref_name }}
+            ghcr.io/brian-team/brian-dev:dev-${{ github.ref_name }}
+        labels: ${{ steps.meta.outputs.labels }}
