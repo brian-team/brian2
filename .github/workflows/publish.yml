@@ -181,9 +181,9 @@ jobs:
       with:
         images: |
           briansimulator/brian
+          ghcr.io/brian-team/brian
         flavor: latest=true
         tags: |
-          # type=semver,pattern={{raw}}
           type=ref,event=tag
         labels: |
           org.opencontainers.image.title="Brian Docker Image"
@@ -205,6 +205,13 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Login to GitHub Container Registry
+      if: ${{ github.repository == 'brian-team/brian2' && github.actor != 'dependabot[bot]'}}
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - name: load Linux x86 distribution 📦
       uses: actions/download-artifact@v4
       with:
@@ -237,5 +244,7 @@ jobs:
             'BASE_IMAGE_TAG=3.12-bookworm'
         platforms: 'amd64,arm64'
         push: true
-        tags: briansimulator/brian-dev:dev-${{ github.ref_name }}
-        labels: ${{ steps.meta.outputs.labels }}        
+        tags: |
+            briansimulator/brian-dev:dev-${{ github.ref_name }}
+            ghcr.io/brian-team/brian-dev:dev-${{ github.ref_name }}
+        labels: ${{ steps.meta.outputs.labels }}
