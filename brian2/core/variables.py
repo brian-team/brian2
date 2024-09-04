@@ -1573,7 +1573,18 @@ class VariableView:
     # Get access to some basic properties of the underlying array
     @property
     def shape(self):
-        return self[:].shape
+        if self.ndim == 1:
+            if not self.variable.scalar:
+                # This is safer than using the variable size, since it also works for subgroups
+                # see GitHub issue #1555
+                size = self.group.stop - self.group.start
+                assert size <= self.variable.size
+            else:
+                size = self.variable.size
+
+            return (size,)
+        else:
+            return self.variable.size
 
     @property
     def ndim(self):
