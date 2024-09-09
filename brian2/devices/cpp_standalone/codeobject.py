@@ -139,14 +139,14 @@ def generate_rand_code(rand_func, owner):
     else:
         thread_number = "omp_get_thread_num()"
     if rand_func == "rand":
-        rk_call = "rk_double"
+        rk_call = "_uniform_random"
     elif rand_func == "randn":
-        rk_call = "rk_gauss"
+        rk_call = "_normal_random"
     else:
         raise AssertionError(rand_func)
     code = """
            double _%RAND_FUNC%(const int _vectorisation_idx) {
-               return %RK_CALL%(brian::_mersenne_twister_states[%THREAD_NUMBER%]);
+               return brian::%RK_CALL%(brian::_mersenne_twister_generators[%THREAD_NUMBER%]);
            }
            """
     code = replace(

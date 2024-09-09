@@ -20,7 +20,7 @@ set_variable_from_value(name, {{array_name}}, var_size, (char)atoi(s_value.c_str
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
 #include "network.h"
-#include "randomkit.h"
+#include<random>
 #include<vector>
 #include<iostream>
 #include<fstream>
@@ -32,7 +32,9 @@ set_variable_from_value(name, {{array_name}}, var_size, (char)atoi(s_value.c_str
 namespace brian {
 
 std::string results_dir = "results/";  // can be overwritten by --results_dir command line arg
-std::vector< rk_state* > _mersenne_twister_states;
+std::vector< std::mt19937 > _mersenne_twister_generators;
+std::uniform_real_distribution<double> _uniform_random;
+std::normal_distribution<double> _normal_random;
 
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
@@ -223,8 +225,9 @@ void _init_arrays()
 	{% endfor %}
 
 	// Random number generator states
+	std::random_device rd;
 	for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
-	    _mersenne_twister_states.push_back(new rk_state());
+	    _mersenne_twister_generators.push_back(std::mt19937(rd()));
 }
 
 void _load_arrays()
@@ -369,7 +372,7 @@ void _dealloc_arrays()
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
 #include "network.h"
-#include "randomkit.h"
+#include<random>
 #include<vector>
 {{ openmp_pragma('include') }}
 
@@ -377,7 +380,9 @@ namespace brian {
 
 extern std::string results_dir;
 // In OpenMP we need one state per thread
-extern std::vector< rk_state* > _mersenne_twister_states;
+extern std::vector< std::mt19937 > _mersenne_twister_generators;
+extern std::uniform_real_distribution<double> _uniform_random;
+extern std::normal_distribution<double> _normal_random;
 
 //////////////// clocks ///////////////////
 {% for clock in clocks | sort(attribute='name') %}
