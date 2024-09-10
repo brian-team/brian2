@@ -32,9 +32,13 @@ set_variable_from_value(name, {{array_name}}, var_size, (char)atoi(s_value.c_str
 namespace brian {
 
 std::string results_dir = "results/";  // can be overwritten by --results_dir command line arg
+
+// For multhreading, we need one generator for each thread. We also create a distribution for
+// each thread, even though this is not strictly necessary for the uniform distribution, as
+// the distribution is stateless.
 std::vector< std::mt19937 > _mersenne_twister_generators;
-std::uniform_real_distribution<double> _uniform_random;
-std::normal_distribution<double> _normal_random;
+std::vector<std::uniform_real_distribution<double>> _uniform_random;
+std::vector<std::normal_distribution<double>> _normal_random;
 
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
@@ -226,8 +230,11 @@ void _init_arrays()
 
 	// Random number generator states
 	std::random_device rd;
-	for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
+	for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++) {
 	    _mersenne_twister_generators.push_back(std::mt19937(rd()));
+		_uniform_random.push_back(std::uniform_real_distribution<double>());
+		_normal_random.push_back(std::normal_distribution<double>());
+	}
 }
 
 void _load_arrays()
@@ -381,8 +388,8 @@ namespace brian {
 extern std::string results_dir;
 // In OpenMP we need one state per thread
 extern std::vector< std::mt19937 > _mersenne_twister_generators;
-extern std::uniform_real_distribution<double> _uniform_random;
-extern std::normal_distribution<double> _normal_random;
+extern std::vector<std::uniform_real_distribution<double>> _uniform_random;
+extern std::vector<std::normal_distribution<double>> _normal_random;
 
 //////////////// clocks ///////////////////
 {% for clock in clocks | sort(attribute='name') %}

@@ -146,7 +146,7 @@ def generate_rand_code(rand_func, owner):
         raise AssertionError(rand_func)
     code = """
            double _%RAND_FUNC%(const int _vectorisation_idx) {
-               return brian::%RK_CALL%(brian::_mersenne_twister_generators[%THREAD_NUMBER%]);
+               return brian::%RK_CALL%[%THREAD_NUMBER%](brian::_mersenne_twister_generators[%THREAD_NUMBER%]);
            }
            """
     code = replace(
