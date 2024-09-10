@@ -11,7 +11,7 @@ from brian2.core.magic import run
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.variables import linked_var
-from brian2.devices.device import device, seed
+from brian2.devices.device import device, get_device, seed
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -1984,6 +1984,62 @@ def test_random_values_fixed_seed():
     assert np.var(G.v1[:]) > 0
     assert np.var(G.v2[:]) > 0
     assert_allclose(G.v1[:], G.v2[:])
+
+
+_random_values = {
+    ("RuntimeDevice", "auto", None): (
+        [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
+        [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
+    ),
+    ("RuntimeDevice", "cython", None): (
+        [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
+        [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
+    ),
+    ("CPPStandaloneDevice", "cython", 1): (
+        [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
+        [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
+    ),
+    ("CPPStandaloneDevice", None, 4): (
+        [0.1636023, 0.76229608, 0.27318909, 0.44124824, 0.69454226],
+        [0.36643979, -1.53883951, 0.07274151, 1.34278769, 0.63249739],
+    ),
+}
+
+
+def _config_tuple():
+    config = [
+        get_device().__class__.__name__,
+        prefs.codegen.target,
+        prefs.devices.cpp_standalone.openmp_threads,
+    ]
+    if config[0] == "RuntimeDevice":
+        config[2] = None
+    else:
+        config[1] = None
+    return tuple(config)
+
+
+@pytest.mark.skipif(
+    _config_tuple() not in _random_values,
+    reason="Random values not known for this configuration",
+)
+@pytest.mark.standalone_compatible
+def test_random_values_fixed_seed_numbers():
+    # Verify a subset of random numbers, to make sure these numbers stay the same across updates
+    G = NeuronGroup(
+        100,
+        """
+        v1 : 1
+        v2 : 1
+        """,
+    )
+    seed(9876)
+    G.v1 = "rand()"
+    G.v2 = "randn()"
+    run(0 * ms)  # for standalone
+    expected_values = _random_values[_config_tuple()]
+    assert_allclose(G.v1[::20], expected_values[0])
+    assert_allclose(G.v2[::20], expected_values[1])
 
 
 @pytest.mark.standalone_compatible
