@@ -870,24 +870,13 @@ class CPPStandaloneDevice(Device):
                 nb_threads = prefs.devices.cpp_standalone.openmp_threads
                 if nb_threads == 0:  # no OpenMP
                     nb_threads = 1
-                main_lines.append(f"for (int _i=0; _i<{nb_threads}; _i++) {{")
+                main_lines.append(f"for (int _i=0; _i<{nb_threads}; _i++)")
                 if seed is None:  # random
-                    main_lines.extend(
-                        [
-                            "    brian::_mersenne_twister_generators[_i] = std::mt19937(_rd());",
-                            "    brian::_uniform_random[_i].reset();",
-                            "    brian::_normal_random[_i].reset();",
-                        ]
-                    )
+                    main_lines.append("    brian::_random_generators[_i].seed();")
                 else:
-                    main_lines.extend(
-                        [
-                            f"    brian::_mersenne_twister_generators[_i].seed({seed!r}L + _i);",
-                            "    brian::_uniform_random[_i].reset();",
-                            "    brian::_normal_random[_i].reset();",
-                        ]
+                    main_lines.append(
+                        f"    brian::_random_generators[_i].seed({seed!r}L + _i);"
                     )
-                main_lines.append("}")
             else:
                 raise NotImplementedError(f"Unknown main queue function type {func}")
 
