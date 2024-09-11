@@ -1987,7 +1987,7 @@ def test_random_values_fixed_seed():
 
 
 _random_values = {
-    ("RuntimeDevice", "auto", None): (
+    ("RuntimeDevice", "numpy", None): (
         [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
         [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
     ),
@@ -2019,10 +2019,6 @@ def _config_tuple():
     return tuple(config)
 
 
-@pytest.mark.skipif(
-    _config_tuple() not in _random_values,
-    reason="Random values not known for this configuration",
-)
 @pytest.mark.standalone_compatible
 def test_random_values_fixed_seed_numbers():
     # Verify a subset of random numbers, to make sure these numbers stay the same across updates
@@ -2037,7 +2033,9 @@ def test_random_values_fixed_seed_numbers():
     G.v1 = "rand()"
     G.v2 = "randn()"
     run(0 * ms)  # for standalone
-    expected_values = _random_values[_config_tuple()]
+    expected_values = _random_values.get(_config_tuple(), None)
+    if expected_values is None:
+        pytest.skip("Random values not known for this configuration")
     assert_allclose(G.v1[::20], expected_values[0])
     assert_allclose(G.v2[::20], expected_values[1])
 
