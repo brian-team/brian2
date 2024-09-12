@@ -244,7 +244,7 @@ def get_synapses(name, source, target, C, l, tau_I, A, U, D, F, delay):
 
     synapses.A[:] = np.sign(A / nA) * np.random.gamma(1, abs(A / nA), size=N_syn) * nA
 
-    synapses.U[:] = np.random.normal(U, 0.5, size=N_syn)
+    synapses.U[:] = np.random.normal(U, 0.5 * U, size=N_syn)
     # paper samples from uniform, we take the mean
     synapses.U[:][synapses.U < 0] = U
 
