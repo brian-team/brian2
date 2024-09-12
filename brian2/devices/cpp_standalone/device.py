@@ -19,7 +19,6 @@ from hashlib import md5
 
 import numpy as np
 
-import brian2
 from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
 from brian2.codegen.generators.cpp_generator import c_data_type
@@ -228,8 +227,8 @@ class CPPStandaloneDevice(Device):
         self.extra_compile_args = []
         self.define_macros = []
         self.headers = []
-        self.include_dirs = ["brianlib/randomkit"]
-        self.library_dirs = ["brianlib/randomkit"]
+        self.include_dirs = []
+        self.library_dirs = []
         self.runtime_library_dirs = []
         self.run_environment_variables = {}
         if sys.platform.startswith("darwin"):
@@ -873,13 +872,10 @@ class CPPStandaloneDevice(Device):
                     nb_threads = 1
                 main_lines.append(f"for (int _i=0; _i<{nb_threads}; _i++)")
                 if seed is None:  # random
-                    main_lines.append(
-                        "    rk_randomseed(brian::_mersenne_twister_states[_i]);"
-                    )
+                    main_lines.append("    brian::_random_generators[_i].seed();")
                 else:
                     main_lines.append(
-                        f"    rk_seed({seed!r}L + _i,"
-                        " brian::_mersenne_twister_states[_i]);"
+                        f"    brian::_random_generators[_i].seed({seed!r}L + _i);"
                     )
             else:
                 raise NotImplementedError(f"Unknown main queue function type {func}")
@@ -1082,28 +1078,6 @@ class CPPStandaloneDevice(Device):
                 os.path.split(inspect.getsourcefile(Synapses))[0], "stdint_compat.h"
             ),
             os.path.join(directory, "brianlib", "stdint_compat.h"),
-        )
-
-        # Copy the RandomKit implementation
-        if not os.path.exists(os.path.join(directory, "brianlib", "randomkit")):
-            os.mkdir(os.path.join(directory, "brianlib", "randomkit"))
-        shutil.copy2(
-            os.path.join(
-                os.path.split(inspect.getsourcefile(brian2))[0],
-                "random",
-                "randomkit",
-                "randomkit.c",
-            ),
-            os.path.join(directory, "brianlib", "randomkit", "randomkit.c"),
-        )
-        shutil.copy2(
-            os.path.join(
-                os.path.split(inspect.getsourcefile(brian2))[0],
-                "random",
-                "randomkit",
-                "randomkit.h",
-            ),
-            os.path.join(directory, "brianlib", "randomkit", "randomkit.h"),
         )
 
     def _insert_func_namespace(self, func, code_object, namespace):
@@ -1583,9 +1557,7 @@ class CPPStandaloneDevice(Device):
             for codeobj in self.code_objects.values()
             for source_file in codeobj.compiler_kwds.get("sources", [])
         ]
-        additional_source_files += codeobj_source_files + [
-            "brianlib/randomkit/randomkit.c"
-        ]
+        additional_source_files += codeobj_source_files
 
         for d in ["code_objects", "results", "static_arrays"]:
             ensure_directory(os.path.join(directory, d))
@@ -1703,7 +1675,6 @@ class CPPStandaloneDevice(Device):
             fnames.extend(
                 [
                     os.path.join("brianlib", "spikequeue.h"),
-                    os.path.join("brianlib", "randomkit", "randomkit.h"),
                     os.path.join("brianlib", "stdint_compat.h"),
                 ]
             )
@@ -1731,7 +1702,6 @@ class CPPStandaloneDevice(Device):
 
         if directory:
             directories = [
-                os.path.join("brianlib", "randomkit"),
                 "brianlib",
                 "code_objects",
                 "results",
