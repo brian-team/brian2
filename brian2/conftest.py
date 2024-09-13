@@ -14,12 +14,12 @@ from brian2.devices.device import reinit_and_delete, set_device
 from brian2.units import ms
 
 
-def pytest_ignore_collect(path, config):
+def pytest_ignore_collect(collection_path, config):
     if config.option.doctestmodules:
-        if "tests" in str(path):
+        if "tests" in collection_path.parts:
             return True  # Ignore tests package for doctests
     # Do not test brian2.hears bridge (needs Brian1)
-    if str(path).endswith("hears.py"):
+    if collection_path.name == "hears.py":
         return True
 
 

@@ -146,8 +146,6 @@ class VarRewriter(ast.NodeTransformer):
             func=ast.Name(id=node.func.id, ctx=ast.Load()),
             args=args,
             keywords=[],
-            starargs=None,
-            kwargs=None,
         )
 
 
