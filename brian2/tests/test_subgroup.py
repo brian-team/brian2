@@ -951,7 +951,6 @@ def test_run_regularly():
 
 @pytest.mark.standalone_compatible
 def test_spike_monitor():
-    set_device("cpp_standalone", directory="/tmp/testsubgroup")
     G = NeuronGroup(10, "v:1", threshold="v>1", reset="v=0")
     G.v[[0, 2, 5]] = 1.1
     SG = G[3:]
