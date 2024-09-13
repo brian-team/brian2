@@ -5,6 +5,7 @@ from brian2 import *
 from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
+from brian2.units.fundamentalunits import DIMENSIONLESS
 from brian2.utils.logger import catch_logs
 
 
@@ -217,6 +218,90 @@ def test_state_variables_string_group():
     run(0 * ms)  # for standalone
     assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 12, 14, 16, 18])
     assert_equal(SG1.v[:], [12, 14, 16, 18])
+
+
+@pytest.mark.standalone_compatible
+def test_variableview_calculations():
+    # Check that you can directly calculate with "variable views"
+    G = NeuronGroup(
+        10,
+        """
+        x : 1
+        y : volt
+        idx : integer
+        """,
+    )
+    G.x = np.arange(10)
+    G.y = np.arange(10)[::-1] * mV
+    G.idx = np.arange(10, dtype=int)
+    SG = G[3:8]
+
+    assert_allclose(SG.x * SG.y, np.arange(3, 8) * np.arange(6, 1, -1) * mV)
+    assert_allclose(-SG.x, -np.arange(3, 8))
+    assert_allclose(-SG.y, -np.arange(6, 1, -1) * mV)
+
+    assert_allclose(3 * SG.x, 3 * np.arange(3, 8))
+    assert_allclose(3 * SG.y, 3 * np.arange(6, 1, -1) * mV)
+    assert_allclose(SG.x * 3, 3 * np.arange(3, 8))
+    assert_allclose(SG.y * 3, 3 * np.arange(6, 1, -1) * mV)
+    assert_allclose(SG.x / 2.0, np.arange(3, 8) / 2.0)
+    assert_allclose(SG.y / 2, np.arange(6, 1, -1) * mV / 2)
+    assert_equal(SG.idx % 2, np.arange(3, 8, dtype=int) % 2)
+    assert_allclose(SG.x + 2, 2 + np.arange(3, 8))
+    assert_allclose(SG.y + 2 * mV, 2 * mV + np.arange(6, 1, -1) * mV)
+    assert_allclose(2 + SG.x, 2 + np.arange(3, 8))
+    assert_allclose(2 * mV + SG.y, 2 * mV + np.arange(6, 1, -1) * mV)
+    assert_allclose(SG.x - 2, np.arange(3, 8) - 2)
+    assert_allclose(SG.y - 2 * mV, np.arange(6, 1, -1) * mV - 2 * mV)
+    assert_allclose(2 - SG.x, 2 - np.arange(3, 8))
+    assert_allclose(2 * mV - SG.y, 2 * mV - np.arange(6, 1, -1) * mV)
+    assert_allclose(SG.x**2, np.arange(3, 8) ** 2)
+    assert_allclose(SG.y**2, (np.arange(6, 1, -1) * mV) ** 2)
+    assert_allclose(2**SG.x, 2 ** np.arange(3, 8))
+
+    # incorrect units
+    with pytest.raises(DimensionMismatchError):
+        SG.x + SG.y
+    with pytest.raises(DimensionMismatchError):
+        SG.x[:] + SG.y
+    with pytest.raises(DimensionMismatchError):
+        SG.x + SG.y[:]
+    with pytest.raises(DimensionMismatchError):
+        SG.x + 3 * mV
+    with pytest.raises(DimensionMismatchError):
+        3 * mV + SG.x
+    with pytest.raises(DimensionMismatchError):
+        SG.y + 3
+    with pytest.raises(DimensionMismatchError):
+        3 + SG.y
+    with pytest.raises(TypeError):
+        2**SG.y  # raising to a power with units
+
+
+@pytest.mark.standalone_compatible
+def test_variableview_properties():
+    G = NeuronGroup(
+        10,
+        """
+    x : 1
+    y : volt
+    idx : integer
+    """,
+    )
+    # The below properties should not require access to the values
+    G.x = "rand()"
+    G.y = "rand()*mV"
+    G.idx = "int(rand()*10)"
+    SG = G[3:8]
+
+    assert have_same_dimensions(SG.x.unit, DIMENSIONLESS)
+    assert have_same_dimensions(SG.y.unit, volt)
+    assert have_same_dimensions(SG.idx.unit, DIMENSIONLESS)
+    # See github issue #1555
+    assert SG.x.shape == SG.y.shape == SG.idx.shape == (5,)
+    assert SG.x.ndim == SG.y.ndim == SG.idx.ndim == 1
+    assert SG.x.dtype == SG.y.dtype == prefs.core.default_float_dtype
+    assert SG.idx.dtype == np.int32
 
 
 @pytest.mark.standalone_compatible

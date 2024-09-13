@@ -1,6 +1,7 @@
 """
 Brian 2
 """
+
 import logging
 
 
@@ -70,7 +71,7 @@ except ImportError:
         )
         __version_tuple__ = tuple(int(x) for x in __version__.split(".")[:3])
     except ImportError:
-        logging.getLogger("brian2").warn(
+        logging.getLogger("brian2").warning(
             "Cannot determine Brian version, running from source and "
             "setuptools_scm is not installed."
         )

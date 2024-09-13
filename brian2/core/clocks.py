@@ -2,7 +2,6 @@
 Clocks for the simulator.
 """
 
-
 __docformat__ = "restructuredtext en"
 
 import numpy as np

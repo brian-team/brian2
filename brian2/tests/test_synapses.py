@@ -1123,6 +1123,37 @@ def test_transmission_custom_event():
     assert_allclose(mon[1].v[mon.t >= 1 * ms], 1.0)
 
 
+@pytest.mark.standalone_compatible
+def test_transmission_custom_event_complex():
+    # This was broken with release 2.6, entries in on_event where checked against pre/post
+    # instead of the pathway name
+    group = NeuronGroup(3, "v:1", threshold="v>1 and v<2", events={"over_2": "v>2"})
+    group.v = [0, 1.5, 2.5]
+
+    s = Synapses(
+        group,
+        group,
+        model="""a:integer
+                b:integer
+                c:integer
+                d:integer""",
+        on_event={
+            "path_a": "spike",
+            "path_b": "over_2",
+            "path_c": "spike",
+            "path_d": "over_2",
+        },
+        on_pre={"path_a": "a+=1", "path_b": "b+=1"},
+        on_post={"path_c": "c+=1", "path_d": "d+=1"},
+    )
+    s.connect()
+    run(defaultclock.dt)
+    assert all(s.a[:] == [0, 0, 0, 1, 1, 1, 0, 0, 0])
+    assert all(s.b[:] == [0, 0, 0, 0, 0, 0, 1, 1, 1])
+    assert all(s.c[:] == [0, 1, 0, 0, 1, 0, 0, 1, 0])
+    assert all(s.d[:] == [0, 0, 1, 0, 0, 1, 0, 0, 1])
+
+
 @pytest.mark.codegen_independent
 def test_invalid_custom_event():
     group1 = NeuronGroup(
@@ -2296,8 +2327,7 @@ def test_permutation_analysis():
                 raise AssertionError(
                     "Test unexpectedly raised a numerical "
                     "OrderDependenceError on these "
-                    "statements:\n"
-                    + example
+                    "statements:\n" + example
                 )
         try:
             check_permutation_code(example)
@@ -2305,8 +2335,7 @@ def test_permutation_analysis():
             raise AssertionError(
                 "Test unexpectedly raised an "
                 "OrderDependenceError on these "
-                "statements:\n"
-                + example
+                "statements:\n" + example
             )
 
     for example in permutation_analysis_bad_examples:

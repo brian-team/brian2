@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: "calculate versions according to NEP29"
         id: nep29
-        uses: mstimberg/github-calc-nep29@v0.5
+        uses: mstimberg/github-calc-nep29@v0.7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -20,8 +20,8 @@ jobs:
     name: Run linters with pre-commit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -38,16 +38,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-11]
+        os: [ubuntu-22.04, windows-2022, macOS-12, macOS-14]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             standalone: false
             python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             standalone: true
             python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
@@ -57,59 +57,65 @@ jobs:
         shell: bash -l {0}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Conda and Python
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           auto-activate-base: false
-          channels: conda-forge,defaults
-          channel-priority: true
+          miniforge-version: latest
           activate-environment: 'test_env'
           python-version: ${{ matrix.python-version }}
 
       - name: Install Brian2 and dependencies
         run: |
-          conda install -n test_env --quiet --yes -c conda-forge pip pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
-          pip install .
+          conda install --quiet --yes pip gsl
+          python -m pip install .[test]
+      
+      - name: Determine Cython cache dir
+        id: cython-cache
+        run: |
+          CACHE_DIR=$(python -c 'import os; from Cython.Utils import get_cython_cache_dir; print(os.path.join(get_cython_cache_dir(), "brian_extensions"))')
+          echo "Cython cache dir: $CACHE_DIR"
+          echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: restore Cython cache
+        uses: actions/cache@v4
+        if: ${{ ! matrix.standalone }}
+        with:
+          key: cython-extensions-${{ matrix.os }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
+          path: ${{ steps.cython-cache.outputs.cachedir }}
 
       - name: Run Tests
         run: |
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
-          coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
+          python $GITHUB_WORKSPACE/$SCRIPT_NAME
+          cp coverage.xml $GITHUB_WORKSPACE/
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           SPHINX_DIR: ${{ github.workspace }}/docs_sphinx
           AGENT_OS: ${{runner.os}}
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
-      
-      - name: Upload coverage data to coveralls
+      - name: Send coverage to Coveralls (parallel)
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
-        run: |
-          cp  $GITHUB_WORKSPACE/../.coverage .
-          python -m pip install --upgrade coveralls
-          coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: ${{ github.job }}
-          COVERALLS_PARALLEL: true
+        uses: coverallsapp/github-action@v2.3.0
+        with:
+          parallel: true
+          flag-name: run ${{ join(matrix.*, ' - ') }}
 
   coveralls:
     name: Indicate completion to coveralls.io
     needs: testing
     runs-on: ubuntu-latest
-    container: python:3-slim
     steps:
-    - name: Finished
-      run: |
-        python -m pip install --upgrade coveralls
-        coveralls --service=github --finish --rcfile=$GITHUB_WORKSPACE/.coveragerc
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Close parallel build
+        uses: coverallsapp/github-action@v2.3.0
+        with:
+          parallel-finished: true
 
   test_doc_build:
     needs: get_python_versions
@@ -120,18 +126,17 @@ jobs:
         shell: bash -l {0}
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: true
 
     - name: Setup Conda and Python
-      uses: conda-incubator/setup-miniconda@v2
+      uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
         auto-activate-base: false
-        channels: conda-forge,defaults
-        channel-priority: true
+        miniforge-version: latest
         activate-environment: 'test_env'
         python-version: "${{ needs.get_python_versions.outputs.max-python }}"
 

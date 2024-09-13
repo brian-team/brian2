@@ -444,11 +444,11 @@ def reduced_node(terms, op):
     --------
     >>> import ast
     >>> nodes = [ast.Name(id='x'), ast.Name(id='y'), ast.Name(id='z')]
-    >>> ast.dump(reduced_node(nodes, ast.Mult), annotate_fields=False)
-    "BinOp(BinOp(Name('x'), Mult(), Name('y')), Mult(), Name('z'))"
+    >>> ast.unparse(reduced_node(nodes, ast.Mult))
+    'x * y * z'
     >>> nodes = [ast.Name(id='x')]
-    >>> ast.dump(reduced_node(nodes, ast.Add), annotate_fields=False)
-    "Name('x')"
+    >>> ast.unparse(reduced_node(nodes, ast.Add))
+    'x'
     """
     # Remove None terms
     terms = [term for term in terms if term is not None]

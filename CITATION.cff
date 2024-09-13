@@ -9,22 +9,25 @@ authors:
   - family-names: Goodman
     given-names: Dan F. M.
     orcid: "https://orcid.org/0000-0003-1007-6474"
+  - family-names: Evans
+    given-names: Benjmain
+    orcid: "https://orcid.org/0000-0002-1734-6070"
   - family-names: Brette
     given-names: Romain
     orcid: "https://orcid.org/0000-0003-0110-1623"
   - name: "Brian contributors"
-version: 2.5.3
-date-released: "2023-06-29"
+version: 2.6.0
+date-released: "2024-03-15"
 identifiers:
   - description: This is the collection of archived snapshots of all versions of Brian 2
     type: doi
     value: "10.5281/zenodo.654861"
-  - description: This is the archived snapshot of version 2.5.3 of Brian 2
+  - description: This is the archived snapshot of version 2.6.0 of Brian 2
     type: doi
-    value: "10.5281/zenodo.8099373"
-  - description: Software heritage identifier for version 2.5.3
+    value: "10.5281/zenodo.10822565"
+  - description: Software heritage identifier for version 2.6.0
     type: swh
-    value: "swh:1:rel:e4d609023553bfbd62bf57960dd6f9d342a1d0e8"
+    value: "swh:1:rel:2d4c5c8c8a6d2318332889df93ab74aef53e2c61"
 license: CECILL-2.1
 repository-code: "https://github.com/brian-team/brian2"
 preferred-citation:

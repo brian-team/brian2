@@ -400,6 +400,7 @@ def test_value_from_expression():
     # This function is used to get the value of an exponent, necessary for unit checking
 
     constants = {"c": 3}
+
     # dummy class
     class C:
         pass
@@ -542,6 +543,9 @@ def test_error_messages():
         ("int(not_refractory | (v > 30))", "|", "or"),
         ("int((v > 30) & (w < 20))", "&", "and"),
         ("x +* 3", "", ""),
+        ("v[index]", "indexing", ""),
+        ("v.value", "attribute", ""),
+        ("(v, w)", "tuple", ""),
     ]
     for expr, expected_1, expected_2 in expr_expected:
         try:

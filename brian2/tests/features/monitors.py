@@ -2,7 +2,6 @@
 Check that various monitors work correctly.
 """
 
-
 from brian2 import *
 from brian2.tests.features import FeatureTest, InaccuracyError
 

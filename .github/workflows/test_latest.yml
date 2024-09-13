@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: "calculate versions according to NEP29"
         id: nep29
-        uses: mstimberg/github-calc-nep29@v0.6
+        uses: mstimberg/github-calc-nep29@v0.7
         with:
           include-release-candidates: true
           include-beta-releases: true
@@ -30,18 +30,19 @@ jobs:
       matrix:
         os: [{image: ubuntu-latest, triplet: x64-linux},
              {image: windows-latest, triplet: x64-windows},
-             {image: macOS-latest, triplet: x64-osx}]
+             {image: macOS-12, triplet: x64-osx},
+             {image: macOS-14, triplet: arm64-osx}]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install GSL
-        uses: johnwason/vcpkg-action@v5
+        uses: johnwason/vcpkg-action@v6
         id: vcpkg
         with:
           pkgs: gsl
@@ -49,9 +50,16 @@ jobs:
           cache-key: gsl-${{ matrix.os.triplet }}
           revision: master
           token: ${{ github.token }}
+      - name: Set GSL preference for vcpkg
+        shell: bash
+        run: |
+          mkdir ~/.brian/
+          # Replaces backslashes with forward slashes
+          echo "GSL.directory=\"${{ github.workspace }}\\vcpkg\\installed\${{ matrix.os.triplet }}\\include"\" | tr '\\' '/' > ~/.brian/user_preferences
+          cat ~/.brian/user_preferences
       - name: Install Python
         id: python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
@@ -60,9 +68,12 @@ jobs:
         run: |
           ${{ steps.python.outputs.python-path }} -m pip install --upgrade pip setuptools
           ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
-          ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
+          ${{ steps.python.outputs.python-path }} -m pip install mpmath  # install stable version
+          ${{ steps.python.outputs.python-path }} -m pip install --pre pytest pytest-xdist pytest-cov pytest-timeout cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
-        run: ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
+        run: |
+          cp numpy2.pyproject.toml pyproject.toml
+          ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
         run: |
           cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import
@@ -71,6 +82,7 @@ jobs:
           AGENT_OS: ${{runner.os}}
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
+          DO_NOT_RESET_PREFERENCES: true  # Make sure that GSL setting is used
 
   test-deprecations:
     needs: [ get_python_versions ]
@@ -84,11 +96,11 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Install GSL
-        uses: johnwason/vcpkg-action@v5
+        uses: johnwason/vcpkg-action@v6
         id: vcpkg
         with:
           pkgs: gsl
@@ -98,7 +110,7 @@ jobs:
           token: ${{ github.token }}
       - name: Install Python
         id: python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
@@ -110,6 +122,18 @@ jobs:
           ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
         run: ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
+      - name: Determine Cython cache dir
+        id: cython-cache
+        run: |
+          CACHE_DIR=$(python -c 'import os; from Cython.Utils import get_cython_cache_dir; print(os.path.join(get_cython_cache_dir(), "brian_extensions"))')
+          echo "Cython cache dir: $CACHE_DIR"
+          echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
+      - name: restore Cython cache
+        uses: actions/cache@v4
+        if: ${{ ! matrix.standalone }}
+        with:
+          key: cython-extensions-latest-${{ matrix.os }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
+          path: ${{ steps.cython-cache.outputs.cachedir }}
       - name: Run Tests
         run: |
           cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import

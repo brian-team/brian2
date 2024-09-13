@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Firing patterns in the adaptive exponential integrate-and-fire model
------------------------
+--------------------------------------------------------------------
 Naud R et al. (2008): Firing patterns in the adaptive exponential integrate-and-fire model.
 Biol Cybern. 2008; 99(4): 335–347.
 doi:10.1007/s00422-008-0264-7

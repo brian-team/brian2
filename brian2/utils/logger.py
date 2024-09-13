@@ -240,6 +240,7 @@ def clean_up_logging():
     Shutdown the logging system and delete the debug log file if no error
     occured.
     """
+    BrianLogger.initialized = False
     logging.shutdown()
     if not BrianLogger.exception_occured and prefs["logging.delete_log_on_exit"]:
         if BrianLogger.tmp_log is not None:
@@ -343,6 +344,9 @@ class BrianLogger:
         ``brian2``.
     """
 
+    #: Global flag to know whether the logging system is in a usable state
+    initialized = False
+
     #: Class attribute to remember whether any exception occured
     exception_occured = False
 
@@ -392,6 +396,9 @@ class BrianLogger:
         once : bool
             Whether to suppress identical messages if they are logged again.
         """
+        if not BrianLogger.initialized:
+            # Prevent logging errors on exit
+            return
         name = self.name
         if name_suffix:
             name += f".{name_suffix}"
@@ -481,6 +488,8 @@ class BrianLogger:
             if sent another time.
         """
         self._log("WARNING", msg, name_suffix, once)
+
+    warning = warn
 
     def error(self, msg, name_suffix=None, once=False):
         """
@@ -688,8 +697,6 @@ class BrianLogger:
         # interface...
         warn_logger = logging.getLogger("py.warnings")
         warn_logger.addHandler(BrianLogger.console_handler)
-        if BrianLogger.file_handler is not None:
-            warn_logger.addHandler(BrianLogger.file_handler)
 
         # Put some standard info into the log file
         logger.log(
@@ -710,6 +717,8 @@ class BrianLogger:
             logger.log(logging.DEBUG, f"{_name} version is: {str(_version)}")
         # Handle uncaught exceptions
         sys.excepthook = brian_excepthook
+
+        BrianLogger.initialized = True
 
 
 def get_logger(module_name="brian2"):
@@ -794,8 +803,11 @@ class LogCapture(logging.Handler):
 
     def emit(self, record):
         # Append a tuple consisting of (level, name, msg) to the list of
-        # warnings
-        if any(record.name.startswith(name) for name in self.only_from):
+        # log messages
+        if any(
+            record.name == name or record.name.startswith(name + ".")
+            for name in self.only_from
+        ):
             self.log_list.append((record.levelname, record.name, record.msg))
 
     def install(self):

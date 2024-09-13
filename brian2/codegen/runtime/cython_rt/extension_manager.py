@@ -5,7 +5,6 @@ Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 """
 
-
 import glob
 import hashlib
 import importlib.util

@@ -15,7 +15,7 @@ from brian2.units.unitsafefunctions import *
 # builtin names (mimicking the numpy behaviour)
 from builtins import bool, float, complex
 
-from numpy.core import round, abs, max, min
+from numpy import round, abs, max, min
 
 import numpy
 import brian2.units.unitsafefunctions as brian2_functions

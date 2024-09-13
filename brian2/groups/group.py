@@ -5,6 +5,7 @@ for objects that in addition to storing state variables also execute code, i.e.
 objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
 `CodeRunner`, a class to run code in the context of a `Group`.
 """
+
 import inspect
 import numbers
 import weakref

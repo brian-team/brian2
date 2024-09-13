@@ -5,9 +5,9 @@ authors = [
     {name = 'Dan Goodman'},
     {name ='Romain Brette'}
 ]
-requires-python = '>=3.10'
+requires-python = '>=3.9'
 dependencies = [
-    'numpy>=1.23.5',
+    'numpy>=2.0.0b1',
     'cython>=0.29.21',
     'sympy>=1.2',
     'pyparsing',
@@ -31,7 +31,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-test = ['pytest>=8', 'pytest-xdist>=1.22.3', 'pytest-cov>=2.0', 'pytest-timeout']
+test = ['pytest', 'pytest-xdist>=1.22.3', 'pytest-cov>=2.0', 'pytest-timeout']
 docs = ['sphinx>=7', 'ipython>=5', 'sphinx-tabs']
 
 [project.urls]
@@ -60,9 +60,7 @@ fallback_version = 'unknown'
 [build-system]
 requires = [
     "setuptools>=61",
-    # By building against numpy 2.0, we make sure that the wheel is compatible with
-    # both numpy 2.0 and numpy>=1.23
-    "numpy>=2.0.0rc1",
+    'numpy>=2.0.0b1 ',
     "wheel",
     "Cython",
     "setuptools_scm[toml]>=6.2"
@@ -70,13 +68,13 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.black]
-target-version = ['py310']
+target-version = ['py39']
 include = '^/brian2/.*\.pyi?$'
 
 [tool.isort]
 atomic = true
 profile = "black"
-py_version = "310"
+py_version = "39"
 skip_gitignore = true
 # NOTE: isort has no "include" option, only "skip".
 skip_glob = ["dev/*", "docs_sphinx/*", "examples/*", "tutorials/*"]

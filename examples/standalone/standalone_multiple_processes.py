@@ -5,6 +5,11 @@ Given that this example only involves a single neuron, an alternative – and ar
 would be to run the simulations in a single `NeuronGroup`, where each neuron receives input with a different rate.
 
 The example is a standalone equivalent of the one presented in :doc:`/tutorials/3-intro-to-brian-simulations`.
+
+Note that Python's `multiprocessing` module cannot deal with user-defined functions (including `TimedArray`) and other
+complex code structures. If you run into `PicklingError` or `AttributeError` exceptions, you might
+have to use the `pathos` (https://pypi.org/project/pathos) package instead, which can handle more complex
+code structures.
 """
 import numpy as np
 import matplotlib.pyplot as plt

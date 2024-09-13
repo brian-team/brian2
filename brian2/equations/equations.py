@@ -1,6 +1,7 @@
 """
 Differential equations for Brian models.
 """
+
 import keyword
 import re
 import string

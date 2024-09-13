@@ -1,6 +1,7 @@
 """
 Module providing the base `CodeObject` and related functions.
 """
+
 import collections
 import copy
 import platform

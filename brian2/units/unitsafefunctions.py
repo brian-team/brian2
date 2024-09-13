@@ -198,16 +198,28 @@ def arange(*args, **kwargs):
         step=step,
     )
     dim = getattr(stop, "dim", DIMENSIONLESS)
-    return Quantity(
-        np.arange(
-            start=np.asarray(start),
-            stop=np.asarray(stop),
-            step=np.asarray(step),
-            **kwargs,
-        ),
-        dim=dim,
-        copy=False,
-    )
+    # start is a position-only argument in numpy 2.0
+    # https://numpy.org/devdocs/release/2.0.0-notes.html#arange-s-start-argument-is-positional-only
+    # TODO: check whether this is still the case in the final release
+    if start == 0:
+        return Quantity(
+            np.arange(
+                stop=np.asarray(stop),
+                step=np.asarray(step),
+                **kwargs,
+            ),
+            dim=dim,
+        )
+    else:
+        return Quantity(
+            np.arange(
+                np.asarray(start),
+                stop=np.asarray(stop),
+                step=np.asarray(step),
+                **kwargs,
+            ),
+            dim=dim,
+        )
 
 
 arange._do_not_run_doctests = True
@@ -233,7 +245,7 @@ def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
         retstep=retstep,
         dtype=dtype,
     )
-    return Quantity(result, dim=dim, copy=False)
+    return Quantity(result, dim=dim)
 
 
 linspace._do_not_run_doctests = True

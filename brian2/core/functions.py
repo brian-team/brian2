@@ -1,7 +1,6 @@
 import inspect
 import types
-from collections.abc import Mapping
-from typing import Callable
+from collections.abc import Callable, Mapping
 
 import numpy as np
 import sympy

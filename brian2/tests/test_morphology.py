@@ -8,6 +8,7 @@ from brian2 import numpy as np
 from brian2.spatialneuron import *
 from brian2.tests.utils import assert_allclose
 from brian2.units import DimensionMismatchError, cm, second, um
+from brian2.utils.logger import catch_logs
 
 
 @pytest.mark.codegen_independent
@@ -719,6 +720,39 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
 
 
 @pytest.mark.codegen_independent
+def test_tree_soma_from_points_somas_not_at_start():
+    # A single soma in the middle (ununusal but possible)
+    points = [  # dendrite
+        (1, "dend", 100, 0, 0, 10, -1),
+        (2, "dend", 100, 0, 0, 10, 1),
+        (3, "dend", 100, 0, 0, 10, 2),
+        (4, "soma", 100, 0, 0, 30, 3),
+        (5, "dend2", 130, 0, 0, 10, 4),
+        (6, "dend2", 160, 0, 0, 10, 5),
+    ]
+    morpho = Morphology.from_points(points)
+    assert morpho.total_sections == 3
+    assert morpho.total_compartments == 5
+
+    # Several somata (probably an error)
+    points = [  # dendrite
+        (1, "dend", 0, 0, 0, 10, -1),
+        (2, "dend", 30, 0, 0, 10, 1),
+        (3, "dend", 60, 0, 0, 10, 2),
+        (4, "soma", 90, 0, 0, 30, 3),
+        (5, "dend2", 120, 70, 0, 10, 4),
+        (6, "dend2", 150, 70, 0, 10, 5),
+        (7, "soma", 180, 40, 0, 30, 6),
+    ]
+    with catch_logs() as logs:
+        morpho = Morphology.from_points(points)
+    assert len(logs) == 1
+    assert logs[0][1].endswith("soma_compartments")
+    assert morpho.total_sections == 4
+    assert morpho.total_compartments == 6
+
+
+@pytest.mark.codegen_independent
 def test_tree_soma_from_swc():
     swc_content = """
 # Test file
@@ -766,6 +800,58 @@ def test_tree_soma_from_swc_3_point_soma():
     soma = Morphology.from_file(tmp_filename)
     os.remove(tmp_filename)
     _check_tree_soma(soma, coordinates=True, use_cylinders=False)
+
+
+@pytest.mark.codegen_independent
+def test_tree_soma_from_swc_3_point_soma_incorrect_points():
+    swc_content = """
+# Test file
+1    1  100  0  0  15  -1
+2    1  100  15  0  15  1
+3    1  100  -10  0  15  1
+4   2  114.14213562373095  14.142135623730949  0  4  1
+5   2  128.2842712474619  28.284271247461898  0  3  4
+6   2  142.42640687119285  42.426406871192846  0  2  5
+7   2  156.5685424949238  56.568542494923797  0  1  6
+8   2  170.71067811865476  70.710678118654741  0  0  7
+9   2  107.07106781186548  -7.0710678118654746  0  2.5  1
+10   2  114.14213562373095  -14.142135623730949  0  2.5  9
+11   2  121.21320343559643  -21.213203435596423  0  2.5  10
+12   2  128.2842712474619  -28.284271247461898  0  2.5  11
+13   2  135.35533905932738  -35.35533905932737  0  2.5  12
+"""
+    tmp_filename = tempfile.mktemp("cable_morphology.swc")
+    with open(tmp_filename, "w") as f:
+        f.write(swc_content)
+    with pytest.raises(ValueError, match=r".*radius is 15.000um.*"):
+        Morphology.from_file(tmp_filename)
+    os.remove(tmp_filename)
+
+
+@pytest.mark.codegen_independent
+def test_tree_soma_from_swc_3_point_soma_incorrect_radius():
+    swc_content = """
+# Test file
+1    1  100  0  0  15  -1
+2    1  100  15  0  10  1
+3    1  100  -15  0  15  1
+4   2  114.14213562373095  14.142135623730949  0  4  1
+5   2  128.2842712474619  28.284271247461898  0  3  4
+6   2  142.42640687119285  42.426406871192846  0  2  5
+7   2  156.5685424949238  56.568542494923797  0  1  6
+8   2  170.71067811865476  70.710678118654741  0  0  7
+9   2  107.07106781186548  -7.0710678118654746  0  2.5  1
+10   2  114.14213562373095  -14.142135623730949  0  2.5  9
+11   2  121.21320343559643  -21.213203435596423  0  2.5  10
+12   2  128.2842712474619  -28.284271247461898  0  2.5  11
+13   2  135.35533905932738  -35.35533905932737  0  2.5  12
+"""
+    tmp_filename = tempfile.mktemp("cable_morphology.swc")
+    with open(tmp_filename, "w") as f:
+        f.write(swc_content)
+    with pytest.raises(ValueError, match=r".*not all the diameters are identical.*"):
+        Morphology.from_file(tmp_filename)
+    os.remove(tmp_filename)
 
 
 @pytest.mark.codegen_independent
@@ -871,6 +957,19 @@ def test_construction_incorrect_arguments():
             length=[10, 20, 30] * um,
             x=[0, 10, 20, 30] * um,
         )
+
+
+@pytest.mark.codegen_independent
+def test_from_points_long_chain():
+    # in previous versions, this led to a recursion error
+    points = [(1, "soma", 0, 0, 0, 1, -1)]
+    for i in range(2, 10000):
+        points.append((i, "dend", 0 + i * 10, 0, 0, 5, i - 1))
+    morph = Morphology.from_points(points)
+    assert (
+        morph.total_compartments == 10000 - 1
+    )  # compartments are in-between the points
+    assert morph.total_sections == 2
 
 
 @pytest.mark.codegen_independent

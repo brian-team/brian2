@@ -3,6 +3,7 @@ Brian AST representation
 
 This is a standard Python AST representation with additional information added.
 """
+
 import ast
 import weakref
 

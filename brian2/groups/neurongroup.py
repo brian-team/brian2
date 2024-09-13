@@ -1,6 +1,7 @@
 """
 This model defines the `NeuronGroup`, the core of most simulations.
 """
+
 import string
 from collections.abc import MutableMapping
 
@@ -144,13 +145,11 @@ class StateUpdater(CodeRunner):
                 "{value}",
                 value=ref,
             )
+            ref = float(ref)
             if prefs.legacy.refractory_timing:
-                abstract_code = f"not_refractory = (t - lastspike) > {ref:f}\n"
+                abstract_code = f"not_refractory = (t - lastspike) > {ref}\n"
             else:
-                abstract_code = (
-                    f"not_refractory = timestep(t - lastspike, dt) >= timestep({ref:f},"
-                    " dt)\n"
-                )
+                abstract_code = f"not_refractory = timestep(t - lastspike, dt) >= timestep({ref}, dt)\n"
         else:
             identifiers = get_identifiers(ref)
             variables = self.group.resolve_all(

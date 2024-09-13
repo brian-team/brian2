@@ -3,6 +3,7 @@ Compartmental models.
 This module defines the `SpatialNeuron` class, which defines multicompartmental
 models.
 """
+
 import copy
 import weakref
 

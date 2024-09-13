@@ -1776,6 +1776,21 @@ def test_multiple_runs_function_change():
     assert_equal(mon.v[0], [1, 2, 3, 4])
 
 
+@pytest.mark.codegen_independent
+def test_unused_object_warning():
+    with catch_logs() as logs:
+        # Create a NeuronGroup that is not used in the network
+        NeuronGroup(1, "v:1", name="never_used")
+        # Make sure that it gets garbage collected
+        import gc
+
+        gc.collect()
+    assert len(logs) == 1
+    assert logs[0][0] == "WARNING"
+    assert logs[0][1].endswith("unused_brian_object")
+    assert "never_used" in logs[0][2]
+
+
 if __name__ == "__main__":
     BrianLogger.log_level_warn()
     for t in [

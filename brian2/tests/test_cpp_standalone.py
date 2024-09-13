@@ -1,4 +1,5 @@
 import os
+import platform
 import tempfile
 
 import pytest
@@ -869,7 +870,7 @@ def test_change_parameter_without_recompile_dict_syntax():
 def test_change_synapse_parameter_without_recompile_dict_syntax():
     set_device("cpp_standalone", directory=None, with_output=False)
     G = NeuronGroup(10, "", name="neurons")
-    S = Synapses(G, G, "w:1", name="synapses")
+    S = Synapses(G, G, "w:1", name="Synapses")
     S.connect(j="i")
     S.w = np.arange(10)
     run(0 * ms)
@@ -948,14 +949,22 @@ class RunSim:
 
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
+@pytest.mark.skipif(
+    platform.system() == "Darwin" and platform.processor() == "arm",
+    reason="multiprocessing hangs on macOS with Apple Silicon",
+)
 def test_change_parameters_multiprocessing():
     set_device("cpp_standalone", directory=None)
     sim = RunSim()
 
     import multiprocessing
 
-    with multiprocessing.Pool() as p:
+    p = multiprocessing.Pool()
+    try:
         results = p.map(sim.run_sim, range(5))
+    finally:
+        p.close()
+        p.join()
 
     for idx, result in zip(range(5), results):
         v, w, x = result

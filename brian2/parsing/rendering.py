@@ -1,6 +1,7 @@
 import ast
 import numbers
 
+import numpy as np
 import sympy
 
 from brian2.core.functions import DEFAULT_CONSTANTS, DEFAULT_FUNCTIONS
@@ -57,37 +58,40 @@ class NodeRenderer:
         node = ast.parse(expr, mode="eval")
         return self.render_node(node.body)
 
-    def render_code(self, code):
-        lines = []
-        for node in ast.parse(code).body:
-            lines.append(self.render_node(node))
-        return "\n".join(lines)
-
     def render_node(self, node):
         nodename = node.__class__.__name__
         methname = f"render_{nodename}"
         try:
             return getattr(self, methname)(node)
         except AttributeError:
-            raise SyntaxError(f"Unknown syntax: {nodename}")
+            if nodename == "Subscript":
+                raise SyntaxError(
+                    "Brian equations/expressions do not support indexing with '[...]'."
+                )
+            elif nodename == "Attribute":
+                raise SyntaxError(
+                    "Brian equations/expressions do not support accessing attributes"
+                    " with the '.' syntax."
+                )
+            elif nodename == "Tuple":
+                raise SyntaxError("Brian equations/expressions do not support tuples.")
+            else:
+                raise SyntaxError(
+                    f"Brian equations/expressions do not support the '{nodename}'"
+                    " syntax."
+                )
 
     def render_func(self, node):
         return self.render_Name(node)
 
-    def render_NameConstant(self, node):
-        return str(node.value)
-
     def render_Name(self, node):
         return node.id
 
-    def render_Num(self, node):
-        return repr(node.value)
-
     def render_Constant(self, node):
-        if node.value is True or node.value is False or node.value is None:
-            return self.render_NameConstant(node)
-        else:
-            return self.render_Num(node)
+        if isinstance(node.value, np.number):
+            # repr prints the dtype in numpy 2.0
+            return repr(node.value.item())
+        return repr(node.value)
 
     def render_Call(self, node):
         if len(node.keywords):
@@ -98,14 +102,11 @@ class NodeRenderer:
             raise ValueError("Keyword arguments not supported")
         else:
             if node.func.id in self.auto_vectorise:
-                vectorisation_idx = ast.Name()
-                vectorisation_idx.id = "_vectorisation_idx"
+                vectorisation_idx = ast.Name("_vectorisation_idx")
                 args = node.args + [vectorisation_idx]
             else:
                 args = node.args
-            return (
-                f"{self.render_func(node.func)}({', '.join(self.render_node(arg) for arg in args)})"
-            )
+            return f"{self.render_func(node.func)}({', '.join(self.render_node(arg) for arg in args)})"
 
     def render_element_parentheses(self, node):
         """
@@ -162,9 +163,7 @@ class NodeRenderer:
         )
 
     def render_UnaryOp(self, node):
-        return (
-            f"{self.expression_ops[node.op.__class__.__name__]} {self.render_element_parentheses(node.operand)}"
-        )
+        return f"{self.expression_ops[node.op.__class__.__name__]} {self.render_element_parentheses(node.operand)}"
 
     def render_Assign(self, node):
         if len(node.targets) > 1:
@@ -260,17 +259,15 @@ class SympyNodeRenderer(NodeRenderer):
         else:
             return sympy.Symbol(node.id, real=True)
 
-    def render_NameConstant(self, node):
-        if node.value in [True, False]:
+    def render_Constant(self, node):
+        if node.value is True or node.value is False:
             return node.value
+        elif isinstance(node.value, numbers.Integral):
+            return sympy.Integer(node.value)
+        elif isinstance(node.value, numbers.Number):
+            return sympy.Float(node.value)
         else:
             return str(node.value)
-
-    def render_Num(self, node):
-        if isinstance(node.value, numbers.Integral):
-            return sympy.Integer(node.value)
-        else:
-            return sympy.Float(node.value)
 
     def render_BinOp(self, node):
         op_name = node.op.__class__.__name__
@@ -344,14 +341,19 @@ class CPPNodeRenderer(NodeRenderer):
         else:
             return NodeRenderer.render_BinOp(self, node)
 
-    def render_NameConstant(self, node):
-        return {True: "true", False: "false"}.get(node.value, node.value)
+    def render_Constant(self, node):
+        if node.value is True:
+            return "true"
+        elif node.value is False:
+            return "false"
+        else:
+            return super().render_Constant(node)
 
     def render_Name(self, node):
-        # Replace Python's True and False with their C++ bool equivalents
-        return {"True": "true", "False": "false", "inf": "INFINITY"}.get(
-            node.id, node.id
-        )
+        if node.id == "inf":
+            return "INFINITY"
+        else:
+            return node.id
 
     def render_Assign(self, node):
         return f"{NodeRenderer.render_Assign(self, node)};"

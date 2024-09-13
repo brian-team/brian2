@@ -256,3 +256,8 @@ class Subgroup(Group, SpikeSource):
             indices=str_indices,
             end=self.stop,
         )
+
+    def __del__(self):
+        # Do not raise a warning if the subgroup gets deleted (subgroups do not need
+        # to be part of a network to be useful)
+        pass

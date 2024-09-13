@@ -1,5 +1,139 @@
 Release notes
 =============
+Brian 2.7.1
+-----------
+This minor bug-fix release contains a fix for a regression in the handling of the ``on_event`` argument of `Synapses` for custom events and non-default pathways,
+which was introduced in Brian 2.6.0.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Fix a bug in interpreting the ``on_event`` argument of `Synapses` for custom events and non-default pathways (a regression introduced with Brian 2.6). Thanks to forum users
+  ``mreynes`` and ``mmiekus`` for making us aware of this issue. (:issue:`1541`)
+- Make parsing SWC files more robust, by not being as strict for a correct 3-point-soma format (which is often slightly inexact on https://neuromorpho.org). Thanks to forum
+  user ``cbx`` for making us aware of this issue. (:issue:`1544`)
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Move to ``pytest-cov`` for coverage measurements – this fixes issues with wrong coverage reports on https://coveralls.io/github/brian-team/brian2. (:issue:`1545`)
+
+Contributions
+~~~~~~~~~~~~~
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* `@mareba2030 <https://github.com/mareba2030>`_
+* Björn Lindqvist (`@bjourne <https://github.com/bjourne>`_)
+
+Other contributions outside of GitHub (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* `cbx <https://brian.discourse.group/u/cbx/summary>`_
+* `mmiekus <https://brian.discourse.group/u/mmiekus/summary>`_
+* `mreynes <https://brian.discourse.group/u/mreynes/summary>`_
+
+Brian 2.7.0
+-----------
+This release contains a number of bug fixes and improvements. Notably, it is fully compatible with the upcoming numpy 2.0 release and can be installed 
+alongside either numpy versions 1.23–1.26, or numpy 2.0.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Objects (e.g. `NeuronGroup` or `Synapses`) that are not used now raise warnings, avoiding errors for accidentally unused objects (:issue:`1536`). Thanks
+  to Jannik Luboeinski for suggesting this feature.
+- Fix the :doc:`run_args <../user/computation>` feature for object names with upper case letters (:issue:`1533`). Thanks to DavidKing2020 for making us aware of this issue.
+- Extremely short refractoriness periods were not converted into code correctly, truncating their value (:issue:`1521`). Thanks to YannaelB for reporting this issue.
+- The numbers 0 and 1 were converted into ``true``/``false`` in C++ code, breaking tests expecting the numbers to appear (:issue:`1520`)
+- The logging system was broken for 3rd-party packages that have names starting with ``brian`` (:issue:`1519`)
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- The reference documentation was not correctly built, missing a lot of the information present in the source code. Thanks to Harsh Khilawala for making us aware of
+  this issue (:issue:`1534`)
+- Binary wheels are built against numpy 2.0. These wheels are still backwards compatible with numpy >= 1.23 (:issue:`1527`)
+- Faster tests on GitHub actions by caching the compiled Cython code (:issue:`1528`)
+- The test suite was no longer testing the GSL integration (:issue:`1523` and :issue:`1526`)
+- Brian no longer includes the date in its documentation for `reproducible builds <https://reproducible-builds.org/docs/source-date-epoch/>`_ (:issue:`1518`).
+
+Contributions
+~~~~~~~~~~~~~
+
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Harsh Khilawala (`@HarshKhilawala <https://github.com/HarshKhilawala>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* Jannik Luboeinski (`@jlubo <https://github.com/jlubo>`_)
+* `@flomlo <https://github.com/flomlo>`_
+* Sven Leach (`@SvennoNito <https://github.com/SvennoNito>`_)
+
+Other contributions outside of GitHub (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* `DavidKing2020 <https://brian.discourse.group/u/davidking2020/summary>`_
+* `YannaelB <https://brian.discourse.group/u/YannaelB/summary>`_
+
+Brian 2.6.0
+-----------
+This release introduces a major new feature for running standalone simulations repeatedly (or in parallel), without having to recompile the code.
+It also fixes a number of compatiblity issues with the upcoming numpy 2.0 release, and offers compiled wheels for Python 3.12. Finally, we now
+offer pre-built docker images containing a full installation of Brian and related tools for convenient testing and development.
+
+New features
+~~~~~~~~~~~~
+- The new ``run_args`` argument makes it possible to run standalone simulations repeatedly (or in parallel) with different parameters without
+  recompiling the code. See :ref:`standalone_multiple_full_runs` for details (:issue:`1429`).
+- We now provide regularly updated Docker images with a full installation of Brian and related tools. You can find the latest release images
+  on https://hub.docker.com/repository/docker/briansimulator/brian/general, and temporary images for development versions on 
+  https://hub.docker.com/repository/docker/briansimulator/brian-dev/general
+  (:issue:`1503`).
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Various fixes for compatibility with recent Python versions and the future numpy 2.0 release (:issue:`1482`, :issue:`1484`, :issue:`1488`, :issue:`1510`).
+- Do not assume that the test directory is writeable (:issue:`1507``)
+- Fix the power operator for integer values in Cython (:issue:`1502`). Thanks to Hong Zhu for reporting this issue.
+- Fix floor division on C++ (:issue:`1496`). Thanks to Brian forum user ``ansuz`` for reporting this issue.
+  
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- We now build wheels and test against for Python 3.12 (:issue:`1481`).
+- We now build and test on Apple Silicon (M1) hardware (:issue:`1501`).
+- Improved support for 3rd-party packages to use Brian's logging system (:issue:`1480`).
+- New examples: :doc:`../examples/frompapers.Spreizer_et_al_2019.Spreizer_et_al_2019`, :doc:`../examples/frompapers.Wang_2002` (:issue:`1447`, :issue:`1489`)
+- Use dependabot to keep GitHub actions and the dev container up-to-date (:issue:`1513`).
+
+Contributions
+~~~~~~~~~~~~~
+
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* Jannik Luboeinski (`@jlubo <https://github.com/jlubo>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Arash Golmohammadi (`@arashgmn <https://github.com/arashgmn>`_)
+* xyz (`@DHRUVJ2003 <https://github.com/DHRUVJ2003>`_)
+* Kyle Johnsen (`@kjohnsen <https://github.com/kjohnsen>`_)
+* McCoy R. Becker (`@femtomc <https://github.com/femtomc>`_)
+* Max Talanov (`@max-talanov <https://github.com/max-talanov>`_)
+* `@lysea-haggie <https://github.com/lysea-haggie>`_
+* Hong Zhu (`@Jasmine969 <https://github.com/Jasmine969>`_)
+* Paul Brodersen (`@paulbrodersen <https://github.com/paulbrodersen>`_)
+* `@MichielMoe <https://github.com/MichielMoe>`_
+* Ian Quah  (`@IanQS <https://github.com/IanQS>`_)
+* Adam Willats (`@awillats <https://github.com/awillats>`_)
+* `@flomlo <https://github.com/flomlo>`_
+
+Other contributions outside of GitHub (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* `ansuz <https://brian.discourse.group/u/ansuz/summary>`_`
+* `@l-luo1 <https://github.com/l-luo1>_``
+* Klaus Wimmer (`@wklausitor <https://github.com/wklausito>_`)
 
 Brian 2.5.4
 -----------

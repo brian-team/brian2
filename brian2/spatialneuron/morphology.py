@@ -2,6 +2,7 @@
 Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
 """
+
 import abc
 import numbers
 import os
@@ -1077,38 +1078,33 @@ class Morphology(metaclass=abc.ABCMeta):
         if current_compartments is None:
             current_compartments = []
 
-        current_compartments.append(compartment)
-
         # We have to create a new section, if we are either
         # 1. at a leaf of the tree or at a branching point, or
         # 2. if the compartment type changes
-        if (
-            len(compartment.children) != 1
-            or compartment.comp_name != compartment.children[0].comp_name
-        ):
-            parent = current_compartments[0].parent
-            section = Morphology._create_section(
-                current_compartments,
-                compartment.comp_name,
-                parent=parent,
-                sections=sections,
-                spherical_soma=spherical_soma,
-            )
-            sections[current_compartments[-1].index] = section
-            # If we are at a branching point, recurse into all subtrees
-            for child in compartment.children:
-                Morphology._compartments_to_sections(
-                    child,
-                    spherical_soma=spherical_soma,
-                    current_compartments=None,
-                    sections=sections,
-                )
-        else:
-            # A single child of the same type, continue (recursive call)
+        while True:
+            current_compartments.append(compartment)
+            if (
+                len(compartment.children) != 1
+                or compartment.children[0].comp_name != compartment.comp_name
+            ):
+                break
+            compartment = compartment.children[0]
+
+        parent = current_compartments[0].parent
+        section = Morphology._create_section(
+            current_compartments,
+            compartment.comp_name,
+            parent=parent,
+            sections=sections,
+            spherical_soma=spherical_soma,
+        )
+        sections[current_compartments[-1].index] = section
+        # If we are at a branching point, recurse into all subtrees
+        for child in compartment.children:
             Morphology._compartments_to_sections(
-                compartment.children[0],
+                child,
                 spherical_soma=spherical_soma,
-                current_compartments=current_compartments,
+                current_compartments=None,
                 sections=sections,
             )
 
@@ -1123,13 +1119,14 @@ class Morphology(metaclass=abc.ABCMeta):
         # We are looking for a node with two children of the soma type (and
         # other childen of other types), where the two children don't have any
         # children of their own
+        # To avoid recursion errors we are not searching any further
         soma_children = [c for c in compartment.children if c.comp_name == "soma"]
         if (
             compartment.comp_name == "soma"
             and len(soma_children) == 2
             and all(len(c.children) == 0 for c in soma_children)
         ):
-            # We've found a 3-point soma to replace
+            # This is a 3-point soma to replace
             soma_c = [compartment] + soma_children
             if not all(abs(c.diameter - soma_c[0].diameter) < 1e-15 for c in soma_c):
                 indices = ", ".join(str(c.index) for c in soma_c)
@@ -1145,14 +1142,14 @@ class Morphology(metaclass=abc.ABCMeta):
             length_1 = np.sqrt(np.sum((point_1 - point_0) ** 2))
             length_2 = np.sqrt(np.sum((point_2 - point_0) ** 2))
             if (
-                np.abs(length_1 - diameter / 2) > 0.01
-                or np.abs(length_2 - diameter / 2) > 0.01
+                np.abs(length_1 - diameter / 2) > 0.1
+                or np.abs(length_2 - diameter / 2) > 0.1
             ):
                 raise ValueError(
                     "Cannot replace '3-point-soma' by a single "
                     "point, the second and third points should "
                     "be positioned one radius away from the "
-                    f"first point. Distances are {length_1:.3d}um and "
+                    f"first point. Distances are {length_1:.3f}um and "
                     f"{length_2:.3f}um, respectively, while the "
                     f"radius is {diameter / 2:.3f}um."
                 )
@@ -1170,11 +1167,15 @@ class Morphology(metaclass=abc.ABCMeta):
             all_compartments[compartment.index] = compartment
             del all_compartments[soma_children[0].index]
             del all_compartments[soma_children[1].index]
-
-        # Recurse further down the tree
-        all_compartments[compartment.index] = compartment
-        for child in compartment.children:
-            Morphology._replace_three_point_soma(child, all_compartments)
+        else:
+            # Raise a warning if there is more than one soma compartment
+            somata = [c for c in all_compartments.values() if c.comp_name == "soma"]
+            if len(somata) > 1:
+                logger.warning(
+                    f"Found {len(somata)} soma compartments. If you have a 3-point soma, "
+                    "make sure it is at the beginning.",
+                    name_suffix="soma_compartments",
+                )
 
     @staticmethod
     def from_points(points, spherical_soma=True):
@@ -1988,10 +1989,7 @@ class Section(Morphology):
         d_1 = self.start_diameter
         d_2 = self.end_diameter
         return (
-            np.pi
-            / 2
-            * (d_1 + d_2)
-            * np.sqrt(((d_1 - d_2) ** 2) / 4 + self._length**2)
+            np.pi / 2 * (d_1 + d_2) * np.sqrt(((d_1 - d_2) ** 2) / 4 + self._length**2)
         )
 
     @property

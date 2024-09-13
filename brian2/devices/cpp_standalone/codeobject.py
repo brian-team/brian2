@@ -142,15 +142,11 @@ def generate_rand_code(rand_func, owner):
         thread_number = "0"
     else:
         thread_number = "omp_get_thread_num()"
-    if rand_func == "rand":
-        rk_call = "rk_double"
-    elif rand_func == "randn":
-        rk_call = "rk_gauss"
-    else:
+    if rand_func not in ["rand", "randn"]:
         raise AssertionError(rand_func)
     code = """
-           double _%RAND_FUNC%(const int _vectorisation_idx) {
-               return %RK_CALL%(brian::_mersenne_twister_states[%THREAD_NUMBER%]);
+           inline double _%RAND_FUNC%(const int _vectorisation_idx) {
+               return brian::_random_generators[%THREAD_NUMBER%].%RAND_FUNC%();
            }
            """
     code = replace(
@@ -158,7 +154,6 @@ def generate_rand_code(rand_func, owner):
         {
             "%THREAD_NUMBER%": thread_number,
             "%RAND_FUNC%": rand_func,
-            "%RK_CALL%": rk_call,
         },
     )
     return {"support_code": code}

@@ -11,7 +11,7 @@ from brian2.core.magic import run
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.variables import linked_var
-from brian2.devices.device import device, seed
+from brian2.devices.device import device, get_device, seed
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -19,7 +19,11 @@ from brian2.monitors.statemonitor import StateMonitor
 from brian2.synapses.synapses import Synapses
 from brian2.tests.utils import assert_allclose, exc_isinstance
 from brian2.units.allunits import second, volt
-from brian2.units.fundamentalunits import DimensionMismatchError, have_same_dimensions
+from brian2.units.fundamentalunits import (
+    DIMENSIONLESS,
+    DimensionMismatchError,
+    have_same_dimensions,
+)
 from brian2.units.stdunits import Hz, ms, mV
 from brian2.units.unitsafefunctions import linspace
 from brian2.utils.logger import catch_logs
@@ -145,6 +149,31 @@ def test_variableview_calculations():
         3 + G.y
     with pytest.raises(TypeError):
         2**G.y  # raising to a power with units
+
+
+@pytest.mark.standalone_compatible
+def test_variableview_properties():
+    G = NeuronGroup(
+        10,
+        """
+    x : 1
+    y : volt
+    idx : integer
+    """,
+    )
+    # The below properties should not require access to the values
+    G.x = "rand()"
+    G.y = "rand()*mV"
+    G.idx = "int(rand()*10)"
+
+    assert have_same_dimensions(G.x.unit, DIMENSIONLESS)
+    assert have_same_dimensions(G.y.unit, volt)
+    assert have_same_dimensions(G.idx.unit, DIMENSIONLESS)
+
+    assert G.x.shape == G.y.shape == G.idx.shape == (10,)
+    assert G.x.ndim == G.y.ndim == G.idx.ndim == 1
+    assert G.x.dtype == G.y.dtype == prefs.core.default_float_dtype
+    assert G.idx.dtype == np.int32
 
 
 @pytest.mark.codegen_independent
@@ -807,7 +836,7 @@ def test_namespace_errors():
 
 @pytest.mark.codegen_independent
 def test_namespace_warnings():
-    G = NeuronGroup(
+    G1 = NeuronGroup(
         1,
         """
         x : 1
@@ -819,7 +848,7 @@ def test_namespace_warnings():
     # conflicting variable in namespace
     y = 5
     with catch_logs() as l:
-        G.x = "y"
+        G1.x = "y"
         assert len(l) == 1, f"got {str(l)} as warnings"
         assert l[0][1].endswith(".resolution_conflict")
 
@@ -829,7 +858,7 @@ def test_namespace_warnings():
     i = 5
     N = 3
     with catch_logs() as l:
-        G.x = "i // N"
+        G1.x = "i // N"
         assert len(l) == 2, f"got {str(l)} as warnings"
         assert l[0][1].endswith(".resolution_conflict")
         assert l[1][1].endswith(".resolution_conflict")
@@ -838,7 +867,7 @@ def test_namespace_warnings():
     del N
     # conflicting variables in equations
     y = 5 * Hz
-    G = NeuronGroup(
+    G2 = NeuronGroup(
         1,
         """
         y : Hz
@@ -848,7 +877,7 @@ def test_namespace_warnings():
         name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}",
     )
 
-    net = Network(G)
+    net = Network(G2)
     with catch_logs() as l:
         net.run(0 * ms)
         assert len(l) == 1, f"got {str(l)} as warnings"
@@ -857,13 +886,13 @@ def test_namespace_warnings():
 
     i = 5
     # i is referring to the neuron number:
-    G = NeuronGroup(
+    G3 = NeuronGroup(
         1,
         "dx/dt = i*Hz : 1",
         # unique names to get warnings every time:
         name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}",
     )
-    net = Network(G)
+    net = Network(G3)
     with catch_logs() as l:
         net.run(0 * ms)
         assert len(l) == 1, f"got {str(l)} as warnings"
@@ -875,13 +904,13 @@ def test_namespace_warnings():
     N = 3
     i = 5
     dt = 1 * ms
-    G = NeuronGroup(
+    G4 = NeuronGroup(
         1,
         "dx/dt = x/(10*ms) : 1",
         # unique names to get warnings every time:
         name=f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}",
     )
-    net = Network(G)
+    net = Network(G4)
     with catch_logs() as l:
         net.run(0 * ms)
         assert len(l) == 0, f"got {str(l)} as warnings"
@@ -893,22 +922,22 @@ def test_threshold_reset():
     Test that threshold and reset work in the expected way.
     """
     # Membrane potential does not change by itself
-    G = NeuronGroup(3, "dv/dt = 0 / second : 1", threshold="v > 1", reset="v=0.5")
-    G.v = np.array([0, 1, 2])
+    G1 = NeuronGroup(3, "dv/dt = 0 / second : 1", threshold="v > 1", reset="v=0.5")
+    G1.v = np.array([0, 1, 2])
     run(defaultclock.dt)
-    assert_allclose(G.v[:], np.array([0, 1, 0.5]))
+    assert_allclose(G1.v[:], np.array([0, 1, 0.5]))
 
     with catch_logs() as logs:
-        G = NeuronGroup(1, "v : 1", threshold="True")
+        G2 = NeuronGroup(1, "v : 1", threshold="True")
         assert len(logs) == 1
         assert logs[0][0] == "WARNING" and logs[0][1].endswith("only_threshold")
 
     with catch_logs() as logs:
-        G = NeuronGroup(1, "v : 1", threshold="True", reset="")
+        G3 = NeuronGroup(1, "v : 1", threshold="True", reset="")
         assert len(logs) == 0
 
     with catch_logs() as logs:
-        G = NeuronGroup(1, "v : 1", threshold="True", refractory=1 * ms)
+        G4 = NeuronGroup(1, "v : 1", threshold="True", refractory=1 * ms)
         assert len(logs) == 0
 
 
@@ -1100,10 +1129,7 @@ def test_state_variables():
 
     G.v = -70 * mV
     # Numpy methods should be able to deal with state variables
-    # (discarding units)
-    assert_allclose(np.mean(G.v), float(-70 * mV))
-    # Getting the content should return a Quantity object which then natively
-    # supports numpy functions that access a method
+    assert_allclose(np.mean(G.v), -70 * mV)
     assert_allclose(np.mean(G.v[:]), -70 * mV)
 
     # You should also be able to set variables with a string
@@ -1120,25 +1146,25 @@ def test_state_variables():
 
     # Calculating with state variables should work too
     # With units
-    assert all(G.v - G.v == 0)
-    assert all(G.v - G.v[:] == 0 * mV)
-    assert all(G.v[:] - G.v == 0 * mV)
-    assert all(G.v + 70 * mV == G.v[:] + 70 * mV)
-    assert all(70 * mV + G.v == G.v[:] + 70 * mV)
-    assert all(G.v + G.v == 2 * G.v)
-    assert all(G.v / 2.0 == 0.5 * G.v)
-    assert all(1.0 / G.v == 1.0 / G.v[:])
+    assert_allclose(G.v - G.v, 0 * mV)
+    assert_allclose(G.v - G.v[:], 0 * mV)
+    assert_allclose(G.v[:] - G.v, 0 * mV)
+    assert_allclose(G.v + 70 * mV, G.v[:] + 70 * mV)
+    assert_allclose(70 * mV + G.v, G.v[:] + 70 * mV)
+    assert_allclose(G.v + G.v, 2 * G.v)
+    assert_allclose(G.v / 2.0, 0.5 * G.v)
+    assert_allclose(1.0 / G.v, 1.0 / G.v[:])
     assert_allclose((-G.v)[:], -G.v[:])
     assert_allclose((+G.v)[:], G.v[:])
     # Without units
-    assert all(G.v_ - G.v_ == 0)
-    assert all(G.v_ - G.v_[:] == 0)
-    assert all(G.v_[:] - G.v_ == 0)
-    assert all(G.v_ + float(70 * mV) == G.v_[:] + float(70 * mV))
-    assert all(float(70 * mV) + G.v_ == G.v_[:] + float(70 * mV))
-    assert all(G.v_ + G.v_ == 2 * G.v_)
-    assert all(G.v_ / 2.0 == 0.5 * G.v_)
-    assert all(1.0 / G.v_ == 1.0 / G.v_[:])
+    assert_allclose(G.v_ - G.v_, 0)
+    assert_allclose(G.v_ - G.v_[:], 0)
+    assert_allclose(G.v_[:] - G.v_, 0)
+    assert_allclose(G.v_ + float(70 * mV), G.v_[:] + float(70 * mV))
+    assert_allclose(float(70 * mV) + G.v_, G.v_[:] + float(70 * mV))
+    assert_allclose(G.v_ + G.v_, 2 * G.v_)
+    assert_allclose(G.v_ / 2.0, 0.5 * G.v_)
+    assert_allclose(1.0 / G.v_, 1.0 / G.v_[:])
     assert_allclose((-G.v)[:], -G.v[:])
     assert_allclose((+G.v)[:], G.v[:])
 
@@ -1967,6 +1993,60 @@ def test_random_values_fixed_seed():
     assert_allclose(G.v1[:], G.v2[:])
 
 
+_random_values = {
+    ("RuntimeDevice", "numpy", None): (
+        [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
+        [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
+    ),
+    ("RuntimeDevice", "cython", None): (
+        [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
+        [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
+    ),
+    ("CPPStandaloneDevice", "cython", 1): (
+        [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
+        [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
+    ),
+    ("CPPStandaloneDevice", None, 4): (
+        [0.1636023, 0.76229608, 0.27318909, 0.44124824, 0.69454226],
+        [0.36643979, -1.53883951, 0.07274151, 1.34278769, 0.63249739],
+    ),
+}
+
+
+def _config_tuple():
+    config = [
+        get_device().__class__.__name__,
+        prefs.codegen.target,
+        prefs.devices.cpp_standalone.openmp_threads,
+    ]
+    if config[0] == "RuntimeDevice":
+        config[2] = None
+    else:
+        config[1] = None
+    return tuple(config)
+
+
+@pytest.mark.standalone_compatible
+def test_random_values_fixed_seed_numbers():
+    # Verify a subset of random numbers, to make sure these numbers stay the same across updates
+    G = NeuronGroup(
+        100,
+        """
+        v1 : 1
+        v2 : 1
+        """,
+    )
+    seed(9876)
+    G.v1 = "rand()"
+    G.v2 = "randn()"
+    run(0 * ms)  # for standalone
+    expected_values = _random_values.get(_config_tuple(), None)
+    if expected_values is None:
+        pytest.skip("Random values not known for this configuration")
+    assert_allclose(G.v1[::20], expected_values[0])
+    assert_allclose(G.v2[::20], expected_values[1])
+
+
 @pytest.mark.standalone_compatible
 @pytest.mark.multiple_runs
 def test_random_values_fixed_and_random():
@@ -2121,9 +2201,9 @@ def test_run_regularly_shared():
 
 @pytest.mark.standalone_compatible
 def test_semantics_floor_division():
-    # See github issues #815 and #661
+    # See github issues #815, #661, and #1495
     G = NeuronGroup(
-        11,
+        300,
         """
         a : integer
         b : integer
@@ -2134,25 +2214,25 @@ def test_semantics_floor_division():
         """,
         dtype={"a": np.int32, "b": np.int64, "x": float, "y": float},
     )
-    int_values = np.arange(-5, 6)
-    float_values = np.arange(-5.0, 6.0, dtype=np.float64)
+    int_values = np.arange(-150, 150)
+    float_values = np.linspace(-100, 100, 300, dtype=np.float64)
     G.ivalue = int_values
     G.fvalue = float_values
     with catch_logs() as l:
         G.run_regularly(
             """
-            a = ivalue//3
-            b = ivalue//3
-            x = fvalue//3
-            y = fvalue//3
+            a = ivalue//98
+            b = ivalue//98
+            x = fvalue//98
+            y = fvalue//98
             """
         )
         run(defaultclock.dt)
     assert len(l) == 0
-    assert_equal(G.a[:], int_values // 3)
-    assert_equal(G.b[:], int_values // 3)
-    assert_allclose(G.x[:], float_values // 3)
-    assert_allclose(G.y[:], float_values // 3)
+    assert_equal(G.a[:], int_values // 98)
+    assert_equal(G.b[:], int_values // 98)
+    assert_allclose(G.x[:], float_values // 98)
+    assert_allclose(G.y[:], float_values // 98)
 
 
 @pytest.mark.standalone_compatible
@@ -2195,7 +2275,7 @@ def test_semantics_floating_point_division():
 def test_semantics_mod():
     # See github issues #815 and #661
     G = NeuronGroup(
-        11,
+        300,
         """
         a : integer
         b : integer
@@ -2206,25 +2286,25 @@ def test_semantics_mod():
         """,
         dtype={"a": np.int32, "b": np.int64, "x": float, "y": float},
     )
-    int_values = np.arange(-5, 6)
-    float_values = np.arange(-5.0, 6.0, dtype=np.float64)
+    int_values = np.arange(-150, 150)
+    float_values = np.linspace(-100, 100, 300, dtype=np.float64)
     G.ivalue = int_values
     G.fvalue = float_values
     with catch_logs() as l:
         G.run_regularly(
             """
-            a = ivalue % 3
-            b = ivalue % 3
-            x = fvalue % 3
-            y = fvalue % 3
+            a = ivalue % 98
+            b = ivalue % 98
+            x = fvalue % 98
+            y = fvalue % 98
             """
         )
         run(defaultclock.dt)
     assert len(l) == 0
-    assert_equal(G.a[:], int_values % 3)
-    assert_equal(G.b[:], int_values % 3)
-    assert_allclose(G.x[:], float_values % 3)
-    assert_allclose(G.y[:], float_values % 3)
+    assert_equal(G.a[:], int_values % 98)
+    assert_equal(G.b[:], int_values % 98)
+    assert_allclose(G.x[:], float_values % 98)
+    assert_allclose(G.y[:], float_values % 98)
 
 
 if __name__ == "__main__":

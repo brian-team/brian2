@@ -5,6 +5,8 @@ the logic into Windows batch/bash statements)
 # Importing multiprocessing here seems to fix hangs in the test suite on OS X
 # see https://github.com/scipy/scipy/issues/11835
 import multiprocessing
+# Prevent potential issues on multi-threaded execution
+multiprocessing.set_start_method('spawn', force=True)
 import os
 import sys
 
@@ -19,7 +21,7 @@ if __name__ == '__main__':
     # If TRAVIS_OS_NAME is not defined, we are testing on appveyor
     operating_system = os.environ.get('AGENT_OS', 'unknown').lower()
     cross_compiled = os.environ.get('CROSS_COMPILED', 'FALSE').lower() in ['yes', 'true']
-    report_coverage = os.environ.get('REPORT_COVERAGE', 'no').lower() in ['yes', 'true']
+    do_not_reset_preferences = os.environ.get('DO_NOT_RESET_PREFERENCES', 'false').lower() in ['yes', 'true']
     dtype_32_bit = os.environ.get('FLOAT_DTYPE_32', 'no').lower() in ['yes', 'true']
     sphinx_dir = os.environ.get('SPHINX_DIR')
     src_dir = os.environ.get('SRCDIR')
@@ -44,7 +46,7 @@ if __name__ == '__main__':
     else:
         openmp = False
 
-    reset_preferences = not cross_compiled
+    reset_preferences = not (cross_compiled or do_not_reset_preferences)
     if dtype_32_bit:
         float_dtype = np.float32
     else:
@@ -53,7 +55,18 @@ if __name__ == '__main__':
     if deprecation_error:
         args = ['-W', 'error::DeprecationWarning', '--tb=short']
     else:
-        args = []
+        # Use coverage when running on GitHub
+        if "GITHUB_WORKSPACE" in os.environ:
+            args = [
+                "--cov",
+                "--cov-append",
+                "--cov-report",
+                "xml",
+                "--cov-report",
+                "term",
+                "--cov-config",
+                os.path.join(os.environ["GITHUB_WORKSPACE"], ".coveragerc"),
+            ]
 
     if standalone:
         result = brian2.test([],
@@ -63,7 +76,7 @@ if __name__ == '__main__':
                              test_in_parallel=in_parallel,
                              reset_preferences=reset_preferences,
                              float_dtype=float_dtype,
-                             test_GSL=False,
+                             test_GSL=True,
                              sphinx_dir=sphinx_dir,
                              additional_args=args)
     else:
@@ -73,7 +86,7 @@ if __name__ == '__main__':
                              test_in_parallel=in_parallel,
                              reset_preferences=reset_preferences,
                              float_dtype=float_dtype,
-                             test_GSL=False,
+                             test_GSL=True,
                              sphinx_dir=sphinx_dir,
                              additional_args=args)
 

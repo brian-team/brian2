@@ -1,6 +1,7 @@
 """
 All Brian objects should derive from `BrianObject`.
 """
+
 import functools
 import os
 import sys
@@ -79,14 +80,8 @@ class BrianObject(Nameable):
                 creation_stack.append(s)
         creation_stack = [""] + creation_stack
         #: A string indicating where this object was created (traceback with any parts of Brian code removed)
-        self._creation_stack = (
-            "Object was created here (most recent call only, full details in "
-            "debug log):\n"
-            + creation_stack[-1]
-        )
-        self._full_creation_stack = "Object was created here:\n" + "\n".join(
-            creation_stack
-        )
+        self._creation_stack = creation_stack[-1]
+        self._full_creation_stack = "\n".join(creation_stack)
 
         if dt is not None and clock is not None:
             raise ValueError("Can only specify either a dt or a clock, not both.")
@@ -184,6 +179,22 @@ class BrianObject(Nameable):
     #: `add_to_magic_network` to ``True``, but it should not be set for all the
     #: dependent objects such as `StateUpdater`
     add_to_magic_network = False
+
+    def __del__(self):
+        # For objects that get garbage collected, raise a warning if they have
+        # never been part of a network
+        if (
+            getattr(self, "_network", "uninitialized") is None
+            and getattr(self, "group", None) is None
+        ):
+            logger.warn(
+                f"The object '{self.name}' is getting deleted, but was never included in a network. "
+                "This probably means that you did not store the object reference in a variable, "
+                "or that the variable was not used to construct the network.\n"
+                "The object was created here (most recent call only):\n"
+                + self._creation_stack,
+                name_suffix="unused_brian_object",
+            )
 
     def add_dependency(self, obj):
         """
@@ -365,11 +376,15 @@ class BrianObjectException(Exception):
     def __init__(self, message, brianobj):
         self._brian_message = message
         self._brian_objname = brianobj.name
-        self._brian_objcreate = brianobj._creation_stack
+        self._brian_objcreate = (
+            "Object was created here (most recent call only, full details in "
+            "debug log):\n" + brianobj._creation_stack
+        )
+        full_stack = "Object was created here:\n" + brianobj._full_creation_stack
         logger.diagnostic(
             "Error was encountered with object "
             f"'{self._brian_objname}':\n"
-            f"{brianobj._full_creation_stack}"
+            f"{full_stack}"
         )
 
     def __str__(self):

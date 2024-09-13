@@ -1,6 +1,7 @@
 """
 Module providing the `Synapses` class and related helper classes/functions.
 """
+
 import functools
 import numbers
 import re
@@ -410,8 +411,7 @@ class SynapticPathway(CodeRunner, Group):
                 "it has not created synapses with 'connect'. "
                 "Set its active attribute to False if you "
                 "intend to do only do this for a subsequent"
-                " run."
-                % self.synapses.name
+                " run." % self.synapses.name
             )
 
         # Update the dt (might have changed between runs)
@@ -1053,7 +1053,7 @@ class Synapses(Group):
                         prepost,
                         objname=key,
                         delay=pathway_delay,
-                        event=self.events.get(prepost, self.default_event),
+                        event=self.events.get(key, self.default_event),
                     )
 
         # Check whether any delays were specified for pathways that don't exist
@@ -1702,8 +1702,7 @@ class Synapses(Group):
         except IndexError as e:
             raise IndexError(
                 "Tried to create synapse indices outside valid "
-                "range. Original error message: "
-                + str(e)
+                "range. Original error message: " + str(e)
             )
 
     # Helper functions for Synapses.connect ↑

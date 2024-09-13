@@ -6,6 +6,7 @@ Preferences
 .. document_brian_prefs:: codegen.cpp
 
 """
+
 import distutils
 import json
 import os
@@ -16,9 +17,13 @@ import struct
 import subprocess
 import sys
 import tempfile
-from distutils.ccompiler import get_default_compiler
 
-from setuptools import msvc
+try:
+    from setuptools.msvc import msvc14_get_vc_env as _get_vc_env
+except ImportError:  # Setuptools 0.74.0 removed this function
+    from distutils._msvccompiler import _get_vc_env
+
+from distutils.ccompiler import get_default_compiler
 
 from brian2.core.preferences import BrianPreference, prefs
 from brian2.utils.filetools import ensure_directory
@@ -124,7 +129,7 @@ else:
             "-mtune=native",
             "-std=c++11",
         ]
-    elif re.match("^(parisc.*|riscv.*|mips.*)$", machine):
+    elif re.match("^(parisc.*|riscv.*|mips.*|loong64.*)$", machine):
         default_buildopts = [
             "-w",
             "-O3",
@@ -266,9 +271,10 @@ def _determine_flag_compatibility(compiler, flagname):
     import tempfile
     from distutils.errors import CompileError
 
-    with tempfile.TemporaryDirectory(
-        prefix="brian_flag_test_"
-    ) as temp_dir, std_silent():
+    with (
+        tempfile.TemporaryDirectory(prefix="brian_flag_test_") as temp_dir,
+        std_silent(),
+    ):
         fname = os.path.join(temp_dir, "flag_test.cpp")
         with open(fname, "w") as f:
             f.write("int main (int argc, char **argv) { return 0; }")
@@ -350,7 +356,7 @@ def get_msvc_env():
     # Search for MSVC environment if not already cached
     if _msvc_env is None:
         try:
-            _msvc_env = msvc.msvc14_get_vc_env(arch_name)
+            _msvc_env = _get_vc_env(arch_name)
         except distutils.errors.DistutilsPlatformError:
             raise OSError(
                 "Cannot find Microsoft Visual Studio, You "

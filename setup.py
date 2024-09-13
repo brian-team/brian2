@@ -99,10 +99,5 @@ class optional_build_ext(build_ext):
                                  '*' * len(error_msg) + '\n')
 
 
-# Use readme file as long description
-with io.open(os.path.join(os.path.dirname(__file__), 'README.rst'),
-             encoding='utf-8') as f:
-    long_description = f.read()
-
 setup(ext_modules=extensions,
       cmdclass={'build_ext': optional_build_ext})

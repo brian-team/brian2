@@ -6,6 +6,7 @@ Instead edit the template:
 
     dev/tools/static_codegen/units_template.py
 """
+
 # fmt: off
 # flake8: noqa
 import itertools

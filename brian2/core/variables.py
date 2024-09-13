@@ -2,6 +2,7 @@
 Classes used to specify the type of a function, variable or common
 sub-expression.
 """
+
 import collections
 import functools
 import numbers
@@ -836,6 +837,8 @@ class VariableView:
         ``G.var_``).
     """
 
+    __array_priority__ = 10
+
     def __init__(self, name, variable, group, dimensions=None):
         self.name = name
         self.variable = variable
@@ -1323,7 +1326,7 @@ class VariableView:
         else:
             indices = self.indexing(item, self.index_var)
 
-            q = Quantity(value, copy=False)
+            q = Quantity(value)
             if len(q.shape):
                 if not len(q.shape) == 1 or len(q) != 1 and len(q) != len(indices):
                     raise ValueError(
@@ -1334,11 +1337,13 @@ class VariableView:
         variable.get_value()[indices] = value
 
     # Allow some basic calculations directly on the ArrayView object
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         try:
             # This will fail for subexpressions that refer to external
             # parameters
-            self[:]
+            values = self[:]
+            # Never hand over copy = None
+            return np.array(values, dtype=dtype, copy=copy is not False, subok=True)
         except ValueError:
             var = self.variable.name
             raise ValueError(
@@ -1347,27 +1352,12 @@ class VariableView:
                 f"variables, use 'group.{var}[:]' instead of "
                 f"'group.{var}'"
             )
-        return np.asanyarray(self[:], dtype=dtype)
 
-    def __array_prepare__(self, array, context=None):
-        if self.dim is None:
-            return array
+    def __array__ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if method == "__call__":
+            return ufunc(self[:], *inputs, **kwargs)
         else:
-            this = self[:]
-            if isinstance(this, Quantity):
-                return Quantity.__array_prepare__(this, array, context=context)
-            else:
-                return array
-
-    def __array_wrap__(self, out_arr, context=None):
-        if self.dim is None:
-            return out_arr
-        else:
-            this = self[:]
-            if isinstance(this, Quantity):
-                return Quantity.__array_wrap__(self[:], out_arr, context=context)
-            else:
-                return out_arr
+            return NotImplemented
 
     def __len__(self):
         return len(self.get_item(slice(None), level=1))
@@ -1444,6 +1434,13 @@ class VariableView:
             rhs = self[:] + np.asanyarray(other)
         self[:] = rhs
         return self
+
+    # Support matrix multiplication with @
+    def __matmul__(self, other):
+        return self.get_item(slice(None), level=1) @ np.asanyarray(other)
+
+    def __rmatmul__(self, other):
+        return np.asanyarray(other) @ self.get_item(slice(None), level=1)
 
     def __isub__(self, other):
         if isinstance(other, str):
@@ -1577,7 +1574,15 @@ class VariableView:
     @property
     def shape(self):
         if self.ndim == 1:
-            return (self.variable.size,)
+            if not self.variable.scalar:
+                # This is safer than using the variable size, since it also works for subgroups
+                # see GitHub issue #1555
+                size = self.group.stop - self.group.start
+                assert size <= self.variable.size
+            else:
+                size = self.variable.size
+
+            return (size,)
         else:
             return self.variable.size
 

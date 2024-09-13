@@ -8,6 +8,7 @@ Preferences
 
 """
 
+import gc
 import os
 import pickle as pickle
 import sys
@@ -219,14 +220,18 @@ class SchedulingSummary:
             [
                 [
                     f"{entry.name} ({entry.type})",
-                    f"{entry.owner_name} ({entry.owner_type})"
-                    if entry.owner_name is not None
-                    else "--",
+                    (
+                        f"{entry.owner_name} ({entry.owner_type})"
+                        if entry.owner_name is not None
+                        else "--"
+                    ),
                     "{} (every {})".format(
                         str(entry.dt),
-                        "step"
-                        if self.steps[float(entry.dt)] == 1
-                        else f"{self.steps[float(entry.dt)]} steps",
+                        (
+                            "step"
+                            if self.steps[float(entry.dt)] == 1
+                            else f"{self.steps[float(entry.dt)]} steps"
+                        ),
                     ),
                     entry.when,
                     entry.order,
@@ -250,14 +255,18 @@ class SchedulingSummary:
         </tr>
         """.format(
                 f"<b>{entry.name}</b> (<em>{entry.type}</em>)",
-                f"{entry.owner_name} (<em>{entry.owner_type}</em>)"
-                if entry.owner_name is not None
-                else "&ndash;",
+                (
+                    f"{entry.owner_name} (<em>{entry.owner_type}</em>)"
+                    if entry.owner_name is not None
+                    else "&ndash;"
+                ),
                 "{} (every {})".format(
                     str(entry.dt),
-                    "step"
-                    if self.steps[float(entry.dt)] == 1
-                    else f"{self.steps[float(entry.dt)]} steps",
+                    (
+                        "step"
+                        if self.steps[float(entry.dt)] == 1
+                        else f"{self.steps[float(entry.dt)]} steps"
+                    ),
                 ),
                 entry.when,
                 entry.order,
@@ -453,10 +462,8 @@ class Network(Nameable):
         self._schedule = None
 
     t = property(
-        fget=lambda self: Quantity(self.t_, dim=second.dim, copy=False),
-        doc="""
-                     Current simulation time in seconds (`Quantity`)
-                     """,
+        fget=lambda self: Quantity(self.t_, dim=second.dim),
+        doc="Current simulation time in seconds (`Quantity`)",
     )
 
     @device_override("network_get_profiling_info")
@@ -1106,6 +1113,8 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         """
+        # This will trigger warnings for objects that have not been included in a network
+        gc.collect()
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
 
         if profile is None:

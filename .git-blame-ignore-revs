@@ -14,3 +14,5 @@
 28b02c51545298cb9a76d8295e64a5df391b9207
 # Fix a number of issues flagged by flake8
 0344b005e6ffd232f55e69621630ef01876bc0fb
+# Update to black 24.2.0 and isort 5.13.2
+0d015a50d641edc7709bd89e0ed389e54f1dcab0

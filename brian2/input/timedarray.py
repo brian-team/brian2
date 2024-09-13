@@ -2,7 +2,6 @@
 Implementation of `TimedArray`.
 """
 
-
 import numpy as np
 
 from brian2.codegen.generators import c_data_type

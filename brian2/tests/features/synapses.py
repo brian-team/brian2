@@ -1,6 +1,7 @@
 """
 Check that the features of `Synapses` are available and correct.
 """
+
 import numpy
 
 from brian2 import *

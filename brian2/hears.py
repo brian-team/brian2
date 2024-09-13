@@ -16,7 +16,6 @@ Not working examples:
 * time_varying_filter1 (care with units)
 """
 
-
 try:
     import brian as b1
     import brian.hears as b1h

@@ -128,10 +128,6 @@ eqs_pre_gaba = '''
 s_GABA += 1
 '''
 
-eqs_pre_ext = '''
-s_AMPA_ext += 1
-'''
-
 # E to E
 C_E_E = Synapses(P_E, P_E, model=eqs_glut, on_pre=eqs_pre_glut, method='euler')
 C_E_E.connect('i != j')

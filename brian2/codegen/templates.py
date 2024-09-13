@@ -1,6 +1,7 @@
 """
 Handles loading templates from a directory.
 """
+
 import re
 from collections.abc import Mapping
 

@@ -5,7 +5,6 @@
 {{ openmp_pragma('include') }}
 #include "run.h"
 #include "brianlib/common_math.h"
-#include "randomkit.h"
 
 {% for codeobj in code_objects | sort(attribute='name') %}
 #include "code_objects/{{codeobj.name}}.h"
@@ -36,6 +35,7 @@ void set_from_command_line(const std::vector<std::string> args)
 }
 int main(int argc, char **argv)
 {
+	std::random_device _rd;
 	std::vector<std::string> args(argv + 1, argv + argc);
 	if (args.size() >=2 && args[0] == "--results_dir")
 	{
