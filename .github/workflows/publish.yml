@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Set up Python 3.x
         uses: actions/setup-python@v5
         with:
@@ -76,6 +77,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Set up Python 3.x
         uses: actions/setup-python@v5
         with:
@@ -173,6 +175,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        persist-credentials: false
       # https://github.com/actions/checkout/
     - name: Docker meta
       id: meta
