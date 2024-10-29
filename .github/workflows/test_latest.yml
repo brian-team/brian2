@@ -66,24 +66,29 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - name: Install dependencies
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
-          ${{ steps.python.outputs.python-path }} -m pip install --upgrade pip setuptools
-          ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
-          ${{ steps.python.outputs.python-path }} -m pip install mpmath  # install stable version
-          ${{ steps.python.outputs.python-path }} -m pip install --pre pytest pytest-xdist pytest-cov pytest-timeout cython sympy pyparsing jinja2 sphinx
+          "$PYTHON_BINARY" -m pip install --upgrade pip setuptools
+          "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
+          "$PYTHON_BINARY" -m pip install mpmath  # install stable version
+          "$PYTHON_BINARY" -m pip install --pre pytest pytest-xdist pytest-cov pytest-timeout cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           cp numpy2.pyproject.toml pyproject.toml
-          ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
+          "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
         run: |
           cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import
-          ${{ steps.python.outputs.python-path }} -Wd ${{ github.workspace }}/dev/continuous-integration/run_test_suite.py
+          "$PYTHON_BINARY" -Wd ${{ github.workspace }}/dev/continuous-integration/run_test_suite.py
         env:
           AGENT_OS: ${{runner.os}}
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
           DO_NOT_RESET_PREFERENCES: true  # Make sure that GSL setting is used
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
 
   test-deprecations:
     needs: [ get_python_versions ]
@@ -118,12 +123,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - name: Install dependencies
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
-          ${{ steps.python.outputs.python-path }} -m pip install --upgrade pip setuptools
-          ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
-          ${{ steps.python.outputs.python-path }} -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
+          "$PYTHON_BINARY" -m pip install --upgrade pip setuptools
+          "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy scipy
+          "$PYTHON_BINARY" -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
-        run: ${{ steps.python.outputs.python-path }} -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}      
+        run: |
+          "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Determine Cython cache dir
         id: cython-cache
         run: |
@@ -139,8 +149,9 @@ jobs:
       - name: Run Tests
         run: |
           cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import
-          ${{ steps.python.outputs.python-path }} -Wd ${{ github.workspace }}/dev/continuous-integration/run_test_suite.py || echo "Tests failed (but not marked as failed on GA)"
+          "$PYTHON_BINARY" -Wd ${{ github.workspace }}/dev/continuous-integration/run_test_suite.py || echo "Tests failed (but not marked as failed on GA)"
         env:
           DEPRECATION_ERROR: true
           AGENT_OS: linux
           STANDALONE: ${{ matrix.standalone }}
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
