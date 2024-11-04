@@ -66,6 +66,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - name: Install dependencies
+        shell: bash
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
@@ -74,12 +75,14 @@ jobs:
           "$PYTHON_BINARY" -m pip install mpmath  # install stable version
           "$PYTHON_BINARY" -m pip install --pre pytest pytest-xdist pytest-cov pytest-timeout cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
+        shell: bash
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           cp numpy2.pyproject.toml pyproject.toml
           "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
+        shell: bash
         run: |
           cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import
           "$PYTHON_BINARY" -Wd ${{ github.workspace }}/dev/continuous-integration/run_test_suite.py
