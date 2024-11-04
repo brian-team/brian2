@@ -84,8 +84,8 @@ jobs:
       - name: Run Tests
         shell: bash
         run: |
-          cd  ${{ github.workspace }}/.. # move out of the workspace to avoid direct import
-          "$PYTHON_BINARY" -Wd ${{ github.workspace }}/dev/continuous-integration/run_test_suite.py
+          cd  "$GITHUB_WORKSPACE"/.. # move out of the workspace to avoid direct import
+          "$PYTHON_BINARY" -Wd "$GITHUB_WORKSPACE/dev/continuous-integration/run_test_suite.py"
         env:
           AGENT_OS: ${{runner.os}}
           STANDALONE: ${{ matrix.standalone }}
