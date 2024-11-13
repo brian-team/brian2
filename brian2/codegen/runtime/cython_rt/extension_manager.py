@@ -21,7 +21,13 @@ try:
     import Cython
     import Cython.Build as Cython_Build
     import Cython.Compiler as Cython_Compiler
-    from Cython.Utils import get_cython_cache_dir as base_cython_cache_dir
+
+    try:
+        from Cython.Utils import get_cython_cache_dir as base_cython_cache_dir
+    except ImportError:
+        from Cython.Build.Cache import (
+            get_cython_cache_dir as base_cython_cache_dir,  # Cython 3.1, see cython/cython#6090
+        )
 except ImportError:
     Cython = None
 
