@@ -133,18 +133,12 @@ def build_network(training):
     ng_inh.v = V_INH_REST - 40 * mV
 
     syns_exc_inh = Synapses(ng_exc, ng_inh,
-                            model = 'w : 1',
-                            on_pre = 'ge_post += w')
+                            on_pre = 'ge_post += %f' % W_EXC_INH)
     syns_exc_inh.connect(j = 'i')
-    syns_exc_inh.w = W_EXC_INH
 
     syns_inh_exc = Synapses(ng_inh, ng_exc,
-                            model = 'w : 1',
-                            on_pre = 'gi_post += w')
-    syns_inh_exc.connect(True)
-
-    weights = (-np.identity(N_NEURONS) + 1) * W_INH_EXC
-    syns_inh_exc.w = weights.reshape(-1)
+                            on_pre = 'gi_post += %f' % W_INH_EXC)
+    syns_inh_exc.connect("i != j")
 
     pg_inp = PoissonGroup(N_INP, 0 * Hz, name = 'inp')
 
