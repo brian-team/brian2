@@ -16,8 +16,8 @@ auxilliary .npy files useful for analysis. The script requires the
 progressbar2 library.
 
 MNIST_PATH should point to the directory storing the unzipped *-byte
-MNIST files. For reasonable accuracy, N_TRAIN should be 50,000+ and
-N_OBSERVE 1,000+.
+MNIST files (e.g. from https://github.com/cvdfoundation/mnist).
+For reasonable accuracy, N_TRAIN should be 50,000+ and N_OBSERVE 1,000+.
 
 Written in 2024 by Björn A. Lindqvist <bjourne@gmail.com>
 """
