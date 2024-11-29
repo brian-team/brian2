@@ -74,12 +74,9 @@ def read_mnist(training):
     images = open(MNIST_PATH / ('%s-images-idx3-ubyte' % tag), 'rb')
     images.read(4)
     n_images = unpack('>I', images.read(4))[0]
-    n_rows = unpack('>I', images.read(4))[0]
-    n_cols = unpack('>I', images.read(4))[0]
 
     labels = open(MNIST_PATH / ('%s-labels-idx1-ubyte' % tag), 'rb')
     labels.read(4)
-    n_labels = unpack('>I', labels.read(4))[0]
     x = np.frombuffer(images.read(), dtype = np.uint8)
     x = x.reshape(n_images, -1) / 8.0
     y = np.frombuffer(labels.read(), dtype = np.uint8)
@@ -223,7 +220,7 @@ def normalize_plastic_weights(syns):
     syns.w = conns.reshape(-1)
 
 def stats(net):
-    tick = int(defaultclock.t / defaultclock.dt)
+    tick = defaultclock.timestep[:]
     cnt = np.sum(net['sp_exc'].count[:])
 
     inp_exc = net['inp_exc']
@@ -283,7 +280,6 @@ def observe():
 if __name__ == '__main__':
     seed(SEED)
     rseed(SEED)
-    np.random.seed(SEED)
     DATA_PATH.mkdir(parents = True, exist_ok = True)
     cmds = dict(train = train, observe = observe, test = test)
     cmds[MODE]()
