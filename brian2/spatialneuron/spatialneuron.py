@@ -21,7 +21,11 @@ from brian2.equations.equations import (
     extract_constant_subexpressions,
 )
 from brian2.groups.group import CodeRunner, Group
-from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater, to_start_stop
+from brian2.groups.neurongroup import (
+    NeuronGroup,
+    SubexpressionUpdater,
+    to_start_stop_or_index,
+)
 from brian2.groups.subgroup import Subgroup
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.units.allunits import amp, meter, ohm, siemens, volt
@@ -527,9 +531,11 @@ class SpatialNeuron(NeuronGroup):
         if name == "main":  # Main section, without the subtrees
             indices = neuron.morphology.indices[:]
             start, stop = indices[0], indices[-1]
-            return SpatialSubgroup(
-                neuron, start, stop + 1, morphology=neuron.morphology
-            )
+            morpho = neuron.morphology
+            if isinstance(neuron, SpatialSubgroup):
+                # For subtrees, make the new Subgroup a child of the original neuron
+                neuron = neuron.source
+            return SpatialSubgroup(neuron, start, stop + 1, morphology=morpho)
         elif (name != "morphology") and (
             (name in getattr(neuron.morphology, "children", []))
             or all([c in "LR123456789" for c in name])
@@ -537,6 +543,9 @@ class SpatialNeuron(NeuronGroup):
             morpho = neuron.morphology[name]
             start = morpho.indices[0]
             stop = SpatialNeuron._find_subtree_end(morpho)
+            if isinstance(neuron, SpatialSubgroup):
+                neuron = neuron.source
+
             return SpatialSubgroup(neuron, start, stop + 1, morphology=morpho)
         else:
             return Group.__getattr__(neuron, name)
@@ -561,25 +570,19 @@ class SpatialNeuron(NeuronGroup):
                     "Start and stop should have units of meter", start, stop
                 )
             # Convert to integers (compartment numbers)
-            indices = neuron.morphology.indices[item]
-            start, stop = indices[0], indices[-1] + 1
+            compartment_indices = neuron.morphology.indices[item]
+            start, stop = compartment_indices[0], compartment_indices[-1] + 1
+            indices = None
         elif not isinstance(item, slice) and hasattr(item, "indices"):
-            start, stop = to_start_stop(item.indices[:], neuron._N)
+            start, stop, indices = to_start_stop_or_index(item.indices[:], neuron)
         else:
-            start, stop = to_start_stop(item, neuron._N)
-            if isinstance(neuron, SpatialSubgroup):
-                start += neuron.start
-                stop += neuron.start
+            start, stop, indices = to_start_stop_or_index(item, neuron)
 
-        if start >= stop:
-            raise IndexError(
-                f"Illegal start/end values for subgroup, {int(start)}>={int(stop)}"
-            )
         if isinstance(neuron, SpatialSubgroup):
-            # Note that the start/stop values calculated above are always
-            # absolute values, even for subgroups
+            # For subtrees, make the new Subgroup a child of the original neuron
             neuron = neuron.source
-        return Subgroup(neuron, start, stop)
+
+        return Subgroup(neuron, start, stop, indices)
 
 
 class SpatialSubgroup(Subgroup):
@@ -601,11 +604,7 @@ class SpatialSubgroup(Subgroup):
 
     def __init__(self, source, start, stop, morphology, name=None):
         self.morphology = morphology
-        if isinstance(source, SpatialSubgroup):
-            source = source.source
-            start += source.start
-            stop += source.start
-        Subgroup.__init__(self, source, start, stop, name)
+        Subgroup.__init__(self, source, start, stop, name=name)
 
     def __getattr__(self, name):
         return SpatialNeuron.spatialneuron_attribute(self, name)
