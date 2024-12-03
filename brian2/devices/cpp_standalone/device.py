@@ -197,6 +197,9 @@ class CPPStandaloneDevice(Device):
         #: Dict of all static saved arrays
         self.static_arrays = {}
 
+        #: Names of static arrays used for run_args given as lists of values
+        self.run_args_arrays = []
+
         #: Dict of all TimedArray objects
         self.timed_arrays = {}
 
@@ -1243,6 +1246,7 @@ class CPPStandaloneDevice(Device):
                     with FileLock(fname + ".lock"):
                         if not os.path.exists(fname):
                             value_ar.tofile(fname)
+                    self.run_args_arrays.append(value_name)
                 list_rep.append(f"{name}={string_value}")
 
             run_args = list_rep
@@ -1632,11 +1636,11 @@ class CPPStandaloneDevice(Device):
         ]
         logger.debug(f"Time measurements: {', '.join(logged_times)}")
 
-    def delete(self, code=True, data=True, directory=True, force=False):
+    def delete(self, code=True, data=True, run_args=True, directory=True, force=False):
         if self.project_dir is None:
             return  # Nothing to delete
 
-        if directory and not (code and data):
+        if directory and not all([code, data, run_args]):
             raise ValueError(
                 "When deleting the directory, code and data will"
                 "be deleted as well. Set the corresponding "
@@ -1690,6 +1694,10 @@ class CPPStandaloneDevice(Device):
 
             for static_array_name in self.static_arrays:
                 fnames.append(os.path.join("static_arrays", static_array_name))
+
+        if run_args:
+            for fname in self.run_args_arrays:
+                fnames.append(os.path.join("static_arrays", fname))
 
         for fname in fnames:
             full_fname = os.path.join(self.project_dir, fname)

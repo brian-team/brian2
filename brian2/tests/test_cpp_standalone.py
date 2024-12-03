@@ -567,23 +567,34 @@ def test_profile_via_set_device_arg():
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
 def test_delete_code_data():
-    set_device("cpp_standalone", build_on_run=True, directory=None)
+    set_device("cpp_standalone", build_on_run=False)
     group = NeuronGroup(10, "dv/dt = -v / (10*ms) : volt", method="exact")
     group.v = np.arange(10) * mV  # uses the static array mechanism
     run(defaultclock.dt)
+    # Overwrite the initial values via run_args mechanims
+    device.build(run_args={group.v: np.arange(10)[::-1] * mV}, directory=None)
     results_dir = os.path.join(device.project_dir, "results")
     assert os.path.exists(results_dir) and os.path.isdir(results_dir)
     # There should be 3 files for the clock, 2 for the neurongroup (index + v),
     # and the "last_run_info.txt" file
     assert len(os.listdir(results_dir)) == 6
-    device.delete(data=True, code=False, directory=False)
+    device.delete(data=True, run_args=False, code=False, directory=False)
     assert os.path.exists(results_dir) and os.path.isdir(results_dir)
     assert len(os.listdir(results_dir)) == 0
-    assert len(os.listdir(os.path.join(device.project_dir, "static_arrays"))) > 0
+    static_arrays_before = len(
+        os.listdir(os.path.join(device.project_dir, "static_arrays"))
+    )
+    assert static_arrays_before > 0
     assert len(os.listdir(os.path.join(device.project_dir, "code_objects"))) > 0
-    device.delete(data=False, code=True, directory=False)
-    assert len(os.listdir(os.path.join(device.project_dir, "static_arrays"))) == 0
+    device.delete(data=False, code=True, run_args=False, directory=False)
+    assert (
+        0
+        < len(os.listdir(os.path.join(device.project_dir, "static_arrays")))
+        < static_arrays_before
+    )
     assert len(os.listdir(os.path.join(device.project_dir, "code_objects"))) == 0
+    device.delete(data=False, code=False, run_args=True, directory=False)
+    len(os.listdir(os.path.join(device.project_dir, "static_arrays"))) == 0
 
 
 @pytest.mark.cpp_standalone
