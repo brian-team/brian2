@@ -9,6 +9,7 @@ jobs:
         # Give the default GITHUB_TOKEN write permission to commit and push the
         # added or changed files to the repository.
         contents: write
+        pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,11 +26,14 @@ jobs:
         run: python dev/continuous-integration/update_zenodo_swh.py
       - name: Verify CITATION.cff
         run: cffconvert --validate
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
         with:
-          file_pattern: CITATION.cff README.md
-          commit_message: |
-            Update CITATION.cff and README.md with metadata from Zenodo/SWH 
+          add-paths: CITATION.cff README.md
+          delete-branch: true
+          branch: update-metadata-post-release
+          title: Update CITATION.cff and README.md with metadata from Zenodo/SWH
+          commit-message: |
+            Update CITATION.cff and README.md with metadata from Zenodo/SWH
 
             [ci skip]
