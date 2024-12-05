@@ -29,7 +29,6 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          add-paths: CITATION.cff README.md
           delete-branch: true
           branch: update-metadata-post-release
           title: Update CITATION.cff and README.md with metadata from Zenodo/SWH
