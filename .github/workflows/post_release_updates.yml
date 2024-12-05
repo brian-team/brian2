@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          persist-credentials: true  # Needed to push changes back to the repository
           fetch-depth: 0
           fetch-tags: true
       - name: Install Python
