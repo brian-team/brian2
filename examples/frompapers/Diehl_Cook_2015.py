@@ -89,7 +89,7 @@ def build_network(training):
     i_inh = gi * (v_inh_base - v)           : volt
     dge/dt = -ge/(1 * ms)                   : 1
     dgi/dt = -gi/(2 * ms)                   : 1
-    dtimer/dt = 0.1                         : second
+    dtimer/dt = 1                           : second
     '''
     reset = 'v = %r; timer = 0 * ms' % V_EXC_REST
     if training:
@@ -107,9 +107,12 @@ def build_network(training):
                         tau_mem = 100 * ms,
                         v_rest = V_EXC_REST,
                         v_inh_base = -100 * mV)
+    # Note that this neuron has a bit of un unusual refractoriness mechanism:
+    # The membrane potential is clamped for 5ms, but spikes are prevented for 50ms
+    # This has been taken from the original code.
     ng_exc = NeuronGroup(
         N_NEURONS, exc_eqs,
-        threshold = 'v > (theta - 72 * mV) and (timer > 5 * ms)',
+        threshold = 'v > (theta - 72 * mV) and (timer > 50 * ms)',
         refractory = 5 * ms,
         reset = reset,
         method = 'euler',
