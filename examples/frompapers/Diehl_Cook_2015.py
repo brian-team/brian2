@@ -114,7 +114,7 @@ def build_network(training):
         reset = reset,
         method = 'euler',
         name = 'exc')
-    ng_exc.v = V_EXC_REST - 40 * mV
+    ng_exc.v = V_EXC_REST
     ng_exc.theta = arr_theta
 
     inh_eqs = Equations(eqs,
@@ -127,7 +127,7 @@ def build_network(training):
                          reset = 'v = -45 * mV',
                          method = 'euler',
                          name = 'inh')
-    ng_inh.v = V_INH_REST - 40 * mV
+    ng_inh.v = V_INH_REST
 
     syns_exc_inh = Synapses(ng_exc, ng_inh,
                             on_pre = 'ge_post += %f' % W_EXC_INH)
