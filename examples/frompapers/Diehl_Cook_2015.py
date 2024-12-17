@@ -10,10 +10,11 @@ parameters. Instead, you control it by changing the constants below
 the imports. Run the script with MODE set to "train" which
 (eventually) creates the files theta.npy and weights.npy in the
 DATA_PATH directory. Rerun it with MODE set to "observe" to create the
-assign.npy file in the same directory. Finally, run "test" to create a
-confusion matrix in confusion.npy. The script also creates a few
-auxilliary .npy files useful for analysis. The script requires the
-progressbar2 library.
+assign.npy file in the same directory. Then, run "test" to create a
+confusion matrix in confusion.npy. Finally, you can use "plot" to
+plot the confusion matrix. The script also creates a few auxilliary
+.npy files useful for analysis. The script requires the progressbar2
+library.
 
 MNIST_PATH should point to the directory storing the unzipped *-byte
 MNIST files (e.g. from https://github.com/cvdfoundation/mnist).
@@ -31,10 +32,11 @@ import numpy as np
 
 # Switch between "train", "observe", and "test" to tune parameters,
 # observe excitatory spiking, and test accuracy, respectively.
+# Use "plot" to plot the confusion matrix.
 MODE = 'test'
 
 # Number of training, observation, and testing samples
-N_TRAIN = 200_000
+N_TRAIN = 25_000
 N_OBSERVE = 2_000
 N_TEST = 1_000
 
@@ -280,9 +282,34 @@ def observe():
     save_npy(assign, DATA_PATH / 'assign.npy')
     save_npy(rows, DATA_PATH / 'observe_stats.npy')
 
+def plot():
+    conf = np.load(DATA_PATH / "confusion.npy")
+
+    import matplotlib.pyplot as plt
+
+    plt.imshow(100*conf, interpolation="nearest", cmap=plt.cm.Blues)
+    for i, j in itertools.product(range(conf.shape[0]), range(conf.shape[1])):
+        if conf[i, j] == 0:
+            continue
+        plt.text(
+            j,
+            i,
+            f"{round(100*conf[i, j])}%",
+            horizontalalignment="center",
+            verticalalignment="center",
+            color="white" if conf[i, j] > 0.5 else "black",
+        )
+    plt.colorbar()
+    plt.xticks(range(10))
+    plt.yticks(range(10))
+    plt.xlabel("Predicted label")
+    plt.ylabel("True label")
+    plt.show()
+
+
 if __name__ == '__main__':
     seed(SEED)
     rseed(SEED)
     DATA_PATH.mkdir(parents = True, exist_ok = True)
-    cmds = dict(train = train, observe = observe, test = test)
+    cmds = dict(train=train, observe=observe, test=test, plot=plot)
     cmds[MODE]()
