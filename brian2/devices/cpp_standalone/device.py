@@ -1215,6 +1215,7 @@ class CPPStandaloneDevice(Device):
             )
         ensure_directory(self.results_dir)
 
+        self.run_args_arrays.clear()  # forget about arrays from previous runs
         if run_args is None:
             run_args = []
         elif isinstance(run_args, Mapping):
@@ -1704,7 +1705,7 @@ class CPPStandaloneDevice(Device):
             try:
                 os.remove(full_fname)
             except OSError as ex:
-                logger.debug(f'File "{full_fname}" could not be deleted: {str(ex)}')
+                logger.warn(f'File "{full_fname}" could not be deleted: {str(ex)}')
 
         # Delete directories
 
