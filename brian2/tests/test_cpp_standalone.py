@@ -610,7 +610,16 @@ def test_delete_directory():
     assert os.path.isfile(dummy_file)
     with catch_logs() as logs:
         device.delete(directory=True)
-    assert len(logs) == 1
+    assert (
+        len(
+            [
+                l
+                for l in logs
+                if l[1] == "brian2.devices.cpp_standalone.device.delete_skips_directory"
+            ]
+        )
+        == 1
+    )
     assert os.path.isfile(dummy_file)
     with catch_logs() as logs:
         device.delete(directory=True, force=True)
