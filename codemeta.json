@@ -1,0 +1,405 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "targetProduct": {
+    "@type": "SoftwareLibrary",
+    "name": "brian2",
+    "runtimePlatform": [
+      "Python",
+      "Python 3"
+    ]
+  },
+  "maintainer": [
+    {
+      "@id": "https://orcid.org/0000-0002-2648-4790"
+    }
+  ],
+  "author": [
+    {
+      "@id": "https://orcid.org/0000-0002-2648-4790",
+      "@type": "Person",
+      "familyName": "Stimberg",
+      "givenName": "Marcel",
+      "identifier": "https://github.com/mstimberg"
+    },
+    {
+      "@id": "https://orcid.org/0000-0003-1007-6474",
+      "@type": "Person",
+      "familyName": "Goodman",
+      "givenName": "Dan F. M.",
+      "identifier": "https://github.com/thesamovar"
+    },
+    {
+      "@id": "https://orcid.org/0000-0002-1734-6070",
+      "@type": "Person",
+      "familyName": "Evans",
+      "givenName": "Benjamin D.",
+      "identifier": "https://github.com/bdevans"
+    },
+    {
+      "@id": "https://orcid.org/0000-0003-0110-1623",
+      "@type": "Person",
+      "familyName": "Brette",
+      "givenName": "Romain",
+      "identifier": "https://github.com/romainbrette"
+    }
+  ],
+  "codeRepository": "https://github.com/brian-team/brian2",
+  "continuousIntegration": "https://github.com/brian-team/brian2/actions",
+  "issueTracker": "https://github.com/brian-team/brian2/issues",
+  "keywords": [
+    "biological neural networks",
+    "computational neuroscience",
+    "neural networks",
+    "research",
+    "simulation",
+    "spiking neurons"
+  ],
+  "operatingSystem": "OS Independent",
+  "softwareHelp": "https://brian2.readthedocs.io/",
+  "developmentStatus": "active",
+  "description": "A clock-driven simulator for spiking neural networks",
+  "license": "https://spdx.org/licenses/CECILL-2.1",
+  "name": "Brian simulator",
+  "url": "https://briansimulator.org",
+  "programmingLanguage": [
+    "Python"
+  ],
+  "runtimePlatform": [
+    "Python",
+    "Python 3"
+  ],
+  "softwareRequirements": [
+    {
+      "name": "numpy",
+      "@type": "SoftwareApplication",
+      "runtimePlatform": "Python 3",
+      "version": ">=1.23.5"
+    },
+    {
+      "name": "cython",
+      "@type": "SoftwareApplication",
+      "runtimePlatform": "Python 3",
+      "version": ">=0.29.21"
+    },
+    {
+      "name": "sympy",
+      "@type": "SoftwareApplication",
+      "runtimePlatform": "Python 3",
+      "version": ">=1.2"
+    },
+    {
+      "name": "pyparsing",
+      "@type": "SoftwareApplication",
+      "runtimePlatform": "Python 3"
+    },
+    {
+      "name": "jinja2",
+      "@type": "SoftwareApplication",
+      "runtimePlatform": "Python 3",
+      "version": ">=2.7"
+    },
+    {
+      "name": "py-cpuinfo",
+      "@type": "SoftwareApplication",
+      "runtimePlatform": "Python 3"
+    },
+    {
+      "name": "setuptools",
+      "@type": "SoftwareApplication",
+      "runtimePlatform": "Python 3",
+      "version": ">=61"
+    },
+    {
+      "name": "packaging",
+      "@type": "SoftwareApplication",
+      "runtimePlatform": "Python 3"
+    }
+  ],
+  "contributor": [
+    {
+      "@type": "Person",
+      "givenName": "Dan",
+      "familyName": "Goodman",
+      "identifier": "https://github.com/thesamovar"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Marcel",
+      "familyName": "Stimberg",
+      "identifier": "https://github.com/mstimberg"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Romain",
+      "familyName": "Brette",
+      "identifier": "https://github.com/romainbrette"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Cyrille",
+      "familyName": "Rossant",
+      "identifier": "https://github.com/rossant"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Victor",
+      "familyName": "Benichoux",
+      "identifier": "https://github.com/victorbenichoux"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Pierre",
+      "familyName": "Yger",
+      "identifier": "https://github.com/yger"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Werner",
+      "familyName": "Beroux",
+      "identifier": "https://github.com/wernight"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Konrad",
+      "familyName": "Wartke",
+      "identifier": "https://github.com/Kwartke"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Daniel",
+      "familyName": "Bliss",
+      "identifier": "https://github.com/dabliss"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Jan-Hendrik",
+      "familyName": "Schleimer",
+      "identifier": "https://github.com/ttxtea"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Moritz",
+      "familyName": "Augustin",
+      "identifier": "https://github.com/moritzaugustin"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Romain",
+      "familyName": "Cazé",
+      "identifier": "https://github.com/rcaze"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Dominik",
+      "familyName": "Krzemiński",
+      "identifier": "https://github.com/dokato"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Martino",
+      "familyName": "Sorbaro",
+      "identifier": "https://github.com/martinosorb"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Benjamin",
+      "familyName": "Evans",
+      "identifier": "https://github.com/bdevans"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Meng",
+      "familyName": "Dong",
+      "identifier": "https://github.com/whenov"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Alex",
+      "familyName": "Seeholzer",
+      "identifier": "https://github.com/flinz"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Daan",
+      "familyName": "Sprenkels",
+      "identifier": "https://github.com/dsprenkels"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Edward",
+      "familyName": "Betts",
+      "identifier": "https://github.com/EdwardBetts"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Thomas",
+      "familyName": "McColgan",
+      "identifier": "https://github.com/phreeza"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Charlee",
+      "familyName": "Fletterman",
+      "identifier": "https://github.com/CharleeSF"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Mihir",
+      "familyName": "Vaidya",
+      "identifier": "https://github.com/MihirVaidya94"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Teo",
+      "familyName": "Stocco",
+      "identifier": "https://github.com/zifeo"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Dylan Richard",
+      "familyName": "Muir",
+      "identifier": "https://github.com/DylanMuir"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Adrien F.",
+      "familyName": "Vincent",
+      "identifier": "https://github.com/afvincent"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Kapil",
+      "familyName": "Kumar",
+      "identifier": "https://github.com/kapilkd13"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Matthieu",
+      "familyName": "Recugnat",
+      "identifier": "https://github.com/matrec4"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Paul",
+      "familyName": "Brodersen",
+      "identifier": "https://github.com/paulbrodersen"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Guillaume",
+      "familyName": "Dumas",
+      "identifier": "https://github.com/deep-introspection"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Aleksandra",
+      "familyName": "Teska",
+      "identifier": "https://github.com/alTeska"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Vigneswaran",
+      "familyName": "Chandrasekaran",
+      "identifier": "https://github.com/Vigneswaran-Chandrasekaran"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Rahul Kumar",
+      "familyName": "Gupta",
+      "identifier": "https://github.com/rahuliitg"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Rike-Benjamin",
+      "familyName": "Schuppner",
+      "identifier": "https://github.com/Debilski"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Denis",
+      "familyName": "Alevi",
+      "identifier": "https://github.com/denisalevi"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Dominik",
+      "familyName": "Spicher",
+      "identifier": "https://github.com/dspicher"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Felix B.",
+      "familyName": "Kern",
+      "identifier": "https://github.com/kernfel"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Jan",
+      "familyName": "Marker",
+      "identifier": "https://github.com/jangmarker"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Rohith Varma",
+      "familyName": "Buddaraju",
+      "identifier": "https://github.com/rohithvarma3000"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Kyle",
+      "familyName": "Johnsen",
+      "identifier": "https://github.com/kjohnsen"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Leonardo",
+      "familyName": "Schwarz",
+      "identifier": "https://github.com/leoschwarz"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Abolfazl",
+      "familyName": "Ziaeemehr",
+      "identifier": "https://github.com/Ziaeemehr"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Étienne",
+      "familyName": "Mollier",
+      "identifier": "https://github.com/emollier"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Sebastian",
+      "familyName": "Schmitt",
+      "identifier": "https://github.com/schmitts"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Felix C.",
+      "familyName": "Stegerman",
+      "identifier": "https://github.com/obfusk"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Oleksii",
+      "familyName": "Leonov",
+      "identifier": "https://github.com/aleksejleonov"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Ankur",
+      "familyName": "Sinha",
+      "identifier": "https://github.com/sanjayankur31"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Guy",
+      "familyName": "Singer",
+      "identifier": "https://github.com/guy-singer"
+    }
+  ],
+  "version": "2.8.0",
+  "softwareVersion": "2.8.0"
+}
