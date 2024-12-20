@@ -19,7 +19,6 @@ from hashlib import md5
 
 import numpy as np
 
-import brian2
 from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
 from brian2.codegen.generators.cpp_generator import c_data_type
@@ -198,6 +197,9 @@ class CPPStandaloneDevice(Device):
         #: Dict of all static saved arrays
         self.static_arrays = {}
 
+        #: Names of static arrays used for run_args given as lists of values
+        self.run_args_arrays = []
+
         #: Dict of all TimedArray objects
         self.timed_arrays = {}
 
@@ -228,8 +230,8 @@ class CPPStandaloneDevice(Device):
         self.extra_compile_args = []
         self.define_macros = []
         self.headers = []
-        self.include_dirs = ["brianlib/randomkit"]
-        self.library_dirs = ["brianlib/randomkit"]
+        self.include_dirs = []
+        self.library_dirs = []
         self.runtime_library_dirs = []
         self.run_environment_variables = {}
         if sys.platform.startswith("darwin"):
@@ -873,13 +875,10 @@ class CPPStandaloneDevice(Device):
                     nb_threads = 1
                 main_lines.append(f"for (int _i=0; _i<{nb_threads}; _i++)")
                 if seed is None:  # random
-                    main_lines.append(
-                        "    rk_randomseed(brian::_mersenne_twister_states[_i]);"
-                    )
+                    main_lines.append("    brian::_random_generators[_i].seed();")
                 else:
                     main_lines.append(
-                        f"    rk_seed({seed!r}L + _i,"
-                        " brian::_mersenne_twister_states[_i]);"
+                        f"    brian::_random_generators[_i].seed({seed!r}L + _i);"
                     )
             else:
                 raise NotImplementedError(f"Unknown main queue function type {func}")
@@ -1084,28 +1083,6 @@ class CPPStandaloneDevice(Device):
             os.path.join(directory, "brianlib", "stdint_compat.h"),
         )
 
-        # Copy the RandomKit implementation
-        if not os.path.exists(os.path.join(directory, "brianlib", "randomkit")):
-            os.mkdir(os.path.join(directory, "brianlib", "randomkit"))
-        shutil.copy2(
-            os.path.join(
-                os.path.split(inspect.getsourcefile(brian2))[0],
-                "random",
-                "randomkit",
-                "randomkit.c",
-            ),
-            os.path.join(directory, "brianlib", "randomkit", "randomkit.c"),
-        )
-        shutil.copy2(
-            os.path.join(
-                os.path.split(inspect.getsourcefile(brian2))[0],
-                "random",
-                "randomkit",
-                "randomkit.h",
-            ),
-            os.path.join(directory, "brianlib", "randomkit", "randomkit.h"),
-        )
-
     def _insert_func_namespace(self, func, code_object, namespace):
         impl = func.implementations[self.code_object_class()]
         func_namespace = impl.get_namespace(code_object.owner)
@@ -1174,12 +1151,7 @@ class CPPStandaloneDevice(Device):
                         self.timers["compile"]["make"] = time.time() - start_time
 
                     if x != 0:
-                        if os.path.exists("winmake.log"):
-                            with open("winmake.log") as f:
-                                print(f.read())
-                        error_message = (
-                            "Project compilation failed (error code: %u)." % x
-                        )
+                        error_message = f"Project compilation failed (error code: {x}), consider having a look at 'winmake.log'."
                         if not clean:
                             error_message += (
                                 " Consider running with "
@@ -1243,6 +1215,7 @@ class CPPStandaloneDevice(Device):
             )
         ensure_directory(self.results_dir)
 
+        self.run_args_arrays.clear()  # forget about arrays from previous runs
         if run_args is None:
             run_args = []
         elif isinstance(run_args, Mapping):
@@ -1274,6 +1247,7 @@ class CPPStandaloneDevice(Device):
                     with FileLock(fname + ".lock"):
                         if not os.path.exists(fname):
                             value_ar.tofile(fname)
+                    self.run_args_arrays.append(value_name)
                 list_rep.append(f"{name}={string_value}")
 
             run_args = list_rep
@@ -1559,10 +1533,20 @@ class CPPStandaloneDevice(Device):
         libraries = self.libraries + prefs["codegen.cpp.libraries"] + codeobj_libraries
 
         compiler_obj = ccompiler.new_compiler(compiler=compiler)
+
+        # Distutils does not use the shell, so it does not need to quote filenames/paths
+        # Since we include the compiler flags in the makefile, we need to quote them
+        include_dirs = [f'"{include_dir}"' for include_dir in include_dirs]
+        library_dirs = [f'"{library_dir}"' for library_dir in library_dirs]
+        runtime_library_dirs = [
+            f'"{runtime_dir}"' for runtime_dir in runtime_library_dirs
+        ]
+
         compiler_flags = (
             ccompiler.gen_preprocess_options(define_macros, include_dirs)
             + extra_compile_args
         )
+
         linker_flags = (
             ccompiler.gen_lib_options(
                 compiler_obj,
@@ -1578,9 +1562,7 @@ class CPPStandaloneDevice(Device):
             for codeobj in self.code_objects.values()
             for source_file in codeobj.compiler_kwds.get("sources", [])
         ]
-        additional_source_files += codeobj_source_files + [
-            "brianlib/randomkit/randomkit.c"
-        ]
+        additional_source_files += codeobj_source_files
 
         for d in ["code_objects", "results", "static_arrays"]:
             ensure_directory(os.path.join(directory, d))
@@ -1655,11 +1637,11 @@ class CPPStandaloneDevice(Device):
         ]
         logger.debug(f"Time measurements: {', '.join(logged_times)}")
 
-    def delete(self, code=True, data=True, directory=True, force=False):
+    def delete(self, code=True, data=True, run_args=True, directory=True, force=False):
         if self.project_dir is None:
             return  # Nothing to delete
 
-        if directory and not (code and data):
+        if directory and not all([code, data, run_args]):
             raise ValueError(
                 "When deleting the directory, code and data will"
                 "be deleted as well. Set the corresponding "
@@ -1698,7 +1680,6 @@ class CPPStandaloneDevice(Device):
             fnames.extend(
                 [
                     os.path.join("brianlib", "spikequeue.h"),
-                    os.path.join("brianlib", "randomkit", "randomkit.h"),
                     os.path.join("brianlib", "stdint_compat.h"),
                 ]
             )
@@ -1715,18 +1696,21 @@ class CPPStandaloneDevice(Device):
             for static_array_name in self.static_arrays:
                 fnames.append(os.path.join("static_arrays", static_array_name))
 
+        if run_args:
+            for fname in self.run_args_arrays:
+                fnames.append(os.path.join("static_arrays", fname))
+
         for fname in fnames:
             full_fname = os.path.join(self.project_dir, fname)
             try:
                 os.remove(full_fname)
             except OSError as ex:
-                logger.debug(f'File "{full_fname}" could not be deleted: {str(ex)}')
+                logger.warn(f'File "{full_fname}" could not be deleted: {str(ex)}')
 
         # Delete directories
 
         if directory:
             directories = [
-                os.path.join("brianlib", "randomkit"),
                 "brianlib",
                 "code_objects",
                 "results",

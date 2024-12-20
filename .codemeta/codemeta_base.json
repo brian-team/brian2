@@ -1,0 +1,72 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "targetProduct": {
+    "@type": "SoftwareLibrary",
+    "name": "brian2",
+    "runtimePlatform": [
+      "Python",
+      "Python 3"
+    ]
+  },
+  "maintainer": [
+    {
+      "@id": "https://orcid.org/0000-0002-2648-4790"
+    }
+  ],
+  "author": [
+    {
+      "@id": "https://orcid.org/0000-0002-2648-4790",
+      "@type": "Person",
+      "familyName": "Stimberg",
+      "givenName": "Marcel",
+      "identifier": "https://github.com/mstimberg"
+    },
+    {
+      "@id": "https://orcid.org/0000-0003-1007-6474",
+      "@type": "Person",
+      "familyName": "Goodman",
+      "givenName": "Dan F. M.",
+      "identifier": "https://github.com/thesamovar"
+    },
+    {
+      "@id": "https://orcid.org/0000-0002-1734-6070",
+      "@type": "Person",
+      "familyName": "Evans",
+      "givenName": "Benjamin D.",
+      "identifier": "https://github.com/bdevans"
+    },
+    {
+      "@id": "https://orcid.org/0000-0003-0110-1623",
+      "@type": "Person",
+      "familyName": "Brette",
+      "givenName": "Romain",
+      "identifier": "https://github.com/romainbrette"
+    }
+  ],
+  "codeRepository": "https://github.com/brian-team/brian2",
+  "continuousIntegration": "https://github.com/brian-team/brian2/actions",
+  "issueTracker": "https://github.com/brian-team/brian2/issues",
+  "keywords": [
+    "biological neural networks",
+    "computational neuroscience",
+    "neural networks",
+    "research",
+    "simulation",
+    "spiking neurons"
+  ],
+  "operatingSystem": "OS Independent",
+  "softwareHelp": "https://brian2.readthedocs.io/",
+  "developmentStatus": "active",
+  "description": "A clock-driven simulator for spiking neural networks",
+  "license": "https://spdx.org/licenses/CECILL-2.1",
+  "name": "Brian simulator",
+  "url": "https://briansimulator.org",
+  "programmingLanguage": [
+    "Python"
+  ],
+  "runtimePlatform": [
+    "Python",
+    "Python 3"
+  ]
+}

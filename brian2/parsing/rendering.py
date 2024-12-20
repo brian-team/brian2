@@ -102,8 +102,7 @@ class NodeRenderer:
             raise ValueError("Keyword arguments not supported")
         else:
             if node.func.id in self.auto_vectorise:
-                vectorisation_idx = ast.Name()
-                vectorisation_idx.id = "_vectorisation_idx"
+                vectorisation_idx = ast.Name("_vectorisation_idx")
                 args = node.args + [vectorisation_idx]
             else:
                 args = node.args
