@@ -29,12 +29,12 @@ identifiers:
   - description: This is the collection of archived snapshots of all versions of Brian 2
     type: doi
     value: 10.5281/zenodo.654861
-  - description: This is the archived snapshot of version 2.7.1 of Brian 2
+  - description: This is the archived snapshot of version 2.8.0 of Brian 2
     type: doi
-    value: 10.5281/zenodo.14283067
-  - description: Software Heritage identifier for version 2.7.1 of Brian 2
+    value: 10.5281/zenodo.14535600
+  - description: Software Heritage identifier for version 2.8.0 of Brian 2
     type: swh
-    value: swh:1:rel:7c128994b35bd756b4d248240513e4d1a934a0c0
+    value: swh:1:rel:1c76535f4678d76cd036e094d59f2c4592181f87
 
 license: CECILL-2.1
 
