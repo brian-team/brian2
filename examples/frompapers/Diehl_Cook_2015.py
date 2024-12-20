@@ -76,7 +76,9 @@ def read_mnist(training):
     images = open(MNIST_PATH / ('%s-images-idx3-ubyte' % tag), 'rb')
     images.read(4)
     n_images = unpack('>I', images.read(4))[0]
-
+    n_rows = unpack(">I", images.read(4))[0]
+    n_cols = unpack(">I", images.read(4))[0]
+    
     labels = open(MNIST_PATH / ('%s-labels-idx1-ubyte' % tag), 'rb')
     labels.read(4)
     x = np.frombuffer(images.read(), dtype = np.uint8)
