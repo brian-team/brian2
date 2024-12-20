@@ -11,7 +11,7 @@ if API_TOKEN is None:
     raise ValueError('Need to specify an API token')
 
 p = Github(API_TOKEN)
-last_release = datetime.datetime(year=2023, month=7, day=7)
+last_release = datetime.datetime(year=2024, month=7, day=1)
 authors = []
 comments = p.get_repo('brian-team/brian2').get_issues_comments(since=last_release)
 comment_counter = 0

@@ -17,6 +17,8 @@ each random number. For :ref:`cpp_standalone`, the random number generation is b
 Mersenne-Twister implementation that is used by numpy. The source code of this implementation will be included in every
 generated standalone project.
 
+.. _seeding_and_reproducibility:
+
 Seeding and reproducibility
 ---------------------------
 Runtime mode

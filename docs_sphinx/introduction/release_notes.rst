@@ -1,5 +1,47 @@
 Release notes
 =============
+Brian 2.8.0
+-----------
+This release comes with an important performance improvement for random number generation in C++ standalone mode, various minor improvements and bugfixes, as well as a
+number of behind-the-scenes improvements for our release process and compatibility with Python 3.13.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Faster simulation of random numbers (by replacing our outdated random number generator), now up to 5 times faster, speeding up all uses of random numbers
+  including noise and Poisson groups/inputs. Note that the random number algorithm behind the scenes is still the same, so simulations will still use the
+  same sequence of random numbers with a given seed, with the limitations given in :ref:`seeding_and_reproducibility` (:issue:`1559`). 
+- `~CPPStandaloneDevice.delete` has a new option to delete arrays stored on disk for the ``run_args`` feature – this can be useful for training paradigms,
+  where the ``run_args`` are used to provide a large array of weights from a previous run.
+- Fixes for compatiblity with recent versions of ``setuptools`` and ``sympy``. Thanks to Étienne Mollier for noticing and fixing a related test failure (:issue:`1553`).
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Full compatibility with Python 3.13, and corresponding binary wheels.
+- A new mechanism to automatically update our ``CITATION.cff`` and README files with the latest links to the Zenodo and Software Heritage archives, so that they are
+  always up-to-date with the latest release (:issue:`1575`).
+- We now provide a ``codemeta.json`` file for Brian (see https://codemeta.github.io; :issue:`1574`).
+- We know push docker images for the latest release to the GitHub Container Registry (see https://github.com/brian-team/brian2/pkgs/container/brian and https://github.com/brian-team/brian2/pkgs/container/brian-dev) in addition to Docker Hub (:issue:`1551`).
+- New example: :doc:`../examples/frompapers.Diehl_Cook_2015` – note that this example needs a long time to run, a faster version using C++ standalone mode is in preparation.
+  Thanks to Björn A. Lindqvist for contributing this example (:issue:`1548`).
+
+Contributions
+~~~~~~~~~~~~~
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* `@neworderofjamie <https://github.com/neworderofjamie>`_
+* `@NickChernov <https://github.com/NickChernov>`_
+* Kyle Johnsen (`@kjohnsen <https://github.com/kjohnsen>`_)
+* Liam Keegan (`@lkeegan <https://github.com/lkeegan>`_)
+* Étienne Mollier (`@emollier <https://github.com/emollier>`_)
+* Bernhard Vogginger (`@bvogginger <https://github.com/bvogginger>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* `@Treetalker <https://github.com/Treetalker>`_
+* Björn Lindqvist (`@bjourne <https://github.com/bjourne>`_)
+* `@wcx12306 <https://github.com/wcx12306>`_
+
+
 Brian 2.7.1
 -----------
 This minor bug-fix release contains a fix for a regression in the handling of the ``on_event`` argument of `Synapses` for custom events and non-default pathways,
