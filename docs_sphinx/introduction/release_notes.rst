@@ -1,5 +1,18 @@
 Release notes
 =============
+Brian 2.8.0.1
+-------------
+This patch-level release corrects some metadata files about authors and contributors, and updates the release script to correctly note version and release date
+in ``CITATION.cff``. No other user-facing changes are included in this release.
+
+Contributions
+~~~~~~~~~~~~~
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+
+
 Brian 2.8.0
 -----------
 This release comes with an important performance improvement for random number generation in C++ standalone mode, various minor improvements and bugfixes, as well as a
