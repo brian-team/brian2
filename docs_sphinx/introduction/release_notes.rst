@@ -1,5 +1,17 @@
 Release notes
 =============
+Brian 2.8.0.2
+-------------
+Yet another patch-level release, fixing a bug in a test that chokes on a version number with a patch level. No user-facing changes are included in this release.
+
+Contributions
+~~~~~~~~~~~~~
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+
+
 Brian 2.8.0.1
 -------------
 This patch-level release corrects some metadata files about authors and contributors, and updates the release script to correctly note version and release date

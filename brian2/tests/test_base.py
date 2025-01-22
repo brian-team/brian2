@@ -95,7 +95,7 @@ def test_version():
 
     # Check that the version tuple is correct
     version_tuple = brian2.__version_tuple__
-    assert version_tuple == tuple(int(i) for i in version.split(".")[:3])
+    assert version_tuple == tuple(int(i) for i in version.split(".")[:4])
 
 
 if __name__ == "__main__":
