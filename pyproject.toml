@@ -3,7 +3,8 @@ name = "Brian2"
 authors = [
     {name = 'Marcel Stimberg'},
     {name = 'Dan Goodman'},
-    {name ='Romain Brette'}
+    {name = 'Benjamin Evans'},
+    {name = 'Romain Brette'}
 ]
 requires-python = '>=3.10'
 dependencies = [

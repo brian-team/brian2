@@ -1,53 +1,6 @@
-Brian 2 is primarily developed by Marcel Stimberg, Dan Goodman, and Romain Brette.
+# These are the primary developers of Brian 2, for a full list of contributors, see the CONTRIBUTORS file.
 
-Full list of code and documentation contributors, ordered by the time of their
-first commit. See the release notes for acknowledgements of further
-contributions in the form of bug reports, testing, suggestions, etc.
-
-Dan Goodman (@thesamovar)
-Marcel Stimberg (@mstimberg)
-Romain Brette (@romainbrette)
-Cyrille Rossant (@rossant)
-Victor Benichoux (@victorbenichoux)
-Pierre Yger (@yger)
-Werner Beroux (@wernight)
-Konrad Wartke (@Kwartke)
-Daniel Bliss (@dabliss)
-Jan-Hendrik Schleimer (@ttxtea)
-Moritz Augustin (@moritzaugustin)
-Romain Cazé (@rcaze)
-Dominik Krzemiński (@dokato)
-Martino Sorbaro (@martinosorb)
-Benjamin Evans (@bdevans)
-Meng Dong (@whenov)
-Alex Seeholzer (@flinz)
-Daan Sprenkels (@dsprenkels)
-Edward Betts (@EdwardBetts)
-Thomas McColgan (@phreeza)
-Charlee Fletterman (@CharleeSF)
-Mihir Vaidya (@MihirVaidya94)
-Teo Stocco (@zifeo)
-Dylan Richard Muir (@DylanMuir)
-Adrien F. Vincent (@afvincent)
-Kapil Kumar (@kapilkd13)
-Matthieu Recugnat (@matrec4)
-Paul Brodersen (@paulbrodersen)
-Guillaume Dumas (@deep-introspection)
-Aleksandra Teska (@alTeska)
-Vigneswaran Chandrasekaran (@Vigneswaran-Chandrasekaran)
-Rahul Kumar Gupta (@rahuliitg)
-Rike-Benjamin Schuppner (@Debilski)
-Denis Alevi (@denisalevi)
-Dominik Spicher (@dspicher)
-Felix B. Kern (@kernfel)
-Jan Marker (@jangmarker)
-Rohith Varma Buddaraju (@rohithvarma3000)
-Kyle Johnsen (@kjohnsen)
-Leonardo Schwarz (@leoschwarz)
-Abolfazl Ziaeemehr (@Ziaeemehr)
-Étienne Mollier (@emollier)
-Sebastian Schmitt (@schmitts)
-Felix C. Stegerman (@obfusk)
-Oleksii Leonov (@aleksejleonov)
-Ankur Sinha (@sanjayankur31)
-Guy Singer (@guy-singer)
+Marcel Stimberg
+Dan Goodman
+Benjamin Evans
+Romain Brette
