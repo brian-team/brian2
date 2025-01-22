@@ -15,8 +15,8 @@ if __name__ == "__main__":
         pyproject = tomllib.load(f)
     with open(os.path.join(basedir, ".codemeta", "codemeta_base.json"), "r", encoding="utf-8") as f:
         codemeta = json.load(f)
-    with open(os.path.join(basedir, "AUTHORS"), "r", encoding="utf-8") as f:
-        authors = f.read().splitlines()[6:]
+    with open(os.path.join(basedir, "CONTRIBUTORS"), "r", encoding="utf-8") as f:
+        contributors = f.read().splitlines()[4:]  # Skip comments at the beginning
 
     # Add software requirements from pyproject.toml
     parsed_deps = pkg_resources.parse_requirements(pyproject['project']['dependencies'])
@@ -30,10 +30,10 @@ if __name__ == "__main__":
 
     # Add contributors from AUTHORS
     codemeta["contributor"] = []
-    for author in authors:
-        matches = re.match(r"^(\w[\w-]*?) ([\w]+[.]? )??(\w+) \(@(.*)\)$", author)
+    for contributor in contributors:
+        matches = re.match(r"^(\w[\w-]*?) ([\w]+[.]? )??(\w+) \(@(.*)\)$", contributor)
         if not matches:
-            raise ValueError("author not matched:", author)
+            raise ValueError("author not matched:", contributor)
         given_name, middle_name, family_name, github = matches.groups()
 
         contributor = {"@type": "Person", "givenName": given_name, "familyName": family_name, "identifier": f"https://github.com/{github}"}
