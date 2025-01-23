@@ -77,7 +77,7 @@ jobs:
 
       - name: Install Brian2 and dependencies
         run: |
-          conda install --quiet --yes pip gsl
+          conda install --quiet --yes pip gsl cxx-compiler
           python -m pip install .[test]
       
       - name: Determine Cython cache dir
