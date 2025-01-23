@@ -35,21 +35,24 @@ jobs:
 
   testing:
     needs: [get_python_versions, pre-commit]
-    name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
-    runs-on: ${{ matrix.os }}
+    name: "Python ${{ matrix.python-version }} on ${{ matrix.os.image }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
+    runs-on: ${{ matrix.os.image }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2022, macOS-13, macOS-14]
+        os: [{image: ubuntu-24.04, triplet: x64-linux},
+             {image: windows-2022, triplet: x64-windows},
+             {image: macOS-13, triplet: x64-osx},
+             {image: macOS-14, triplet: arm64-osx}]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
         include:
-          - os: ubuntu-24.04
+          - os: {image: ubuntu-24.04, triplet: x64-linux}
             standalone: false
             python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
-          - os: ubuntu-24.04
+          - os: {image: ubuntu-24.04, triplet: x64-linux}
             standalone: true
             python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
@@ -63,22 +66,33 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-
-      - name: Setup Conda and Python
-        uses: conda-incubator/setup-miniconda@v3
+      - name: Install GSL
+        uses: johnwason/vcpkg-action@v6
+        id: vcpkg
         with:
-          auto-update-conda: true
-          auto-activate-base: false
-          miniforge-version: latest
-          channels: conda-forge
-          conda-remove-defaults: "true"
-          activate-environment: 'test_env'
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Brian2 and dependencies
+          pkgs: gsl
+          triplet: ${{ matrix.os.triplet }}
+          cache-key: gsl-${{ matrix.os.triplet }}
+          revision: master
+          token: ${{ github.token }}
+      - name: Set GSL preference for vcpkg
+        shell: bash
         run: |
-          conda install --quiet --yes pip gsl
-          python -m pip install .[test]
+          mkdir ~/.brian/
+          # Replaces backslashes with forward slashes
+          echo "GSL.directory=\"${{ github.workspace }}\\vcpkg\\installed\${{ matrix.os.triplet }}\\include"\" | tr '\\' '/' > ~/.brian/user_preferences
+          cat ~/.brian/user_preferences
+      - name: Install Python
+        id: python
+        uses: actions/setup-python@v5
+        with:
+          cache: 'pip'
+          python-version: ${{ matrix.python-version }}
+      - name: Install Brian2 and dependencies
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          "$PYTHON_BINARY" -m pip install .[test]
       
       - name: Determine Cython cache dir
         id: cython-cache
@@ -91,13 +105,13 @@ jobs:
         uses: actions/cache@v4
         if: ${{ ! matrix.standalone }}
         with:
-          key: cython-extensions-${{ matrix.os }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
+          key: cython-extensions-${{ matrix.os.image }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
           path: ${{ steps.cython-cache.outputs.cachedir }}
 
-      - name: Run Tests
+      - name: Run Tests      
         run: |
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
-          python $GITHUB_WORKSPACE/$SCRIPT_NAME
+          "$PYTHON_BINARY" $GITHUB_WORKSPACE/$SCRIPT_NAME
           cp coverage.xml $GITHUB_WORKSPACE/
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
@@ -105,8 +119,9 @@ jobs:
           AGENT_OS: ${{runner.os}}
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
       - name: Send coverage to Coveralls (parallel)
-        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
+        if: ${{ startsWith(matrix.os.image, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
         uses: coverallsapp/github-action@v2.3.4
         with:
           parallel: true
