@@ -1,5 +1,16 @@
 Release notes
 =============
+
+Brian 2.8.0.3
+-------------
+One more patch-level release, fixing issues in the GitHub Actions workflows. No user-facing changes are included in this release.
+
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+
+
 Brian 2.8.0.2
 -------------
 Yet another patch-level release, fixing a bug in a test that chokes on a version number with a patch level. No user-facing changes are included in this release.
