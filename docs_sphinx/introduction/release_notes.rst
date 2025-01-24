@@ -1,32 +1,11 @@
 Release notes
 =============
 
-Brian 2.8.0.3
--------------
-One more patch-level release, fixing issues in the GitHub Actions workflows. No user-facing changes are included in this release.
-
-GitHub code, documentation, and issue contributions (ordered by the number of
-contributions):
-
-* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
-
-
-Brian 2.8.0.2
--------------
-Yet another patch-level release, fixing a bug in a test that chokes on a version number with a patch level. No user-facing changes are included in this release.
-
-Contributions
-~~~~~~~~~~~~~
-GitHub code, documentation, and issue contributions (ordered by the number of
-contributions):
-
-* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
-
-
-Brian 2.8.0.1
--------------
-This patch-level release corrects some metadata files about authors and contributors, and updates the release script to correctly note version and release date
-in ``CITATION.cff``. No other user-facing changes are included in this release.
+Brian 2.8.0.1-2.8.0.4
+---------------------
+Several patch-level releases, correcting metadata files about authors and contributors, updating release scripts, and fixing issues in a test and in the
+continuous integration infrastructure. Wheel packages for linux-aarch64 are now built on GitHub's recently added ARM runners, removing the need for emulation
+and greatly improving the built time. No other user-facing changes are included in this release.
 
 Contributions
 ~~~~~~~~~~~~~
