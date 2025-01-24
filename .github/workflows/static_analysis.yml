@@ -12,16 +12,16 @@ jobs:
     permissions:
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           persist-credentials: false
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-      - name: Get zizmor
-        run: cargo install zizmor
-        # https://github.com/woodruffw/zizmor
-      - name: Run zizmor
-        run: zizmor --format sarif . > results.sarif
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@b5f58b2abc5763ade55e4e9d0fe52cd1ff7979ca # v5.2.1
+      - name: Run zizmor 🌈
+        run: uvx zizmor --format sarif . > results.sarif
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
         with:
