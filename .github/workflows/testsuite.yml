@@ -120,6 +120,7 @@ jobs:
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+          DO_NOT_RESET_PREFERENCES: true  # Make sure that GSL setting is used
       - name: Send coverage to Coveralls (parallel)
         if: ${{ startsWith(matrix.os.image, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
         uses: coverallsapp/github-action@v2.3.4
