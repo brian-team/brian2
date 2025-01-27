@@ -123,7 +123,7 @@ jobs:
           DO_NOT_RESET_PREFERENCES: true  # Make sure that GSL setting is used
       - name: Send coverage to Coveralls (parallel)
         if: ${{ startsWith(matrix.os.image, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
-        uses: coverallsapp/github-action@v2.3.4
+        uses: coverallsapp/github-action@v2.3.6
         with:
           parallel: true
           flag-name: run ${{ join(matrix.*, ' - ') }}
@@ -134,7 +134,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Close parallel build
-        uses: coverallsapp/github-action@v2.3.4
+        uses: coverallsapp/github-action@v2.3.6
         with:
           parallel-finished: true
 
