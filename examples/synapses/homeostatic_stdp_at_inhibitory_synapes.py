@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-"""This script implements a homeostatic STDP rule for inhibitory
+"""
+This script implements a homeostatic STDP rule for inhibitory
 synapses onto excitatory neurons presented in Zenke et al. (2015) and
 explained in detail in the accompanying supplementary information.
 
@@ -8,7 +9,7 @@ In essence, the magnitude and sign of the STDP kernel at inhibitory
 synapses targeting excitatory neurons is modulated by a global factor
 G, which corresponds to the difference between the average firing rate
 of the excitatory postsynaptic neurons and a target firing rate
-$\gamma$. If the average firing rate of excitatory neurons exceeds the
+:math:`\gamma`. If the average firing rate of excitatory neurons exceeds the
 target firing rate, pre/post pairings (and post/pre pairings) at
 inhibitory synapses connecting to excitatory neurons result in
 potentiation; depression of the inhibitory synapses occurs when the
@@ -21,15 +22,18 @@ excitatory neurons.
 
 Paul Brodersen, 2025
 
+Reference:
+Zenke, Friedemann, Everton J. Agnes, and Wulfram Gerstner.
+"Diverse Synaptic Plasticity Mechanisms Orchestrated to Form and
+Retrieve Memories in Spiking Neural Networks." Nature Communications 6,
+no. 1 (April 21, 2015): 6922. https://doi.org/10.1038/ncomms7922.
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 import brian2 as b2
 
-b2.start_scope()
-
-net = b2.Network(b2.collect())
+net = b2.Network()
 
 # excitatory neuron population
 epoch_length = 1 * b2.second
@@ -88,7 +92,7 @@ synapse.connect(i=0, j=0)
 # Synapses currently don't support linked variables.
 # The following syntax hence results in an error:
 # synapses.G = b2.linked_var(global_factor, "G")
-# Instead we the reference G as shown below.
+# Instead we add the reference G as shown below.
 # See also:
 # https://brian.discourse.group/t/valueerror-equations-of-type-parameter-cannot-have-a-flag-linked-only-the-following-flags-are-allowed-constant-shared/1373/2
 synapse.variables.add_reference("G", group=global_factor, index='0')
@@ -116,7 +120,7 @@ axes[0].set_ylabel("G [Hz]")
 axes[1].plot(time, wij)
 axes[1].set_ylabel("Weight [nS]")
 for ax in axes:
-    ax.vlines(spike_times, *ax.get_ylim(), color="gray", linestyle=":", label="Pre/postt spike pairings")
+    ax.vlines(spike_times, *ax.get_ylim(), color="gray", linestyle=":", label="Pre/post spike pairings")
 axes[0].legend(loc="upper left")
 axes[-1].set_xlabel("Time [ms]")
 
@@ -133,5 +137,6 @@ fig, ax = plt.subplots()
 ax.plot(g, dw, 'o')
 ax.set_xlabel("G [Hz]")
 ax.set_ylabel(r"$\Delta$weight [nS]")
+ax.set_title("Weight change modulation")
 
 plt.show()
