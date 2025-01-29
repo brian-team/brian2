@@ -180,8 +180,8 @@ qualifies the equations. There are several keywords:
   but rather a single value for the whole `NeuronGroup` or `Synapses`. A shared
   subexpression can only refer to other shared variables.
 *linked*
-  this means that a parameter refers to a parameter in another `NeuronGroup`.
-  See :ref:`linked_variables` for more details.
+  this means that a parameter refers to a variable in another `NeuronGroup`
+  or `SpatialNeuron`. See :ref:`linked_variables` for more details.
 
 Multiple flags may be specified as follows::
 

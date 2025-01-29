@@ -854,7 +854,7 @@ class Synapses(Group):
             {
                 DIFFERENTIAL_EQUATION: ["event-driven", "clock-driven"],
                 SUBEXPRESSION: ["summed", "shared", "constant over dt"],
-                PARAMETER: ["constant", "shared"],
+                PARAMETER: ["constant", "shared", "linked"],
             },
             incompatible_flags=[
                 ("event-driven", "clock-driven"),
@@ -943,6 +943,8 @@ class Synapses(Group):
             model += Equations("lastupdate : second")
         else:
             self.event_driven = None
+
+        self._linked_variables = set()
 
         self._create_variables(model, user_dtype=dtype)
         self.equations = Equations(continuous)
@@ -1372,7 +1374,10 @@ class Synapses(Group):
                 check_identifier_pre_post(eq.varname)
                 constant = "constant" in eq.flags
                 shared = "shared" in eq.flags
-                if shared:
+                linked = "linked" in eq.flags
+                if linked:
+                    self._linked_variables.add(eq.varname)
+                elif shared:
                     self.variables.add_array(
                         eq.varname,
                         size=1,
