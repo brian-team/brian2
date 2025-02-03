@@ -767,6 +767,12 @@ class LinkedVariable:
     """
 
     def __init__(self, group, name, variable, index=None):
+        if isinstance(variable, DynamicArrayVariable):
+            raise NotImplementedError(
+                f"Linking to variable {variable.name} is "
+                "not supported, can only link to "
+                "state variables of fixed size."
+            )
         self.group = group
         self.name = name
         self.variable = variable

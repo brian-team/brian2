@@ -435,13 +435,6 @@ class VariableOwner(Nameable):
                 )
             linked_var = value.variable
 
-            if isinstance(linked_var, DynamicArrayVariable):
-                raise NotImplementedError(
-                    f"Linking to variable {linked_var.name} is "
-                    "not supported, can only link to "
-                    "state variables of fixed size."
-                )
-
             eq = self.equations[key]
             if eq.dim is not linked_var.dim:
                 raise DimensionMismatchError(
@@ -456,96 +449,9 @@ class VariableOwner(Nameable):
                 var_length = len(linked_var.owner)
 
             if value.index is not None:
-                if isinstance(value.index, str):
-                    if value.index not in self.variables:
-                        raise ValueError(f"Index variable '{value.index}' not found.")
-                    if (
-                        self.variables.indices[value.index]
-                        != self.variables.default_index
-                    ):
-                        raise ValueError(
-                            f"Index variable '{value.index}' should use the default index itself."
-                        )
-                    if not np.issubdtype(self.variables[value.index].dtype, np.integer):
-                        raise TypeError(
-                            f"Index variable '{value.index}' should be an integer parameter."
-                        )
-                    index = value.index
-                else:
-                    # Index arrays are not allowed for classes with dynamic size (Synapses)
-                    if not isinstance(self.variables["N"], Constant):
-                        raise TypeError(
-                            "Cannot link a variable with an index array for a class with dynamic size – use a variable name instead."
-                        )
-                    try:
-                        index_array = np.asarray(value.index)
-                        if not np.issubdtype(index_array.dtype, int):
-                            raise TypeError()
-                    except TypeError:
-                        raise TypeError(
-                            "The index for a linked variable has to be an integer array"
-                        )
-                    size = len(index_array)
-                    source_index = value.group.variables.indices[value.name]
-                    if source_index not in ("_idx", "0"):
-                        # we are indexing into an already indexed variable,
-                        # calculate the indexing into the target variable
-                        index_array = value.group.variables[source_index].get_value()[
-                            index_array
-                        ]
-
-                    if not index_array.ndim == 1 or size != len(self):
-                        raise TypeError(
-                            f"Index array for linked variable '{key}' "
-                            "has to be a one-dimensional array of "
-                            f"length {len(self)}, but has shape "
-                            f"{index_array.shape!s}"
-                        )
-                    if min(index_array) < 0 or max(index_array) >= var_length:
-                        raise ValueError(
-                            f"Index array for linked variable {key} "
-                            "contains values outside of the valid "
-                            f"range [0, {var_length}["
-                        )
-                    self.variables.add_array(
-                        f"_{key}_indices",
-                        size=size,
-                        dtype=index_array.dtype,
-                        constant=True,
-                        read_only=True,
-                        values=index_array,
-                    )
-                    index = f"_{key}_indices"
+                index = self._linked_var_index(key, value, var_length)
             else:
-                # The check at the end is to avoid the case that a size 1 NeuronGroup
-                # links to another NeuronGroup of size 1 and cannot do certain operations
-                # since the linked variable is considered scalar.
-                if linked_var.scalar or (
-                    var_length == 1 and getattr(self, "_N", 0) != 1
-                ):
-                    index = "0"
-                else:
-                    index = value.group.variables.indices[value.name]
-                    if index == "_idx":
-                        target_length = var_length
-                    else:
-                        target_length = len(value.group.variables[index])
-                        # we need a name for the index that does not clash with
-                        # other names and a reference to the index
-                        new_index = f"_{value.name}_index_{index}"
-                        self.variables.add_reference(new_index, value.group, index)
-                        index = new_index
-
-                    if len(self) != target_length:
-                        raise ValueError(
-                            f"Cannot link variable '{key}' to "
-                            f"'{linked_var.name}', the size of the "
-                            "target group does not match "
-                            f"({len(self)} != {target_length}). You can "
-                            "provide an indexing scheme with the "
-                            "'index' keyword to link groups with "
-                            "different sizes"
-                        )
+                index = self._linked_var_automatic_index(key, value, var_length)
             self.variables.add_reference(key, value.group, value.name, index=index)
             source = (value.variable.owner.name,)
             sourcevar = value.variable.name
@@ -633,6 +539,98 @@ class VariableOwner(Nameable):
                         "a new attribute to the object."
                     )
                     raise AttributeError(error_msg)
+
+    def _linked_var_automatic_index(self, var_name, linked_var, var_length):
+        # The check at the end is to avoid the case that a size 1 NeuronGroup
+        # links to another NeuronGroup of size 1 and cannot do certain operations
+        # since the linked variable is considered scalar.
+        if linked_var.variable.scalar or (
+            var_length == 1 and getattr(self, "_N", 0) != 1
+        ):
+            index = "0"
+        else:
+            index = linked_var.group.variables.indices[linked_var.name]
+            if index == "_idx":
+                target_length = var_length
+            else:
+                target_length = len(linked_var.group.variables[index])
+                # we need a name for the index that does not clash with
+                # other names and a reference to the index
+                new_index = f"_{linked_var.name}_index_{index}"
+                self.variables.add_reference(new_index, linked_var.group, index)
+                index = new_index
+
+            if len(self) != target_length:
+                raise ValueError(
+                    f"Cannot link variable '{var_name}' to "
+                    f"'{linked_var.variable.name}', the size of the "
+                    "target group does not match "
+                    f"({len(self)} != {target_length}). You can "
+                    "provide an indexing scheme with the "
+                    "'index' keyword to link groups with "
+                    "different sizes"
+                )
+        return index
+
+    def _linked_var_index(self, var_name, linked_var, target_size):
+        if isinstance(linked_var.index, str):
+            if linked_var.index not in self.variables:
+                raise ValueError(f"Index variable '{linked_var.index}' not found.")
+            if self.variables.indices[linked_var.index] != self.variables.default_index:
+                raise ValueError(
+                    f"Index variable '{linked_var.index}' should use the default index itself."
+                )
+            if not np.issubdtype(self.variables[linked_var.index].dtype, np.integer):
+                raise TypeError(
+                    f"Index variable '{linked_var.index}' should be an integer parameter."
+                )
+            index = linked_var.index
+        else:
+            # Index arrays are not allowed for classes with dynamic size (Synapses)
+            if not isinstance(self.variables["N"], Constant):
+                raise TypeError(
+                    "Cannot link a variable with an index array for a class with dynamic size – use a variable name instead."
+                )
+            try:
+                index_array = np.asarray(linked_var.index)
+                if not np.issubdtype(index_array.dtype, int):
+                    raise TypeError()
+            except TypeError:
+                raise TypeError(
+                    "The index for a linked variable has to be an integer array"
+                )
+            size = len(index_array)
+            source_index = linked_var.group.variables.indices[linked_var.name]
+            if source_index not in ("_idx", "0"):
+                # we are indexing into an already indexed variable,
+                # calculate the indexing into the target variable
+                index_array = linked_var.group.variables[source_index].get_value()[
+                    index_array
+                ]
+
+            if not index_array.ndim == 1 or size != len(self):
+                raise TypeError(
+                    f"Index array for linked variable '{var_name}' "
+                    "has to be a one-dimensional array of "
+                    f"length {len(self)}, but has shape "
+                    f"{index_array.shape!s}"
+                )
+            if min(index_array) < 0 or max(index_array) >= target_size:
+                raise ValueError(
+                    f"Index array for linked variable {var_name} "
+                    "contains values outside of the valid "
+                    f"range [0, {target_size}["
+                )
+            self.variables.add_array(
+                f"_{var_name}_indices",
+                size=size,
+                dtype=index_array.dtype,
+                constant=True,
+                read_only=True,
+                values=index_array,
+            )
+            index = f"_{var_name}_indices"
+        return index
 
     def add_attribute(self, name):
         """
