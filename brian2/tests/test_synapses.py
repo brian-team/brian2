@@ -1626,6 +1626,63 @@ def test_summed_variables_linked_variables():
         net.run(0 * ms)
 
 
+@pytest.mark.codegen_independent
+def test_linked_to_shared_variables():
+    source1 = NeuronGroup(1, "dx/dt = -x / (10*ms) : 1")
+    source1.x = "rand()"
+    source2 = NeuronGroup(10, "x : 1 (shared)")
+    source2.x = "rand()"
+    mon = StateMonitor(source1, "x", record=True)
+    group = NeuronGroup(10, "")
+    syn = Synapses(
+        group,
+        group,
+        """x1 : 1 (linked)
+                      x2 : 1 (linked)
+                   """,
+    )
+    syn.x1 = linked_var(source1.x)
+    syn.x2 = linked_var(source2.x)
+    syn.connect(i=[0, 5], j=[3, 6])
+    mon_syn = StateMonitor(syn, ["x1", "x2"], record=True)
+    run(2 * defaultclock.dt)
+    assert_allclose(mon.x[0], mon_syn.x1[0])
+    assert_allclose(mon.x[0], mon_syn.x1[1])
+    assert_allclose(source2.x, mon_syn.x2[0])
+    assert_allclose(source2.x, mon_syn.x2[1])
+
+
+@pytest.mark.codegen_independent
+def test_linked_to_non_shared_variables():
+    source = NeuronGroup(10, "dx/dt = -x / (10*ms) : 1")
+    source.x = "rand()"
+    mon = StateMonitor(source, "x", record=True)
+    group = NeuronGroup(10, "y: 1")
+    syn = Synapses(
+        group,
+        group,
+        """x : 1 (linked)
+                      x_ind: integer
+                      not_an_index : 1
+                   """,
+    )
+    syn.connect(i=[0, 5], j=[3, 6])
+    with pytest.raises(TypeError):
+        syn.x = linked_var(source.x, index=[0, 1])
+    with pytest.raises(ValueError):
+        syn.x = linked_var(source.x, index="does_not_exist")
+    with pytest.raises(ValueError):
+        syn.x = linked_var(source.x, index="y_post")
+    with pytest.raises(TypeError):
+        syn.x = linked_var(source.x, index="not_an_index")
+    syn.x = linked_var(source.x, index="x_ind")
+    syn.x_ind = [3, 5]
+    mon_syn = StateMonitor(syn, "x", record=True)
+    run(2 * defaultclock.dt)
+    assert_allclose(mon.x[3], mon_syn.x[0])
+    assert_allclose(mon.x[5], mon_syn.x[1])
+
+
 def test_scalar_parameter_access():
     G = NeuronGroup(
         10,

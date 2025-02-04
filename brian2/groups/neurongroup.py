@@ -13,12 +13,7 @@ from pyparsing import Word
 from brian2.codegen.translation import analyse_identifiers
 from brian2.core.preferences import prefs
 from brian2.core.spikesource import SpikeSource
-from brian2.core.variables import (
-    DynamicArrayVariable,
-    LinkedVariable,
-    Subexpression,
-    Variables,
-)
+from brian2.core.variables import Variables
 from brian2.equations.equations import (
     DIFFERENTIAL_EQUATION,
     PARAMETER,
@@ -36,7 +31,6 @@ from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
     DIMENSIONLESS,
-    DimensionMismatchError,
     Quantity,
     fail_for_dimension_mismatch,
 )
@@ -784,122 +778,6 @@ class NeuronGroup(Group, SpikeSource):
         order = order if order is not None else self.order
         self.thresholder[event].when = when
         self.thresholder[event].order = order
-
-    def __setattr__(self, key, value):
-        # attribute access is switched off until this attribute is created by
-        # _enable_group_attributes
-        if not hasattr(self, "_group_attribute_access_active") or key in self.__dict__:
-            object.__setattr__(self, key, value)
-        elif key in self._linked_variables:
-            if not isinstance(value, LinkedVariable):
-                raise ValueError(
-                    "Cannot set a linked variable directly, link "
-                    "it to another variable using 'linked_var'."
-                )
-            linked_var = value.variable
-
-            if isinstance(linked_var, DynamicArrayVariable):
-                raise NotImplementedError(
-                    f"Linking to variable {linked_var.name} is "
-                    "not supported, can only link to "
-                    "state variables of fixed size."
-                )
-
-            eq = self.equations[key]
-            if eq.dim is not linked_var.dim:
-                raise DimensionMismatchError(
-                    f"Unit of variable '{key}' does not "
-                    "match its link target "
-                    f"'{linked_var.name}'"
-                )
-
-            if not isinstance(linked_var, Subexpression):
-                var_length = len(linked_var)
-            else:
-                var_length = len(linked_var.owner)
-
-            if value.index is not None:
-                try:
-                    index_array = np.asarray(value.index)
-                    if not np.issubdtype(index_array.dtype, int):
-                        raise TypeError()
-                except TypeError:
-                    raise TypeError(
-                        "The index for a linked variable has to be an integer array"
-                    )
-                size = len(index_array)
-                source_index = value.group.variables.indices[value.name]
-                if source_index not in ("_idx", "0"):
-                    # we are indexing into an already indexed variable,
-                    # calculate the indexing into the target variable
-                    index_array = value.group.variables[source_index].get_value()[
-                        index_array
-                    ]
-
-                if not index_array.ndim == 1 or size != len(self):
-                    raise TypeError(
-                        f"Index array for linked variable '{key}' "
-                        "has to be a one-dimensional array of "
-                        f"length {len(self)}, but has shape "
-                        f"{index_array.shape!s}"
-                    )
-                if min(index_array) < 0 or max(index_array) >= var_length:
-                    raise ValueError(
-                        f"Index array for linked variable {key} "
-                        "contains values outside of the valid "
-                        f"range [0, {var_length}["
-                    )
-                self.variables.add_array(
-                    f"_{key}_indices",
-                    size=size,
-                    dtype=index_array.dtype,
-                    constant=True,
-                    read_only=True,
-                    values=index_array,
-                )
-                index = f"_{key}_indices"
-            else:
-                if linked_var.scalar or (var_length == 1 and self._N != 1):
-                    index = "0"
-                else:
-                    index = value.group.variables.indices[value.name]
-                    if index == "_idx":
-                        target_length = var_length
-                    else:
-                        target_length = len(value.group.variables[index])
-                        # we need a name for the index that does not clash with
-                        # other names and a reference to the index
-                        new_index = f"_{value.name}_index_{index}"
-                        self.variables.add_reference(new_index, value.group, index)
-                        index = new_index
-
-                    if len(self) != target_length:
-                        raise ValueError(
-                            f"Cannot link variable '{key}' to "
-                            f"'{linked_var.name}', the size of the "
-                            "target group does not match "
-                            f"({len(self)} != {target_length}). You can "
-                            "provide an indexing scheme with the "
-                            "'index' keyword to link groups with "
-                            "different sizes"
-                        )
-
-            self.variables.add_reference(key, value.group, value.name, index=index)
-            source = (value.variable.owner.name,)
-            sourcevar = value.variable.name
-            log_msg = f"Setting {self.name}.{key} as a link to {source}.{sourcevar}"
-            if index is not None:
-                log_msg += f'(using "{index}" as index variable)'
-            logger.diagnostic(log_msg)
-        else:
-            if isinstance(value, LinkedVariable):
-                raise TypeError(
-                    f"Cannot link variable '{key}', it has to be marked "
-                    "as a linked variable with '(linked)' in the model "
-                    "equations."
-                )
-            else:
-                Group.__setattr__(self, key, value, level=1)
 
     def __getitem__(self, item):
         start, stop = to_start_stop(item, self._N)

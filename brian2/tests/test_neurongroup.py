@@ -463,6 +463,30 @@ def test_linked_variable_indexed():
 
 
 @pytest.mark.codegen_independent
+def test_linked_variable_index_variable():
+    """
+    Test linking a variable with an index specified as an array
+    """
+    G = NeuronGroup(
+        10,
+        """
+        x : 1
+        index_var : integer
+        not_an_index_var : 1
+        y : 1 (linked)
+        """,
+    )
+
+    G.x = np.arange(10) * 0.1
+    with pytest.raises(TypeError):
+        G.y = linked_var(G.x, index="not_an_index_var")
+    G.y = linked_var(G.x, index="index_var")
+    G.index_var = np.arange(10)[::-1]
+    # G.y should refer to an inverted version of G.x
+    assert_allclose(G.y[:], np.arange(10)[::-1] * 0.1)
+
+
+@pytest.mark.codegen_independent
 def test_linked_variable_repeat():
     """
     Test a "repeat"-like connection between two groups of different size

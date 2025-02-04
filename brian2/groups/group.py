@@ -30,6 +30,7 @@ from brian2.core.variables import (
     AuxiliaryVariable,
     Constant,
     DynamicArrayVariable,
+    LinkedVariable,
     Subexpression,
     Variable,
     Variables,
@@ -38,6 +39,7 @@ from brian2.equations.equations import BOOLEAN, FLOAT, INTEGER, Equations
 from brian2.importexport.importexport import ImportExport
 from brian2.units.fundamentalunits import (
     DIMENSIONLESS,
+    DimensionMismatchError,
     fail_for_dimension_mismatch,
     get_unit,
 )
@@ -420,85 +422,215 @@ class VariableOwner(Nameable):
         except KeyError:
             raise AttributeError(f"No attribute with name {name}")
 
-    def __setattr__(self, name, val, level=0):
+    def __setattr__(self, key, value, level=0):
         # attribute access is switched off until this attribute is created by
         # _enable_group_attributes
-        if not hasattr(self, "_group_attribute_access_active") or name in self.__dict__:
-            object.__setattr__(self, name, val)
-        elif (
-            name in self.__getattribute__("__dict__")
-            or name in self.__getattribute__("__class__").__dict__
-        ):
-            # Makes sure that classes can override the "variables" mechanism
-            # with instance/class attributes and properties
-            return object.__setattr__(self, name, val)
-        elif name in self.variables:
-            var = self.variables[name]
-            if not isinstance(val, str):
-                if var.dim is DIMENSIONLESS:
-                    fail_for_dimension_mismatch(
-                        val,
-                        var.dim,
-                        "%s should be set with a dimensionless value, but got {value}"
-                        % name,
-                        value=val,
-                    )
-                else:
-                    fail_for_dimension_mismatch(
-                        val,
-                        var.dim,
-                        "%s should be set with a value with units %r, but got {value}"
-                        % (name, get_unit(var.dim)),
-                        value=val,
-                    )
-            if var.read_only:
-                raise TypeError(f"Variable {name} is read-only.")
-            # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value_with_unit(name, self).set_item(
-                slice(None), val, level=level + 1
-            )
-        elif len(name) and name[-1] == "_" and name[:-1] in self.variables:
-            # no unit checking
-            var = self.variables[name[:-1]]
-            if var.read_only:
-                raise TypeError(f"Variable {name[:-1]} is read-only.")
-            # Make the call X.var = ... equivalent to X.var[:] = ...
-            var.get_addressable_value(name[:-1], self).set_item(
-                slice(None), val, level=level + 1
-            )
-        elif hasattr(self, name) or name.startswith("_"):
-            object.__setattr__(self, name, val)
-        else:
-            # Try to suggest the correct name in case of a typo
-            checker = SpellChecker(
-                [
-                    varname
-                    for varname, var in self.variables.items()
-                    if not (varname.startswith("_") or var.read_only)
-                ]
-            )
-            if name.endswith("_"):
-                suffix = "_"
-                name = name[:-1]
+        if not hasattr(self, "_group_attribute_access_active") or key in self.__dict__:
+            object.__setattr__(self, key, value)
+        elif key in getattr(self, "_linked_variables", set()):
+            if not isinstance(value, LinkedVariable):
+                raise ValueError(
+                    "Cannot set a linked variable directly, link "
+                    "it to another variable using 'linked_var'."
+                )
+            linked_var = value.variable
+
+            eq = self.equations[key]
+            if eq.dim is not linked_var.dim:
+                raise DimensionMismatchError(
+                    f"Unit of variable '{key}' does not "
+                    "match its link target "
+                    f"'{linked_var.name}'"
+                )
+
+            if not isinstance(linked_var, Subexpression):
+                var_length = len(linked_var)
             else:
-                suffix = ""
-            error_msg = f'Could not find a state variable with name "{name}".'
-            suggestions = checker.suggest(name)
-            if len(suggestions) == 1:
-                (suggestion,) = suggestions
-                error_msg += f' Did you mean to write "{suggestion}{suffix}"?'
-            elif len(suggestions) > 1:
-                suggestion_str = ", ".join(
-                    [f"'{suggestion}{suffix}'" for suggestion in suggestions]
+                var_length = len(linked_var.owner)
+
+            if value.index is not None:
+                index = self._linked_var_index(key, value, var_length)
+            else:
+                index = self._linked_var_automatic_index(key, value, var_length)
+            self.variables.add_reference(key, value.group, value.name, index=index)
+            source = (value.variable.owner.name,)
+            sourcevar = value.variable.name
+            log_msg = f"Setting {self.name}.{key} as a link to {source}.{sourcevar}"
+            if index is not None:
+                log_msg += f'(using "{index}" as index variable)'
+            logger.diagnostic(log_msg)
+        else:
+            if isinstance(value, LinkedVariable):
+                raise TypeError(
+                    f"Cannot link variable '{key}', it has to be marked "
+                    "as a linked variable with '(linked)' in the model "
+                    "equations."
                 )
-                error_msg += (
-                    f" Did you mean to write any of the following: {suggestion_str} ?"
+            else:
+                if (
+                    key in self.__getattribute__("__dict__")
+                    or key in self.__getattribute__("__class__").__dict__
+                ):
+                    # Makes sure that classes can override the "variables" mechanism
+                    # with instance/class attributes and properties
+                    return object.__setattr__(self, key, value)
+                elif key in self.variables:
+                    var = self.variables[key]
+                    if not isinstance(value, str):
+                        if var.dim is DIMENSIONLESS:
+                            fail_for_dimension_mismatch(
+                                value,
+                                var.dim,
+                                "%s should be set with a dimensionless value, but got {value}"
+                                % key,
+                                value=value,
+                            )
+                        else:
+                            fail_for_dimension_mismatch(
+                                value,
+                                var.dim,
+                                "%s should be set with a value with units %r, but got {value}"
+                                % (key, get_unit(var.dim)),
+                                value=value,
+                            )
+                    if var.read_only:
+                        raise TypeError(f"Variable {key} is read-only.")
+                    # Make the call X.var = ... equivalent to X.var[:] = ...
+                    var.get_addressable_value_with_unit(key, self).set_item(
+                        slice(None), value, level=level + 1
+                    )
+                elif len(key) and key[-1] == "_" and key[:-1] in self.variables:
+                    # no unit checking
+                    var = self.variables[key[:-1]]
+                    if var.read_only:
+                        raise TypeError(f"Variable {key[:-1]} is read-only.")
+                    # Make the call X.var = ... equivalent to X.var[:] = ...
+                    var.get_addressable_value(key[:-1], self).set_item(
+                        slice(None), value, level=level + 1
+                    )
+                elif hasattr(self, key) or key.startswith("_"):
+                    object.__setattr__(self, key, value)
+                else:
+                    # Try to suggest the correct name in case of a typo
+                    checker = SpellChecker(
+                        [
+                            varname
+                            for varname, var in self.variables.items()
+                            if not (varname.startswith("_") or var.read_only)
+                        ]
+                    )
+                    if key.endswith("_"):
+                        suffix = "_"
+                        key = key[:-1]
+                    else:
+                        suffix = ""
+                    error_msg = f'Could not find a state variable with name "{key}".'
+                    suggestions = checker.suggest(key)
+                    if len(suggestions) == 1:
+                        (suggestion,) = suggestions
+                        error_msg += f' Did you mean to write "{suggestion}{suffix}"?'
+                    elif len(suggestions) > 1:
+                        suggestion_str = ", ".join(
+                            [f"'{suggestion}{suffix}'" for suggestion in suggestions]
+                        )
+                        error_msg += f" Did you mean to write any of the following: {suggestion_str} ?"
+                    error_msg += (
+                        " Use the add_attribute method if you intend to add "
+                        "a new attribute to the object."
+                    )
+                    raise AttributeError(error_msg)
+
+    def _linked_var_automatic_index(self, var_name, linked_var, var_length):
+        # The check at the end is to avoid the case that a size 1 NeuronGroup
+        # links to another NeuronGroup of size 1 and cannot do certain operations
+        # since the linked variable is considered scalar.
+        if linked_var.variable.scalar or (
+            var_length == 1 and getattr(self, "_N", 0) != 1
+        ):
+            index = "0"
+        else:
+            index = linked_var.group.variables.indices[linked_var.name]
+            if index == "_idx":
+                target_length = var_length
+            else:
+                target_length = len(linked_var.group.variables[index])
+                # we need a name for the index that does not clash with
+                # other names and a reference to the index
+                new_index = f"_{linked_var.name}_index_{index}"
+                self.variables.add_reference(new_index, linked_var.group, index)
+                index = new_index
+
+            if len(self) != target_length:
+                raise ValueError(
+                    f"Cannot link variable '{var_name}' to "
+                    f"'{linked_var.variable.name}', the size of the "
+                    "target group does not match "
+                    f"({len(self)} != {target_length}). You can "
+                    "provide an indexing scheme with the "
+                    "'index' keyword to link groups with "
+                    "different sizes"
                 )
-            error_msg += (
-                " Use the add_attribute method if you intend to add "
-                "a new attribute to the object."
+        return index
+
+    def _linked_var_index(self, var_name, linked_var, target_size):
+        if isinstance(linked_var.index, str):
+            if linked_var.index not in self.variables:
+                raise ValueError(f"Index variable '{linked_var.index}' not found.")
+            if self.variables.indices[linked_var.index] != self.variables.default_index:
+                raise ValueError(
+                    f"Index variable '{linked_var.index}' should use the default index itself."
+                )
+            if not np.issubdtype(self.variables[linked_var.index].dtype, np.integer):
+                raise TypeError(
+                    f"Index variable '{linked_var.index}' should be an integer parameter."
+                )
+            index = linked_var.index
+        else:
+            # Index arrays are not allowed for classes with dynamic size (Synapses)
+            if not isinstance(self.variables["N"], Constant):
+                raise TypeError(
+                    "Cannot link a variable with an index array for a class with dynamic size – use a variable name instead."
+                )
+            try:
+                index_array = np.asarray(linked_var.index)
+                if not np.issubdtype(index_array.dtype, int):
+                    raise TypeError()
+            except TypeError:
+                raise TypeError(
+                    "The index for a linked variable has to be an integer array"
+                )
+            size = len(index_array)
+            source_index = linked_var.group.variables.indices[linked_var.name]
+            if source_index not in ("_idx", "0"):
+                # we are indexing into an already indexed variable,
+                # calculate the indexing into the target variable
+                index_array = linked_var.group.variables[source_index].get_value()[
+                    index_array
+                ]
+
+            if not index_array.ndim == 1 or size != len(self):
+                raise TypeError(
+                    f"Index array for linked variable '{var_name}' "
+                    "has to be a one-dimensional array of "
+                    f"length {len(self)}, but has shape "
+                    f"{index_array.shape!s}"
+                )
+            if min(index_array) < 0 or max(index_array) >= target_size:
+                raise ValueError(
+                    f"Index array for linked variable {var_name} "
+                    "contains values outside of the valid "
+                    f"range [0, {target_size}["
+                )
+            self.variables.add_array(
+                f"_{var_name}_indices",
+                size=size,
+                dtype=index_array.dtype,
+                constant=True,
+                read_only=True,
+                values=index_array,
             )
-            raise AttributeError(error_msg)
+            index = f"_{var_name}_indices"
+        return index
 
     def add_attribute(self, name):
         """

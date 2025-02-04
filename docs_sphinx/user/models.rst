@@ -293,9 +293,9 @@ The data (without physical units) can also be exported/imported to/from
 Linked variables
 ----------------
 
-A `NeuronGroup` can define parameters that are not stored in this group, but are
-instead a reference to a state variable in another group. For this, a group
-defines a parameter as ``linked`` and then uses `linked_var` to
+A `NeuronGroup`, `Synapses`, or `SpatialNeuron` can define parameters that are
+not stored in this group, but are instead a reference to a variable in another group.
+For this, a group defines a parameter as ``linked`` and then uses `linked_var` to
 specify the linking. This can for example be useful to model shared noise
 between cells::
 
@@ -319,8 +319,23 @@ linking explicitly::
     neurons = NeuronGroup(100, '''inp : volt (linked)
                                   dv/dt = (-v + inp) / tau : volt''')
     # Half of the cells get the first input, other half gets the second
-    neurons.inp = linked_var(inp, 'x', index=repeat([0, 1], 50))
+    neurons.inp = linked_var(inp, 'x', index=np.repeat([0, 1], 50))
 
+Note that this linking does not work for `Synapses`, since the number of synapses
+is not known in advance. However, all groups supported linking with an index variable.
+The above example could also be written as::
+
+    # two inputs with different phases
+    inp = NeuronGroup(2, '''phase : 1
+                            dx/dt = 1*mV/ms*sin(2*pi*100*Hz*t-phase) : volt''')
+    inp.phase = [0, pi/2]
+
+    neurons = NeuronGroup(100, '''inp : volt (linked)
+                                  index_var : integer (constant)
+                                  dv/dt = (-v + inp) / tau : volt''')
+    # Half of the cells get the first input, other half gets the second
+    neurons.inp = linked_var(inp, 'x', index='index_var')
+    neurons.index_var = np.repeat([0, 1], 50)
 
 .. _time_scaling_of_noise:
 

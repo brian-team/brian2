@@ -72,6 +72,7 @@ net.add(postsynaptic_neuron)
 tau_stdp = 20. * b2.msecond
 eta = 1. * b2.nsiemens * b2.second
 synapse_model = """
+G : Hz (linked)
 wij : siemens
 dzi/dt = -zi / tau_stdp : 1 (event-driven)
 dzj/dt = -zj / tau_stdp : 1 (event-driven)
@@ -89,13 +90,7 @@ synapse = b2.Synapses(
     model=synapse_model, on_pre=on_pre, on_post=on_post
 )
 synapse.connect(i=0, j=0)
-# Synapses currently don't support linked variables.
-# The following syntax hence results in an error:
-# synapses.G = b2.linked_var(global_factor, "G")
-# Instead we add the reference G as shown below.
-# See also:
-# https://brian.discourse.group/t/valueerror-equations-of-type-parameter-cannot-have-a-flag-linked-only-the-following-flags-are-allowed-constant-shared/1373/2
-synapse.variables.add_reference("G", group=global_factor, index='0')
+synapse.G = b2.linked_var(global_factor, "G")
 synapse.wij = 0 * b2.nsiemens
 net.add(synapse)
 

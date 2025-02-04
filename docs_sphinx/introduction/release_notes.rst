@@ -1,6 +1,27 @@
 Release notes
 =============
 
+Next release
+------------
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- A more powerful :ref:`linked_variables` mechanism, now also supporting linked variables that use another variable for indexing, and linked variables in
+  `Synapses` (:issue:`1584`).
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- A new example :doc:`../examples/synapses.homeostatic_stdp_at_inhibitory_synapes`, demonstrating a homoestatic modulation of STDP, based on a population firing rate.
+  Thanks to Paul Brodersen for contributing this example (:issue:`1581`).
+
+Contributions
+~~~~~~~~~~~~~
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+TODO
+
+
 Brian 2.8.0.1-2.8.0.4
 ---------------------
 Several patch-level releases, correcting metadata files about authors and contributors, updating release scripts, and fixing issues in a test and in the
