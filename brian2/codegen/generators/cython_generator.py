@@ -494,7 +494,7 @@ cdef double _rand(int _idx):
             free(buffer)
         _new_rand = _numpy.random.rand(_BUFFER_SIZE)
         buffer = <double *>_numpy.PyArray_DATA(_new_rand)
-        PyArray_CLEARFLAGS(<_numpy.PyArrayObject*>_new_rand, _numpy.NPY_OWNDATA)
+        PyArray_CLEARFLAGS(<_numpy.PyArrayObject*>_new_rand, _numpy.NPY_ARRAY_OWNDATA)
         buffer_pointer[0] = buffer
 
     cdef double val = buffer[_namespace_rand_buffer_index[0]]
