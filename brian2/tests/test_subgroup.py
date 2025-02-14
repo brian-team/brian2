@@ -16,9 +16,51 @@ def test_str_repr():
     """
     G = NeuronGroup(10, "v:1")
     SG = G[5:8]
+    SGi = G[[3, 6, 9]]
     # very basic test, only make sure no error is raised
     assert len(str(SG))
     assert len(repr(SG))
+    assert len(str(SGi))
+    assert len(repr(SGi))
+
+
+@pytest.mark.codegen_independent
+def test_creation():
+    G = NeuronGroup(10, "")
+    SG = G[5:8]
+    SGi = G[[3, 6, 9]]
+    SGi2 = G[[3, 4, 5]]
+    assert len(SG) == 3
+    assert SG.contiguous
+    assert len(SGi) == 3
+    assert not SGi.contiguous
+    assert len(SGi2) == 3
+    assert SGi2.contiguous
+
+    with pytest.raises(TypeError):
+        Subgroup(G)
+    with pytest.raises(TypeError):
+        Subgroup(G, start=3)
+    with pytest.raises(TypeError):
+        Subgroup(G, stop=3)
+    with pytest.raises(IndexError):
+        Subgroup(G, start=-1, stop=5)
+    with pytest.raises(IndexError):
+        Subgroup(G, start=1, stop=1)
+    with pytest.raises(IndexError):
+        Subgroup(G, start=1, stop=11)
+    with pytest.raises(TypeError):
+        Subgroup(G, start=1, stop=11, indices=[2, 4, 6])
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[])
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[1, 1, 2])
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[-1, 1, 2])
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[1, 2, 10])
+    with pytest.raises(IndexError):
+        Subgroup(G, indices=[3, 2, 1])
 
 
 def test_state_variables():
@@ -66,12 +108,11 @@ def test_state_variables():
 def test_state_variables_simple():
     G = NeuronGroup(
         10,
-        """
-        a : 1
-        b : 1
-        c : 1
-        d : 1
-        """,
+        """a : 1
+                           b : 1
+                           c : 1
+                           d : 1
+                           """,
     )
     SG = G[3:7]
     SG.a = 1
@@ -86,6 +127,38 @@ def test_state_variables_simple():
     assert_equal(G.b[:], [0, 0, 0, 0, 1, 2, 6, 0, 0, 0])
     assert_equal(G.c[:], [0, 0, 0, 3, 4, 5, 6, 0, 0, 0])
     assert_equal(G.d[:], [0, 0, 0, 0, 4, 1, 2, 0, 0, 0])
+
+
+@pytest.mark.standalone_compatible
+def test_state_variables_simple_indexed():
+    G = NeuronGroup(
+        10,
+        """a : 1
+                           b : 1
+                           c : 1
+                           d : 1
+                           """,
+    )
+    # Illegal indices:
+    with pytest.raises(IndexError):
+        G[[3, 5, 5, 7, 9]]  # duplicate indices
+    with pytest.raises(IndexError):
+        G[[9, 7, 5, 3]]  # unsorted
+    with pytest.raises(IndexError):
+        G[[8, 10]]  # out of range
+    SG = G[[3, 5, 7, 9]]
+    SG.a = 1
+    SG.a["i == 0"] = 2
+    SG.b = "i"
+    SG.b["i == 3"] = "i * 2"
+    SG.c = np.arange(3, 7)
+    SG.d[1:2] = 4
+    SG.d[2:4] = [1, 2]
+    run(0 * ms)
+    assert_equal(G.a[:], [0, 0, 0, 2, 0, 1, 0, 1, 0, 1])
+    assert_equal(G.b[:], [0, 0, 0, 0, 0, 1, 0, 2, 0, 6])
+    assert_equal(G.c[:], [0, 0, 0, 3, 0, 4, 0, 5, 0, 6])
+    assert_equal(G.d[:], [0, 0, 0, 0, 0, 4, 0, 1, 0, 2])
 
 
 def test_state_variables_string_indices():
@@ -131,6 +204,20 @@ def test_state_variables_group_as_index_problematic():
             assert all(
                 [entry[1].endswith("ambiguous_string_expression") for entry in l]
             )
+
+
+@pytest.mark.standalone_compatible
+def test_state_variables_string_group():
+    G = NeuronGroup(10, "v : 1")
+    G.v = "i"
+    c = 3
+    SG1 = G[
+        "i > 5"
+    ]  # indexing with constant expressions should even work in standalone
+    SG1.v = "v * 2"
+    run(0 * ms)  # for standalone
+    assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 12, 14, 16, 18])
+    assert_equal(SG1.v[:], [12, 14, 16, 18])
 
 
 @pytest.mark.standalone_compatible
@@ -222,16 +309,43 @@ def test_state_monitor():
     G = NeuronGroup(10, "v : volt")
     G.v = np.arange(10) * volt
     SG = G[5:]
+    SG_indices = G[[2, 4, 6]]
     mon_all = StateMonitor(SG, "v", record=True)
     mon_0 = StateMonitor(SG, "v", record=0)
+    mon_all_indices = StateMonitor(SG_indices, "v", record=True)
+    mon_0_indices = StateMonitor(SG_indices, "v", record=0)
     run(defaultclock.dt)
 
     assert_allclose(mon_0[0].v, mon_all[0].v)
     assert_allclose(mon_0[0].v, np.array([5]) * volt)
     assert_allclose(mon_all.v.flatten(), np.arange(5, 10) * volt)
 
+    assert_allclose(mon_0_indices[0].v, mon_all_indices[0].v)
+    assert_allclose(mon_0_indices[0].v, np.array([2]) * volt)
+    assert_allclose(mon_all_indices.v.flatten(), np.array([2, 4, 6]) * volt)
+
     with pytest.raises(IndexError):
         mon_all[5]
+    with pytest.raises(IndexError):
+        mon_all_indices[3]
+
+
+@pytest.mark.standalone_compatible
+def test_rate_monitor():
+    G = NeuronGroup(10, "", threshold="i%2 == 0")
+    SG = G[5:]
+    SG_indices = G[[2, 4, 6]]
+    SG_indices2 = G[[3, 5, 7]]
+    pop_mon = PopulationRateMonitor(SG)
+    pop_mon_indices = PopulationRateMonitor(SG_indices)
+    pop_mon_indices2 = PopulationRateMonitor(SG_indices2)
+    run(defaultclock.dt)
+    r = 1 / defaultclock.dt
+    assert_allclose(
+        pop_mon.rate[0], (2 * r + 3 * 0) / 5
+    )  # 2 out of 3 neurons are firing
+    assert_allclose(pop_mon_indices.rate[0], r)  # all neurons firing
+    assert_allclose(pop_mon_indices2.rate[0], 0 * Hz)  # no neurons firing
 
 
 def test_shared_variable():
@@ -346,6 +460,54 @@ def test_synapse_creation_generator():
     assert len(S4) == 2 * len(SG2), str(len(S4))
     assert all(S4.v_post[:] > 2)
     assert len(S5) == 5 * len(SG1), f"{len(S5)} != {5 * len(SG1)} "
+    assert all(S5.v_pre[:] < 25)
+
+
+@pytest.mark.standalone_compatible
+def test_synapse_creation_generator_non_contiguous():
+    G1 = NeuronGroup(10, "v:1")
+    G2 = NeuronGroup(20, "v:1")
+    G1.v = "i"
+    G2.v = "10 + i"
+    SG1 = G1[[0, 2, 4, 6, 8]]
+    SG2 = G2[1::2]
+    S = Synapses(SG1, SG2, "w:1")
+    S.connect(j="i*2 + k for k in range(2)")  # diverging connections
+
+    # connect based on pre-/postsynaptic state variables
+    S2 = Synapses(SG1, SG2, "w:1")
+    S2.connect(j="k for k in range(N_post) if v_pre > 2")
+
+    S3 = Synapses(SG1, SG2, "w:1")
+    S3.connect(j="k for k in range(N_post) if v_post < 25")
+
+    S4 = Synapses(SG2, SG1, "w:1")
+    S4.connect(j="k for k in range(N_post) if v_post > 2")
+
+    S5 = Synapses(SG2, SG1, "w:1")
+    S5.connect(j="k for k in range(N_post) if v_pre < 25")
+
+    run(0 * ms)  # for standalone
+
+    # Internally, the "real" neuron indices should be used
+    assert_equal(S._synaptic_pre[:], np.arange(0, 10, 2).repeat(2))
+    assert_equal(S._synaptic_post[:], np.arange(1, 20, 2))
+    # For the user, the subgroup-relative indices should be presented
+    assert_equal(S.i[:], np.arange(5).repeat(2))
+    assert_equal(S.j[:], np.arange(10))
+
+    # N_incoming and N_outgoing should also be correct
+    assert all(S.N_outgoing[:] == 2)
+    assert all(S.N_incoming[:] == 1)
+
+    assert len(S2) == 3 * len(SG2), str(len(S2))
+    assert all(S2.v_pre[:] > 2)
+    assert len(S3) == 7 * len(SG1), f"{len(S3)} != {7 * len(SG1)} "
+    assert all(S3.v_post[:] < 25)
+
+    assert len(S4) == 3 * len(SG2), str(len(S4))
+    assert all(S4.v_post[:] > 2)
+    assert len(S5) == 7 * len(SG1), f"{len(S5)} != {7 * len(SG1)} "
     assert all(S5.v_pre[:] < 25)
 
 
@@ -487,7 +649,6 @@ def test_synapse_access():
     S.w = "2*j"
     assert all(S.w[:, 1] == 2)
 
-    assert len(S.w[:, 10]) == 0
     assert len(S.w["j==10"]) == 0
 
     # Test referencing pre- and postsynaptic variables
@@ -502,7 +663,6 @@ def test_synapse_access():
     assert len(S) == len(S.w[SG1, SG2])
     assert_equal(S.w[SG1, 1], S.w[:, 1])
     assert_equal(S.w[1, SG2], S.w[1, :])
-    assert len(S.w[SG1, 10]) == 0
 
 
 def test_synapses_access_subgroups():
@@ -569,20 +729,67 @@ def test_synapses_access_subgroups_problematic():
 @pytest.mark.standalone_compatible
 def test_subgroup_summed_variable():
     # Check in particular that only neurons targeted are reset to 0 (see github issue #925)
-    source = NeuronGroup(1, "")
-    target = NeuronGroup(5, "Iin : 1")
+    source = NeuronGroup(1, "x : 1")
+    target = NeuronGroup(
+        7,
+        """Iin : 1
+                  x : 1""",
+    )
+    source.x = 5
     target.Iin = 10
+    target.x = "i"
     target1 = target[1:2]
-    target2 = target[3:]
-
-    syn1 = Synapses(source, target1, "Iin_post = 5 : 1  (summed)")
+    target2 = target[3:5]
+    target3 = target[[0, 6]]
+    syn1 = Synapses(source, target1, "Iin_post = x_pre + x_post : 1  (summed)")
     syn1.connect(True)
-    syn2 = Synapses(source, target2, "Iin_post = 1 : 1  (summed)")
+    syn2 = Synapses(source, target2, "Iin_post = x_pre + x_post : 1  (summed)")
     syn2.connect(True)
+    syn3 = Synapses(source, target3, "Iin_post = x_pre + x_post : 1  (summed)")
+    syn3.connect(True)
 
     run(2 * defaultclock.dt)
 
-    assert_array_equal(target.Iin, [10, 5, 10, 1, 1])
+    assert_array_equal(target.Iin, [5, 6, 10, 8, 9, 10, 11])
+
+
+@pytest.mark.codegen_independent
+def test_subgroup_summed_variable_overlap():
+    # Check that overlapping subgroups raise an error
+    source = NeuronGroup(1, "")
+    target = NeuronGroup(10, "Iin : 1")
+    target1 = target[1:3]
+    target2 = target[2:5]
+    target3 = target[[1, 6]]
+    target4 = target[[4, 6]]
+
+    syn1 = Synapses(source, target1, "Iin_post = 1 : 1  (summed)")
+    syn1.connect(True)
+
+    syn2 = Synapses(source, target2, "Iin_post = 2 : 1  (summed)")
+    syn2.connect(True)
+
+    syn3 = Synapses(source, target3, "Iin_post = 3 : 1  (summed)")
+    syn3.connect(True)
+
+    syn4 = Synapses(source, target4, "Iin_post = 4 : 1  (summed)")
+    syn4.connect(True)
+
+    net1 = Network(source, target, syn1, syn2)  # overlap between contiguous subgroups
+    with pytest.raises(NotImplementedError):
+        net1.run(0 * ms)
+
+    net2 = Network(
+        source, target, syn1, syn3
+    )  # overlap between contiguous and non-contiguous subgroups
+    with pytest.raises(NotImplementedError):
+        net2.run(0 * ms)
+
+    net3 = Network(
+        source, target, syn3, syn4
+    )  # overlap between non-contiguous subgroups
+    with pytest.raises(NotImplementedError):
+        net3.run(0 * ms)
 
 
 def test_subexpression_references():
@@ -591,10 +798,8 @@ def test_subexpression_references():
     """
     G = NeuronGroup(
         10,
-        """
-        v : 1
-        v2 = 2*v : 1
-        """,
+        """v : 1
+                  v2 = 2*v : 1""",
     )
     G.v = np.arange(10)
     SG1 = G[:5]
@@ -603,11 +808,9 @@ def test_subexpression_references():
     S1 = Synapses(
         SG1,
         SG2,
-        """
-        w : 1
-        u = v2_post + 1 : 1
-        x = v2_pre + 1 : 1
-        """,
+        """w : 1
+           u = v2_post + 1 : 1
+           x = v2_pre + 1 : 1""",
     )
     S1.connect("i==(5-1-j)")
     assert_equal(S1.i[:], np.arange(5))
@@ -618,11 +821,9 @@ def test_subexpression_references():
     S2 = Synapses(
         G,
         SG2,
-        """
-        w : 1
-        u = v2_post + 1 : 1
-        x = v2_pre + 1 : 1
-        """,
+        """w : 1
+           u = v2_post + 1 : 1
+           x = v2_pre + 1 : 1""",
     )
     S2.connect("i==(5-1-j)")
     assert_equal(S2.i[:], np.arange(5))
@@ -633,11 +834,9 @@ def test_subexpression_references():
     S3 = Synapses(
         SG1,
         G,
-        """
-        w : 1
-        u = v2_post + 1 : 1
-        x = v2_pre + 1 : 1
-        """,
+        """w : 1
+           u = v2_post + 1 : 1
+           x = v2_pre + 1 : 1""",
     )
     S3.connect("i==(10-1-j)")
     assert_equal(S3.i[:], np.arange(5))
@@ -653,10 +852,8 @@ def test_subexpression_no_references():
     """
     G = NeuronGroup(
         10,
-        """
-        v : 1
-        v2 = 2*v : 1
-        """,
+        """v : 1
+                  v2 = 2*v : 1""",
     )
     G.v = np.arange(10)
 
@@ -665,11 +862,9 @@ def test_subexpression_no_references():
     S1 = Synapses(
         G[:5],
         G[5:],
-        """
-        w : 1
-        u = v2_post + 1 : 1
-        x = v2_pre + 1 : 1
-        """,
+        """w : 1
+           u = v2_post + 1 : 1
+           x = v2_pre + 1 : 1""",
     )
     S1.connect("i==(5-1-j)")
     assert_equal(S1.i[:], np.arange(5))
@@ -680,11 +875,9 @@ def test_subexpression_no_references():
     S2 = Synapses(
         G,
         G[5:],
-        """
-        w : 1
-        u = v2_post + 1 : 1
-        x = v2_pre + 1 : 1
-        """,
+        """w : 1
+           u = v2_post + 1 : 1
+           x = v2_pre + 1 : 1""",
     )
     S2.connect("i==(5-1-j)")
     assert_equal(S2.i[:], np.arange(5))
@@ -695,11 +888,9 @@ def test_subexpression_no_references():
     S3 = Synapses(
         G[:5],
         G,
-        """
-        w : 1
-        u = v2_post + 1 : 1
-        x = v2_pre + 1 : 1
-        """,
+        """w : 1
+           u = v2_post + 1 : 1
+           x = v2_pre + 1 : 1""",
     )
     S3.connect("i==(10-1-j)")
     assert_equal(S3.i[:], np.arange(5))
@@ -761,14 +952,14 @@ def test_run_regularly():
 @pytest.mark.standalone_compatible
 def test_spike_monitor():
     G = NeuronGroup(10, "v:1", threshold="v>1", reset="v=0")
-    G.v[0] = 1.1
-    G.v[2] = 1.1
-    G.v[5] = 1.1
+    G.v[[0, 2, 5]] = 1.1
     SG = G[3:]
     SG2 = G[:3]
+    SGi = G[[3, 5, 7]]
     s_mon = SpikeMonitor(G)
     sub_s_mon = SpikeMonitor(SG)
     sub_s_mon2 = SpikeMonitor(SG2)
+    sub_s_moni = SpikeMonitor(SGi)
     run(defaultclock.dt)
     assert_equal(s_mon.i, np.array([0, 2, 5]))
     assert_equal(s_mon.t_, np.zeros(3))
@@ -776,6 +967,8 @@ def test_spike_monitor():
     assert_equal(sub_s_mon.t_, np.zeros(1))
     assert_equal(sub_s_mon2.i, np.array([0, 2]))
     assert_equal(sub_s_mon2.t_, np.zeros(2))
+    assert_equal(sub_s_moni.i, np.array([1]))
+    assert_equal(sub_s_moni.t, np.zeros(1))
     expected = np.zeros(10, dtype=int)
     expected[[0, 2, 5]] = 1
     assert_equal(s_mon.count, expected)
@@ -783,45 +976,45 @@ def test_spike_monitor():
     expected[[2]] = 1
     assert_equal(sub_s_mon.count, expected)
     assert_equal(sub_s_mon2.count, np.array([1, 0, 1]))
+    assert_equal(sub_s_moni.count, np.array([0, 1, 0]))
 
 
 @pytest.mark.codegen_independent
-def test_wrong_indexing():
+@pytest.mark.parametrize(
+    "item",
+    [
+        slice(10, None),
+        slice(3, 2),
+        [9, 10],
+        [10, 11],
+        [2.5, 3.5, 4.5],
+        [5, 5, 5],
+        [],
+        [5, 4, 3],
+    ],
+)
+def test_wrong_indexing(item):
     G = NeuronGroup(10, "v:1")
-    with pytest.raises(TypeError):
-        G["string"]
-
-    with pytest.raises(IndexError):
-        G[10]
-    with pytest.raises(IndexError):
-        G[10:]
-    with pytest.raises(IndexError):
-        G[::2]
-    with pytest.raises(IndexError):
-        G[3:2]
-    with pytest.raises(IndexError):
-        G[[5, 4, 3]]
-    with pytest.raises(IndexError):
-        G[[2, 4, 6]]
-    with pytest.raises(IndexError):
-        G[[-1, 0, 1]]
-    with pytest.raises(IndexError):
-        G[[9, 10, 11]]
-    with pytest.raises(IndexError):
-        G[[9, 10]]
-    with pytest.raises(IndexError):
-        G[[10, 11]]
-    with pytest.raises(TypeError):
-        G[[2.5, 3.5, 4.5]]
+    with pytest.raises((TypeError, IndexError)):
+        G[item]
 
 
 @pytest.mark.codegen_independent
-def test_alternative_indexing():
+@pytest.mark.parametrize(
+    "item,expected",
+    [
+        (slice(-3, None), np.array([7, 8, 9])),
+        (slice(None, None, 2), np.array([0, 2, 4, 6, 8])),
+        (3, np.array([3])),
+        ([3, 4, 5], np.array([3, 4, 5])),
+        ([3, 5, 7], np.array([3, 5, 7])),
+        ([3, -1], np.array([3, 9])),
+    ],
+)
+def test_alternative_indexing(item, expected):
     G = NeuronGroup(10, "v : integer")
     G.v = "i"
-    assert_equal(G[-3:].v, np.array([7, 8, 9]))
-    assert_equal(G[3].v, np.array([3]))
-    assert_equal(G[[3, 4, 5]].v, np.array([3, 4, 5]))
+    assert_equal(G[item].v, expected)
 
 
 def test_no_reference_1():
@@ -887,10 +1080,20 @@ def test_recursive_subgroup():
     G = NeuronGroup(10, "v : 1")
     G.v = "i"
     SG = G[3:8]
+    SGi = G[[3, 5, 7, 9]]
     SG2 = SG[2:4]
+    SGi2 = SGi[2:4]
+    SGii = SGi[[1, 3]]
+    SG2i = SG[[1, 3]]
     assert_equal(SG2.v[:], np.array([5, 6]))
     assert_equal(SG2.v[:], SG.v[2:4])
+    assert_equal(SGi2.v[:], np.array([7, 9]))
+    assert_equal(SGii.v[:], np.array([5, 9]))
+    assert_equal(SG2i.v[:], np.array([4, 6]))
     assert SG2.source.name == G.name
+    assert SGi2.source.name == G.name
+    assert SGii.source.name == G.name
+    assert SG2i.source.name == G.name
 
 
 if __name__ == "__main__":
