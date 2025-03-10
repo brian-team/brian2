@@ -33,7 +33,7 @@ RUN python -m pip install --no-cache-dir --only-binary=:all: \
     jupyterlab \
     pytest \
     pytest-xdist \
-    && python -m pip install /tmp/dist/Brian2*_$(uname -m).whl brian2tools \
+    && python -m pip install /tmp/dist/[Bb]rian2*_$(uname -m).whl brian2tools \
     && rm -rf /tmp/dist
 
 # Create a non-root user (password same as username)

@@ -221,8 +221,8 @@ jobs:
         path: packages
     - run: |
         mkdir dist
-        cp packages/Brian2*cp312-manylinux*_x86_64.whl dist
-        cp packages/Brian2*cp312-manylinux*_aarch64.whl dist
+        cp packages/[Bb]rian2*cp312-manylinux*_x86_64.whl dist
+        cp packages/[Bb]rian2*cp312-manylinux*_aarch64.whl dist
     - name: Build (and potentially push) the Docker image
       uses: docker/build-push-action@v6
       # https://github.com/docker/build-push-action
