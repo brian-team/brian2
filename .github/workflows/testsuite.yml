@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: "calculate versions according to NEP29"
         id: nep29
-        uses: mstimberg/github-calc-nep29@v0.7
+        uses: mstimberg/github-calc-nep29@a73481e4e8488a5fa0b3be70a385cc5206a261ba # v0.7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -20,10 +20,10 @@ jobs:
     name: Run linters with pre-commit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -62,12 +62,12 @@ jobs:
         shell: bash -l {0}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: Install GSL
-        uses: johnwason/vcpkg-action@v6
+        uses: johnwason/vcpkg-action@7c4b562bb35ef5a01d9d728acc90100b107dee4d # v6
         id: vcpkg
         with:
           pkgs: gsl
@@ -84,7 +84,7 @@ jobs:
           cat ~/.brian/user_preferences
       - name: Install Python
         id: python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
@@ -102,7 +102,7 @@ jobs:
           echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
 
       - name: restore Cython cache
-        uses: actions/cache@v4
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         if: ${{ ! matrix.standalone }}
         with:
           key: cython-extensions-${{ matrix.os.image }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
@@ -123,7 +123,7 @@ jobs:
           DO_NOT_RESET_PREFERENCES: true  # Make sure that GSL setting is used
       - name: Send coverage to Coveralls (parallel)
         if: ${{ startsWith(matrix.os.image, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
-        uses: coverallsapp/github-action@v2.3.6
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b # v2.3.6
         with:
           parallel: true
           flag-name: run ${{ join(matrix.*, ' - ') }}
@@ -134,7 +134,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Close parallel build
-        uses: coverallsapp/github-action@v2.3.6
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b # v2.3.6
         with:
           parallel-finished: true
 
@@ -147,14 +147,14 @@ jobs:
         shell: bash -l {0}
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         fetch-depth: 0
         persist-credentials: false
         submodules: true
 
     - name: Setup Conda and Python
-      uses: conda-incubator/setup-miniconda@v3
+      uses: conda-incubator/setup-miniconda@505e6394dae86d6a5c7fbb6e3fb8938e3e863830 # v3.1.1
       with:
         auto-update-conda: true
         auto-activate-base: false
