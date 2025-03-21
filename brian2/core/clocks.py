@@ -61,7 +61,13 @@ def check_dt(new_dt, old_dt, target_t):
             f"time {t} is not a multiple of {new}."
         )
 
-
+class ClockArray:
+    def __init__(self, clock):
+        self.clock = clock
+    
+    def __getitem__(self, timestep):
+        return self.clock.dt * timestep
+    
 class EventClock(VariableOwner):
     def __init__(self, times, name="eventclock*"):
         Nameable.__init__(self, name=name)
