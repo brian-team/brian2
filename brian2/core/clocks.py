@@ -60,9 +60,72 @@ def check_dt(new_dt, old_dt, target_t):
             f"Cannot set dt from {old} to {new}, the "
             f"time {t} is not a multiple of {new}."
         )
+class ClockArray:
+    def __init__(self,clock):
+        self.clock=clock
+    def __getitem__(self,timestep):
+        return self.clock.dt*timestep
+    
+class EventClock(VariableOwner):
+    def __init__(self, times, name="eventclock*"):
+        Nameable().__init__(self,name=name)
+        self.variables=Variables(self)
+        self.times=times
+        self.variables.add_array(
+            "timestep", size=1, dtype=np.int64, read_only=True, scalar=True
+        )
+        self.variables.add_array(
+            "t",
+            dimensions=second.dim,
+            size=1,
+            dtype=np.float64,
+            read_only=True,
+            scalar=True,
+        )
+        self.variables["timestep"].set_value(0)
+        self.variables["t"].set_value(self.times[0])
+
+        self.variables.add_constant("N", value=1)
+
+        self._enable_group_attributes()
+        
+        self._i_end = None
+        logger.diagnostic(f"Created clock {self.name}")
+
+    def advance(self):
+        """
+        Advance the clock to the next timestep.
+        
+        """
+        current_timestep=self.variables["timestep"].get_value()
+        next_timestep=current_timestep+1
+        if self._i_end is not None and current_timestep+1>self._i_end:
+            raise StopIteration("Clock has reached the end of its available times.")
+        else:
+            self.variables["timestep"].set_value(next_timestep)
+            self.variables["t"].set_value(self.times[next_step])
+    @check_units(start=second, end=second)
+    def set_interval(self, start, end):
+        """
+        Set the start and end time of the simulation.
+        """
+        # For an EventClock with explicit times, find nearest indices
+        if not isinstance(self.times, ClockArray):
+            # Find closest time indices
+            start_idx = np.searchsorted(self.times, float(start))
+            end_idx = np.searchsorted(self.times, float(end))
+            
+            self.variables["timestep"].set_value(start_idx)
+            self.variables["t"].set_value(self.times[start_idx])
+            self._i_end = end_idx - 1  # -1 since we want to include this step
+        else:
+            # Calculate time steps directly for regular clocks
+            # This would need clock-specific implementation
+            pass
 
 
-class Clock(VariableOwner):
+
+class RegualrClock(VariableOwner):
     """
     An object that holds the simulation time and the time step.
 
@@ -87,18 +150,6 @@ class Clock(VariableOwner):
         # need a name for the object when creating the variables
         Nameable.__init__(self, name=name)
         self._old_dt = None
-        self.variables = Variables(self)
-        self.variables.add_array(
-            "timestep", size=1, dtype=np.int64, read_only=True, scalar=True
-        )
-        self.variables.add_array(
-            "t",
-            dimensions=second.dim,
-            size=1,
-            dtype=np.float64,
-            read_only=True,
-            scalar=True,
-        )
         self.variables.add_array(
             "dt",
             dimensions=second.dim,
@@ -209,6 +260,11 @@ class Clock(VariableOwner):
     #: The relative difference for times (in terms of dt) so that they are
     #: considered identical.
     epsilon_dt = 1e-4
+
+class Clock(RegualrClock):
+    def __init__(self, dt, name="clock*"):
+        super().__init__(dt, name)
+
 
 
 class DefaultClockProxy:
