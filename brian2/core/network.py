@@ -1035,21 +1035,17 @@ class Network(Nameable):
                 obj.after_run()
 
     def _nextclocks(self):
-        clocks_times_dt = [
-            (c, self._clock_variables[c][1][0], self._clock_variables[c][2][0])
-            for c in self._clocks
-        ]
-        minclock, min_time, minclock_dt = min(clocks_times_dt, key=lambda k: k[1])
+
+        minclock = min(self._clocks)
+        
         curclocks = {
             clock
-            for clock, time, dt in clocks_times_dt
-            if (
-                time == min_time
-                or abs(time - min_time) / min(minclock_dt, dt) < Clock.epsilon_dt
-            )
+            for clock in self._clocks
+            if clock == minclock
         }
+        
         return minclock, curclocks
-
+    
     @device_override("network_run")
     @check_units(duration=second, report_period=second)
     def run(

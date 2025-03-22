@@ -98,7 +98,7 @@ class EventClock(VariableOwner):
         """
         Advance the clock to the next timestep.
         """
-        current_timestep = self.variables["timestep"].get_value()
+        current_timestep = self.variables["timestep"].get_value().item()
         next_timestep = current_timestep + 1
         if self._i_end is not None and next_timestep > self._i_end:
             raise StopIteration("Clock has reached the end of its available times.")
@@ -111,19 +111,45 @@ class EventClock(VariableOwner):
         """
         Set the start and end time of the simulation.
         """
-        # For an EventClock with explicit times, find nearest indices
+
         if not isinstance(self.times, ClockArray):
-            # Find closest time indices
+
             start_idx = np.searchsorted(self.times, float(start))
             end_idx = np.searchsorted(self.times, float(end))
             
             self.variables["timestep"].set_value(start_idx)
             self.variables["t"].set_value(self.times[start_idx])
-            self._i_end = end_idx - 1  # -1 since we want to include this step
+            self._i_end = end_idx - 1 
         else:
-            # For regular clocks, delegate to the specific implementation
-            # This will be handled by child classes that implement ClockArray
+
             pass
+            
+    def __lt__(self, other):
+        return self.variables["t"].get_value().item() < other.variables["t"].get_value().item()
+
+    def __eq__(self, other):
+        t1 = self.variables["t"].get_value().item()
+        t2 = other.variables["t"].get_value().item()
+
+        if hasattr(self, 'dt'):
+            dt = self.variables["dt"].get_value().item()
+            return abs(t1 - t2) / dt < self.epsilon_dt
+        elif hasattr(other, 'dt'):
+            dt = other.variables["dt"].get_value().item()
+            return abs(t1 - t2) / dt < self.epsilon_dt
+        else:
+            # Both are pure EventClocks without dt
+            epsilon = 1e-10  
+            return abs(t1 - t2) < epsilon
+
+    def __le__(self, other):
+        return self.__lt__(other) or self.__eq__(other)
+
+    def __gt__(self, other):
+        return not self.__le__(other)
+
+    def __ge__(self, other):
+        return not self.__lt__(other)
 
 
 class RegularClock(EventClock):
@@ -150,7 +176,7 @@ class RegularClock(EventClock):
         # We need a name right away because some devices (e.g. cpp_standalone)
         # need a name for the object when creating the variables
         self._dt = float(dt)
-        self._old_dt = None  # Initialize _old_dt to None
+        self._old_dt = None  
         times = ClockArray(self)
         super().__init__(times, name=name)
         self.variables.add_array(
@@ -179,9 +205,9 @@ class RegularClock(EventClock):
         # update them via the variables object directly
         self.variables["timestep"].set_value(new_timestep)
         self.variables["t"].set_value(new_timestep * new_dt)
-        # Use self.variables["t"].get_value() instead of self.t for logging
-        t_value = self.variables["t"].get_value()
-        dt_value = self.variables["dt"].get_value()
+        # Use self.variables["t"].get_value().item() and self.variables["dt"].get_value().item() for logging
+        t_value = self.variables["t"].get_value().item()
+        dt_value = self.variables["dt"].get_value().item()
         logger.diagnostic(f"Setting Clock {self.name} to t={t_value}, dt={dt_value}")
 
     def _calc_timestep(self, target_t):
@@ -264,10 +290,9 @@ class RegularClock(EventClock):
     epsilon_dt = 1e-4
 
 
-class Clock(RegularClock):  # Fixed the typo here
+class Clock(RegularClock):
     def __init__(self, dt, name="clock*"):
         super().__init__(dt, name)
-
 
 
 class DefaultClockProxy:
