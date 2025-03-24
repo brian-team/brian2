@@ -6,7 +6,8 @@ dt = {{dt.item()}}  # Always copy dt
 period = {{period_}}  # Always copy period
 
 # Always recalculate timesteps
-current_t = {{t}}[0]
+from brian2 import defaultclock  # Use Brian 2's clock instead of 't'
+current_t = defaultclock.t
 timesteps = ({{_spike_time}} / dt).astype(np.int32)
 current_step = int(current_t / dt)
 
@@ -30,7 +31,7 @@ period_bins = int(round(period / dt))
 
 {% block maincode %}
 _the_period    = {{_period_bins}}
-_timebin       = {{t_in_timesteps}}
+_timebin       = int(defaultclock.t / {{dt.item()}})  # Use Brian 2's clock instead of 't_in_timesteps'
 _n_spikes      = 0
 
 _lastindex_before = {{_lastindex}}

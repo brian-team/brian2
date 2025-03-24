@@ -1,4 +1,4 @@
-{# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, t_in_timesteps, N, _spike_time, dt, period } #}
+{# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, N, _spike_time, dt, period } #}
 {% extends 'common_group.cpp' %}
 
 {% block before_code %}
@@ -7,12 +7,14 @@
     const double _period = {{period_}};  // Always copy period
 
     // Always recalculate _timesteps
-    const double _current_t = {{t}}[0];
     std::vector<int32_t> _timesteps({{_spike_time}}.size());
     for (size_t i = 0; i < _timesteps.size(); i++) {
         _timesteps[i] = static_cast<int32_t>({{_spike_time}}[i] / _dt);
     }
-    const int32_t _current_step = static_cast<int32_t>(_current_t / _dt);
+
+    // Get current simulation time from Brian 2's clock instead of 't'
+    extern double defaultclock_t;  
+    const int32_t _current_step = static_cast<int32_t>(defaultclock_t / _dt);
 
     // Always update _lastindex
     int32_t _last_idx = 0;
@@ -40,7 +42,7 @@
 {% block maincode %}
 
     const int32_t _the_period = {{_period_bins}};
-    int32_t _timebin          = {{t_in_timesteps}};
+    int32_t _timebin = static_cast<int32_t>(defaultclock_t / {{dt.item()}});  // Use Brian 2's clock instead of 't_in_timesteps'
 
     // Always recalculate timebin with period
     _timebin %= _the_period;
