@@ -1,5 +1,32 @@
-{# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, t_in_timesteps } #}
-{% extends 'common_group.py_' %}
+{% extends 'common_group.py.jinja2' %}
+
+{% block before_code %}
+# Copy of the SpikeGeneratorGroup.before_run code
+dt = {{dt.item()}}  # Always copy dt
+period = {{period_}}  # Always copy period
+
+# Always recalculate timesteps
+current_t = {{t}}[0]
+timesteps = ({{_spike_time}} / dt).astype(np.int32)
+current_step = int(current_t / dt)
+
+# Always update _lastindex
+in_the_past = np.nonzero(timesteps < current_step)[0]
+if len(in_the_past):
+    {{_lastindex}}[0] = in_the_past[-1] + 1
+else:
+    {{_lastindex}}[0] = 0
+
+# Always recalculate _timebins
+shift = 1e-3 * dt
+timebins = np.asarray(({{_spike_time}} + shift) / dt, dtype=np.int32)
+
+{{_timebins}}[:] = timebins
+
+# Always recalculate period_bins (ignore limit checks)
+period_bins = int(round(period / dt))
+{{_period_bins}}[0] = period_bins
+{% endblock %}
 
 {% block maincode %}
 _the_period    = {{_period_bins}}
@@ -8,18 +35,13 @@ _n_spikes      = 0
 
 _lastindex_before = {{_lastindex}}
 
-if _the_period > 0:
-    _timebin %= _the_period
-    # If there is a periodicity in the SpikeGenerator, we need to reset the
-    # lastindex when the period has passed
-    if _lastindex_before > 0 and {{_timebins}}[_lastindex_before - 1] >= _timebin:
-        _lastindex_before = 0
+# Always reset _lastindex if period is applied
+_timebin %= _the_period
+_lastindex_before = 0
 
-_n_spikes = _numpy.searchsorted({{_timebins}}[_lastindex_before:],
-                                _timebin, side='right')
+_n_spikes = _numpy.searchsorted({{_timebins}}, _timebin, side='right')
 
 {{_lastindex}} = _lastindex_before + _n_spikes
-
 _indices = {{neuron_index}}[_lastindex_before:_lastindex_before+_n_spikes]
 
 {{_spikespace}}[:_n_spikes] = _indices
