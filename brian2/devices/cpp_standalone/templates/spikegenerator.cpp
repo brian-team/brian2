@@ -35,7 +35,7 @@
     }
     {{_timebins}} = _timebins;
 
-    // Always recalculate _period_bins (no checks)
+    // Always recalculate _period_bins 
     {{_period_bins}} = static_cast<int32_t>(std::round(_period / _dt));
 {% endblock %}
 
