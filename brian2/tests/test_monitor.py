@@ -16,10 +16,8 @@ def test_spike_monitor():
     G_without_threshold = NeuronGroup(5, "x : 1")
     G = NeuronGroup(
         3,
-        """
-        dv/dt = rate : 1
-        rate: Hz
-        """,
+        """dv/dt = rate : 1
+           rate: Hz""",
         threshold="v>1",
         reset="v=0",
     )
@@ -91,11 +89,9 @@ def test_spike_monitor_indexing():
 def test_spike_monitor_variables():
     G = NeuronGroup(
         3,
-        """
-        dv/dt = rate : 1
-       rate : Hz
-       prev_spikes : integer
-       """,
+        """dv/dt = rate : 1
+           rate : Hz
+           prev_spikes : integer""",
         threshold="v>1",
         reset="v=0; prev_spikes += 1",
     )
@@ -127,8 +123,8 @@ def test_spike_monitor_get_states():
     G = NeuronGroup(
         3,
         """dv/dt = rate : 1
-                          rate : Hz
-                          prev_spikes : integer""",
+           rate : Hz
+           prev_spikes : integer""",
         threshold="v>1",
         reset="v=0; prev_spikes += 1",
     )
@@ -155,7 +151,11 @@ def test_spike_monitor_subgroups():
     spikes_1 = SpikeMonitor(G[:2])
     spikes_2 = SpikeMonitor(G[2:4])
     spikes_3 = SpikeMonitor(G[4:])
+    spikes_indexed = SpikeMonitor(G[::2])
+    with pytest.raises(IndexError):
+        SpikeMonitor(G[[4, 0, 2]])  # unsorted
     run(defaultclock.dt)
+    # Spikes
     assert_allclose(spikes_all.i, [0, 4, 5])
     assert_allclose(spikes_all.t, [0, 0, 0] * ms)
     assert_allclose(spikes_1.i, [0])
@@ -164,6 +164,14 @@ def test_spike_monitor_subgroups():
     assert len(spikes_2.t) == 0
     assert_allclose(spikes_3.i, [0, 1])  # recorded spike indices are relative
     assert_allclose(spikes_3.t, [0, 0] * ms)
+    assert_allclose(spikes_indexed.i, [0, 2])
+    assert_allclose(spikes_indexed.t, [0, 0] * ms)
+    # Spike count
+    assert_allclose(spikes_all.count, [1, 0, 0, 0, 1, 1])
+    assert_allclose(spikes_1.count, [1, 0])
+    assert_allclose(spikes_2.count, [0, 0])
+    assert_allclose(spikes_3.count, [1, 1])
+    assert_allclose(spikes_indexed.count, [1, 0, 1])
 
 
 def test_spike_monitor_bug_824():
@@ -184,10 +192,8 @@ def test_spike_monitor_bug_824():
 def test_event_monitor():
     G = NeuronGroup(
         3,
-        """
-        dv/dt = rate : 1
-        rate: Hz
-        """,
+        """dv/dt = rate : 1
+           rate: Hz""",
         events={"my_event": "v>1"},
     )
     G.run_on_event("my_event", "v=0")
@@ -233,10 +239,8 @@ def test_event_monitor_no_record():
     # Check that you can switch off recording spike times/indices
     G = NeuronGroup(
         3,
-        """
-        dv/dt = rate : 1
-        rate: Hz
-        """,
+        """dv/dt = rate : 1
+                          rate: Hz""",
         events={"my_event": "v>1"},
         threshold="v>1",
         reset="v=0",
@@ -316,11 +320,9 @@ def test_state_monitor():
     # Check that all kinds of variables can be recorded
     G = NeuronGroup(
         2,
-        """
-        dv/dt = -v / (10*ms) : 1
-        f = clip(v, 0.1, 0.9) : 1
-        rate: Hz
-        """,
+        """dv/dt = -v / (10*ms) : 1
+           f = clip(v, 0.1, 0.9) : 1
+           rate: Hz""",
         threshold="v>1",
         reset="v=0",
         refractory=2 * ms,
@@ -392,6 +394,43 @@ def test_state_monitor():
 
 
 @pytest.mark.standalone_compatible
+def test_state_monitor_subgroups():
+    G = NeuronGroup(
+        10,
+        """v : volt
+           step_size : volt (constant)""",
+    )
+    G.run_regularly("v += step_size")
+    G.step_size = "i*mV"
+
+    SG1 = G[3:8]
+    SG2 = G[::2]
+
+    state_mon_full = StateMonitor(G, "v", record=True)
+
+    # monitor subgroups and record from all
+    state_mon1 = StateMonitor(SG1, "v", record=True)
+    state_mon2 = StateMonitor(SG2, "v", record=True)
+
+    # monitor subgroup and use (relative) indices
+    state_mon3 = StateMonitor(SG1, "v", record=[0, 3])
+    state_mon4 = StateMonitor(SG2, "v", record=[0, 3])
+
+    # monitor full group and use subgroup as indices
+    state_mon5 = StateMonitor(G, "v", record=SG1)
+    state_mon6 = StateMonitor(G, "v", record=SG2)
+
+    run(2 * defaultclock.dt)
+
+    assert_allclose(state_mon1.v, state_mon_full.v[3:8])
+    assert_allclose(state_mon2.v, state_mon_full.v[::2])
+    assert_allclose(state_mon3.v, state_mon_full.v[3:8][[0, 3]])
+    assert_allclose(state_mon4.v, state_mon_full.v[::2][[0, 3]])
+    assert_allclose(state_mon5.v, state_mon_full.v[3:8])
+    assert_allclose(state_mon6.v, state_mon_full.v[::2])
+
+
+@pytest.mark.standalone_compatible
 @pytest.mark.multiple_runs
 def test_state_monitor_record_single_timestep():
     G = NeuronGroup(1, "dv/dt = -v/(5*ms) : 1")
@@ -457,11 +496,9 @@ def test_state_monitor_indexing():
 def test_state_monitor_get_states():
     G = NeuronGroup(
         2,
-        """
-        dv/dt = -v / (10*ms) : 1
-        f = clip(v, 0.1, 0.9) : 1
-        rate: Hz
-        """,
+        """dv/dt = -v / (10*ms) : 1
+           f = clip(v, 0.1, 0.9) : 1
+           rate: Hz""",
         threshold="v>1",
         reset="v=0",
         refractory=2 * ms,
@@ -650,10 +687,8 @@ def test_rate_monitor_subgroups():
     defaultclock.dt = 0.01 * ms
     G = NeuronGroup(
         4,
-        """
-        dv/dt = rate : 1
-        rate : Hz
-        """,
+        """dv/dt = rate : 1
+           rate : Hz""",
         threshold="v>0.999",
         reset="v=0",
     )
@@ -677,11 +712,13 @@ def test_rate_monitor_subgroups_2():
     rate_1 = PopulationRateMonitor(G[:2])
     rate_2 = PopulationRateMonitor(G[2:4])
     rate_3 = PopulationRateMonitor(G[4:])
+    rate_indexed = PopulationRateMonitor(G[::2])
     run(2 * defaultclock.dt)
     assert_allclose(rate_all.rate, 0.5 / defaultclock.dt)
     assert_allclose(rate_1.rate, 0.5 / defaultclock.dt)
     assert_allclose(rate_2.rate, 0 * Hz)
     assert_allclose(rate_3.rate, 1 / defaultclock.dt)
+    assert_allclose(rate_indexed.rate, 2 / 3 * (1 / defaultclock.dt))  # 2 out of 3
 
 
 @pytest.mark.codegen_independent

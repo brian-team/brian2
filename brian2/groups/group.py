@@ -15,7 +15,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from brian2.codegen.codeobject import create_runner_codeobj
-from brian2.core.base import BrianObject, weakproxy_with_fallback
+from brian2.core.base import BrianObject, device_override, weakproxy_with_fallback
 from brian2.core.functions import Function
 from brian2.core.names import Nameable, find_name
 from brian2.core.namespace import (
@@ -221,7 +221,8 @@ class Indexing:
     specific indices. Stores strong references to the necessary variables so
     that basic indexing (i.e. slicing, integer arrays/values, ...) works even
     when the respective `VariableOwner` no longer exists. Note that this object
-    does not handle string indexing.
+    does not handle string indexing (handled by `IndexWrapper` and
+    `VariableView.get_with_expression`).
     """
 
     def __init__(self, group, default_index="_idx"):
@@ -259,41 +260,82 @@ class Indexing:
             raise IndexError(
                 f"Can only interpret 1-d indices, got {len(item)} dimensions."
             )
-        else:
-            if isinstance(item, str) and item == "True":
-                item = slice(None)
-            if isinstance(item, slice):
-                if index_var == "0":
-                    return 0
-                if index_var == "_idx":
-                    start, stop, step = item.indices(self.N.item())
-                else:
-                    start, stop, step = item.indices(index_var.size)
-                index_array = np.arange(start, stop, step, dtype=np.int32)
-            else:
-                index_array = np.asarray(item)
-                if index_array.dtype == bool:
-                    index_array = np.nonzero(index_array)[0]
-                elif not np.issubdtype(index_array.dtype, np.signedinteger):
-                    raise TypeError(
-                        "Indexing is only supported for integer "
-                        "and boolean arrays, not for type "
-                        f"{index_array.dtype}"
-                    )
 
-            if index_var != "_idx":
-                try:
-                    return index_var.get_value()[index_array]
-                except IndexError as ex:
-                    # We try to emulate numpy's indexing semantics here:
-                    # slices never lead to IndexErrors, instead they return an
-                    # empty array if they don't match anything
-                    if isinstance(item, slice):
-                        return np.array([], dtype=np.int32)
-                    else:
-                        raise ex
+        index_array = self._to_index_array(item, index_var)
+
+        if index_array.size == 0:
+            return index_array
+
+        if index_var not in ("_idx", "0"):
+            try:
+                index_array = index_var.get_value()[index_array]
+            except IndexError as ex:
+                # We try to emulate numpy's indexing semantics here:
+                # slices never lead to IndexErrors, instead they return an
+                # empty array if they don't match anything
+                if isinstance(item, slice):
+                    return np.array([], dtype=np.int32)
+                else:
+                    raise ex
+        else:
+            N = self.N.item()
+            if np.min(index_array) < -N:
+                raise IndexError(
+                    "Illegal index {} for a group of size {}".format(
+                        np.min(index_array), N
+                    )
+                )
+            if np.max(index_array) >= N:
+                raise IndexError(
+                    "Illegal index {} for a group of size {}".format(
+                        np.max(index_array), N
+                    )
+                )
+
+            index_array = index_array % N  # interpret negative indices
+
+        return index_array
+
+    def _to_index_array(self, item, index_var):
+        """
+        Convert slices, integer/boolean arrays to an integer array of indices.
+
+        Parameters
+        ----------
+        item: slice, array, int
+            The indices to translate.
+        index_var : `ArrayVariable`, str
+            The index variable.
+        Returns
+        -------
+        indices : `numpy.ndarray`
+            The flat indices corresponding to the indices given in `item`.
+        """
+        if isinstance(item, slice):
+            if index_var == "0":
+                index_array = np.array(0)
             else:
-                return index_array
+                index_size = (
+                    int(self.N.get_value()) if index_var == "_idx" else index_var.size
+                )
+                start, stop, step = item.indices(index_size)
+                index_array = np.arange(start, stop, step)
+        else:  # array, sequence, or single value
+            index_array = np.asarray(item)
+            if index_array.dtype == bool:
+                if not index_array.shape == (self.N.get_value(),):
+                    raise IndexError(
+                        "Boolean index did not match shape of indexed array;shape is"
+                        f" {(self.N.get_value(), )}, but index is {index_array.shape}"
+                    )
+                index_array = np.flatnonzero(index_array)
+            elif not np.issubdtype(index_array.dtype, np.signedinteger):
+                raise TypeError(
+                    "Indexing is only supported for integer "
+                    "and boolean arrays, not for type "
+                    f"{index_array.dtype}"
+                )
+        return index_array
 
 
 class IndexWrapper:
@@ -309,13 +351,17 @@ class IndexWrapper:
         self.indices = group._indices
 
     def __getitem__(self, item):
+        return self.get_item(item, level=1)
+
+    @device_override("index_wrapper_get_item")
+    def get_item(self, item, level):
         if isinstance(item, str):
             variables = Variables(None)
             variables.add_auxiliary_variable("_indices", dtype=np.int32)
             variables.add_auxiliary_variable("_cond", dtype=bool)
 
             abstract_code = f"_cond = {item}"
-            namespace = get_local_namespace(level=1)
+            namespace = get_local_namespace(level=level + 2)  # decorated function
             from brian2.devices.device import get_device
 
             device = get_device()
@@ -329,7 +375,9 @@ class IndexWrapper:
                     fallback_pref="codegen.string_expression_target"
                 ),
             )
-            return codeobj()
+            indices = codeobj()
+            # Handle subgroups correctly
+            return self.indices(indices)
         else:
             return self.indices(item)
 

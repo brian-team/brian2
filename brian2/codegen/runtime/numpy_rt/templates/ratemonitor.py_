@@ -1,14 +1,19 @@
-{# USES_VARIABLES { rate, t, _spikespace, _num_source_neurons,
-                    _clock_t, _clock_dt, _source_start, _source_stop, N } #}
+{# USES_VARIABLES { rate, t, _spikespace, _clock_t, _clock_dt, N } #}
 {% extends 'common_group.py_' %}
 
 {% block maincode %}
 _spikes = {{_spikespace}}[:{{_spikespace}}[-1]]
+{% if subgroup %}
 # Take subgroups into account
+{% if contiguous %}
 _spikes = _spikes[(_spikes >= _source_start) & (_spikes < _source_stop)]
+{% else %}
+_spikes = _numpy.intersect1d(_spikes, {{_source_indices}}, assume_unique=True)
+{% endif %}
+{% endif %}
 _new_len = {{N}} + 1
 _owner.resize(_new_len)
 {{N}} = _new_len
 {{_dynamic_t}}[-1] = {{_clock_t}}
-{{_dynamic_rate}}[-1] = 1.0 * len(_spikes) / {{_clock_dt}} / _num_source_neurons
+{{_dynamic_rate}}[-1] = 1.0 * len(_spikes) / {{_clock_dt}} / {{source_N}}
 {% endblock %}
