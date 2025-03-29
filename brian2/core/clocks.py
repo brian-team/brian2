@@ -13,7 +13,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.utils.logger import get_logger
 
-__all__ = ["Clock", "defaultclock"]
+__all__ = ["Clock", "defaultclock","EventClock","RegularClock"]
 
 logger = get_logger(__name__)
 
@@ -61,6 +61,7 @@ def check_dt(new_dt, old_dt, target_t):
             f"time {t} is not a multiple of {new}."
         )
 
+
 class ClockArray:
     def __init__(self, clock):
         self.clock = clock
@@ -72,7 +73,11 @@ class EventClock(VariableOwner):
     def __init__(self, times, name="eventclock*"):
         Nameable.__init__(self, name=name)
         self.variables = Variables(self)
-        self.times = times
+        self.times = sorted(times)
+
+        if len(self.times)!=len(set(self.times)):
+            raise ValueError("The times provided to EventClock must not contain duplicates")
+        
         self.variables.add_array(
             "timestep", size=1, dtype=np.int64, read_only=True, scalar=True
         )
@@ -127,7 +132,7 @@ class EventClock(VariableOwner):
     def __lt__(self, other):
         return self.variables["t"].get_value().item() < other.variables["t"].get_value().item()
 
-    def __eq__(self, other):
+    def same_time(self, other):
         t1 = self.variables["t"].get_value().item()
         t2 = other.variables["t"].get_value().item()
 
