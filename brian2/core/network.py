@@ -1177,7 +1177,7 @@ class Network(Nameable):
         else:
             # Find the first clock to be updated (see note below)
             clock, curclocks = self._nextclocks()
-            timestep, _, _ = self._clock_variables[clock]
+            timestep, t = self._clock_variables[clock]
 
         running = timestep[0] < clock._i_end
 
@@ -1231,7 +1231,7 @@ class Network(Nameable):
                 # with the smallest t value, unless there are several with the
                 # same t value in which case we update all of them
                 clock, curclocks = self._nextclocks()
-                timestep, _, _ = self._clock_variables[clock]
+                timestep, t = self._clock_variables[clock]
 
             if (
                 device._maximum_run_time is not None
