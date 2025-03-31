@@ -1,6 +1,6 @@
 """
-Example: Using network_operation to stop a simulation.
-This script demonstrates how to use network_operation to stop a simulation
+Example: Using `network_operation` to stop a simulation.
+This script demonstrates how to use `network_operation` to stop a simulation
 when a group of neurons reaches a target number of spikes.
 """
 
