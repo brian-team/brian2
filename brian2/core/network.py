@@ -1102,7 +1102,16 @@ class Network(Nameable):
         -----
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
+
+        Raises
+        ------
+        ValueError
+            Error raised when duration passed in run function is negative.
         """
+        if duration < 0:
+            raise ValueError(
+                f"Function 'run' expected a non-negative duration but got '{duration}'"
+            )
         # This will trigger warnings for objects that have not been included in a network
         gc.collect()
         device = get_device()  # Do not use the ProxyDevice -- slightly faster

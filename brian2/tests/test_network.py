@@ -1790,6 +1790,18 @@ def test_unused_object_warning():
     assert logs[0][1].endswith("unused_brian_object")
     assert "never_used" in logs[0][2]
 
+@pytest.mark.codegen_independent
+def test_negative_duration_in_run():
+    G = NeuronGroup(1, "v:1")
+    with pytest.raises(ValueError):
+        run(-1 * second)
+
+@pytest.mark.codegen_independent
+def test_negative_duration_in_net_run():
+    G = NeuronGroup(1, "v:1")
+    net = Network(G)
+    with pytest.raises(ValueError):
+        net.run(-1 * second)
 
 if __name__ == "__main__":
     BrianLogger.log_level_warn()
