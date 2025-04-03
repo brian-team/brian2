@@ -1770,6 +1770,11 @@ class CPPStandaloneDevice(Device):
         level=0,
         **kwds,
     ):
+        if duration < 0:
+            raise ValueError(
+                f"Function 'run' expected a non-negative duration but got '{duration}'"
+            )
+
         self.networks.add(net)
         if kwds:
             logger.warn(
