@@ -1048,13 +1048,15 @@ def test_header_file_inclusion():
         run(defaultclock.dt)
     assert_allclose(S.rate_copy[:], np.arange(len(G)) * 42 * Hz)
 
+
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
 def test_negative_duration_in_standalone_device():
-    set_device('cpp_standalone')
+    set_device("cpp_standalone")
     G = NeuronGroup(1, "v:1")
     with pytest.raises(ValueError):
         run(-1 * second)
+
 
 if __name__ == "__main__":
     for t in [
