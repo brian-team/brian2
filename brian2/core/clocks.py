@@ -13,7 +13,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.utils.logger import get_logger
 
-__all__ = ["Clock", "defaultclock"]
+__all__ = ["Clock", "defaultclock","EventClock","RegularClock"]
 
 logger = get_logger(__name__)
 
@@ -62,7 +62,105 @@ def check_dt(new_dt, old_dt, target_t):
         )
 
 
-class Clock(VariableOwner):
+class ClockArray:
+    def __init__(self, clock):
+        self.clock = clock
+    
+    def __getitem__(self, timestep):
+        return self.clock._dt * timestep
+    
+class EventClock(VariableOwner):
+    def __init__(self, times, name="eventclock*"):
+        Nameable.__init__(self, name=name)
+        self.variables = Variables(self)
+        if isinstance(times, ClockArray):
+            self.times = times  # Don't sort, don't check for duplicates
+        else:
+            self.times = sorted(times)
+            if len(self.times) != len(set(self.times)):
+                raise ValueError("The times provided to EventClock must not contain duplicates")
+
+        
+        self.variables.add_array(
+            "timestep", size=1, dtype=np.int64, read_only=True, scalar=True
+        )
+        self.variables.add_array(
+            "t",
+            dimensions=second.dim,
+            size=1,
+            dtype=np.float64,
+            read_only=True,
+            scalar=True,
+        )
+        self.variables["timestep"].set_value(0)
+        self.variables["t"].set_value(self.times[0])
+
+        self.variables.add_constant("N", value=1)
+
+        self._enable_group_attributes()
+        
+        self._i_end = None
+        logger.diagnostic(f"Created clock {self.name}")
+
+    def advance(self):
+        """
+        Advance the clock to the next timestep.
+        """
+        current_timestep = self.variables["timestep"].get_value().item()
+        next_timestep = current_timestep + 1
+        if self._i_end is not None and next_timestep > self._i_end:
+            raise StopIteration("Clock has reached the end of its available times.")
+        else:
+            self.variables["timestep"].set_value(next_timestep)
+            self.variables["t"].set_value(self.times[next_timestep])
+    
+    @check_units(start=second, end=second)
+    def set_interval(self, start, end):
+        """
+        Set the start and end time of the simulation.
+        """
+
+        if not isinstance(self.times, ClockArray):
+
+            start_idx = np.searchsorted(self.times, float(start))
+            end_idx = np.searchsorted(self.times, float(end))
+            
+            self.variables["timestep"].set_value(start_idx)
+            self.variables["t"].set_value(self.times[start_idx])
+            self._i_end = end_idx - 1 
+        else:
+
+            pass
+            
+    def __lt__(self, other):
+        return self.variables["t"].get_value().item() < other.variables["t"].get_value().item()
+
+    def same_time(self, other):
+        t1 = self.variables["t"].get_value().item()
+        t2 = other.variables["t"].get_value().item()
+
+        if hasattr(self, 'dt'):
+            dt = self.variables["dt"].get_value().item()
+            return abs(t1 - t2) / dt < self.epsilon_dt
+        elif hasattr(other, 'dt'):
+            dt = other.variables["dt"].get_value().item()
+            return abs(t1 - t2) / dt < self.epsilon_dt
+        else:
+            # Both are pure EventClocks without dt
+            epsilon = 1e-10  
+            return abs(t1 - t2) < epsilon
+
+    def __le__(self, other):
+        return self.__lt__(other) or self.__eq__(other)
+
+    def __gt__(self, other):
+        return not self.__le__(other)
+
+    def __ge__(self, other):
+        return not self.__lt__(other)
+
+
+class RegularClock(EventClock):
     """
     An object that holds the simulation time and the time step.
 
@@ -82,23 +180,13 @@ class Clock(VariableOwner):
     point values. The value of ``epsilon`` is ``1e-14``.
     """
 
-    def __init__(self, dt, name="clock*"):
+    def __init__(self, dt, name="regularclock*"):
         # We need a name right away because some devices (e.g. cpp_standalone)
         # need a name for the object when creating the variables
-        Nameable.__init__(self, name=name)
-        self._old_dt = None
-        self.variables = Variables(self)
-        self.variables.add_array(
-            "timestep", size=1, dtype=np.int64, read_only=True, scalar=True
-        )
-        self.variables.add_array(
-            "t",
-            dimensions=second.dim,
-            size=1,
-            dtype=np.float64,
-            read_only=True,
-            scalar=True,
-        )
+        self._dt = float(dt)
+        self._old_dt = None  
+        times = ClockArray(self)
+        super().__init__(times, name=name)
         self.variables.add_array(
             "dt",
             dimensions=second.dim,
@@ -109,10 +197,6 @@ class Clock(VariableOwner):
             constant=True,
             scalar=True,
         )
-        self.variables.add_constant("N", value=1)
-        self._enable_group_attributes()
-        self.dt = dt
-        logger.diagnostic(f"Created clock {self.name} with dt={self.dt}")
 
     @check_units(t=second)
     def _set_t_update_dt(self, target_t=0 * second):
@@ -129,7 +213,10 @@ class Clock(VariableOwner):
         # update them via the variables object directly
         self.variables["timestep"].set_value(new_timestep)
         self.variables["t"].set_value(new_timestep * new_dt)
-        logger.diagnostic(f"Setting Clock {self.name} to t={self.t}, dt={self.dt}")
+        # Use self.variables["t"].get_value().item() and self.variables["dt"].get_value().item() for logging
+        t_value = self.variables["t"].get_value().item()
+        dt_value = self.variables["dt"].get_value().item()
+        logger.diagnostic(f"Setting Clock {self.name} to t={t_value}, dt={dt_value}")
 
     def _calc_timestep(self, target_t):
         """
@@ -209,6 +296,11 @@ class Clock(VariableOwner):
     #: The relative difference for times (in terms of dt) so that they are
     #: considered identical.
     epsilon_dt = 1e-4
+
+
+class Clock(RegularClock):
+    def __init__(self, dt, name="clock*"):
+        super().__init__(dt, name)
 
 
 class DefaultClockProxy:

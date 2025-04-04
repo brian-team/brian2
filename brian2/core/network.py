@@ -1035,21 +1035,17 @@ class Network(Nameable):
                 obj.after_run()
 
     def _nextclocks(self):
-        clocks_times_dt = [
-            (c, self._clock_variables[c][1][0], self._clock_variables[c][2][0])
-            for c in self._clocks
-        ]
-        minclock, min_time, minclock_dt = min(clocks_times_dt, key=lambda k: k[1])
+
+        minclock = min(self._clocks, key = lambda c: c.variables["t"].get_value().item())
+        
         curclocks = {
             clock
-            for clock, time, dt in clocks_times_dt
-            if (
-                time == min_time
-                or abs(time - min_time) / min(minclock_dt, dt) < Clock.epsilon_dt
-            )
+            for clock in self._clocks
+            if clock.same_time(minclock)
         }
+        
         return minclock, curclocks
-
+    
     @device_override("network_run")
     @check_units(duration=second, report_period=second)
     def run(
@@ -1127,7 +1123,6 @@ class Network(Nameable):
                 c: (
                     c.variables["timestep"].get_value(),
                     c.variables["t"].get_value(),
-                    c.variables["dt"].get_value(),
                 )
                 for c in self._clocks
             }
@@ -1174,23 +1169,23 @@ class Network(Nameable):
         profiling_info = defaultdict(float)
 
         if single_clock:
-            timestep, t, dt = (
+            timestep, t = (
                 clock.variables["timestep"].get_value(),
                 clock.variables["t"].get_value(),
-                clock.variables["dt"].get_value(),
             )
+
         else:
             # Find the first clock to be updated (see note below)
             clock, curclocks = self._nextclocks()
-            timestep, _, _ = self._clock_variables[clock]
+            timestep, t = self._clock_variables[clock]
 
         running = timestep[0] < clock._i_end
 
         active_objects = [obj for obj in all_objects if obj.active]
 
         while running and not self._stopped and not Network._globally_stopped:
-            if not single_clock:
-                timestep, t, dt = self._clock_variables[clock]
+            if not single_clock :
+                timestep, t = self._clock_variables[clock]
             # update the network time to this clock's time
             self.t_ = t[0]
             if report is not None:
@@ -1215,8 +1210,8 @@ class Network(Nameable):
                     for obj in active_objects:
                         obj.run()
 
-                timestep[0] += 1
-                t[0] = timestep[0] * dt[0]
+                clock.advance()
+
             else:
                 if profile:
                     for obj in active_objects:
@@ -1230,15 +1225,13 @@ class Network(Nameable):
                             obj.run()
 
                 for c in curclocks:
-                    timestep, t, dt = self._clock_variables[c]
-                    timestep[0] += 1
-                    t[0] = timestep[0] * dt[0]
+                    c.advance()
                 # find the next clocks to be updated. The < operator for Clock
                 # determines that the first clock to be updated should be the one
                 # with the smallest t value, unless there are several with the
                 # same t value in which case we update all of them
                 clock, curclocks = self._nextclocks()
-                timestep, _, _ = self._clock_variables[clock]
+                timestep, t = self._clock_variables[clock]
 
             if (
                 device._maximum_run_time is not None
