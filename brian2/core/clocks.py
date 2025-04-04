@@ -67,16 +67,19 @@ class ClockArray:
         self.clock = clock
     
     def __getitem__(self, timestep):
-        return self.clock.dt * timestep
+        return self.clock._dt * timestep
     
 class EventClock(VariableOwner):
     def __init__(self, times, name="eventclock*"):
         Nameable.__init__(self, name=name)
         self.variables = Variables(self)
-        self.times = sorted(times)
+        if isinstance(times, ClockArray):
+            self.times = times  # Don't sort, don't check for duplicates
+        else:
+            self.times = sorted(times)
+            if len(self.times) != len(set(self.times)):
+                raise ValueError("The times provided to EventClock must not contain duplicates")
 
-        if len(self.times)!=len(set(self.times)):
-            raise ValueError("The times provided to EventClock must not contain duplicates")
         
         self.variables.add_array(
             "timestep", size=1, dtype=np.int64, read_only=True, scalar=True
