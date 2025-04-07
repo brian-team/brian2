@@ -518,7 +518,7 @@ class NeuronGroup(Group, SpikeSource):
         method_options=None,
         threshold=None,
         reset=None,
-        refractory=False,
+        refractory=None, # Updated to None instead of False
         events=None,
         namespace=None,
         dtype=None,
@@ -576,6 +576,26 @@ class NeuronGroup(Group, SpikeSource):
             }
         )
 
+        # Handle events
+        if events is None:
+            events = {}
+        self.events = {'spike': threshold} if threshold else {}
+        self.events.update(events)
+
+        # Handle refractory (your updated logic)
+        if refractory is not None:
+            if isinstance(refractory, (str, Quantity)):
+                refractory = {'spike': refractory}  # Default to spike event
+            elif isinstance(refractory, dict):
+                for event in refractory:
+                    if event not in self.events:
+                        raise ValueError(f"Unknown event '{event}' in refractory dictionary.")
+            else:
+                raise TypeError("refractory must be a string, Quantity, or dictionary")
+        else:
+            refractory = {}
+        self._refractory = refractory
+        
         # add refractoriness
         #: The original equations as specified by the user (i.e. without
         #: the multiplied `int(not_refractory)` term for equations marked as
