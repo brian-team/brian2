@@ -13,7 +13,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.utils.logger import get_logger
 
-__all__ = ["Clock", "defaultclock","EventClock","RegularClock"]
+__all__ = ["Clock", "defaultclock","EventClock"]
 
 logger = get_logger(__name__)
 
@@ -160,7 +160,7 @@ class EventClock(VariableOwner):
         return not self.__lt__(other)
 
 
-class RegularClock(EventClock):
+class Clock(EventClock):
     """
     An object that holds the simulation time and the time step.
 
@@ -180,7 +180,7 @@ class RegularClock(EventClock):
     point values. The value of ``epsilon`` is ``1e-14``.
     """
 
-    def __init__(self, dt, name="regularclock*"):
+    def __init__(self, dt, name="clock*"):
         # We need a name right away because some devices (e.g. cpp_standalone)
         # need a name for the object when creating the variables
         self._dt = float(dt)
@@ -251,6 +251,7 @@ class RegularClock(EventClock):
     def _set_dt_(self, dt_):
         self._old_dt = self._get_dt_()
         self.variables["dt"].set_value(dt_)
+        self._dt=dt_
 
     @check_units(dt=second)
     def _set_dt(self, dt):
@@ -296,11 +297,6 @@ class RegularClock(EventClock):
     #: The relative difference for times (in terms of dt) so that they are
     #: considered identical.
     epsilon_dt = 1e-4
-
-
-class Clock(RegularClock):
-    def __init__(self, dt, name="clock*"):
-        super().__init__(dt, name)
 
 
 class DefaultClockProxy:
