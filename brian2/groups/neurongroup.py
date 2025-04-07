@@ -518,7 +518,7 @@ class NeuronGroup(Group, SpikeSource):
         method_options=None,
         threshold=None,
         reset=None,
-        refractory=False,
+        refractory=None, # Updated to None instead of False
         events=None,
         namespace=None,
         dtype=None,
@@ -576,6 +576,26 @@ class NeuronGroup(Group, SpikeSource):
             }
         )
 
+        # Handle events
+        if events is None:
+            events = {}
+        self.events = {'spike': threshold} if threshold else {}
+        self.events.update(events)
+
+        # Handle refractory 
+        if refractory is not None:
+            if isinstance(refractory, (str, Quantity)):
+                refractory = {'spike': refractory}  
+            elif isinstance(refractory, dict):
+                for event in refractory:
+                    if event not in self.events:
+                        raise ValueError(f"Unknown event '{event}' in refractory dictionary.")
+            else:
+                raise TypeError("refractory must be a string, Quantity, or dictionary")
+        else:
+            refractory = {}
+        self._refractory = refractory
+        
         # add refractoriness
         #: The original equations as specified by the user (i.e. without
         #: the multiplied `int(not_refractory)` term for equations marked as
@@ -836,6 +856,36 @@ class NeuronGroup(Group, SpikeSource):
             else:
                 raise AssertionError(f"Unknown type of equation: {eq.eq_type}")
 
+        # refractory variable setup
+    if 'spike' in self.events:
+        self.variables.add_array('_lastspike', size=self.N, dtype=float, constant=False, value=-1e100)
+
+    for event, refr in self._refractory.items():
+        event_name = event.replace(' ', '_')
+        self.variables.add_array(f'_lastevent_{event_name}', size=self.N, dtype=float, 
+                                constant=False, value=-1e100)
+        
+        if isinstance(refr, Quantity):
+            self.variables.add_array(f'_refractory_until_{event_name}', size=self.N, dtype=float, 
+                                    constant=False, value=-1e100)
+            self.variables.add_subexpression(f'not_refractory_{event_name}', 
+                                             f't >= _refractory_until_{event_name}')
+        elif isinstance(refr, str):
+            self.variables.add_subexpression(f'not_refractory_{event_name}', f'not ({refr})')
+
+        
+        for eq in self.equations.values():
+            if eq.type == DIFFERENTIAL_EQUATION and "unless refractory" in eq.flags:
+                not_refractory_var = self.variables[f'not_refractory_{event_name}']
+                var = self.variables[eq.varname]
+                var.set_conditional_write(not_refractory_var)
+
+    # Events without refractory
+    for event in self.events:
+        event_name = event.replace(' ', '_')
+        if event not in self._refractory:
+            self.variables.add_subexpression(f'not_refractory_{event_name}', 'True')
+            
         # Add the conditional-write attribute for variables with the
         # "unless refractory" flag
         if self._refractory is not False:
