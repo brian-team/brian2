@@ -17,7 +17,7 @@ from collections import Counter, defaultdict, namedtuple
 from collections.abc import Mapping, Sequence
 
 from brian2.core.base import BrianObject, BrianObjectException
-from brian2.core.clocks import Clock, defaultclock
+from brian2.core.clocks import defaultclock
 from brian2.core.names import Nameable
 from brian2.core.namespace import get_local_namespace
 from brian2.core.preferences import BrianPreference, prefs
@@ -1036,16 +1036,12 @@ class Network(Nameable):
 
     def _nextclocks(self):
 
-        minclock = min(self._clocks, key = lambda c: c.variables["t"].get_value().item())
-        
-        curclocks = {
-            clock
-            for clock in self._clocks
-            if clock.same_time(minclock)
-        }
-        
+        minclock = min(self._clocks, key=lambda c: c.variables["t"].get_value().item())
+
+        curclocks = {clock for clock in self._clocks if clock.same_time(minclock)}
+
         return minclock, curclocks
-    
+
     @device_override("network_run")
     @check_units(duration=second, report_period=second)
     def run(
@@ -1184,7 +1180,7 @@ class Network(Nameable):
         active_objects = [obj for obj in all_objects if obj.active]
 
         while running and not self._stopped and not Network._globally_stopped:
-            if not single_clock :
+            if not single_clock:
                 timestep, t = self._clock_variables[clock]
             # update the network time to this clock's time
             self.t_ = t[0]

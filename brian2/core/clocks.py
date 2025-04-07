@@ -13,7 +13,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.utils.logger import get_logger
 
-__all__ = ["Clock", "defaultclock","EventClock"]
+__all__ = ["Clock", "defaultclock", "EventClock"]
 
 logger = get_logger(__name__)
 
@@ -65,10 +65,11 @@ def check_dt(new_dt, old_dt, target_t):
 class ClockArray:
     def __init__(self, clock):
         self.clock = clock
-    
+
     def __getitem__(self, timestep):
         return self.clock._dt * timestep
-    
+
+
 class EventClock(VariableOwner):
     def __init__(self, times, name="eventclock*"):
         Nameable.__init__(self, name=name)
@@ -78,9 +79,10 @@ class EventClock(VariableOwner):
         else:
             self.times = sorted(times)
             if len(self.times) != len(set(self.times)):
-                raise ValueError("The times provided to EventClock must not contain duplicates")
+                raise ValueError(
+                    "The times provided to EventClock must not contain duplicates"
+                )
 
-        
         self.variables.add_array(
             "timestep", size=1, dtype=np.int64, read_only=True, scalar=True
         )
@@ -98,7 +100,7 @@ class EventClock(VariableOwner):
         self.variables.add_constant("N", value=1)
 
         self._enable_group_attributes()
-        
+
         self._i_end = None
         logger.diagnostic(f"Created clock {self.name}")
 
@@ -113,7 +115,7 @@ class EventClock(VariableOwner):
         else:
             self.variables["timestep"].set_value(next_timestep)
             self.variables["t"].set_value(self.times[next_timestep])
-    
+
     @check_units(start=second, end=second)
     def set_interval(self, start, end):
         """
@@ -124,30 +126,33 @@ class EventClock(VariableOwner):
 
             start_idx = np.searchsorted(self.times, float(start))
             end_idx = np.searchsorted(self.times, float(end))
-            
+
             self.variables["timestep"].set_value(start_idx)
             self.variables["t"].set_value(self.times[start_idx])
-            self._i_end = end_idx - 1 
+            self._i_end = end_idx - 1
         else:
 
             pass
-            
+
     def __lt__(self, other):
-        return self.variables["t"].get_value().item() < other.variables["t"].get_value().item()
+        return (
+            self.variables["t"].get_value().item()
+            < other.variables["t"].get_value().item()
+        )
 
     def same_time(self, other):
         t1 = self.variables["t"].get_value().item()
         t2 = other.variables["t"].get_value().item()
 
-        if hasattr(self, 'dt'):
+        if hasattr(self, "dt"):
             dt = self.variables["dt"].get_value().item()
             return abs(t1 - t2) / dt < self.epsilon_dt
-        elif hasattr(other, 'dt'):
+        elif hasattr(other, "dt"):
             dt = other.variables["dt"].get_value().item()
             return abs(t1 - t2) / dt < self.epsilon_dt
         else:
             # Both are pure EventClocks without dt
-            epsilon = 1e-10  
+            epsilon = 1e-10
             return abs(t1 - t2) < epsilon
 
     def __le__(self, other):
@@ -184,7 +189,7 @@ class Clock(EventClock):
         # We need a name right away because some devices (e.g. cpp_standalone)
         # need a name for the object when creating the variables
         self._dt = float(dt)
-        self._old_dt = None  
+        self._old_dt = None
         times = ClockArray(self)
         super().__init__(times, name=name)
         self.variables.add_array(
@@ -251,7 +256,7 @@ class Clock(EventClock):
     def _set_dt_(self, dt_):
         self._old_dt = self._get_dt_()
         self.variables["dt"].set_value(dt_)
-        self._dt=dt_
+        self._dt = dt_
 
     @check_units(dt=second)
     def _set_dt(self, dt):
