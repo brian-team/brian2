@@ -11,8 +11,7 @@ import os
 import platform
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-from distutils.errors import CompileError, DistutilsPlatformError
-
+from setuptools.errors import CompileError, PlatformError as DistutilsPlatformError
 
 try:
     from Cython.Build import cythonize
