@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+      - uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -84,7 +84,7 @@ jobs:
           cat ~/.brian/user_preferences
       - name: Install Python
         id: python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
@@ -102,7 +102,7 @@ jobs:
           echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
 
       - name: restore Cython cache
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         if: ${{ ! matrix.standalone }}
         with:
           key: cython-extensions-${{ matrix.os.image }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
