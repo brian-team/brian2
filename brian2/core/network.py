@@ -484,6 +484,7 @@ class Network(Nameable):
         return self.get_profiling_info()
 
     _globally_stopped = False
+    _globally_running = False
 
     def __getitem__(self, item):
         if not isinstance(item, str):
@@ -1197,6 +1198,7 @@ class Network(Nameable):
 
         active_objects = [obj for obj in all_objects if obj.active]
 
+        Network._globally_running = True
         while running and not self._stopped and not Network._globally_stopped:
             if not single_clock:
                 timestep, t, dt = self._clock_variables[clock]
@@ -1258,6 +1260,7 @@ class Network(Nameable):
                 running = timestep[0] < clock._i_end
 
         end_time = time.time()
+        Network._globally_running = False
         if self._stopped or Network._globally_stopped:
             self.t_ = clock.t_
         else:
@@ -1275,7 +1278,12 @@ class Network(Nameable):
                 obj._check_for_invalid_states()
 
         if report is not None:
-            report_callback((end_time - start_time) * second, 1.0, t_start, duration)
+            report_callback(
+                (end_time - start_time) * second,
+                device._last_run_completed_fraction,
+                t_start,
+                duration,
+            )
         self.after_run()
 
         logger.debug(
