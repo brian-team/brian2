@@ -13,7 +13,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.utils.logger import get_logger
 
-__all__ = ["Clock", "defaultclock"]
+__all__ = ["Clock", "defaultclock", "EventClock"]
 
 logger = get_logger(__name__)
 
@@ -36,7 +36,7 @@ def check_dt(new_dt, old_dt, target_t):
     ------
     ValueError
         If using the new dt value would lead to a difference in the target
-        time of more than `Clock.epsilon_dt` times ``new_dt`` (by default,
+        time of more than Clock.epsilon_dt times `new_dt (by default,
         0.01% of the new dt).
 
     Examples
@@ -62,31 +62,19 @@ def check_dt(new_dt, old_dt, target_t):
         )
 
 
-class Clock(VariableOwner):
-    """
-    An object that holds the simulation time and the time step.
+class ClockArray:
+    def __init__(self, clock):
+        self.clock = clock
 
-    Parameters
-    ----------
-    dt : float
-        The time step of the simulation as a float
-    name : str, optional
-        An explicit name, if not specified gives an automatically generated name
+    def __getitem__(
+        self, timestep
+    ):  # here is also possible to add a check since the only time we need the initial_dt is when setupping t the first call, to avoid any checks in the constructor of eventclock.
+        return self.clock.dt * timestep
 
-    Notes
-    -----
-    Clocks are run in the same `Network.run` iteration if `~Clock.t` is the
-    same. The condition for two
-    clocks to be considered as having the same time is
-    ``abs(t1-t2)<epsilon*abs(t1)``, a standard test for equality of floating
-    point values. The value of ``epsilon`` is ``1e-14``.
-    """
 
-    def __init__(self, dt, name="clock*"):
-        # We need a name right away because some devices (e.g. cpp_standalone)
-        # need a name for the object when creating the variables
+class EventClock(VariableOwner):
+    def __init__(self, times, name="eventclock*"):
         Nameable.__init__(self, name=name)
-        self._old_dt = None
         self.variables = Variables(self)
         self.variables.add_array(
             "timestep", size=1, dtype=np.int64, read_only=True, scalar=True
@@ -99,20 +87,120 @@ class Clock(VariableOwner):
             read_only=True,
             scalar=True,
         )
-        self.variables.add_array(
-            "dt",
-            dimensions=second.dim,
-            size=1,
-            values=float(dt),
-            dtype=np.float64,
-            read_only=True,
-            constant=True,
-            scalar=True,
-        )
+        self.variables["timestep"].set_value(0)
+        if isinstance(times, ClockArray):
+            self.times = times  # Don't sort, don't check for duplicates
+            self.variables.add_array(
+                "dt",
+                dimensions=second.dim,
+                size=1,
+                values=times.clock.initial_dt,
+                dtype=np.float64,
+                read_only=True,
+                constant=True,
+                scalar=True,
+            )
+        else:
+            self.times = sorted(times)
+            if len(self.times) != len(set(self.times)):
+                raise ValueError(
+                    "The times provided to EventClock must not contain duplicates"
+                )
+        self.variables["t"].set_value(self.times[0])
+
         self.variables.add_constant("N", value=1)
+
         self._enable_group_attributes()
-        self.dt = dt
-        logger.diagnostic(f"Created clock {self.name} with dt={self.dt}")
+
+        self._i_end = None
+        logger.diagnostic(f"Created clock {self.name}")
+
+    def advance(self):
+        # Cache the variable object for timestep
+        # Directly compute the next timestep in one step.
+        new_ts = self.variables["timestep"].get_value().item() + 1
+        if self._i_end is not None and new_ts > self._i_end:
+            raise StopIteration("Clock has reached the end of its available times.")
+        # Update the timestep and directly set the new time based on the times lookup.
+        self.variables["timestep"].set_value(new_ts)
+        self.variables["t"].set_value(self.times[new_ts])
+
+    @check_units(start=second, end=second)
+    def set_interval(self, start, end):
+        """
+        Set the start and end time of the simulation.
+        """
+
+        if not isinstance(self.times, ClockArray):
+
+            start_idx = np.searchsorted(self.times, float(start))
+            end_idx = np.searchsorted(self.times, float(end))
+
+            self.variables["timestep"].set_value(start_idx)
+            self.variables["t"].set_value(self.times[start_idx])
+            self._i_end = end_idx - 1
+        else:
+
+            pass
+
+    def __lt__(self, other):
+        return (
+            self.variables["t"].get_value().item()
+            < other.variables["t"].get_value().item()
+        )
+
+    def same_time(self, other):
+        t1 = self.variables["t"].get_value().item()
+        t2 = other.variables["t"].get_value().item()
+
+        if hasattr(self, "dt"):
+            dt = self.variables["dt"].get_value().item()
+            return abs(t1 - t2) / dt < self.epsilon_dt
+        elif hasattr(other, "dt"):
+            dt = other.variables["dt"].get_value().item()
+            return abs(t1 - t2) / dt < self.epsilon_dt
+        else:
+            # Both are pure EventClocks without dt
+            epsilon = 1e-10
+            return abs(t1 - t2) < epsilon
+
+    def __le__(self, other):
+        return self.__lt__(other) or self.__eq__(other)
+
+    def __gt__(self, other):
+        return not self.__le__(other)
+
+    def __ge__(self, other):
+        return not self.__lt__(other)
+
+
+class Clock(EventClock):
+    """
+    An object that holds the simulation time and the time step.
+
+    Parameters
+    ----------
+    dt : float
+        The time step of the simulation as a float
+    name : str, optional
+        An explicit name, if not specified gives an automatically generated name
+
+    Notes
+    -----
+    Clocks are run in the same Network.run iteration if ~Clock.t is the
+    same. The condition for two
+    clocks to be considered as having the same time is
+    `abs(t1-t2)<epsilon*abs(t1), a standard test for equality of floating
+    point values. The value of `epsilon is 1e-14.
+    """
+
+    def __init__(self, dt, name="clock*"):
+        # We need a name right away because some devices (e.g. cpp_standalone)
+        # need a name for the object when creating the variables
+        self.initial_dt = dt
+        self._old_dt = None
+        times = ClockArray(self)
+        super().__init__(times, name=name)
 
     @check_units(t=second)
     def _set_t_update_dt(self, target_t=0 * second):
@@ -128,8 +216,11 @@ class Clock(VariableOwner):
         # Since these attributes are read-only for normal users, we have to
         # update them via the variables object directly
         self.variables["timestep"].set_value(new_timestep)
-        self.variables["t"].set_value(new_timestep * new_dt)
-        logger.diagnostic(f"Setting Clock {self.name} to t={self.t}, dt={self.dt}")
+        self.variables["t"].set_value(self.times[new_timestep])
+        # Use self.variables["t"].get_value().item() and self.variables["dt"].get_value().item() for logging
+        t_value = self.variables["t"].get_value().item()
+        dt_value = self.variables["dt"].get_value().item()
+        logger.diagnostic(f"Setting Clock {self.name} to t={t_value}, dt={dt_value}")
 
     def _calc_timestep(self, target_t):
         """
