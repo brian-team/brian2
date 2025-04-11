@@ -814,9 +814,12 @@ class NeuronGroup(Group, SpikeSource):
 
         # Standard variables always present
         for event in events:
-            self.variables.add_array(
-                f"_{event}space", size=self._N + 1, dtype=np.int32, constant=False
-            )
+            if event == 'spike':
+                self.variables.add_array("_spikespace", size=self._N + 1, dtype=np.int32, constant=False)
+            else:
+                eventspace_name = f"_{event.replace(' ', '_')}space"
+                self.variables.add_array(eventspace_name, size=self._N + 1, dtype=np.int32, constant=False)
+                
         # Add the special variable "i" which can be used to refer to the neuron index
         self.variables.add_arange("i", size=self._N, constant=True, read_only=True)
         # Add the clock variables
@@ -856,42 +859,48 @@ class NeuronGroup(Group, SpikeSource):
             else:
                 raise AssertionError(f"Unknown type of equation: {eq.eq_type}")
 
-        # refractory variable setup
+    # refractory variable setup for spike event
     if 'spike' in self.events:
-        self.variables.add_array('_lastspike', size=self.N, dtype=float, constant=False, value=-1e100)
-
-    for event, refr in self._refractory.items():
-        event_name = event.replace(' ', '_')
-        self.variables.add_array(f'_lastevent_{event_name}', size=self.N, dtype=float, 
-                                constant=False, value=-1e100)
-        
-        if isinstance(refr, Quantity):
-            self.variables.add_array(f'_refractory_until_{event_name}', size=self.N, dtype=float, 
-                                    constant=False, value=-1e100)
-            self.variables.add_subexpression(f'not_refractory_{event_name}', 
-                                             f't >= _refractory_until_{event_name}')
-        elif isinstance(refr, str):
-            self.variables.add_subexpression(f'not_refractory_{event_name}', f'not ({refr})')
-
-        
-        for eq in self.equations.values():
-            if eq.type == DIFFERENTIAL_EQUATION and "unless refractory" in eq.flags:
-                not_refractory_var = self.variables[f'not_refractory_{event_name}']
-                var = self.variables[eq.varname]
-                var.set_conditional_write(not_refractory_var)
+            self.variables.add_array('lastspike', size=self._N, dtype=float, constant=False, value=-1e100)
+            if self._refractory.get('spike', False):
+                self.variables.add_subexpression('not_refractory', 'True')
+    # For other events        
+    for event in self.events:
+            if event != 'spike' and event in self._refractory:
+                event_name = event.replace(' ', '_')
+                self.variables.add_array(f'_lastevent_{event_name}', size=self._N, dtype=float, 
+                                         constant=False, value=-1e100)
+                refr = self._refractory[event]
+                if isinstance(refr, Quantity):
+                    self.variables.add_array(f'_refractory_until_{event_name}', size=self._N, dtype=float, 
+                                             constant=False, value=-1e100)
+                    self.variables.add_subexpression(f'not_refractory_{event_name}', 
+                                                     f't >= _refractory_until_{event_name}')
+                elif isinstance(refr, str):
+                    self.variables.add_subexpression(f'not_refractory_{event_name}', f'not ({refr})')
+                    
 
     # Events without refractory
     for event in self.events:
-        event_name = event.replace(' ', '_')
-        if event not in self._refractory:
-            self.variables.add_subexpression(f'not_refractory_{event_name}', 'True')
-            
-        # Add the conditional-write attribute for variables with the
-        # "unless refractory" flag
-        if self._refractory is not False:
-            for eq in self.equations.values():
-                if eq.type == DIFFERENTIAL_EQUATION and "unless refractory" in eq.flags:
-                    not_refractory_var = self.variables["not_refractory"]
+            event_name = event.replace(' ', '_')
+            if event not in self._refractory:
+                self.variables.add_subexpression(f'not_refractory_{event_name}', 'True')
+
+    if 'spike' in self.events and 'spike' in self._refractory:
+            refr = self._refractory['spike']
+            if isinstance(refr, Quantity):
+                self.variables.add_array('_refractory_until', size=self._N, dtype=float, 
+                                         constant=False, value=-1e100)
+                self.variables.add_subexpression('not_refractory', 't >= _refractory_until')
+            elif isinstance(refr, str):
+                self.variables.add_subexpression('not_refractory', f'not ({refr})')
+                
+    for eq in self.equations.values():
+          if eq.type == DIFFERENTIAL_EQUATION and "unless refractory" in eq.flags:
+             for event in self.events:
+                 event_name = event.replace(' ', '_')
+                 not_refractory_var = self.variables.get(f'not_refractory_{event_name}', None)
+                 if not_refractory_var:
                     var = self.variables[eq.varname]
                     var.set_conditional_write(not_refractory_var)
 
