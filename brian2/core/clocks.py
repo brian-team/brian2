@@ -354,7 +354,7 @@ class Clock(BaseClock):
         """
         new_i = np.int64(np.round(target_t / self.dt_))
         new_t = new_i * self.dt_
-        if new_t == target_t or np.abs(new_t - target_t) / self.dt_ <= self.epsilon_dt:
+        if new_t == target_t or np.abs(new_t - target_t) / self.dt_ <= Clock.epsilon_dt:
             new_timestep = new_i
         else:
             new_timestep = np.int64(np.ceil(target_t / self.dt_))
@@ -437,16 +437,18 @@ class Clock(BaseClock):
 
         if isinstance(other, Clock):
             dt = min(self.dt_, other.dt_)
-            return abs(t1 - t2) / dt < self.epsilon_dt
+            return abs(t1 - t2) / dt < Clock.epsilon_dt
         else:
 
-            return abs(t1 - t2) / self.dt_ < self.epsilon_dt
+            return abs(t1 - t2) / self.dt_ < Clock.epsilon_dt
 
     def __le__(self, other):
         return self.__lt__(other) or self.same_time(other)
 
     def __ge__(self, other):
         return self.__gt__(other) or self.same_time(other)
+
+    epsilon_dt = 1e-4
 
 
 class DefaultClockProxy:
