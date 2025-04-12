@@ -62,18 +62,18 @@ def check_dt(new_dt, old_dt, target_t):
         )
 
 
-
 class BaseClock(VariableOwner):
     """
     Base class for all clocks in the simulator.
-    
+
     Parameters
     ----------
     name : str, optional
         An explicit name, if not specified gives an automatically generated name
     """
+
     epsilon = 1e-10
-    
+
     def __init__(self, name):
         Nameable.__init__(self, name=name)
         self.variables = Variables(self)
@@ -89,21 +89,21 @@ class BaseClock(VariableOwner):
             scalar=True,
         )
         self.variables["timestep"].set_value(0)
-        
+
         self.variables.add_constant("N", value=1)
-        
+
         self._enable_group_attributes()
-        
+
         self._i_end = None
         logger.diagnostic(f"Created clock {self.name}")
-    
+
     def advance(self):
         """
         Advance the clock to the next time step.
         Must be implemented by subclasses.
         """
         raise NotImplementedError("This method must be implemented by subclasses")
-    
+
     @check_units(start=second, end=second)
     def set_interval(self, start, end):
         """
@@ -111,34 +111,34 @@ class BaseClock(VariableOwner):
         Must be implemented by subclasses.
         """
         raise NotImplementedError("This method must be implemented by subclasses")
-    
+
     def __lt__(self, other):
         return (
             self.variables["t"].get_value().item()
             < other.variables["t"].get_value().item()
         )
-    
+
     def __gt__(self, other):
         return (
             self.variables["t"].get_value().item()
             > other.variables["t"].get_value().item()
         )
-    
+
     def __le__(self, other):
         return self.__lt__(other) or self.same_time(other)
-    
+
     def __ge__(self, other):
         return self.__gt__(other) or self.same_time(other)
-    
+
     def same_time(self, other):
         """
         Check if two clocks are at the same time (within epsilon).
-        
+
         Parameters
         ----------
         other : BaseClock
             The other clock to compare with
-        
+
         Returns
         -------
         bool
@@ -146,15 +146,14 @@ class BaseClock(VariableOwner):
         """
         t1 = self.variables["t"].get_value().item()
         t2 = other.variables["t"].get_value().item()
-        
+
         return abs(t1 - t2) < self.epsilon
 
-    
 
 class EventClock(BaseClock):
     """
     A clock that advances through a predefined sequence of times.
-    
+
     Parameters
     ----------
     times : array-like
@@ -162,20 +161,20 @@ class EventClock(BaseClock):
     name : str, optional
         An explicit name, if not specified gives an automatically generated name
     """
-    
+
     def __init__(self, times, name="eventclock*"):
         super().__init__(name=name)
-        
+
         self.times = sorted(times)
         if len(self.times) != len(set(self.times)):
             raise ValueError(
                 "The times provided to EventClock must not contain duplicates"
             )
-        
+
         self.variables["t"].set_value(self.times[0])
-        
+
         logger.diagnostic(f"Created event clock {self.name}")
-    
+
     def advance(self):
         """
         Advance to the next time in the sequence.
@@ -183,15 +182,15 @@ class EventClock(BaseClock):
         new_ts = self.variables["timestep"].get_value().item() + 1
         if self._i_end is not None and new_ts > self._i_end:
             raise StopIteration("Clock has reached the end of its available times.")
-        
+
         self.variables["timestep"].set_value(new_ts)
         self.variables["t"].set_value(self.times[new_ts])
-    
+
     @check_units(start=second, end=second)
     def set_interval(self, start, end):
         """
         Set the start and end time of the simulation.
-        
+
         Parameters
         ----------
         start : second
@@ -201,43 +200,44 @@ class EventClock(BaseClock):
         """
         start = float(start)
         end = float(end)
-        
+
         start_idx = np.searchsorted(self.times, start)
         end_idx = np.searchsorted(self.times, end)
-        
+
         self.variables["timestep"].set_value(start_idx)
         self.variables["t"].set_value(self.times[start_idx])
-        
+
         self._i_end = end_idx - 1
-    
+
     def __getitem__(self, timestep):
         """
         Get the time at a specific timestep.
-        
+
         Parameters
         ----------
         timestep : int
             The timestep to get the time for
-            
+
         Returns
         -------
         float
             The time at the specified timestep
         """
         return self.times[timestep]
+
     def same_time(self, other):
         """
         Check if two clocks are at the same time.
-        
+
         For comparisons with Clock objects, uses the Clock's dt and epsilon_dt.
         For comparisons with other EventClocks or BaseClock objects, uses the base
         epsilon value.
-        
+
         Parameters
         ----------
         other : BaseClock
             The other clock to compare with
-        
+
         Returns
         -------
         bool
@@ -245,16 +245,16 @@ class EventClock(BaseClock):
         """
         t1 = self.variables["t"].get_value().item()
         t2 = other.variables["t"].get_value().item()
-        
+
         if isinstance(other, Clock):
             return abs(t1 - t2) / other.dt_ < Clock.epsilon_dt
         else:
 
             return abs(t1 - t2) < self.epsilon
-        
+
     def __le__(self, other):
         return self.__lt__(other) or self.same_time(other)
-    
+
     def __ge__(self, other):
         return self.__gt__(other) or self.same_time(other)
 
@@ -281,9 +281,9 @@ class Clock(BaseClock):
 
     def __init__(self, dt, name="clock*"):
         super().__init__(name=name)
-        
+
         self._old_dt = None
-        
+
         self.variables.add_array(
             "dt",
             dimensions=second.dim,
@@ -294,11 +294,11 @@ class Clock(BaseClock):
             constant=True,
             scalar=True,
         )
-        
+
         self.dt = dt
-        
+
         logger.diagnostic(f"Created clock {self.name} with dt={self.dt}")
-    
+
     def __repr__(self):
         return f"Clock(dt={self.dt!r}, name={self.name!r})"
 
@@ -309,23 +309,23 @@ class Clock(BaseClock):
         new_ts = self.variables["timestep"].get_value().item() + 1
         if self._i_end is not None and new_ts > self._i_end:
             raise StopIteration("Clock has reached the end of its available times.")
-        
+
         self.variables["timestep"].set_value(new_ts)
         new_t = new_ts * self.dt_
         self.variables["t"].set_value(new_t)
-    
+
     def _get_dt_(self):
         return self.variables["dt"].get_value().item()
-    
+
     @check_units(dt_=1)
     def _set_dt_(self, dt_):
         self._old_dt = self._get_dt_()
         self.variables["dt"].set_value(dt_)
-    
+
     @check_units(dt=second)
     def _set_dt(self, dt):
         self._set_dt_(float(dt))
-    
+
     dt = property(
         fget=lambda self: Quantity(self.dt_, dim=second.dim),
         fset=_set_dt,
@@ -336,17 +336,17 @@ class Clock(BaseClock):
         fset=_set_dt_,
         doc="""The time step of the simulation as a float (in seconds)""",
     )
-    
+
     def _calc_timestep(self, target_t):
         """
         Calculate the integer time step for the target time. If it cannot be
         exactly represented (up to epsilon_dt of dt), round up.
-        
+
         Parameters
         ----------
         target_t : float
             The target time in seconds
-            
+
         Returns
         -------
         timestep : int
@@ -359,12 +359,12 @@ class Clock(BaseClock):
         else:
             new_timestep = np.int64(np.ceil(target_t / self.dt_))
         return new_timestep
-    
+
     @check_units(target_t=second)
     def _set_t_update_dt(self, target_t=0 * second):
         """
         Set the time to a specific value, checking if dt has changed.
-        
+
         Parameters
         ----------
         target_t : second
@@ -373,28 +373,28 @@ class Clock(BaseClock):
         new_dt = self.dt_
         old_dt = self._old_dt
         target_t = float(target_t)
-        
+
         if old_dt is not None and new_dt != old_dt:
             self._old_dt = None
             check_dt(new_dt, old_dt, target_t)
-        
+
         new_timestep = self._calc_timestep(target_t)
-        
+
         self.variables["timestep"].set_value(new_timestep)
         self.variables["t"].set_value(new_timestep * self.dt_)
-        set_t=self.variables["t"].get_value().item()
+        set_t = self.variables["t"].get_value().item()
 
         logger.diagnostic(f"Setting Clock {self.name} to t={set_t}, dt={new_dt}")
-    
+
     @check_units(start=second, end=second)
     def set_interval(self, start, end):
         """
         Set the start and end time of the simulation.
-        
+
         Sets the start and end value of the clock precisely if
         possible (using epsilon_dt) or rounding up if not. This assures that
         multiple calls to `Network.run` will not re-run the same time step.
-        
+
         Parameters
         ----------
         start : second
@@ -421,12 +421,12 @@ class Clock(BaseClock):
     def same_time(self, other):
         """
         Check if two clocks are at the same time (within epsilon_dt * dt).
-        
+
         Parameters
         ----------
         other : BaseClock
             The other clock to compare with
-            
+
         Returns
         -------
         bool
@@ -434,17 +434,17 @@ class Clock(BaseClock):
         """
         t1 = self.variables["t"].get_value().item()
         t2 = other.variables["t"].get_value().item()
-        
+
         if isinstance(other, Clock):
             dt = min(self.dt_, other.dt_)
             return abs(t1 - t2) / dt < self.epsilon_dt
         else:
 
             return abs(t1 - t2) / self.dt_ < self.epsilon_dt
-        
+
     def __le__(self, other):
         return self.__lt__(other) or self.same_time(other)
-    
+
     def __ge__(self, other):
         return self.__gt__(other) or self.same_time(other)
 
