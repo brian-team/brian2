@@ -72,7 +72,7 @@ class BaseClock(VariableOwner):
         An explicit name, if not specified gives an automatically generated name
     """
 
-    epsilon = 1e-10
+    epsilon = 1e-14
 
     def __init__(self, name):
         Nameable.__init__(self, name=name)
@@ -247,9 +247,9 @@ class EventClock(BaseClock):
         t2 = other.variables["t"].get_value().item()
 
         if isinstance(other, Clock):
-            return abs(t1 - t2) / other.dt_ < Clock.epsilon_dt
+            return abs(t1 - t2) / other.dt_ < other.epsilon_dt
         else:
-
+            # Both are pure EventClocks without dt.
             return abs(t1 - t2) < self.epsilon
 
     def __le__(self, other):
@@ -278,6 +278,10 @@ class Clock(BaseClock):
     `abs(t1-t2)<epsilon*abs(t1), a standard test for equality of floating
     point values. The value of `epsilon is 1e-14.
     """
+
+    #: The relative difference for times (in terms of dt) so that they are
+    #: considered identical.
+    epsilon_dt = 1e-4
 
     def __init__(self, dt, name="clock*"):
         super().__init__(name=name)
@@ -436,19 +440,17 @@ class Clock(BaseClock):
         t2 = other.variables["t"].get_value().item()
 
         if isinstance(other, Clock):
+            # Both are pure Clocks with dt so we  take the min.
             dt = min(self.dt_, other.dt_)
-            return abs(t1 - t2) / dt < Clock.epsilon_dt
+            return abs(t1 - t2) / dt < self.epsilon_dt
         else:
-
-            return abs(t1 - t2) / self.dt_ < Clock.epsilon_dt
+            return abs(t1 - t2) / self.dt_ < self.epsilon_dt
 
     def __le__(self, other):
         return self.__lt__(other) or self.same_time(other)
 
     def __ge__(self, other):
         return self.__gt__(other) or self.same_time(other)
-
-    epsilon_dt = 1e-4
 
 
 class DefaultClockProxy:

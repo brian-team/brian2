@@ -57,6 +57,29 @@ def test_set_interval_warning():
     assert logs[0][1].endswith("many_timesteps")
 
 
+@pytest.mark.codegen_independent
+def test_event_clock():
+    times = [0.0, 0.1, 0.2, 0.3]
+    event_clock = EventClock(times)
+
+    assert_equal(event_clock.variables["t"].get_value(), 0.0)
+    assert_equal(event_clock[1], 0.1)
+
+    event_clock.advance()
+    assert_equal(event_clock.variables["timestep"].get_value(), 1)
+    assert_equal(event_clock.variables["t"].get_value(), 0.1)
+
+    event_clock.set_interval(0.1 * second, 0.3 * second)
+    assert_equal(event_clock.variables["timestep"].get_value(), 1)
+    assert_equal(event_clock.variables["t"].get_value(), 0.1)
+
+    # Simulate reaching the end
+    event_clock.advance()
+    event_clock.advance()
+    with pytest.raises(StopIteration):
+        event_clock.advance()
+
+
 if __name__ == "__main__":
     test_clock_attributes()
     restore_initial_state()
