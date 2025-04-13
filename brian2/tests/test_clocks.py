@@ -87,3 +87,4 @@ if __name__ == "__main__":
     restore_initial_state()
     test_defaultclock()
     test_set_interval_warning()
+    test_event_clock()
