@@ -1019,7 +1019,7 @@ class Network(Nameable):
                     "creating a new one."
                 )
 
-        clocknames = ", ".join(f"{obj.name} (dt={obj.dt})" for obj in self._clocks)
+        clocknames = ", ".join(f"{obj.name}" for obj in self._clocks)
         logger.debug(
             f"Network '{self.name}' uses {len(self._clocks)} clocks: {clocknames}",
             "before_run",

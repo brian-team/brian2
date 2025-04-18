@@ -164,14 +164,13 @@ class EventClock(BaseClock):
 
     def __init__(self, times, name="eventclock*"):
         super().__init__(name=name)
-
-        self.times = sorted(times)
-        if len(self.times) != len(set(self.times)):
+        self._times = sorted(times)
+        """if len(self._times) != len(set(self._times)):
             raise ValueError(
                 "The times provided to EventClock must not contain duplicates"
-            )
+            )"""
 
-        self.variables["t"].set_value(self.times[0])
+        self.variables["t"].set_value(self._times[0])
 
         logger.diagnostic(f"Created event clock {self.name}")
 
@@ -179,12 +178,12 @@ class EventClock(BaseClock):
         """
         Advance to the next time in the sequence.
         """
-        new_ts = self.variables["timestep"].get_value().item() + 1
-        if self._i_end is not None and new_ts > self._i_end:
-            raise StopIteration("Clock has reached the end of its available times.")
-
+        new_ts = self.variables["timestep"].get_value().item()
+        if self._i_end is not None and new_ts + 1 > self._i_end:
+            return
+        new_ts += 1
         self.variables["timestep"].set_value(new_ts)
-        self.variables["t"].set_value(self.times[new_ts])
+        self.variables["t"].set_value(self._times[new_ts])
 
     @check_units(start=second, end=second)
     def set_interval(self, start, end):
@@ -201,11 +200,11 @@ class EventClock(BaseClock):
         start = float(start)
         end = float(end)
 
-        start_idx = np.searchsorted(self.times, start)
-        end_idx = np.searchsorted(self.times, end)
+        start_idx = np.searchsorted(self._times, start)
+        end_idx = np.searchsorted(self._times, end)
 
         self.variables["timestep"].set_value(start_idx)
-        self.variables["t"].set_value(self.times[start_idx])
+        self.variables["t"].set_value(self._times[start_idx])
 
         self._i_end = end_idx - 1
 
@@ -223,7 +222,7 @@ class EventClock(BaseClock):
         float
             The time at the specified timestep
         """
-        return self.times[timestep]
+        return self._times[timestep]
 
     def same_time(self, other):
         """

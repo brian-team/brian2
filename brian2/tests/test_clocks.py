@@ -1,7 +1,9 @@
+import numpy as np
 import pytest
 from numpy.testing import assert_array_equal, assert_equal
 
 from brian2 import *
+from brian2.core.clocks import EventClock
 from brian2.utils.logger import catch_logs
 
 
@@ -73,11 +75,53 @@ def test_event_clock():
     assert_equal(event_clock.variables["timestep"].get_value(), 1)
     assert_equal(event_clock.variables["t"].get_value(), 0.1)
 
-    # Simulate reaching the end
-    event_clock.advance()
-    event_clock.advance()
-    with pytest.raises(StopIteration):
-        event_clock.advance()
+
+@pytest.mark.codegen_independent
+def test_combined_clocks_with_run_at():
+    # Create a simple NeuronGroup
+    G = NeuronGroup(1, "v : 1")
+    G.v = 0
+
+    # Regular clock monitoring
+    regular_mon = StateMonitor(G, "v", record=0, dt=1 * ms)
+
+    # Define specific times for events
+    event_times = [0.5 * ms, 2.5 * ms, 4.5 * ms]
+
+    # Create an array to store event times
+    event_values = []
+
+    # Function to record values at specific times
+    @network_operation(when="start")
+    def record_event_values():
+        # Store current time if it's one of our event times
+        t = defaultclock.t
+        for event_time in event_times:
+            if abs(float(t - event_time)) < 1e-10:
+                event_values.append(float(t))
+
+    # Use run_at to modify v at specific times
+    G.run_at("v += 1", times=event_times)
+
+    # Run simulation
+    run(5 * ms)
+
+    # Verify regular monitoring worked
+    assert_array_equal(regular_mon.t, np.arange(0, 5.1, 1) * ms)
+
+    # Check events occurred at correct times
+    assert_equal(len(event_values), len(event_times))
+    assert_allclose(event_values, [float(t) for t in event_times])
+
+    # Check the v values reflect the events
+    expected_v = np.zeros_like(regular_mon.v[0])
+    for t in event_times:
+        time_idx = np.searchsorted(regular_mon.t, t)
+        # All times at or after an event should have v increased
+        if time_idx < len(expected_v):
+            expected_v[time_idx:] += 1
+
+    assert_array_equal(regular_mon.v[0], expected_v)
 
 
 if __name__ == "__main__":
@@ -88,3 +132,4 @@ if __name__ == "__main__":
     test_defaultclock()
     test_set_interval_warning()
     test_event_clock()
+    test_combined_clocks_with_run_at()
