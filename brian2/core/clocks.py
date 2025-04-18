@@ -165,10 +165,18 @@ class EventClock(BaseClock):
     def __init__(self, times, name="eventclock*"):
         super().__init__(name=name)
         self._times = sorted(times)
-        """if len(self._times) != len(set(self._times)):
+        seen = set()
+        duplicates = []
+        for time in self._times:
+            if float(time) in seen:
+                duplicates.append(time)
+            else:
+                seen.add(float(time))
+        if duplicates:
             raise ValueError(
-                "The times provided to EventClock must not contain duplicates"
-            )"""
+                "The times provided to EventClock must not contain duplicates. "
+                f"Duplicates found: {duplicates}"
+            )
 
         self.variables["t"].set_value(self._times[0])
 
