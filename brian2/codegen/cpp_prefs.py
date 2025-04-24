@@ -17,15 +17,6 @@ import struct
 import subprocess
 import sys
 import tempfile
-
-try:
-    from setuptools.msvc import msvc14_get_vc_env as _get_vc_env
-except ImportError:  # Setuptools 0.74.0 removed this function
-    try:
-        from distutils.compilers.C.msvc import _get_vc_env
-    except ImportError:  # Things keep moving around in distutils/setuptools
-        from distutils._msvccompiler import _get_vc_env
-
 from distutils.ccompiler import get_default_compiler
 
 from brian2.core.preferences import BrianPreference, prefs
@@ -342,6 +333,14 @@ _msvc_env = None
 
 
 def get_msvc_env():
+    try:
+        from setuptools.msvc import msvc14_get_vc_env as _get_vc_env
+    except ImportError:  # Setuptools 0.74.0 removed this function
+        try:
+            from distutils.compilers.C.msvc import _get_vc_env
+        except ImportError:  # Things keep moving around in distutils/setuptools
+            from distutils._msvccompiler import _get_vc_env
+
     global _msvc_env
     arch_name = prefs["codegen.cpp.msvc_architecture"]
     if arch_name == "":
