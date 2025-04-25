@@ -1186,9 +1186,9 @@ class Group(VariableOwner, BrianObject):
         # reference to the group providing the context for the operation, i.e.
         # the subgroup instead of the parent group. See github issue #922
 
-        return self.run_custom_clock(code, clock, when, order, name, codeobj_class)
+        return self.run_on_clock(code, clock, when, order, name, codeobj_class)
 
-    def run_custom_clock(
+    def run_on_clock(
         self,
         code,
         clock=None,
@@ -1293,7 +1293,7 @@ class Group(VariableOwner, BrianObject):
         from brian2.core.clocks import EventClock
 
         clock = EventClock(times)
-        return self.run_custom_clock(code, clock, when, order, name, codeobj_class)
+        return self.run_on_clock(code, clock, when, order, name, codeobj_class)
 
     def _check_for_invalid_states(self):
         """

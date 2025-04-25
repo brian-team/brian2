@@ -164,6 +164,15 @@ class EventClock(BaseClock):
 
     def __init__(self, times, name="eventclock*"):
         super().__init__(name=name)
+        times = Quantity(times)
+        from brian2.units.fundamentalunits import fail_for_dimension_mismatch
+
+        fail_for_dimension_mismatch(
+            times,
+            second.dim,
+            error_message="'times' must have dimensions of time, got %(dim)s",
+            dim=times,
+        )
         self._times = sorted(times)
         seen = set()
         duplicates = []
