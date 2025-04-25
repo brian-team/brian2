@@ -78,7 +78,6 @@ def test_event_clock():
 
 @pytest.mark.codegen_independent
 def test_combined_clocks_with_run_at():
-    defaultclock.dt = 1 * ms
 
     # Reset updates
     NameLister.updates[:] = []
