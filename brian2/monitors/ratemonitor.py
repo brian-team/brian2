@@ -4,8 +4,10 @@ Module defining `PopulationRateMonitor`.
 
 import numpy as np
 
+from brian2.core.names import Nameable
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
+from brian2.groups.subgroup import Subgroup
 from brian2.units.allunits import hertz, second
 from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.utils.logger import get_logger
@@ -46,10 +48,32 @@ class PopulationRateMonitor(Group, CodeRunner):
     def __init__(
         self, source, name="ratemonitor*", codeobj_class=None, dtype=np.float64
     ):
+        Nameable.__init__(self, name=name)
         #: The group we are recording from
         self.source = source
 
         self.codeobj_class = codeobj_class
+
+        self.variables = Variables(self)
+
+        # Handle subgroups correctly
+        subgroup = isinstance(source, Subgroup)
+        contiguous = not subgroup or source.contiguous
+        self.variables.add_arange("_source_idx", size=len(source))
+        needed_variables = {}
+        if subgroup:
+            if contiguous:
+                self.variables.add_constant("_source_start", source.start)
+                self.variables.add_constant("_source_stop", source.stop)
+                needed_variables = {"_source_start", "_source_stop"}
+            else:
+                self.variables.add_reference(
+                    "_source_indices", source, "_sub_idx", index="_source_idx"
+                )
+                needed_variables = {"_source_indices"}
+        self.variables.add_dynamic_array(
+            "rate", size=0, dimensions=hertz.dim, read_only=True, dtype=dtype
+        )
         CodeRunner.__init__(
             self,
             group=self,
@@ -59,20 +83,14 @@ class PopulationRateMonitor(Group, CodeRunner):
             when="end",
             order=0,
             name=name,
+            needed_variables=needed_variables,
+            template_kwds={
+                "subgroup": subgroup,
+                "contiguous": contiguous,
+                "source_N": source.N,
+            },
         )
-
-        self.add_dependency(source)
-
-        self.variables = Variables(self)
-        # Handle subgroups correctly
-        start = getattr(source, "start", 0)
-        stop = getattr(source, "stop", len(source))
-        self.variables.add_constant("_source_start", start)
-        self.variables.add_constant("_source_stop", stop)
-        self.variables.add_reference("_spikespace", source)
-        self.variables.add_dynamic_array(
-            "rate", size=0, dimensions=hertz.dim, read_only=True, dtype=dtype
-        )
+        self.variables.create_clock_variables(self._clock, prefix="_clock_")
         self.variables.add_dynamic_array(
             "t",
             size=0,
@@ -80,11 +98,12 @@ class PopulationRateMonitor(Group, CodeRunner):
             read_only=True,
             dtype=self._clock.variables["t"].dtype,
         )
-        self.variables.add_reference("_num_source_neurons", source, "N")
         self.variables.add_array(
             "N", dtype=np.int32, size=1, scalar=True, read_only=True
         )
-        self.variables.create_clock_variables(self._clock, prefix="_clock_")
+        self.variables.add_reference("_spikespace", source)
+
+        self.add_dependency(source)
         self._enable_group_attributes()
 
     def resize(self, new_size):
