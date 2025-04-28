@@ -1169,13 +1169,16 @@ class Group(VariableOwner, BrianObject):
         obj : `CodeRunner`
             A reference to the object that will be run.
         """
+        from brian2.core.clocks import Clock  # Avoid circular import
+
         if name is None:
             names = [o.name for o in self.contained_objects]
             name = find_name(f"{self.name}_run_regularly*", names)
 
         if dt is None and clock is None:
             clock = self._clock
-
+        elif clock is None:
+            clock = Clock(dt=dt)
         # Subgroups are normally not included in their parent's
         # contained_objects list, since there's no need to include them in the
         # network (they don't perform any computation on their own). However,
