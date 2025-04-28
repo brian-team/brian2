@@ -1,5 +1,6 @@
 import pytest
 from numpy.testing import assert_equal
+from packaging.version import parse as parse_version
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete
@@ -93,9 +94,9 @@ def test_version():
     version = brian2.__version__
     assert version.startswith("2.")
 
-    # Check that the version tuple is correct
+    # Check that the version tuple is correct (ignore any local part)
     version_tuple = brian2.__version_tuple__
-    assert version_tuple == tuple(int(i) for i in version.split(".")[:4])
+    assert version_tuple == parse_version(version).release
 
 
 if __name__ == "__main__":
