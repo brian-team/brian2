@@ -224,7 +224,7 @@ class EventClock(BaseClock):
         self.variables["timestep"].set_value(start_idx)
         self.variables["t"].set_value(self._times[start_idx])
 
-        self._i_end = end_idx - 1
+        self._i_end = end_idx
 
     def __getitem__(self, timestep):
         """
