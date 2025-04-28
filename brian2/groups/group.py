@@ -1179,15 +1179,6 @@ class Group(VariableOwner, BrianObject):
             clock = self._clock
         elif clock is None:
             clock = Clock(dt=dt)
-        # Subgroups are normally not included in their parent's
-        # contained_objects list, since there's no need to include them in the
-        # network (they don't perform any computation on their own). However,
-        # if a subgroup declares a `run_regularly` operation, then we want to
-        # include this operation automatically, i.e. with the parent group
-        # (adding just the run_regularly operation to the parent group's
-        # contained objects would no be enough, since the CodeObject needs a
-        # reference to the group providing the context for the operation, i.e.
-        # the subgroup instead of the parent group. See github issue #922
 
         return self.run_on_clock(code, clock, when, order, name, codeobj_class)
 
@@ -1233,6 +1224,15 @@ class Group(VariableOwner, BrianObject):
             names = [o.name for o in self.contained_objects]
             name = find_name(f"{self.name}_run_custom*", names)
 
+        # Subgroups are normally not included in their parent's
+        # contained_objects list, since there's no need to include them in the
+        # network (they don't perform any computation on their own). However,
+        # if a subgroup declares a `run_regularly` operation, then we want to
+        # include this operation automatically, i.e. with the parent group
+        # (adding just the run_regularly operation to the parent group's
+        # contained objects would no be enough, since the CodeObject needs a
+        # reference to the group providing the context for the operation, i.e.
+        # the subgroup instead of the parent group. See github issue #922
         source_group = getattr(self, "source", None)
         if source_group is not None:
             if self not in source_group.contained_objects:
