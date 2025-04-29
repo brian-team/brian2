@@ -94,9 +94,21 @@ def test_version():
     version = brian2.__version__
     assert version.startswith("2.")
 
-    # Check that the version tuple is correct (ignore any local part)
+    # Check that the version tuple is correct
     version_tuple = brian2.__version_tuple__
-    assert version_tuple == parse_version(version).release
+
+    expected = []
+    for v in version.split("."):
+        try:
+            expected.append(int(v))
+        except ValueError:
+            expected.append(v)
+
+    # Note that setuptools_scm >= v8.2.1 include a post suffix in the
+    # version tutple, but earlier versions don't
+    assert version_tuple == tuple(expected) or version_tuple == tuple(
+        t for t in expected if isinstance(t, int)
+    )
 
 
 if __name__ == "__main__":
