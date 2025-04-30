@@ -24,6 +24,7 @@ from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
 from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
+from brian2.core.network import Network
 from brian2.core.preferences import BrianPreference, prefs
 from brian2.core.variables import (
     ArrayVariable,
@@ -1287,15 +1288,19 @@ class CPPStandaloneDevice(Device):
                 stdout = None
             if os.name == "nt":
                 start_time = time.time()
+                Network._globally_running = True
                 x = subprocess.call(["main"] + run_args, stdout=stdout)
                 self.timers["run_binary"] = time.time() - start_time
+                Network._globally_running = False
             else:
                 run_cmd = prefs.devices.cpp_standalone.run_cmd_unix
                 if isinstance(run_cmd, str):
                     run_cmd = [run_cmd]
                 start_time = time.time()
+                Network._globally_running = True
                 x = subprocess.call(run_cmd + run_args, stdout=stdout)
                 self.timers["run_binary"] = time.time() - start_time
+                Network._globally_running = False
             if stdout is not None:
                 stdout.close()
             if x:

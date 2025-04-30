@@ -3,6 +3,7 @@ Brian 2
 """
 
 import logging
+import signal
 
 
 def _check_dependencies():
@@ -225,3 +226,37 @@ def _check_caches():
 
 
 _check_caches()
+
+
+class _InterruptHandler:
+    """
+    Class to turn a Ctrl+C interruption (SIGINT signal) into a `stop` signal for
+    a running simulation (i.e., finish simulating the current time step and then
+    stop). This handler is activated by default, but can be switched off by
+    setting the `core.stop_on_keyboard_interrupt` preference to ``False``.
+    Note that this will only handle interruptions during a `Network.run`,
+    interrupting at any other time will raise a `KeyboardInterrupt` in the
+    usual way. In case that finishing the current time step takes a long time
+    (or hangs for some reason), interrupting with Ctrl+C a second time will
+    force the usual interrupt, regardless of the preference setting.
+    """
+
+    def __init__(self, previous_handler):
+        self.previous_handler = previous_handler
+
+    def __call__(self, signalnum, stack_frame):
+        if (
+            not prefs.core.stop_on_keyboard_interrupt
+            or not Network._globally_running
+            or Network._globally_stopped
+        ):
+            self.previous_handler(signalnum, stack_frame)
+        else:
+            logging.getLogger("brian2").warning(
+                "Simulation stop requested. Press Ctrl+C again to interrupt."
+            )
+            Network._globally_stopped = True
+
+
+_int_handler = _InterruptHandler(signal.getsignal(signal.SIGINT))
+signal.signal(signal.SIGINT, _int_handler)

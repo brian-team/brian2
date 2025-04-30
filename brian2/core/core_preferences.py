@@ -43,6 +43,14 @@ prefs.register_preferences(
         a warning (``False``).
         """,
     ),
+    stop_on_keyboard_interrupt=BrianPreference(
+        default=True,
+        docs="""
+        Whether to "gracefully" stop a simulation after pressing Ctrl+C (defaults to
+        ``True``). Note that pressing Ctrl+C a second time will force the usual
+        interruption mechanism.
+        """,
+    ),
 )
 
 prefs.register_preferences(
