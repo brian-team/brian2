@@ -4,6 +4,7 @@ from numpy.testing import assert_array_equal, assert_equal
 from brian2 import *
 from brian2.core.clocks import EventClock
 from brian2.tests.test_network import NameLister
+from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.utils.logger import catch_logs
 
 
@@ -61,19 +62,31 @@ def test_set_interval_warning():
 
 @pytest.mark.codegen_independent
 def test_event_clock():
-    times = [0.0 * ms, 0.1 * ms, 0.2 * ms, 0.3 * ms]
+    times = [0.0 * ms, 0.3 * ms, 0.5 * ms, 0.6 * ms]
     event_clock = EventClock(times)
 
-    assert_equal(event_clock.variables["t"].get_value(), 0.0)
-    assert_equal(event_clock[1], 0.1 * ms)
+    for i in range(4):
+        print(event_clock[i])
+
+    assert_equal(event_clock.variables["t"].get_value(), 0.0 * ms)
+    assert_equal(event_clock[1], 0.3 * ms)
 
     event_clock.advance()
     assert_equal(event_clock.variables["timestep"].get_value(), 1)
-    assert_equal(event_clock.variables["t"].get_value(), 0.0001)
+    assert_equal(event_clock.variables["t"].get_value(), 0.0003)
 
-    event_clock.set_interval(0.1 * ms, 0.3 * ms)
+    event_clock.set_interval(0.3 * ms, 0.6 * ms)
     assert_equal(event_clock.variables["timestep"].get_value(), 1)
-    assert_equal(event_clock.variables["t"].get_value(), 0.0001)
+    assert_equal(event_clock.variables["t"].get_value(), 0.0003)
+    event_clock.advance()
+    event_clock.advance()
+
+    with pytest.raises(StopIteration):
+        event_clock.advance()
+
+    invalid_times = [0.0 * volt, 0.5 * volt]
+    with pytest.raises(DimensionMismatchError) as excinfo:
+        EventClock(invalid_times)
 
 
 @pytest.mark.codegen_independent
@@ -98,7 +111,6 @@ def test_combined_clocks_with_run_at():
 
     # Expected output: "x" at 0,1,2,3,4ms = 5 times
     # "y" at 0.5, 2.5, 4.0ms = 3 times
-    # We don't care about exact timing here, just the sequence
     expected_x_count = 5
     expected_y_count = 3
 

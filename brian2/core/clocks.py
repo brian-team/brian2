@@ -4,6 +4,8 @@ Clocks for the simulator.
 
 __docformat__ = "restructuredtext en"
 
+from abc import ABC, abstractmethod
+
 import numpy as np
 
 from brian2.core.names import Nameable
@@ -37,7 +39,7 @@ def check_dt(new_dt, old_dt, target_t):
     ------
     ValueError
         If using the new dt value would lead to a difference in the target
-        time of more than Clock.epsilon_dt times `new_dt (by default,
+        time of more than `Clock.epsilon_dt` times ``new_dt`` (by default,
         0.01% of the new dt).
 
     Examples
@@ -63,9 +65,12 @@ def check_dt(new_dt, old_dt, target_t):
         )
 
 
-class BaseClock(VariableOwner):
+class BaseClock(VariableOwner, ABC):
     """
-    Base class for all clocks in the simulator.
+    Abstract base class for all clocks in the simulator.
+
+    This class should never be instantiated directly, use one of the subclasses
+    like Clock or EventClock instead.
 
     Parameters
     ----------
@@ -76,6 +81,8 @@ class BaseClock(VariableOwner):
     epsilon = 1e-14
 
     def __init__(self, name):
+        # We need a name right away because some devices (e.g. cpp_standalone)
+        # need a name for the object when creating the variables
         Nameable.__init__(self, name=name)
         self.variables = Variables(self)
         self.variables.add_array(
@@ -98,20 +105,22 @@ class BaseClock(VariableOwner):
         self._i_end = None
         logger.diagnostic(f"Created clock {self.name}")
 
+    @abstractmethod
     def advance(self):
         """
         Advance the clock to the next time step.
         Must be implemented by subclasses.
         """
-        raise NotImplementedError("This method must be implemented by subclasses")
+        pass
 
+    @abstractmethod
     @check_units(start=second, end=second)
     def set_interval(self, start, end):
         """
         Set the start and end time of the simulation.
         Must be implemented by subclasses.
         """
-        raise NotImplementedError("This method must be implemented by subclasses")
+        pass
 
     def __lt__(self, other):
         return (
@@ -131,6 +140,7 @@ class BaseClock(VariableOwner):
     def __ge__(self, other):
         return self.__gt__(other) or self.same_time(other)
 
+    @abstractmethod
     def same_time(self, other):
         """
         Check if two clocks are at the same time (within epsilon).
@@ -145,10 +155,7 @@ class BaseClock(VariableOwner):
         bool
             True if both clocks are at the same time
         """
-        t1 = self.variables["t"].get_value().item()
-        t2 = other.variables["t"].get_value().item()
-
-        return abs(t1 - t2) < self.epsilon
+        pass
 
 
 class EventClock(BaseClock):
@@ -171,7 +178,7 @@ class EventClock(BaseClock):
         fail_for_dimension_mismatch(
             times,
             second.dim,
-            error_message="'times' must have dimensions of time, got %(dim)s",
+            error_message="'times' must have dimensions of time",
             dim=times,
         )
         self._times = sorted(times)
@@ -187,7 +194,16 @@ class EventClock(BaseClock):
                 "The times provided to EventClock must not contain duplicates. "
                 f"Duplicates found: {duplicates}"
             )
+
         self._times.append(np.inf * ms)
+        self.variables.add_array(
+            "times",
+            dimensions=second.dim,
+            size=len(self._times),
+            values=self._times,
+            dtype=np.float64,
+            read_only=True,
+        )
         self.variables["t"].set_value(self._times[0])
 
         logger.diagnostic(f"Created event clock {self.name}")
@@ -198,7 +214,9 @@ class EventClock(BaseClock):
         """
         new_ts = self.variables["timestep"].get_value().item()
         if self._i_end is not None and new_ts + 1 > self._i_end:
-            return
+            raise StopIteration(
+                "EventClock has reached the end of its available times."
+            )
         new_ts += 1
         self.variables["timestep"].set_value(new_ts)
         self.variables["t"].set_value(self._times[new_ts])
@@ -246,8 +264,8 @@ class EventClock(BaseClock):
         """
         Check if two clocks are at the same time.
 
-        For comparisons with Clock objects, uses the Clock's dt and epsilon_dt.
-        For comparisons with other EventClocks or BaseClock objects, uses the base
+        For comparisons with `Clock` objects, uses the Clock's dt and epsilon_dt.
+        For comparisons with other `EventClock` or `BaseClock` objects, uses the base
         epsilon value.
 
         Parameters
@@ -289,11 +307,11 @@ class Clock(BaseClock):
 
     Notes
     -----
-    Clocks are run in the same Network.run iteration if ~Clock.t is the
+    Clocks are run in the same `Network.run` iteration if `~Clock.t` is the
     same. The condition for two
     clocks to be considered as having the same time is
-    `abs(t1-t2)<epsilon*abs(t1), a standard test for equality of floating
-    point values. The value of `epsilon is 1e-14.
+    ``abs(t1-t2)<epsilon*abs(t1)``, a standard test for equality of floating
+    point values. The value of ``epsilon`` is ``1e-14``.
     """
 
     #: The relative difference for times (in terms of dt) so that they are
