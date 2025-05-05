@@ -36,7 +36,7 @@ void set_from_command_line(const std::vector<std::string> args)
 }
 
 void _int_handler(int signal_num) {
-	if (Network::_globally_running and !Network::_globally_stopped) {
+	if (Network::_globally_running && !Network::_globally_stopped) {
 		Network::_globally_stopped = true;
 	} else {
 		std::signal(signal_num, SIG_DFL);
