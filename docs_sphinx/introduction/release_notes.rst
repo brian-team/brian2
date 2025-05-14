@@ -1,25 +1,49 @@
 Release notes
 =============
 
-Next release
-------------
+Brian 2.9.0
+-----------
+
+New features
+~~~~~~~~~~~~
+- Simulations now stop "gracefully" if you interrupt them with Ctrl+C (or e.g. the interrupt button in a Jupyter notebook). This means that the simulation finishes the current time step and stops, making it possible to access the results for inspection (:issue:`1621`).
+- The :ref:`linked_variables` mechanism is now more powerful and supports linked variables that use another variable for indexing, and linked variables in `Synapses` (:issue:`1584`).
 
 Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- A more powerful :ref:`linked_variables` mechanism, now also supporting linked variables that use another variable for indexing, and linked variables in
-  `Synapses` (:issue:`1584`).
+- Improve C99 check on UNIX to avoid spurious errors when a non-standard compiler is used (e.g. via Anaconda) (:issue:`1618`).
+- Raise an error when `~Network.run` is called with a negative duration (:issue:`1608`). Thanks to Palash Chitnavis for contributing this fix.
+- Fix compatibility with recent setuptools versions (:issue:`1590`, :issue:`1622`)
+- Raise an AttributeError instead of a KeyError, when accessing non-existing attributes of the preferences object (:issue:`1629`). This prevents an error on Google Collab when the Debugger is active. Thanks to forum user ``@SaeedF36`` for making us aware of this issue.
 
 Infrastructure and documentation improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - A new example :doc:`../examples/synapses.homeostatic_stdp_at_inhibitory_synapes`, demonstrating a homoestatic modulation of STDP, based on a population firing rate.
   Thanks to Paul Brodersen for contributing this example (:issue:`1581`).
+- A new example :doc:`../examples/network_operation_stop`, demonstrating the use of `NetworkOperation` to stop a simulation when a certain condition is met. Thanks to Sagar Shahari for
+  contributing this example (:issue:`1604`).
+- GitHub Actions are now pinned by hash to avoid security issues (:issue:`1607`).
+- A new GitHub Action to update ``CITATION.cff`` and ``README.md`` with the latest Zenodo and Software Heritage links, so that they are always up-to-date with the latest release (:issue:`1574`).
 
 Contributions
 ~~~~~~~~~~~~~
 GitHub code, documentation, and issue contributions (ordered by the number of
 contributions):
 
-TODO
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Samuele De Cristofaro (`@De-Cri <https://github.com/De-Cri>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Sagar Shahari (`@maverick4code <https://github.com/maverick4code>`_)
+* `@mahipalimkar <https://github.com/mahipalimkar>`_
+* Mrigesh Thakur (`@Legend101Zz <https://github.com/Legend101Zz>`_)
+* Md Khurshid (`@alikhere <https://github.com/alikhere>`_)
+* Palash Chitnavis (`@PalashChitnavis <https://github.com/PalashChitnavis>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* `@clinssen <https://github.com/clinssen>`_
+* shriyaise725 (`@shriya7ise <https://github.com/shriya7ise>`_)
+* Ankur Sinha (`@sanjayankur31 <https://github.com/sanjayankur31>`_)
+* Hong Zhu (`@Jasmine969 <https://github.com/Jasmine969>`_)
+* 火焰青年 (`@zhengrenjie <https://github.com/zhengrenjie>`_)
 
 
 Brian 2.8.0.1-2.8.0.4
