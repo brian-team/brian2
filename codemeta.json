@@ -398,8 +398,26 @@
       "givenName": "Guy",
       "familyName": "Singer",
       "identifier": "https://github.com/guy-singer"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Samuele De",
+      "familyName": "Cristofaro",
+      "identifier": "https://github.com/Samuele-DeCristofaro"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Sagar",
+      "familyName": "Shahari",
+      "identifier": "https://github.com/maverick4code"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Palash",
+      "familyName": "Chitnavis",
+      "identifier": "https://github.com/PalashChitnavis"
     }
   ],
-  "version": "2.8.0.4",
-  "softwareVersion": "2.8.0.4"
+  "version": "2.9.0",
+  "softwareVersion": "2.9.0"
 }
