@@ -2,6 +2,9 @@ import pytest
 from numpy.testing import assert_array_equal, assert_equal
 
 from brian2 import *
+from brian2.core.clocks import EventClock
+from brian2.tests.test_network import NameLister
+from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.utils.logger import catch_logs
 
 
@@ -57,6 +60,74 @@ def test_set_interval_warning():
     assert logs[0][1].endswith("many_timesteps")
 
 
+@pytest.mark.codegen_independent
+def test_event_clock():
+    times = [0.0 * ms, 0.3 * ms, 0.5 * ms, 0.6 * ms]
+    event_clock = EventClock(times)
+
+    for i in range(4):
+        print(event_clock[i])
+
+    assert_equal(event_clock.variables["t"].get_value(), 0.0 * ms)
+    assert_equal(event_clock[1], 0.3 * ms)
+
+    event_clock.advance()
+    assert_equal(event_clock.variables["timestep"].get_value(), 1)
+    assert_equal(event_clock.variables["t"].get_value(), 0.0003)
+
+    event_clock.set_interval(0.3 * ms, 0.6 * ms)
+    assert_equal(event_clock.variables["timestep"].get_value(), 1)
+    assert_equal(event_clock.variables["t"].get_value(), 0.0003)
+    event_clock.advance()
+    event_clock.advance()
+
+    with pytest.raises(StopIteration):
+        event_clock.advance()
+
+    invalid_times = [0.0 * volt, 0.5 * volt]
+    with pytest.raises(DimensionMismatchError) as excinfo:
+        EventClock(invalid_times)
+
+
+@pytest.mark.codegen_independent
+def test_combined_clocks_with_run_at():
+
+    # Reset updates
+    NameLister.updates[:] = []
+
+    # Regular NameLister at 1ms interval
+    regular_lister = NameLister(name="x", dt=1 * ms, order=0)
+
+    # Event NameLister at specific times
+    event_times = [0.5 * ms, 2.5 * ms, 4 * ms]
+    event_lister = NameLister(name="y", clock=EventClock(times=event_times), order=1)
+
+    # Create and run the network
+    net = Network(regular_lister, event_lister)
+    net.run(5 * ms)
+
+    # Get update string
+    updates = "".join(NameLister.updates)
+
+    # Expected output: "x" at 0,1,2,3,4ms = 5 times
+    # "y" at 0.5, 2.5, 4.0ms = 3 times
+    expected_x_count = 5
+    expected_y_count = 3
+
+    x_count = updates.count("x")
+    y_count = updates.count("y")
+
+    assert (
+        x_count == expected_x_count
+    ), f"Expected {expected_x_count} x's, got {x_count}"
+    assert (
+        y_count == expected_y_count
+    ), f"Expected {expected_y_count} y's, got {y_count}"
+
+    # Optional: check full string if needed
+    print(updates)
+
+
 if __name__ == "__main__":
     test_clock_attributes()
     restore_initial_state()
@@ -64,3 +135,5 @@ if __name__ == "__main__":
     restore_initial_state()
     test_defaultclock()
     test_set_interval_warning()
+    test_event_clock()
+    test_combined_clocks_with_run_at()
