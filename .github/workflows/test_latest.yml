@@ -43,7 +43,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install GSL
-        uses: johnwason/vcpkg-action@ff71808de10afc0e3160fd079353c69ba0d7dd60 # v7.0.0
+        uses: johnwason/vcpkg-action@caa1c94fbb94d8b023a0cc93edf10cd3791349a7 # v7.0.1
         id: vcpkg
         with:
           pkgs: gsl
@@ -110,7 +110,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install GSL
-        uses: johnwason/vcpkg-action@ff71808de10afc0e3160fd079353c69ba0d7dd60 # v7.0.0
+        uses: johnwason/vcpkg-action@caa1c94fbb94d8b023a0cc93edf10cd3791349a7 # v7.0.1
         id: vcpkg
         with:
           pkgs: gsl
