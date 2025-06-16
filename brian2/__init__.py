@@ -92,7 +92,6 @@ __docformat__ = "restructuredtext en"
 from brian2.only import *
 from brian2.only import test
 
-
 # Initialize the logging system
 BrianLogger.initialize()
 logger = get_logger(__name__)
