@@ -375,9 +375,24 @@ class SynapticPathway(CodeRunner, Group):
             # SynapticPathway.push_spike
             eventspace_name = f"_{self.event}space"
             template_kwds = {
-                "eventspace_variable": self.source.variables[eventspace_name]
+                # Standard Brian2 variable for spike event data
+                # This provides access to the spike array in the generated Cython code
+                "eventspace_variable": self.source.variables[eventspace_name],
+                # PERFORMANCE HACK: Raw C++ object memory address
+                # Instead of passing the Python SpikeQueue object (which would require
+                # Python method calls), we pass the raw memory address of the underlying
+                # C++ CSpikeQueue object. This allows the template to:
+                #
+                # 1. Cast the address back to CSpikeQueue*
+                # 2. Call C++ methods directly without Python overhead
+                # 3. Bypass all Python method resolution, argument checking, etc.
+                #
+                # The template will receive something like: queue_ptr = 105553147185984
+                # and can then do: <CSpikeQueue*>105553147185984 to get the C++ object back
+                "queue_ptr": self.queue.getptr(),  # Returns <long>self.thisptr
             }
             needed_variables = [eventspace_name]
+
             self._pushspikes_codeobj = create_runner_codeobj(
                 self,
                 "",  # no code
