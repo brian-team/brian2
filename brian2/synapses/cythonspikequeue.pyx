@@ -54,6 +54,20 @@ cdef class SpikeQueue:
     def _full_state(self):
         return self.thisptr._full_state()
 
+    def getptr(self):
+        """
+        Returns the raw memory address of the underlying C++ CSpikeQueue object.
+
+        This is used to pass the queue directly into Cython templates for fast,
+        low-overhead access—bypassing Python calls entirely.
+
+        1. self.thisptr is a C++ pointer (CSpikeQueue*) managed by Cython
+        2. <long> cast converts the pointer to a Python integer (memory address)
+        3. The returned address can be cast back to CSpikeQueue* in templates
+        4. Templates then call C++ methods directly without Python involvement
+        """
+        return <long>self.thisptr
+
     cdef object __weakref__  # Allows weak references to the SpikeQueue
 
     def _restore_from_full_state(self, state):
@@ -80,7 +94,7 @@ cdef class SpikeQueue:
                                  <int32_t*>sources.data,
                                  sources.shape[0], dt)
 
-    def push(self, np.ndarray[int32_t, ndim=1, mode='c'] spikes):
+    cpdef push(self, np.ndarray[int32_t, ndim=1, mode='c'] spikes):
         self.thisptr.push(<int32_t*>spikes.data, spikes.shape[0])
 
     def peek(self):
