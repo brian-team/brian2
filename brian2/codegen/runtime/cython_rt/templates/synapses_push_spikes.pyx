@@ -16,7 +16,7 @@ cdef extern from "cspikequeue.cpp":
 # so we first cast to void* to ensure proper pointer alignment.
 cdef void* _void_ptr = <void*>{{queue_ptr}}
 # Step 2: Now we cast it to specific C++ class pointer ...
-cdef CSpikeQueue* _queue_ptr = <CSpikeQueue*>{{queue_ptr}}
+cdef CSpikeQueue* _queue_ptr = <CSpikeQueue*>_void_ptr
 
 {% endblock %}
 
