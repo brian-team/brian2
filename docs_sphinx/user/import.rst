@@ -86,5 +86,5 @@ package needs to be installed or updated. For example::
 **Legacy configurations:**
 
 Older versions of Brian2 included runtime dependency version checking controlled
-by the ``core.outdated_dependency_error`` preference. This feature has been
+by the `core.outdated_dependency_error` preference. This feature has been
 removed in favor of relying on package managers for dependency resolution.
