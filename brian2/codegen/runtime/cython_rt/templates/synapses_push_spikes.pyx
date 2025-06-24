@@ -1,6 +1,8 @@
 {% extends 'common_group.pyx' %}
 
 {% block template_support_code %}
+from libc.stdint cimport uintptr_t
+
 # We declare minimal C++ interface here - only methods we actually want to use
 # This avoids importing the full SpikeQueue wrapper and its dependencies
 cdef extern from "cspikequeue.cpp":
@@ -20,7 +22,7 @@ cdef extern from "cspikequeue.cpp":
 
     # POINTER RESURRECTION: Now we convert memory address back to usable C++ object
     # So as we get the queue pointer from runtime namespace ...
-    cdef int64_t queue_address = queue_object_ptr
+    cdef uintptr_t queue_address = queue_object_ptr
     # Step 1: Cast raw integer address (from Python) to a generic void pointer.
     # Direct casting to specific C++ types is unsafe from Python objects,
     # so we first cast to void* to ensure proper pointer alignment.

@@ -9,6 +9,7 @@ from libcpp.string cimport string
 import cython
 from cython.operator import dereference
 from cython.operator cimport dereference
+from cpython.pycapsule cimport PyCapsule_New, PyCapsule_GetPointer
 
 cimport numpy as np
 import numpy as np
@@ -62,11 +63,11 @@ cdef class SpikeQueue:
         low-overhead access—bypassing Python calls entirely.
 
         1. self.thisptr is a C++ pointer (CSpikeQueue*) managed by Cython
-        2. <long> cast converts the pointer to a Python integer (memory address)
+        2. <uintptr_t> cast converts the pointer to a platform-appropriate integer
         3. The returned address can be cast back to CSpikeQueue* in templates
         4. Templates then call C++ methods directly without Python involvement
         """
-        return <long>self.thisptr
+        return <uintptr_t>self.thisptr
 
     cdef object __weakref__  # Allows weak references to the SpikeQueue
 
