@@ -378,20 +378,25 @@ class SynapticPathway(CodeRunner, Group):
                 # Standard Brian2 variable for spike event data
                 # This provides access to the spike array in the generated Cython code
                 "eventspace_variable": self.source.variables[eventspace_name],
-                # PERFORMANCE HACK: Raw C++ object memory address
-                # Instead of passing the Python SpikeQueue object (which would require
-                # Python method calls), we pass the raw memory address of the underlying
-                # C++ CSpikeQueue object. This allows the template to:
-                #
-                # 1. Cast the address back to CSpikeQueue*
-                # 2. Call C++ methods directly without Python overhead
-                # 3. Bypass all Python method resolution, argument checking, etc.
-                #
-                # The template will receive something like: queue_ptr = 105553147185984
-                # and can then do: <CSpikeQueue*>105553147185984 to get the C++ object back
-                "queue_ptr": self.queue.getptr(),  # Returns <long>self.thisptr
             }
-            needed_variables = [eventspace_name]
+            # ==================================================
+            #
+            # Instead of passing the pointer via template_kwds (compile-time), we add it
+            # as a runtime constant. This approach has several advantages:
+            #
+            # 1. CACHING PRESERVATION: Template content stays constant, allowing Brian2's
+            #    caching mechanism to reuse compiled .so files across runs
+            #
+            # 2. RUNTIME FLEXIBILITY: Pointer value can change between runs without
+            #    triggering expensive recompilation
+            #
+            # 3. PERFORMANCE MAINTAINED: Template still gets direct C++ access via
+            #    runtime namespace lookup (minimal overhead)
+            self.variables.add_constant(
+                "queue_object_ptr",
+                self.queue.getptr(),  # Raw C++ object memory address
+            )
+            needed_variables = [eventspace_name, "queue_object_ptr"]
 
             self._pushspikes_codeobj = create_runner_codeobj(
                 self,
