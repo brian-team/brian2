@@ -67,6 +67,11 @@ if fname is not None:
     if fname == pyx_fname:
         extensions = cythonize(extensions)
 else:
+    if FAIL_ON_ERROR:
+        raise RuntimeError('Cython SpikeQueue compilation is required but failed')
+    else:
+        sys.stderr.write('WARNING: Cython SpikeQueue compilation failed. '
+                        'This may cause runtime errors.\n')
     extensions = []
 
 
