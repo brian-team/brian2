@@ -3,7 +3,7 @@ import pytest
 from numpy.testing import assert_equal
 
 from brian2.memory.dynamicarray import DynamicArray1D
-from brian2.synapses.spikequeue import SpikeQueue
+from brian2.synapses.cythonspikequeue import SpikeQueue
 from brian2.units.stdunits import ms
 
 

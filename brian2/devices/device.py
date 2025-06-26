@@ -547,17 +547,16 @@ class RuntimeDevice(Device):
         self.arrays[var][:] = arr
 
     def spike_queue(self, source_start, source_end):
-        # Use the C++ version of the SpikeQueue when available
         try:
             from brian2.synapses.cythonspikequeue import SpikeQueue
 
             logger.diagnostic("Using the C++ SpikeQueue", once=True)
-        except ImportError:
-            from brian2.synapses.spikequeue import SpikeQueue
-
-            logger.diagnostic("Using the Python SpikeQueue", once=True)
-
-        return SpikeQueue(source_start=source_start, source_end=source_end)
+            return SpikeQueue(source_start=source_start, source_end=source_end)
+        except ImportError as e:
+            raise ImportError(
+                "The C++/Cython SpikeQueue is required but not available. "
+                "Please ensure Cython is installed and the extension was built properly."
+            ) from e
 
     def seed(self, seed=None):
         """
