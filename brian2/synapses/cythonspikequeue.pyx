@@ -5,12 +5,11 @@
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp.string cimport string
-
+from libc.stdint cimport uintptr_t
 import cython
 from cython.operator import dereference
 from cython.operator cimport dereference
-from libc.stdint cimport uintptr_t
-
+from cpython.pycapsule cimport PyCapsule_New, PyCapsule_GetPointer
 
 cimport numpy as np
 import numpy as np
@@ -69,6 +68,9 @@ cdef class SpikeQueue:
         4. Templates then call C++ methods directly without Python involvement
         """
         return <uintptr_t>self.thisptr
+
+    def get_capsule(self):
+        return PyCapsule_New(<void*>self.thisptr, "CSpikeQueue", NULL)
 
     cdef object __weakref__  # Allows weak references to the SpikeQueue
 
