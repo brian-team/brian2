@@ -223,7 +223,7 @@ class SynapticPathway(CodeRunner, Group):
 
         if objname is None:
             objname = prepost
-        print("CodeRunner.__init__", code, synapses)
+
         CodeRunner.__init__(
             self,
             synapses,
@@ -416,7 +416,7 @@ class SynapticPathway(CodeRunner, Group):
 
     def initialise_queue(self):
         self.eventspace = self.source.variables[self.eventspace_name].get_value()
-        print("self.eventspace", self.eventspace)
+
         n_synapses = len(self.synapses)
         if n_synapses == 0 and not self.synapses._connect_called:
             raise TypeError(
@@ -898,11 +898,11 @@ class Synapses(Group):
             if not isinstance(multisynaptic_index, str):
                 raise TypeError("multisynaptic_index argument has to be a string")
             model = model + Equations(f"{multisynaptic_index} : integer")
-            print("multisynaptic_index", model)
+
         # Separate subexpressions depending whether they are considered to be
         # constant over a time step or not
         model, constant_over_dt = extract_constant_subexpressions(model)
-        print("constant_over_dt", model)
+
         # Separate the equations into event-driven equations,
         # continuously updated equations and summed variable updates
         event_driven = []
@@ -940,7 +940,7 @@ class Synapses(Group):
                     event_driven.append(single_equation)
         # Get the dependencies of all equations
         dependencies = model.dependencies
-        print("dependencies", dependencies)
+
         # Check whether there are dependencies between summed
         # variables/clocked-driven equations and event-driven variables
         for eq_name, deps in dependencies.items():
@@ -984,7 +984,7 @@ class Synapses(Group):
                 # Register the array with the `SynapticItemMapping` object so
                 # it gets automatically resized
                 self.register_variable(var)
-        print("registered", self._registered_variables)
+
         # Support 2d indexing
         self._indices = SynapticIndexing(self)
 
@@ -1051,7 +1051,7 @@ class Synapses(Group):
 
         #: Performs numerical integration step
         self.state_updater = None
-        print("pathways", self._pathways)
+
         # We only need a state update if we have differential equations
         if len(self.equations.diff_eq_names):
             self.state_updater = StateUpdater(
@@ -1132,7 +1132,7 @@ class Synapses(Group):
             )
             self.summed_updaters[varname] = updater
             self.contained_objects.append(updater)
-        print("variables", (var for var in self.variables))
+
         # Activate name attribute access
         self._enable_group_attributes()
 

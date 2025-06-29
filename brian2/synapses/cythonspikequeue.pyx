@@ -98,7 +98,7 @@ cdef class SpikeQueue:
                                  <int32_t*>sources.data,
                                  sources.shape[0], dt)
 
-    cpdef push(self, np.ndarray[int32_t, ndim=1, mode='c'] spikes):
+    def push(self, np.ndarray[int32_t, ndim=1, mode='c'] spikes):
         self.thisptr.push(<int32_t*>spikes.data, spikes.shape[0])
 
     def peek(self):
