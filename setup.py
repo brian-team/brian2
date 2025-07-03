@@ -59,7 +59,6 @@ def require_cython_extension(module_path, module_name, additional_sources=None, 
                 f"Cython source {pyx_file} found but Cython is not available. "
                 "Install Cython or provide pre-generated .cpp file."
             )
-        print(f"✓ Cythonizing source file: {pyx_file}")
         sources = [pyx_file] + additional_sources
         needs_cythonize = True
 
