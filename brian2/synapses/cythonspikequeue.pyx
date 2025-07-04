@@ -5,7 +5,6 @@
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp.string cimport string
-from libc.stdint cimport uintptr_t
 import cython
 from cython.operator import dereference
 from cython.operator cimport dereference
