@@ -327,6 +327,23 @@ class SynapticPathway(CodeRunner, Group):
         #: The `SpikeQueue`
         self.queue = get_device().spike_queue(self.source.start, self.source.stop)
         self.variables.add_object("_queue", self.queue)
+        # ==================================================
+        #
+        # Inject C++ pointer to our CSpikeQueue class(_queue_capsule) as a runtime constant,wrapped in a PyCapsule (a safe Python container for C pointers).
+        # rather than baking it into the template at compile time.
+        #
+        # 1. CACHING PRESERVATION: Template content stays constant, allowing Brian2's
+        #    caching mechanism to reuse compiled .so files across runs
+        #
+        # 2. RUNTIME FLEXIBILITY: Pointer value can change between runs without
+        #    triggering expensive recompilation
+        #
+        # 3. PERFORMANCE MAINTAINED: Template still gets direct C++ access via
+        #    runtime namespace lookup (minimal overhead)
+        self.variables.add_object(
+            "_queue_capsule",
+            self.queue.get_capsule(),  # Wrapped C++ pointer in a PyCapsule
+        )
 
         self._enable_group_attributes()
 
@@ -375,9 +392,12 @@ class SynapticPathway(CodeRunner, Group):
             # SynapticPathway.push_spike
             eventspace_name = f"_{self.event}space"
             template_kwds = {
-                "eventspace_variable": self.source.variables[eventspace_name]
+                # Standard Brian2 variable for spike event data
+                # This provides access to the spike array in the generated Cython code
+                "eventspace_variable": self.source.variables[eventspace_name],
             }
             needed_variables = [eventspace_name]
+
             self._pushspikes_codeobj = create_runner_codeobj(
                 self,
                 "",  # no code
@@ -396,6 +416,7 @@ class SynapticPathway(CodeRunner, Group):
 
     def initialise_queue(self):
         self.eventspace = self.source.variables[self.eventspace_name].get_value()
+
         n_synapses = len(self.synapses)
         if n_synapses == 0 and not self.synapses._connect_called:
             raise TypeError(
@@ -881,6 +902,7 @@ class Synapses(Group):
         # Separate subexpressions depending whether they are considered to be
         # constant over a time step or not
         model, constant_over_dt = extract_constant_subexpressions(model)
+
         # Separate the equations into event-driven equations,
         # continuously updated equations and summed variable updates
         event_driven = []
@@ -918,6 +940,7 @@ class Synapses(Group):
                     event_driven.append(single_equation)
         # Get the dependencies of all equations
         dependencies = model.dependencies
+
         # Check whether there are dependencies between summed
         # variables/clocked-driven equations and event-driven variables
         for eq_name, deps in dependencies.items():
