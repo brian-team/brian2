@@ -8,7 +8,7 @@ from libcpp.string cimport string
 import cython
 from cython.operator import dereference
 from cython.operator cimport dereference
-from cpython.pycapsule cimport PyCapsule_New, PyCapsule_GetPointer
+from cpython.pycapsule cimport PyCapsule_New
 
 cimport numpy as np
 import numpy as np
