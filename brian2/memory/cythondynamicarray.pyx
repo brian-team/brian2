@@ -1,475 +1,348 @@
-# cython: language_level=3
+# cython: boundscheck=False, wraparound=False, nonecheck=False, language_level=3
 # distutils: language = c++
-# distutils: sources = brian2/memory/cpp_standalone/cdynamicarray.cpp
+# distutils: include_dirs = brian2/devices/cpp_standalone/brianlib
+# # distutils: extra_compile_args = -std=c++11
 
-from libcpp.vector cimport vector
-from libcpp.pair cimport pair
-from libcpp cimport bool
-from libc.string cimport memcpy
-import cython
-from cython.operator cimport dereference
-cimport numpy as np
 import numpy as np
+cimport numpy as cnp
+cimport cython
+from cythondynamicarray cimport DynamicArray1D, DynamicArray2D
+from libc.string cimport memset
+from cython cimport view
 
-np.import_array()
+cnp.import_array()
 
 
-ctypedef fused scalar_type:
-    np.float32_t
-    np.float64_t
-    np.int32_t
-    np.int64_t
-    np.int8_t
-    np.uint8_t
-    np.uint32_t
-    np.uint64_t
-
-# External C++ class declarations
-cdef extern from "cdynamicarray.h":
-    cdef cppclass CDynamicArray[T]:
-        CDynamicArray(vector[size_t] shape, double factor) except +
-        CDynamicArray(size_t size, double factor) except +
-        T* data()
-        vector[size_t] shape()
-        vector[size_t] strides()
-        size_t ndim()
+cdef extern from "dynamic_array.h"
+    cdef cppclass DynamicArray1D[T]:
+        DynamicArray1D(size_t,double) except +
+        void resize(size_t) except +
+        void shrink_to_fit()
+        T& operator[](size_t)
+        T* get_data_ptr()
         size_t size()
-        void resize(vector[size_t] new_shape)
-        void resize_1d(size_t new_size)
-        void shrink(vector[size_t] new_shape)
-        void get_slice(T* output, vector[pair[int, int]] slices)
-        void set_slice(T* input, vector[pair[int, int]] slices)
+        size_t capacity()
 
-    cdef cppclass CDynamicArray1D[T]:
-        CDynamicArray1D(size_t size, double factor) except +
-        T* data()
-        size_t size()
-        void resize(size_t new_size)
-        void shrink(size_t new_size)
+    cdef cppclass DynamicArray2D[T]:
+        size_t n  # rows
+        size_t m  # cols
+        DynamicArray2D(size_t, size_t, double) except +
+        DynamicArray2D(int, int) except + # Legacy constructor
+        void resize(size_t, size_t) except +
+        void resize(int, int) except + # Legacy method
+        void resize() except +
+        void shrink_to_fit()
+        T& operator()(size_t, size_t)
+        T& operator()(int, int)
+        T* get_data_ptr()
+        size_t rows()
+        size_t cols()
+        size_t stride()
 
-# Base class for dynamic arrays
-cdef class DynamicArrayBase:
-    cdef readonly np.dtype dtype
-    cdef readonly tuple shape_tuple
-    cdef readonly int ndim
 
-    def __init__(self, shape, dtype):
+# Fused type for numeric types
+ctypedef fused numeric:
+    double
+    float
+    int
+    long
+    cython.bint
+
+# We have to define a mapping for numpy dtypes to our class
+cdef dict NUMPY_TYPE_MAP = {
+    np.float64: cnp.NPY_DOUBLE,
+    np.float32: cnp.NPY_FLOAT,
+    np.int32: cnp.NPY_INT32,
+    np.int64: cnp.NPY_INT64,
+    np.bool_: cnp.NPY_BOOL
+}
+
+
+cdef class DynamicArray1D:
+    cdef void* thisptr
+    cdef int NUMPY_TYPE_MAP
+    cdef object dtype
+    cdef double factor
+
+    def __cint__(self,size_t intial_size, dtype = np.float64, double factor=2.0):
         self.dtype = np.dtype(dtype)
-        if isinstance(shape, int):
-            self.shape_tuple = (shape,)
-        else:
-            self.shape_tuple = tuple(shape)
-        self.ndim = len(self.shape_tuple)
-
-# 1D Dynamic Array wrapper
-cdef class DynamicArray1D(DynamicArrayBase):
-    # Store pointers for different types
-    cdef CDynamicArray1D[np.float32_t]* ptr_float32
-    cdef CDynamicArray1D[np.float64_t]* ptr_float64
-    cdef CDynamicArray1D[np.int32_t]* ptr_int32
-    cdef CDynamicArray1D[np.int64_t]* ptr_int64
-    cdef CDynamicArray1D[np.int8_t]* ptr_int8
-    cdef CDynamicArray1D[np.uint8_t]* ptr_uint8
-    cdef CDynamicArray1D[np.uint32_t]* ptr_uint32
-    cdef CDynamicArray1D[np.uint64_t]* ptr_uint64
-
-    cdef double factor
-
-    def __cinit__(self, size, dtype=np.float64, factor=2.0):
         self.factor = factor
-        self.ptr_float32 = NULL
-        self.ptr_float64 = NULL
-        self.ptr_int32 = NULL
-        self.ptr_int64 = NULL
-        self.ptr_int8 = NULL
-        self.ptr_uint8 = NULL
-        self.ptr_uint32 = NULL
-        self.ptr_uint64 = NULL
+        self.numpy_type = NUMPY_TYPE_MAP[self.dtype.type]
 
-    def __init__(self, size, dtype=np.float64, factor=2.0):
-        super().__init__(size, dtype)
-
-        # Create the appropriate C++ object based on dtype
-        if self.dtype == np.float32:
-            self.ptr_float32 = new CDynamicArray1D[np.float32_t](size, factor)
-        elif self.dtype == np.float64:
-            self.ptr_float64 = new CDynamicArray1D[np.float64_t](size, factor)
+        if self.dtype == np.float64:
+            self.thisptr = <void*>DynamicArray1D[double](intial_size,factor)
+        elif self.dtype == np.float32:
+            self.thisptr = <void*>DynamicArray1D[float](intial_size,factor)
         elif self.dtype == np.int32:
-            self.ptr_int32 = new CDynamicArray1D[np.int32_t](size, factor)
+            self.thisptr = <void*>DynamicArray1D[int](intial_size,factor)
         elif self.dtype == np.int64:
-            self.ptr_int64 = new CDynamicArray1D[np.int64_t](size, factor)
-        elif self.dtype == np.int8:
-            self.ptr_int8 = new CDynamicArray1D[np.int8_t](size, factor)
-        elif self.dtype == np.uint8:
-            self.ptr_uint8 = new CDynamicArray1D[np.uint8_t](size, factor)
-        elif self.dtype == np.uint32:
-            self.ptr_uint32 = new CDynamicArray1D[np.uint32_t](size, factor)
-        elif self.dtype == np.uint64:
-            self.ptr_uint64 = new CDynamicArray1D[np.uint64_t](size, factor)
+            self.thisptr = <void*>DynamicArray1D[long](intial_size,factor)
+        elif self.dtype == np.bool_:
+            self.thisptr = <void*>DynamicArray1D[cython.bint](intial_size,factor)
         else:
-            raise ValueError(f"Unsupported dtype: {self.dtype}")
+            raise TypeError("Unsupported dtype: {}".format(self.dtype))
 
     def __dealloc__(self):
-        if self.ptr_float32 != NULL:
-            del self.ptr_float32
-        if self.ptr_float64 != NULL:
-            del self.ptr_float64
-        if self.ptr_int32 != NULL:
-            del self.ptr_int32
-        if self.ptr_int64 != NULL:
-            del self.ptr_int64
-        if self.ptr_int8 != NULL:
-            del self.ptr_int8
-        if self.ptr_uint8 != NULL:
-            del self.ptr_uint8
-        if self.ptr_uint32 != NULL:
-            del self.ptr_uint32
-        if self.ptr_uint64 != NULL:
-            del self.ptr_uint64
+        if self.thisptr != NULL:
+            if self.dtype == np.float64:
+                del <DynamicArray1D[double]*>self.thisptr
+            elif self.dtype == np.float32:
+                del <DynamicArray1D[float]*>self.thisptr
+            elif self.dtype == np.int32:
+                del <DynamicArray1D[int]*>self.thisptr
+            elif self.dtype == np.int64:
+                del <DynamicArray1D[long]*>self.thisptr
+            elif self.dtype == np.bool_:
+                del <DynamicArray1D[cython.bint]*>self.thisptr
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void* get_data_ptr(self) noexcept nogil:
+        """C-level access to data pointer"""
+        if self.dtype == np.float64:
+            return <void*>(<DynamicArray1D[double]*>self.thisptr).get_data_ptr()
+        elif self.dtype == np.float32:
+            return <void*>(<DynamicArray1D[float]*>self.thisptr).get_data_ptr()
+        elif self.dtype == np.int32:
+            return <void*>(<DynamicArray1D[int]*>self.thisptr).get_data_ptr()
+        elif self.dtype == np.int64:
+            return <void*>(<DynamicArray1D[long]*>self.thisptr).get_data_ptr()
+        elif self.dtype == np.bool_:
+            return <void*>(<DynamicArray1D[cython.bint]*>self.thisptr).get_data_ptr()
+        return NULL
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef size_t get_size(self) noexcept nogil:
+        """C-level access to size"""
+        if self.dtype == np.float64:
+            return (<DynamicArray1D[double]*>self.thisptr).size()
+        elif self.dtype == np.float32:
+            return (<DynamicArray1D[float]*>self.thisptr).size()
+        elif self.dtype == np.int32:
+            return (<DynamicArray1D[int]*>self.thisptr).size()
+        elif self.dtype == np.int64:
+            return (<DynamicArray1D[long]*>self.thisptr).size()
+        elif self.dtype == np.bool_:
+            return (<DynamicArray1D[cython.bint]*>self.thisptr).size()
+        return 0
+
+    def resize(self, size_t new_size):
+        """Resize array to new size"""
+        if self.dtype == np.float64:
+            (<DynamicArray1D[double]*>self.thisptr).resize(new_size)
+        elif self.dtype == np.float32:
+            (<DynamicArray1D[float]*>self.thisptr).resize(new_size)
+        elif self.dtype == np.int32:
+            (<DynamicArray1D[int]*>self.thisptr).resize(new_size)
+        elif self.dtype == np.int64:
+            (<DynamicArray1D[long]*>self.thisptr).resize(new_size)
+        elif self.dtype == np.bool_:
+            (<DynamicArray1D[cython.bint]*>self.thisptr).resize(new_size)
 
     @property
     def data(self):
-        """Return a numpy array view of the data"""
-        cdef np.npy_intp shape[1]
-        cdef void* data_ptr
+        """Return numpy array view of underlying data"""
+        cdef cnp.npy_intp shape[1]
+        cdef size_t size = self.get_size()
+        cdef void* data_ptr = self.get_data_ptr()
 
-        if self.dtype == np.float32:
-            shape[0] = self.ptr_float32.size()
-            data_ptr = <void*>self.ptr_float32.data()
-        elif self.dtype == np.float64:
-            shape[0] = self.ptr_float64.size()
-            data_ptr = <void*>self.ptr_float64.data()
-        elif self.dtype == np.int32:
-            shape[0] = self.ptr_int32.size()
-            data_ptr = <void*>self.ptr_int32.data()
-        elif self.dtype == np.int64:
-            shape[0] = self.ptr_int64.size()
-            data_ptr = <void*>self.ptr_int64.data()
-        elif self.dtype == np.int8:
-            shape[0] = self.ptr_int8.size()
-            data_ptr = <void*>self.ptr_int8.data()
-        elif self.dtype == np.uint8:
-            shape[0] = self.ptr_uint8.size()
-            data_ptr = <void*>self.ptr_uint8.data()
-        elif self.dtype == np.uint32:
-            shape[0] = self.ptr_uint32.size()
-            data_ptr = <void*>self.ptr_uint32.data()
-        elif self.dtype == np.uint64:
-            shape[0] = self.ptr_uint64.size()
-            data_ptr = <void*>self.ptr_uint64.data()
-
-        # Create numpy array without copying
-        return np.PyArray_SimpleNewFromData(1, shape, self.dtype.num, data_ptr)
+        shape[0] = size
+        if size == 0:
+            return np.array([], dtype=self.dtype)
+        # Note : This creates a zero-copy NumPy view over the memory allocated by the C++ backend —
+        # changes to the NumPy array will reflect in the C++ array and vice versa.
+        return cnp.PyArray_SimpleNewFromData(1, shape, self.numpy_type, data_ptr)
 
     @property
     def shape(self):
-        if self.dtype == np.float32:
-            return (self.ptr_float32.size(),)
-        elif self.dtype == np.float64:
-            return (self.ptr_float64.size(),)
-        elif self.dtype == np.int32:
-            return (self.ptr_int32.size(),)
-        elif self.dtype == np.int64:
-            return (self.ptr_int64.size(),)
-        elif self.dtype == np.int8:
-            return (self.ptr_int8.size(),)
-        elif self.dtype == np.uint8:
-            return (self.ptr_uint8.size(),)
-        elif self.dtype == np.uint32:
-            return (self.ptr_uint32.size(),)
-        elif self.dtype == np.uint64:
-            return (self.ptr_uint64.size(),)
+        return (self.get_size(),)
 
-    def resize(self, newsize):
-        """Resize the array"""
-        if isinstance(newsize, tuple):
-            newsize = newsize[0]
+    def __getitem__(self, item):
+        return self.data[item]
 
-        if self.dtype == np.float32:
-            self.ptr_float32.resize(newsize)
-        elif self.dtype == np.float64:
-            self.ptr_float64.resize(newsize)
-        elif self.dtype == np.int32:
-            self.ptr_int32.resize(newsize)
-        elif self.dtype == np.int64:
-            self.ptr_int64.resize(newsize)
-        elif self.dtype == np.int8:
-            self.ptr_int8.resize(newsize)
-        elif self.dtype == np.uint8:
-            self.ptr_uint8.resize(newsize)
-        elif self.dtype == np.uint32:
-            self.ptr_uint32.resize(newsize)
-        elif self.dtype == np.uint64:
-            self.ptr_uint64.resize(newsize)
-
-        self.shape_tuple = (newsize,)
-
-    def shrink(self, newsize):
-        """Shrink the array, deallocating extra memory"""
-        if isinstance(newsize, tuple):
-            newsize = newsize[0]
-
-        if self.dtype == np.float32:
-            self.ptr_float32.shrink(newsize)
-        elif self.dtype == np.float64:
-            self.ptr_float64.shrink(newsize)
-        elif self.dtype == np.int32:
-            self.ptr_int32.shrink(newsize)
-        elif self.dtype == np.int64:
-            self.ptr_int64.shrink(newsize)
-        elif self.dtype == np.int8:
-            self.ptr_int8.shrink(newsize)
-        elif self.dtype == np.uint8:
-            self.ptr_uint8.shrink(newsize)
-        elif self.dtype == np.uint32:
-            self.ptr_uint32.shrink(newsize)
-        elif self.dtype == np.uint64:
-            self.ptr_uint64.shrink(newsize)
-
-        self.shape_tuple = (newsize,)
-
-    def __getitem__(self, key):
-        return self.data[key]
-
-    def __setitem__(self, key, value):
-        self.data[key] = value
+    def __setitem__(self, item, val):
+        cdef cnp.ndarray arr = self.data
+        arr[item] = val
 
     def __len__(self):
-        return self.shape[0]
-
-    def __str__(self):
-        return str(self.data)
-
-    def __repr__(self):
-        return f"DynamicArray1D(shape={self.shape}, dtype={self.dtype})"
+        return self.get_size()
 
 
-# Multi-dimensional Dynamic Array wrapper
-cdef class DynamicArray(DynamicArrayBase):
-    # Store pointers for different types
-    cdef CDynamicArray[np.float32_t]* ptr_float32
-    cdef CDynamicArray[np.float64_t]* ptr_float64
-    cdef CDynamicArray[np.int32_t]* ptr_int32
-    cdef CDynamicArray[np.int64_t]* ptr_int64
-    cdef CDynamicArray[np.int8_t]* ptr_int8
-    cdef CDynamicArray[np.uint8_t]* ptr_uint8
-    cdef CDynamicArray[np.uint32_t]* ptr_uint32
-    cdef CDynamicArray[np.uint64_t]* ptr_uint64
-
+cdef class DynamicArray2D:
+    cdef void* thisptr
+    cdef int numpy_type
+    cdef object dtype
     cdef double factor
 
-    def __cinit__(self, shape, dtype=np.float64, factor=2.0):
+    def __cinit__(self, tuple shape, dtype=np.float64, double factor=2.0):
+        cdef size_t rows = shape[0] if len(shape) > 0 else 0
+        cdef size_t cols = shape[1] if len(shape) > 1 else 0
+
+        self.dtype = np.dtype(dtype)
         self.factor = factor
-        self.ptr_float32 = NULL
-        self.ptr_float64 = NULL
-        self.ptr_int32 = NULL
-        self.ptr_int64 = NULL
-        self.ptr_int8 = NULL
-        self.ptr_uint8 = NULL
-        self.ptr_uint32 = NULL
-        self.ptr_uint64 = NULL
+        self.numpy_type = NUMPY_TYPE_MAP[self.dtype.type]
 
-    def __init__(self, shape, dtype=np.float64, factor=2.0):
-        super().__init__(shape, dtype)
-
-        cdef vector[size_t] cpp_shape
-        for dim in self.shape_tuple:
-            cpp_shape.push_back(dim)
-
-        # Create the appropriate C++ object based on dtype
-        if self.dtype == np.float32:
-            self.ptr_float32 = new CDynamicArray[np.float32_t](cpp_shape, factor)
-        elif self.dtype == np.float64:
-            self.ptr_float64 = new CDynamicArray[np.float64_t](cpp_shape, factor)
+        if self.dtype == np.float64:
+            self.thisptr = new DynamicArray2D[double](rows, cols, factor)
+        elif self.dtype == np.float32:
+            self.thisptr = new DynamicArray2D[float](rows, cols, factor)
         elif self.dtype == np.int32:
-            self.ptr_int32 = new CDynamicArray[np.int32_t](cpp_shape, factor)
+            self.thisptr = new DynamicArray2D[int](rows, cols, factor)
         elif self.dtype == np.int64:
-            self.ptr_int64 = new CDynamicArray[np.int64_t](cpp_shape, factor)
-        elif self.dtype == np.int8:
-            self.ptr_int8 = new CDynamicArray[np.int8_t](cpp_shape, factor)
-        elif self.dtype == np.uint8:
-            self.ptr_uint8 = new CDynamicArray[np.uint8_t](cpp_shape, factor)
-        elif self.dtype == np.uint32:
-            self.ptr_uint32 = new CDynamicArray[np.uint32_t](cpp_shape, factor)
-        elif self.dtype == np.uint64:
-            self.ptr_uint64 = new CDynamicArray[np.uint64_t](cpp_shape, factor)
+            self.thisptr = new DynamicArray2D[long](rows, cols, factor)
+        elif self.dtype == np.bool_:
+            self.thisptr = new DynamicArray2D[cython.bint](rows, cols, factor)
         else:
-            raise ValueError(f"Unsupported dtype: {self.dtype}")
+            raise TypeError(f"Unsupported dtype: {dtype}")
 
     def __dealloc__(self):
-        if self.ptr_float32 != NULL:
-            del self.ptr_float32
-        if self.ptr_float64 != NULL:
-            del self.ptr_float64
-        if self.ptr_int32 != NULL:
-            del self.ptr_int32
-        if self.ptr_int64 != NULL:
-            del self.ptr_int64
-        if self.ptr_int8 != NULL:
-            del self.ptr_int8
-        if self.ptr_uint8 != NULL:
-            del self.ptr_uint8
-        if self.ptr_uint32 != NULL:
-            del self.ptr_uint32
-        if self.ptr_uint64 != NULL:
-            del self.ptr_uint64
+        if self.thisptr != NULL:
+            if self.dtype == np.float64:
+                del <DynamicArray2D[double]*>self.thisptr
+            elif self.dtype == np.float32:
+                del <DynamicArray2D[float]*>self.thisptr
+            elif self.dtype == np.int32:
+                del <DynamicArray2D[int]*>self.thisptr
+            elif self.dtype == np.int64:
+                del <DynamicArray2D[long]*>self.thisptr
+            elif self.dtype == np.bool_:
+                del <DynamicArray2D[cython.bint]*>self.thisptr
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void* get_data_ptr(self) noexcept nogil:
+        """C-level access to data pointer"""
+        if self.dtype == np.float64:
+            return <void*>(<DynamicArray2D[double]*>self.thisptr).get_data_ptr()
+        elif self.dtype == np.float32:
+            return <void*>(<DynamicArray2D[float]*>self.thisptr).get_data_ptr()
+        elif self.dtype == np.int32:
+            return <void*>(<DynamicArray2D[int]*>self.thisptr).get_data_ptr()
+        elif self.dtype == np.int64:
+            return <void*>(<DynamicArray2D[long]*>self.thisptr).get_data_ptr()
+        elif self.dtype == np.bool_:
+            return <void*>(<DynamicArray2D[cython.bint]*>self.thisptr).get_data_ptr()
+        return NULL
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef size_t get_rows(self) noexcept nogil:
+        """C-level access to rows"""
+        if self.dtype == np.float64:
+            return (<DynamicArray2D[double]*>self.thisptr).rows()
+        elif self.dtype == np.float32:
+            return (<DynamicArray2D[float]*>self.thisptr).rows()
+        elif self.dtype == np.int32:
+            return (<DynamicArray2D[int]*>self.thisptr).rows()
+        elif self.dtype == np.int64:
+            return (<DynamicArray2D[long]*>self.thisptr).rows()
+        elif self.dtype == np.bool_:
+            return (<DynamicArray2D[cython.bint]*>self.thisptr).rows()
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef size_t get_cols(self) noexcept nogil:
+        """C-level access to cols"""
+        if self.dtype == np.float64:
+            return (<DynamicArray2D[double]*>self.thisptr).cols()
+        elif self.dtype == np.float32:
+            return (<DynamicArray2D[float]*>self.thisptr).cols()
+        elif self.dtype == np.int32:
+            return (<DynamicArray2D[int]*>self.thisptr).cols()
+        elif self.dtype == np.int64:
+            return (<DynamicArray2D[long]*>self.thisptr).cols()
+        elif self.dtype == np.bool_:
+            return (<DynamicArray2D[cython.bint]*>self.thisptr).cols()
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef size_t get_stride(self) noexcept nogil:
+        """C-level access to stride"""
+        if self.dtype == np.float64:
+            return (<DynamicArray2D[double]*>self.thisptr).stride()
+        elif self.dtype == np.float32:
+            return (<DynamicArray2D[float]*>self.thisptr).stride()
+        elif self.dtype == np.int32:
+            return (<DynamicArray2D[int]*>self.thisptr).stride()
+        elif self.dtype == np.int64:
+            return (<DynamicArray2D[long]*>self.thisptr).stride()
+        elif self.dtype == np.bool_:
+            return (<DynamicArray2D[cython.bint]*>self.thisptr).stride()
+        return 0
+
+    def resize(self, tuple new_shape):
+        """Resize array to new shape"""
+        cdef size_t new_rows = new_shape[0]
+        cdef size_t new_cols = new_shape[1]
+
+        if self.dtype == np.float64:
+            (<DynamicArray2D[double]*>self.thisptr).resize(new_rows, new_cols)
+        elif self.dtype == np.float32:
+            (<DynamicArray2D[float]*>self.thisptr).resize(new_rows, new_cols)
+        elif self.dtype == np.int32:
+            (<DynamicArray2D[int]*>self.thisptr).resize(new_rows, new_cols)
+        elif self.dtype == np.int64:
+            (<DynamicArray2D[long]*>self.thisptr).resize(new_rows, new_cols)
+        elif self.dtype == np.bool_:
+            (<DynamicArray2D[cython.bint]*>self.thisptr).resize(new_rows, new_cols)
 
     @property
     def data(self):
-        """Return a numpy array view of the data"""
-        cdef np.npy_intp* shape_arr
-        cdef np.npy_intp* strides_arr
-        cdef void* data_ptr
-        cdef vector[size_t] cpp_shape
-        cdef vector[size_t] cpp_strides
-        cdef int itemsize = self.dtype.itemsize
+        """Return numpy array view with proper strides"""
+        cdef cnp.npy_intp shape[2]
+        cdef cnp.npy_intp strides[2]
+        cdef size_t rows = self.get_rows()
+        cdef size_t cols = self.get_cols()
+        cdef size_t stride = self.get_stride()
+        cdef void* data_ptr = self.get_data_ptr()
+        cdef size_t itemsize = self.dtype.itemsize
 
-        if self.dtype == np.float32:
-            cpp_shape = self.ptr_float32.shape()
-            cpp_strides = self.ptr_float32.strides()
-            data_ptr = <void*>self.ptr_float32.data()
-        elif self.dtype == np.float64:
-            cpp_shape = self.ptr_float64.shape()
-            cpp_strides = self.ptr_float64.strides()
-            data_ptr = <void*>self.ptr_float64.data()
-        elif self.dtype == np.int32:
-            cpp_shape = self.ptr_int32.shape()
-            cpp_strides = self.ptr_int32.strides()
-            data_ptr = <void*>self.ptr_int32.data()
-        elif self.dtype == np.int64:
-            cpp_shape = self.ptr_int64.shape()
-            cpp_strides = self.ptr_int64.strides()
-            data_ptr = <void*>self.ptr_int64.data()
-        elif self.dtype == np.int8:
-            cpp_shape = self.ptr_int8.shape()
-            cpp_strides = self.ptr_int8.strides()
-            data_ptr = <void*>self.ptr_int8.data()
-        elif self.dtype == np.uint8:
-            cpp_shape = self.ptr_uint8.shape()
-            cpp_strides = self.ptr_uint8.strides()
-            data_ptr = <void*>self.ptr_uint8.data()
-        elif self.dtype == np.uint32:
-            cpp_shape = self.ptr_uint32.shape()
-            cpp_strides = self.ptr_uint32.strides()
-            data_ptr = <void*>self.ptr_uint32.data()
-        elif self.dtype == np.uint64:
-            cpp_shape = self.ptr_uint64.shape()
-            cpp_strides = self.ptr_uint64.strides()
-            data_ptr = <void*>self.ptr_uint64.data()
+        if rows == 0 or cols == 0:
+            return np.array([], dtype=self.dtype).reshape((0, 0))
 
-        # Convert shape and strides to numpy format
-        shape_arr = <np.npy_intp*>np.PyMem_Malloc(self.ndim * sizeof(np.npy_intp))
-        strides_arr = <np.npy_intp*>np.PyMem_Malloc(self.ndim * sizeof(np.npy_intp))
+        shape[0] = rows
+        shape[1] = cols
+        strides[0] = stride * itemsize
+        strides[1] = itemsize
 
-        for i in range(self.ndim):
-            shape_arr[i] = cpp_shape[i]
-            strides_arr[i] = cpp_strides[i] * itemsize
-
-        # Create numpy array without copying
-        cdef np.ndarray arr = np.PyArray_New(
-            np.ndarray,
-            self.ndim,
-            shape_arr,
-            self.dtype.num,
-            strides_arr,
-            data_ptr,
-            itemsize,
-            np.NPY_ARRAY_CARRAY,
-            None
-        )
-
-        # The array now owns these arrays
-        np.PyArray_ENABLEFLAGS(arr, np.NPY_ARRAY_OWNDATA)
-
-        return arr
+        return cnp.PyArray_NewFromDescr(
+            cnp.ndarray, self.dtype, 2, shape, strides, data_ptr, 0, None)
 
     @property
     def shape(self):
-        cdef vector[size_t] cpp_shape
+        return (self.get_rows(), self.get_cols())
 
-        if self.dtype == np.float32:
-            cpp_shape = self.ptr_float32.shape()
-        elif self.dtype == np.float64:
-            cpp_shape = self.ptr_float64.shape()
-        elif self.dtype == np.int32:
-            cpp_shape = self.ptr_int32.shape()
-        elif self.dtype == np.int64:
-            cpp_shape = self.ptr_int64.shape()
-        elif self.dtype == np.int8:
-            cpp_shape = self.ptr_int8.shape()
-        elif self.dtype == np.uint8:
-            cpp_shape = self.ptr_uint8.shape()
-        elif self.dtype == np.uint32:
-            cpp_shape = self.ptr_uint32.shape()
-        elif self.dtype == np.uint64:
-            cpp_shape = self.ptr_uint64.shape()
+    def __getitem__(self, item):
+        return self.data[item]
 
-        return tuple(cpp_shape)
-
-    def resize(self, newshape):
-        """Resize the array"""
-        if isinstance(newshape, int):
-            newshape = (newshape,)
-
-        cdef vector[size_t] cpp_shape
-        for dim in newshape:
-            cpp_shape.push_back(dim)
-
-        if self.dtype == np.float32:
-            self.ptr_float32.resize(cpp_shape)
-        elif self.dtype == np.float64:
-            self.ptr_float64.resize(cpp_shape)
-        elif self.dtype == np.int32:
-            self.ptr_int32.resize(cpp_shape)
-        elif self.dtype == np.int64:
-            self.ptr_int64.resize(cpp_shape)
-        elif self.dtype == np.int8:
-            self.ptr_int8.resize(cpp_shape)
-        elif self.dtype == np.uint8:
-            self.ptr_uint8.resize(cpp_shape)
-        elif self.dtype == np.uint32:
-            self.ptr_uint32.resize(cpp_shape)
-        elif self.dtype == np.uint64:
-            self.ptr_uint64.resize(cpp_shape)
-
-        self.shape_tuple = tuple(newshape)
-
-    def shrink(self, newshape):
-        """Shrink the array, deallocating extra memory"""
-        if isinstance(newshape, int):
-            newshape = (newshape,)
-
-        cdef vector[size_t] cpp_shape
-        for dim in newshape:
-            cpp_shape.push_back(dim)
-
-        if self.dtype == np.float32:
-            self.ptr_float32.shrink(cpp_shape)
-        elif self.dtype == np.float64:
-            self.ptr_float64.shrink(cpp_shape)
-        elif self.dtype == np.int32:
-            self.ptr_int32.shrink(cpp_shape)
-        elif self.dtype == np.int64:
-            self.ptr_int64.shrink(cpp_shape)
-        elif self.dtype == np.int8:
-            self.ptr_int8.shrink(cpp_shape)
-        elif self.dtype == np.uint8:
-            self.ptr_uint8.shrink(cpp_shape)
-        elif self.dtype == np.uint32:
-            self.ptr_uint32.shrink(cpp_shape)
-        elif self.dtype == np.uint64:
-            self.ptr_uint64.shrink(cpp_shape)
-
-        self.shape_tuple = tuple(newshape)
-
-    def __getitem__(self, key):
-        return self.data[key]
-
-    def __setitem__(self, key, value):
-        self.data[key] = value
+    def __setitem__(self, item, val):
+        cdef cnp.ndarray arr = self.data
+        arr[item] = val
 
     def __len__(self):
-        return self.shape[0]
+        return self.get_rows()
 
-    def __str__(self):
-        return str(self.data)
+
+# Factory functions matching original API we had in python code
+def DynamicArray(shape, dtype=float, factor=2, use_numpy_resize=False, refcheck=True):
+    """Create appropriate dynamic array based on shape"""
+    if isinstance(shape, int):
+        shape = (shape,)
+
+    if len(shape) == 1:
+        return DynamicArray1D(shape[0], dtype, factor)
+    elif len(shape) == 2:
+        return DynamicArray2D(shape, dtype, factor)
+    else:
+        # Flatten higher dimensions to 2D
+        flat_shape = (int(np.prod(shape[:-1])), shape[-1])
+        return FastDynamicArray2D(flat_shape, dtype, factor)
+
+def DynamicArray1D(shape, dtype=float, factor=2, use_numpy_resize=False, refcheck=True):
+    """Create 1D dynamic array"""
+    if isinstance(shape, int):
+        shape = (shape,)
+    return DynamicArray1D(shape[0], dtype, factor)
