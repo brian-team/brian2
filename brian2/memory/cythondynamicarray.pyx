@@ -1,21 +1,21 @@
-# cython: boundscheck=False, wraparound=False, nonecheck=False, language_level=3
+# cython: language_level=3
 # distutils: language = c++
 # distutils: include_dirs = brian2/devices/cpp_standalone/brianlib
-# # distutils: extra_compile_args = -std=c++11
+# distutils: extra_compile_args = -std=c++11
+
 
 import numpy as np
 cimport numpy as cnp
 cimport cython
-from cythondynamicarray cimport DynamicArray1D, DynamicArray2D
 from libc.string cimport memset
 from cython cimport view
 
 cnp.import_array()
 
 
-cdef extern from "dynamic_array.h"
-    cdef cppclass DynamicArray1D[T]:
-        DynamicArray1D(size_t,double) except +
+cdef extern from "dynamic_array.h":
+    cdef cppclass DynamicArray1DCpp "DynamicArray1D"[T]:
+        DynamicArray1DCpp(size_t,double) except +
         void resize(size_t) except +
         void shrink_to_fit()
         T& operator[](size_t)
@@ -23,11 +23,12 @@ cdef extern from "dynamic_array.h"
         size_t size()
         size_t capacity()
 
-    cdef cppclass DynamicArray2D[T]:
+
+    cdef cppclass DynamicArray2DCpp "DynamicArray2D"[T]:
         size_t n  # rows
         size_t m  # cols
-        DynamicArray2D(size_t, size_t, double) except +
-        DynamicArray2D(int, int) except + # Legacy constructor
+        DynamicArray2DCpp(size_t, size_t, double) except +
+        DynamicArray2DCpp(int, int) except + # Legacy constructor
         void resize(size_t, size_t) except +
         void resize(int, int) except + # Legacy method
         void resize() except +
@@ -58,9 +59,9 @@ cdef dict NUMPY_TYPE_MAP = {
 }
 
 
-cdef class DynamicArray1D:
+cdef class DynamicArray1DClass:
     cdef void* thisptr
-    cdef int NUMPY_TYPE_MAP
+    cdef int numpy_type
     cdef object dtype
     cdef double factor
 
@@ -70,75 +71,82 @@ cdef class DynamicArray1D:
         self.numpy_type = NUMPY_TYPE_MAP[self.dtype.type]
 
         if self.dtype == np.float64:
-            self.thisptr = <void*>DynamicArray1D[double](intial_size,factor)
+            self.thisptr = <void*>new DynamicArray1DCpp[double](intial_size,factor)
         elif self.dtype == np.float32:
-            self.thisptr = <void*>DynamicArray1D[float](intial_size,factor)
+            self.thisptr = <void*>new DynamicArray1DCpp[float](intial_size,factor)
         elif self.dtype == np.int32:
-            self.thisptr = <void*>DynamicArray1D[int](intial_size,factor)
+            self.thisptr = <void*>new DynamicArray1DCpp[int](intial_size,factor)
         elif self.dtype == np.int64:
-            self.thisptr = <void*>DynamicArray1D[long](intial_size,factor)
+            self.thisptr = <void*>new DynamicArray1DCpp[long](intial_size,factor)
         elif self.dtype == np.bool_:
-            self.thisptr = <void*>DynamicArray1D[cython.bint](intial_size,factor)
+            self.thisptr = <void*>new DynamicArray1DCpp[cython.bint](intial_size,factor)
         else:
             raise TypeError("Unsupported dtype: {}".format(self.dtype))
 
     def __dealloc__(self):
+        cdef DynamicArray1DCpp[double]* ptr_double
+        cdef DynamicArray1DCpp[float]* ptr_float
+        cdef DynamicArray1DCpp[int]* ptr_int
+        cdef DynamicArray1DCpp[long]* ptr_long
+        cdef DynamicArray1DCpp[cython.bint]* ptr_bool
         if self.thisptr != NULL:
             if self.dtype == np.float64:
-                del <DynamicArray1D[double]*>self.thisptr
+                ptr_double = <DynamicArray1DCpp[double]*>self.thisptr
+                del ptr_double
             elif self.dtype == np.float32:
-                del <DynamicArray1D[float]*>self.thisptr
+                ptr_float = <DynamicArray1DCpp[float]*>self.thisptr
+                del ptr_float
             elif self.dtype == np.int32:
-                del <DynamicArray1D[int]*>self.thisptr
+                ptr_int = <DynamicArray1DCpp[int]*>self.thisptr
+                del ptr_int
             elif self.dtype == np.int64:
-                del <DynamicArray1D[long]*>self.thisptr
+                ptr_long = <DynamicArray1DCpp[long]*>self.thisptr
+                del ptr_long
             elif self.dtype == np.bool_:
-                del <DynamicArray1D[cython.bint]*>self.thisptr
+                ptr_bool = <DynamicArray1DCpp[cython.bint]*>self.thisptr
+                del ptr_bool
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void* get_data_ptr(self) noexcept nogil:
+
+    cdef void* get_data_ptr(self) :
         """C-level access to data pointer"""
         if self.dtype == np.float64:
-            return <void*>(<DynamicArray1D[double]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray1DCpp[double]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.float32:
-            return <void*>(<DynamicArray1D[float]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray1DCpp[float]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.int32:
-            return <void*>(<DynamicArray1D[int]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray1DCpp[int]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.int64:
-            return <void*>(<DynamicArray1D[long]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray1DCpp[long]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.bool_:
-            return <void*>(<DynamicArray1D[cython.bint]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray1DCpp[cython.bint]*>self.thisptr).get_data_ptr()
         return NULL
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef size_t get_size(self) noexcept nogil:
+    cdef size_t get_size(self):
         """C-level access to size"""
         if self.dtype == np.float64:
-            return (<DynamicArray1D[double]*>self.thisptr).size()
+            return (<DynamicArray1DCpp[double]*>self.thisptr).size()
         elif self.dtype == np.float32:
-            return (<DynamicArray1D[float]*>self.thisptr).size()
+            return (<DynamicArray1DCpp[float]*>self.thisptr).size()
         elif self.dtype == np.int32:
-            return (<DynamicArray1D[int]*>self.thisptr).size()
+            return (<DynamicArray1DCpp[int]*>self.thisptr).size()
         elif self.dtype == np.int64:
-            return (<DynamicArray1D[long]*>self.thisptr).size()
+            return (<DynamicArray1DCpp[long]*>self.thisptr).size()
         elif self.dtype == np.bool_:
-            return (<DynamicArray1D[cython.bint]*>self.thisptr).size()
+            return (<DynamicArray1DCpp[cython.bint]*>self.thisptr).size()
         return 0
 
     def resize(self, size_t new_size):
         """Resize array to new size"""
         if self.dtype == np.float64:
-            (<DynamicArray1D[double]*>self.thisptr).resize(new_size)
+            (<DynamicArray1DCpp[double]*>self.thisptr).resize(new_size)
         elif self.dtype == np.float32:
-            (<DynamicArray1D[float]*>self.thisptr).resize(new_size)
+            (<DynamicArray1DCpp[float]*>self.thisptr).resize(new_size)
         elif self.dtype == np.int32:
-            (<DynamicArray1D[int]*>self.thisptr).resize(new_size)
+            (<DynamicArray1DCpp[int]*>self.thisptr).resize(new_size)
         elif self.dtype == np.int64:
-            (<DynamicArray1D[long]*>self.thisptr).resize(new_size)
+            (<DynamicArray1DCpp[long]*>self.thisptr).resize(new_size)
         elif self.dtype == np.bool_:
-            (<DynamicArray1D[cython.bint]*>self.thisptr).resize(new_size)
+            (<DynamicArray1DCpp[cython.bint]*>self.thisptr).resize(new_size)
 
     @property
     def data(self):
@@ -169,7 +177,7 @@ cdef class DynamicArray1D:
         return self.get_size()
 
 
-cdef class DynamicArray2D:
+cdef class DynamicArray2DClass:
     cdef void* thisptr
     cdef int numpy_type
     cdef object dtype
@@ -184,93 +192,96 @@ cdef class DynamicArray2D:
         self.numpy_type = NUMPY_TYPE_MAP[self.dtype.type]
 
         if self.dtype == np.float64:
-            self.thisptr = new DynamicArray2D[double](rows, cols, factor)
+            self.thisptr = new DynamicArray2DCpp[double](rows, cols, factor)
         elif self.dtype == np.float32:
-            self.thisptr = new DynamicArray2D[float](rows, cols, factor)
+            self.thisptr = new DynamicArray2DCpp[float](rows, cols, factor)
         elif self.dtype == np.int32:
-            self.thisptr = new DynamicArray2D[int](rows, cols, factor)
+            self.thisptr = new DynamicArray2DCpp[int](rows, cols, factor)
         elif self.dtype == np.int64:
-            self.thisptr = new DynamicArray2D[long](rows, cols, factor)
+            self.thisptr = new DynamicArray2DCpp[long](rows, cols, factor)
         elif self.dtype == np.bool_:
-            self.thisptr = new DynamicArray2D[cython.bint](rows, cols, factor)
+            self.thisptr = new DynamicArray2DCpp[cython.bint](rows, cols, factor)
         else:
             raise TypeError(f"Unsupported dtype: {dtype}")
 
     def __dealloc__(self):
+        cdef DynamicArray2DCpp[double]* ptr_double
+        cdef DynamicArray2DCpp[float]* ptr_float
+        cdef DynamicArray2DCpp[int]* ptr_int
+        cdef DynamicArray2DCpp[long]* ptr_long
+        cdef DynamicArray2DCpp[cython.bint]* ptr_bool
         if self.thisptr != NULL:
             if self.dtype == np.float64:
-                del <DynamicArray2D[double]*>self.thisptr
+                ptr_double = <DynamicArray2DCpp[double]*>self.thisptr
+                del ptr_double
             elif self.dtype == np.float32:
-                del <DynamicArray2D[float]*>self.thisptr
+                ptr_float = <DynamicArray2DCpp[float]*>self.thisptr
+                del ptr_float
             elif self.dtype == np.int32:
-                del <DynamicArray2D[int]*>self.thisptr
+                ptr_int = <DynamicArray2DCpp[int]*>self.thisptr
+                del ptr_int
             elif self.dtype == np.int64:
-                del <DynamicArray2D[long]*>self.thisptr
+                ptr_long = <DynamicArray2DCpp[long]*>self.thisptr
+                del ptr_long
             elif self.dtype == np.bool_:
-                del <DynamicArray2D[cython.bint]*>self.thisptr
+                ptr_bool = <DynamicArray2DCpp[cython.bint]*>self.thisptr
+                del ptr_bool
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void* get_data_ptr(self) noexcept nogil:
+    cdef void* get_data_ptr(self):
         """C-level access to data pointer"""
         if self.dtype == np.float64:
-            return <void*>(<DynamicArray2D[double]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray2DCpp[double]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.float32:
-            return <void*>(<DynamicArray2D[float]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray2DCpp[float]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.int32:
-            return <void*>(<DynamicArray2D[int]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray2DCpp[int]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.int64:
-            return <void*>(<DynamicArray2D[long]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray2DCpp[long]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.bool_:
-            return <void*>(<DynamicArray2D[cython.bint]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray2DCpp[cython.bint]*>self.thisptr).get_data_ptr()
         return NULL
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef size_t get_rows(self) noexcept nogil:
+    cdef size_t get_rows(self):
         """C-level access to rows"""
         if self.dtype == np.float64:
-            return (<DynamicArray2D[double]*>self.thisptr).rows()
+            return (<DynamicArray2DCpp[double]*>self.thisptr).rows()
         elif self.dtype == np.float32:
-            return (<DynamicArray2D[float]*>self.thisptr).rows()
+            return (<DynamicArray2DCpp[float]*>self.thisptr).rows()
         elif self.dtype == np.int32:
-            return (<DynamicArray2D[int]*>self.thisptr).rows()
+            return (<DynamicArray2DCpp[int]*>self.thisptr).rows()
         elif self.dtype == np.int64:
-            return (<DynamicArray2D[long]*>self.thisptr).rows()
+            return (<DynamicArray2DCpp[long]*>self.thisptr).rows()
         elif self.dtype == np.bool_:
-            return (<DynamicArray2D[cython.bint]*>self.thisptr).rows()
+            return (<DynamicArray2DCpp[cython.bint]*>self.thisptr).rows()
         return 0
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef size_t get_cols(self) noexcept nogil:
+    cdef size_t get_cols(self):
         """C-level access to cols"""
         if self.dtype == np.float64:
-            return (<DynamicArray2D[double]*>self.thisptr).cols()
+            return (<DynamicArray2DCpp[double]*>self.thisptr).cols()
         elif self.dtype == np.float32:
-            return (<DynamicArray2D[float]*>self.thisptr).cols()
+            return (<DynamicArray2DCpp[float]*>self.thisptr).cols()
         elif self.dtype == np.int32:
-            return (<DynamicArray2D[int]*>self.thisptr).cols()
+            return (<DynamicArray2DCpp[int]*>self.thisptr).cols()
         elif self.dtype == np.int64:
-            return (<DynamicArray2D[long]*>self.thisptr).cols()
+            return (<DynamicArray2DCpp[long]*>self.thisptr).cols()
         elif self.dtype == np.bool_:
-            return (<DynamicArray2D[cython.bint]*>self.thisptr).cols()
+            return (<DynamicArray2DCpp[cython.bint]*>self.thisptr).cols()
         return 0
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef size_t get_stride(self) noexcept nogil:
+
+    cdef size_t get_stride(self):
         """C-level access to stride"""
         if self.dtype == np.float64:
-            return (<DynamicArray2D[double]*>self.thisptr).stride()
+            return (<DynamicArray2DCpp[double]*>self.thisptr).stride()
         elif self.dtype == np.float32:
-            return (<DynamicArray2D[float]*>self.thisptr).stride()
+            return (<DynamicArray2DCpp[float]*>self.thisptr).stride()
         elif self.dtype == np.int32:
-            return (<DynamicArray2D[int]*>self.thisptr).stride()
+            return (<DynamicArray2DCpp[int]*>self.thisptr).stride()
         elif self.dtype == np.int64:
-            return (<DynamicArray2D[long]*>self.thisptr).stride()
+            return (<DynamicArray2DCpp[long]*>self.thisptr).stride()
         elif self.dtype == np.bool_:
-            return (<DynamicArray2D[cython.bint]*>self.thisptr).stride()
+            return (<DynamicArray2DCpp[cython.bint]*>self.thisptr).stride()
         return 0
 
     def resize(self, tuple new_shape):
@@ -279,15 +290,15 @@ cdef class DynamicArray2D:
         cdef size_t new_cols = new_shape[1]
 
         if self.dtype == np.float64:
-            (<DynamicArray2D[double]*>self.thisptr).resize(new_rows, new_cols)
+            (<DynamicArray2DCpp[double]*>self.thisptr).resize(new_rows, new_cols)
         elif self.dtype == np.float32:
-            (<DynamicArray2D[float]*>self.thisptr).resize(new_rows, new_cols)
+            (<DynamicArray2DCpp[float]*>self.thisptr).resize(new_rows, new_cols)
         elif self.dtype == np.int32:
-            (<DynamicArray2D[int]*>self.thisptr).resize(new_rows, new_cols)
+            (<DynamicArray2DCpp[int]*>self.thisptr).resize(new_rows, new_cols)
         elif self.dtype == np.int64:
-            (<DynamicArray2D[long]*>self.thisptr).resize(new_rows, new_cols)
+            (<DynamicArray2DCpp[long]*>self.thisptr).resize(new_rows, new_cols)
         elif self.dtype == np.bool_:
-            (<DynamicArray2D[cython.bint]*>self.thisptr).resize(new_rows, new_cols)
+            (<DynamicArray2DCpp[cython.bint]*>self.thisptr).resize(new_rows, new_cols)
 
     @property
     def data(self):
@@ -308,8 +319,16 @@ cdef class DynamicArray2D:
         strides[0] = stride * itemsize
         strides[1] = itemsize
 
-        return cnp.PyArray_NewFromDescr(
-            cnp.ndarray, self.dtype, 2, shape, strides, data_ptr, 0, None)
+        # Create array first
+        cdef object result = cnp.PyArray_SimpleNewFromData(2, shape, self.numpy_type, data_ptr)
+
+        # Set strides manually without creating temporary tuple
+        cdef cnp.npy_intp[2] custom_strides
+        custom_strides[0] = stride * itemsize
+        custom_strides[1] = itemsize
+        result.strides = custom_strides
+
+        return result
 
     @property
     def shape(self):
@@ -333,16 +352,16 @@ def DynamicArray(shape, dtype=float, factor=2, use_numpy_resize=False, refcheck=
         shape = (shape,)
 
     if len(shape) == 1:
-        return DynamicArray1D(shape[0], dtype, factor)
+        return DynamicArray1DClass(shape[0], dtype, factor)
     elif len(shape) == 2:
-        return DynamicArray2D(shape, dtype, factor)
+        return DynamicArray2DClass(shape, dtype, factor)
     else:
         # Flatten higher dimensions to 2D
         flat_shape = (int(np.prod(shape[:-1])), shape[-1])
-        return FastDynamicArray2D(flat_shape, dtype, factor)
+        return DynamicArray2DClass(flat_shape, dtype, factor)
 
 def DynamicArray1D(shape, dtype=float, factor=2, use_numpy_resize=False, refcheck=True):
     """Create 1D dynamic array"""
     if isinstance(shape, int):
         shape = (shape,)
-    return DynamicArray1D(shape[0], dtype, factor)
+    return DynamicArray1DClass(shape[0], dtype, factor)
