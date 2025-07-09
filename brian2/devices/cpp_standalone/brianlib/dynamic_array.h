@@ -1,11 +1,10 @@
 #ifndef _BRIAN_DYNAMIC_ARRAY_H
 #define _BRIAN_DYNAMIC_ARRAY_H
 
-#include<vector>
+#include <vector>
 #include <algorithm>
 #include <cstring>
 #include <cassert>
-
 
 /**
  * A simple 1D dynamic array that grows efficiently over time.
@@ -25,10 +24,11 @@
  * call `shrink_to_fit()`.
  */
 template <class T>
-class DynamicArray1D {
+class DynamicArray1D
+{
 private:
     std::vector<T> m_data;
-    size_t m_size;  // Logical size (what user sees)
+    size_t m_size; // Logical size (what user sees)
     double m_growth_factor;
 
 public:
@@ -39,7 +39,8 @@ public:
      * at least initial_size.
      */
     DynamicArray1D(size_t initial_size = 0, double factor = 2.0)
-        : m_size(initial_size), m_growth_factor(factor) {
+        : m_size(initial_size), m_growth_factor(factor)
+    {
         m_data.resize(initial_size);
     }
 
@@ -58,14 +59,17 @@ public:
      * keeping stale data around. If you really want to release unused memory,
      * call `shrink_to_fit()` separately.
      */
-    void resize(size_t new_size) {
-        if (new_size > m_data.size()) {
+    void resize(size_t new_size)
+    {
+        if (new_size > m_data.size())
+        {
             // Growing: allocate more than strictly needed to reduce future allocations
             size_t grown = static_cast<size_t>(m_data.size() * m_growth_factor) + 1;
             size_t new_capacity = std::max(new_size, grown);
             m_data.resize(new_capacity);
         }
-        else if (new_size < m_size) {
+        else if (new_size < m_size)
+        {
             // Shrinking: zero out "deleted" entries for safety
             std::fill(m_data.begin() + new_size,
                       m_data.begin() + m_size,
@@ -78,7 +82,8 @@ public:
      * Shrink capacity to match current size
      * Use with precaution as it defeats the purpose of amortized growth
      */
-    void shrink_to_fit() {
+    void shrink_to_fit()
+    {
         m_data.resize(m_size);
         m_data.shrink_to_fit();
     }
@@ -91,15 +96,12 @@ public:
      *
      * This be used by us for using the dynamic array with numpy
      */
-    T* get_data_ptr() noexcept { return m_data.data(); }
-    const T* get_data_ptr() const noexcept { return m_data.data(); }
+    T *get_data_ptr() noexcept { return m_data.data(); }
+    const T *get_data_ptr() const noexcept { return m_data.data(); }
 
-
-    T& operator[](size_t idx)noexcept { return m_data[idx]; }
-    const T& operator[](size_t idx) const noexcept { return m_data[idx];}
+    T &operator[](size_t idx) noexcept { return m_data[idx]; }
+    const T &operator[](size_t idx) const noexcept { return m_data[idx]; }
 };
-
-
 
 /**
  * @brief A two-dimensional dynamic array backed by a flat, row-major buffer.
@@ -108,31 +110,33 @@ public:
  * memory layout, enabling zero-copy interop (e.g., via Cython).
  * Supports amortized , O(1) growth in both dimensions and efficient shrinking.
  */
-template<class T>
+template <class T>
 class DynamicArray2D
 {
 private:
-    std::vector<T> m_buffer;      // Underlying flat buffer (capacity = allocated slots)
-    size_t         m_rows;        // Logical number of rows exposed to the user
-    size_t         m_cols;        // Logical number of columns exposed to the user
-    size_t         m_buffer_rows; // Physical buffer row capacity
-    size_t         m_buffer_cols; // Physical buffer column capacity (stride)
-    double         m_growth_factor;// Grow multiplier to reduce realloc frequency
+    std::vector<T> m_buffer; // Underlying flat buffer (capacity = allocated slots)
+    size_t m_rows;           // Logical number of rows exposed to the user
+    size_t m_cols;           // Logical number of columns exposed to the user
+    size_t m_buffer_rows;    // Physical buffer row capacity
+    size_t m_buffer_cols;    // Physical buffer column capacity (stride)
+    double m_growth_factor;  // Grow multiplier to reduce realloc frequency
 
     /**
      * Convert 2D coordinates to flat index
      * Row-major: i.e. elements of same row are contiguous
      */
-    inline size_t index(size_t i, size_t j) const {
+    inline size_t index(size_t i, size_t j) const
+    {
         assert(i < m_buffer_rows && j < m_buffer_cols);
         return i * m_buffer_cols + j;
     }
-public:
-    //We keep these for backwards compatibility
-    size_t& n = m_rows;
-    size_t& m = m_cols;
 
-	DynamicArray2D(size_t rows = 0, size_t cols = 0, double factor = 2.0)
+public:
+    // We keep these for backwards compatibility
+    size_t &n = m_rows;
+    size_t &m = m_cols;
+
+    DynamicArray2D(size_t rows = 0, size_t cols = 0, double factor = 2.0)
         : m_rows(rows), m_cols(cols),
           m_buffer_rows(rows), m_buffer_cols(cols),
           m_growth_factor(factor)
@@ -143,12 +147,11 @@ public:
      * @brief Legacy constructor
      */
     DynamicArray2D(int _n, int _m)
-      : DynamicArray2D(static_cast<size_t>(_n),
-                       static_cast<size_t>(_m),
-                       2.0) {}
+        : DynamicArray2D(static_cast<size_t>(_n),
+                         static_cast<size_t>(_m),
+                         2.0) {}
 
     ~DynamicArray2D() = default;
-
 
     /**
      * @brief Resize the array to new_rows x new_cols, preserving as much data as possible.
@@ -166,31 +169,37 @@ public:
      * outside the logical size. To actually release unused memory,
      * call `shrink_to_fit()`.
      */
-    void resize(size_t new_rows, size_t new_cols) {
+    void resize(size_t new_rows, size_t new_cols)
+    {
         bool needs_realloc = false;
         size_t grow_rows = m_buffer_rows;
         size_t grow_cols = m_buffer_cols;
 
         // First we check if buffer needs to grows
-        if (new_rows > m_buffer_rows) {
+        if (new_rows > m_buffer_rows)
+        {
             size_t candidate = static_cast<size_t>(m_buffer_rows * m_growth_factor) + 1;
             grow_rows = std::max(new_rows, candidate);
             needs_realloc = true;
         }
-        if (new_cols > m_buffer_cols) {
+        if (new_cols > m_buffer_cols)
+        {
             size_t candidate = static_cast<size_t>(m_buffer_cols * m_growth_factor) + 1;
             grow_cols = std::max(new_cols, candidate);
             needs_realloc = true;
         }
 
-        if (needs_realloc) {
+        if (needs_realloc)
+        {
             // Allocate new buffer and copy existing data
             std::vector<T> new_buf(grow_rows * grow_cols);
             size_t copy_rows = std::min(m_rows, new_rows);
             size_t copy_cols = std::min(m_cols, new_cols);
 
-            for (size_t i = 0; i < copy_rows; ++i) {
-                for (size_t j = 0; j < copy_cols; ++j) {
+            for (size_t i = 0; i < copy_rows; ++i)
+            {
+                for (size_t j = 0; j < copy_cols; ++j)
+                {
                     new_buf[i * grow_cols + j] = m_buffer[index(i, j)];
                 }
             }
@@ -199,15 +208,18 @@ public:
             m_buffer_rows = grow_rows;
             m_buffer_cols = grow_cols;
         }
-        else if (new_rows < m_rows || new_cols < m_cols) {
+        else if (new_rows < m_rows || new_cols < m_cols)
+        {
             // Efficiently clear only the unused region without reallocating
             // Zero rows beyond new_rows
-            for (size_t i = new_rows; i < m_buffer_rows; ++i) {
+            for (size_t i = new_rows; i < m_buffer_rows; ++i)
+            {
                 size_t base = i * m_buffer_cols;
                 std::fill(&m_buffer[base], &m_buffer[base + m_buffer_cols], T(0));
             }
             // Zero columns beyond new_cols in remaining rows
-            for (size_t i = 0; i < new_rows; ++i) {
+            for (size_t i = 0; i < new_rows; ++i)
+            {
                 size_t base = i * m_buffer_cols + new_cols;
                 std::fill(&m_buffer[base], &m_buffer[base + (m_buffer_cols - new_cols)], T(0));
             }
@@ -219,28 +231,37 @@ public:
     }
 
     // Legacy overloads for compatibility
-    void resize(int new_n, int new_m) {
+    void resize(int new_n, int new_m)
+    {
         resize(static_cast<size_t>(new_n), static_cast<size_t>(new_m));
     }
 
-    void resize() {
+    void resize()
+    {
         resize(m_rows, m_cols);
     }
 
     /**
-    * Shrink buffer to exact size
-    * Warning: Invalidates pointers and defeats growth optimization
-    */
-    void shrink_to_fit() {
-        if (m_rows < m_buffer_rows || m_cols < m_buffer_cols) {
+     * Shrink buffer to exact size
+     * Warning: Invalidates pointers and defeats growth optimization
+     */
+    void shrink_to_fit()
+    {
+        if (m_rows < m_buffer_rows || m_cols < m_buffer_cols)
+        {
             std::vector<T> new_buffer(m_rows * m_cols);
 
             // Copy data to compact buffer
-            for (size_t i = 0; i < m_rows; ++i) {
-                if (std::is_trivially_copyable<T>::value) {
-                    std::memcpy(&new_buffer[i * m_cols], &m_buffer[index(i, 0)],m_cols * sizeof(T));
-                } else {
-                    for (size_t j = 0; j < m_cols; ++j) {
+            for (size_t i = 0; i < m_rows; ++i)
+            {
+                if (std::is_trivially_copyable<T>::value)
+                {
+                    std::memcpy(&new_buffer[i * m_cols], &m_buffer[index(i, 0)], m_cols * sizeof(T));
+                }
+                else
+                {
+                    for (size_t j = 0; j < m_cols; ++j)
+                    {
                         new_buffer[i * m_cols + j] = m_buffer[index(i, j)];
                     }
                 }
@@ -262,24 +283,26 @@ public:
      * Returns pointer to start of buffer
      * Note: stride() != cols() when buffer is over-allocated
      */
-    T* get_data_ptr() noexcept { return m_buffer.data(); }
-    const T* get_data_ptr() const noexcept { return m_buffer.data(); }
+    T *get_data_ptr() noexcept { return m_buffer.data(); }
+    const T *get_data_ptr() const noexcept { return m_buffer.data(); }
 
     // 2D element access, no bounds checking for speed.
-    inline T& operator()(size_t i, size_t j) noexcept { return m_buffer[index(i, j)]; }
-    inline const T& operator()(size_t i, size_t j) const noexcept { return m_buffer[index(i, j)]; }
+    inline T &operator()(size_t i, size_t j) noexcept { return m_buffer[index(i, j)]; }
+    inline const T &operator()(size_t i, size_t j) const noexcept { return m_buffer[index(i, j)]; }
 
     // Overloads for int indices for backward compatibility.
-    inline T& operator()(int i, int j)noexcept { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
-    inline const T& operator()(int i, int j) const noexcept { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
+    inline T &operator()(int i, int j) noexcept { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
+    inline const T &operator()(int i, int j) const noexcept { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
 
     /**
      * @brief Returns a copy of row i as std::vector<T>.
      * @note This is a copy; for slicing without copy, consider returning a view.
      */
-    std::vector<T> operator()(size_t i) const {
+    std::vector<T> operator()(size_t i) const
+    {
         std::vector<T> row(m_cols);
-        for (size_t j = 0; j < m_cols; ++j) {
+        for (size_t j = 0; j < m_cols; ++j)
+        {
             row[j] = m_buffer[index(i, j)];
         }
         return row;
