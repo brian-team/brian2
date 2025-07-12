@@ -293,6 +293,20 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.bool_:
             (<DynamicArray2DCpp[cython.bint]*>self.thisptr).resize(new_rows, new_cols)
 
+    def resize_along_first(self, new_shape):
+        """Resize along first dimension (rows), keeping second dimension (cols) same"""
+        if isinstance(new_shape, int):
+            new_rows = new_shape
+            current_cols = self.get_cols()
+        elif isinstance(new_shape, (tuple, list)):
+            new_rows = new_shape[0]
+            current_cols = self.get_cols()
+        else:
+            raise ValueError("new_shape must be int, tuple, or list")
+
+        # Use existing resize method with current columns
+        self.resize((new_rows, current_cols))
+
     @property
     def data(self):
         """Return numpy array view with proper strides"""
