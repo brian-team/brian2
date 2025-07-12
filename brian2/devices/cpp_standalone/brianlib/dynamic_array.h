@@ -44,7 +44,7 @@ public:
         m_data.resize(initial_size);
     }
 
-    ~DynamicArray1D() = default; // note earlier we needed a destructor properly because we had a vector of pointers ...
+    ~DynamicArray1D(){}; // note earlier we needed a destructor properly because we had a vector of pointers ...
 
     /**
      * @brief Resizes the array to a new logical size.
@@ -87,8 +87,8 @@ public:
         m_data.resize(m_size);
         m_data.shrink_to_fit();
     }
-    size_t size() const noexcept { return m_size; }
-    size_t capacity() const noexcept { return m_data.size(); }
+    size_t size() const { return m_size; }
+    size_t capacity() const  { return m_data.size(); }
 
     /**
      * @brief Direct access to the underlying data pointer.
@@ -96,11 +96,11 @@ public:
      *
      * This be used by us for using the dynamic array with numpy
      */
-    T *get_data_ptr() noexcept { return m_data.data(); }
-    const T *get_data_ptr() const noexcept { return m_data.data(); }
+    T *get_data_ptr()  { return m_data.data(); }
+    const T *get_data_ptr() const  { return m_data.data(); }
 
-    T &operator[](size_t idx) noexcept { return m_data[idx]; }
-    const T &operator[](size_t idx) const noexcept { return m_data[idx]; }
+    T &operator[](size_t idx) { return m_data[idx]; }
+    const T &operator[](size_t idx) const  { return m_data[idx]; }
 };
 
 /**
@@ -133,13 +133,14 @@ private:
 
 public:
     // We keep these for backwards compatibility
-    size_t &n = m_rows;
-    size_t &m = m_cols;
+    size_t *n;
+    size_t *m;
 
     DynamicArray2D(size_t rows = 0, size_t cols = 0, double factor = 2.0)
         : m_rows(rows), m_cols(cols),
           m_buffer_rows(rows), m_buffer_cols(cols),
-          m_growth_factor(factor)
+          m_growth_factor(factor),
+          n(&m_rows), m(&m_cols)
     {
         m_buffer.resize(m_buffer_rows * m_buffer_cols);
     }
@@ -283,16 +284,16 @@ public:
      * Returns pointer to start of buffer
      * Note: stride() != cols() when buffer is over-allocated
      */
-    T *get_data_ptr() noexcept { return m_buffer.data(); }
-    const T *get_data_ptr() const noexcept { return m_buffer.data(); }
+    T *get_data_ptr() { return m_buffer.data(); }
+    const T *get_data_ptr() const { return m_buffer.data(); }
 
-    // 2D element access, no bounds checking for speed.
-    inline T &operator()(size_t i, size_t j) noexcept { return m_buffer[index(i, j)]; }
-    inline const T &operator()(size_t i, size_t j) const noexcept { return m_buffer[index(i, j)]; }
+    // 2D element access ...
+    inline T &operator()(size_t i, size_t j) { return m_buffer[index(i, j)]; }
+    inline const T &operator()(size_t i, size_t j) const  { return m_buffer[index(i, j)]; }
 
     // Overloads for int indices for backward compatibility.
-    inline T &operator()(int i, int j) noexcept { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
-    inline const T &operator()(int i, int j) const noexcept { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
+    inline T &operator()(int i, int j)  { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
+    inline const T &operator()(int i, int j) const { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
 
     /**
      * @brief Returns a copy of row i as std::vector<T>.
