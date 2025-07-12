@@ -65,7 +65,7 @@ cdef class DynamicArray1DClass:
     cdef object dtype
     cdef double factor
 
-    def __cint__(self,size_t intial_size, dtype = np.float64, double factor=2.0):
+    def __cinit__(self,size_t intial_size, dtype = np.float64, double factor=2.0):
         self.dtype = np.dtype(dtype)
         self.factor = factor
         self.numpy_type = NUMPY_TYPE_MAP[self.dtype.type]
