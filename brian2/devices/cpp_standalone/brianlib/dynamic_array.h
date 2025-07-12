@@ -152,7 +152,7 @@ public:
                          static_cast<size_t>(_m),
                          2.0) {}
 
-    ~DynamicArray2D() = default;
+    ~DynamicArray2D(){};
 
     /**
      * @brief Resize the array to new_rows x new_cols, preserving as much data as possible.
@@ -275,9 +275,9 @@ public:
     }
 
     // Dimension getters
-    size_t rows() const noexcept { return m_rows; }
-    size_t cols() const noexcept { return m_cols; }
-    size_t stride() const noexcept { return m_buffer_cols; } // for numpy stride calculationx
+    size_t rows() const { return m_rows; }
+    size_t cols() const  { return m_cols; }
+    size_t stride() const { return m_buffer_cols; } // for numpy stride calculationx
 
     /**
      * Raw data access for numpy integration
