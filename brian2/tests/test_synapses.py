@@ -2224,7 +2224,7 @@ for _idx in shuffled_indices:
     ns = vals.copy()
     ns["shuffled_indices"] = arange(9)
     ns["presyn"] = arange(9) % 3
-    ns["postsyn"] = arange(9) / 3
+    ns["postsyn"] = arange(9) // 3
     for _ in range(10):
         origvals = {}
         for k, v in vals.items():
