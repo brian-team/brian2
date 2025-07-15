@@ -1,6 +1,8 @@
 #ifndef _BRIAN_DYNAMIC_ARRAY_H
 #define _BRIAN_DYNAMIC_ARRAY_H
 
+#include <cstddef>
+#include <type_traits>
 #include <vector>
 #include <algorithm>
 #include <cstring>
@@ -240,6 +242,72 @@ public:
     void resize()
     {
         resize(m_rows, m_cols);
+    }
+
+    /**
+    * @brief Efficiently resize only the first dimension (rows) while keeping columns unchanged.
+    *
+    * @note This method assumes columns remain constant. If you need to change both
+    *       dimensions, use the general resize(rows, cols) method instead.
+    */
+    void resize_along_first(size_t new_rows)
+    {
+        if(new_rows > m_buffer_rows) // growth case
+        {
+            //  So first we calculate how much to grow the buffer and then we over-allocate to avoid frequent reallocations
+            size_t candidate = static_cast<size_t>(m_buffer_rows * m_growth_factor) + 1;
+            size_t grow_rows = std::max(new_rows,candidate);
+
+            // now we create a new buffer with new row capacity , while the column capacity remains same
+            std::vector<T> new_buf(grow_rows * m_buffer_cols);
+
+            // Figure out how many rows of existing data we can preserve
+            size_t copy_rows = std::min(m_rows, new_rows);
+
+            if ( std::is_trivially_copyable<T>::value && copy_rows > 0)
+            {
+                // We copy one complete row in a single memcpy operation ... much faster than copying element by element
+                for (size_t i = 0; i < copy_rows; ++i)
+                {
+                    std::memcpy(&new_buf[i*m_buffer_cols], // destination: row i in new buffer
+                        &m_buffer[i*m_buffer_cols], // source: row i in old buffer
+                        m_buffer_cols * sizeof(T) // size: entire row
+                    );
+                }
+            }
+            else
+            {
+                for (size_t i =0; i< copy_rows; i++)
+                {
+                    for (size_t j =0; j < m_buffer_cols; ++j) // ++j does not create a copy — it just increments and returns the reference , for iterators and classes, ++j can be significantly faster.
+                    {
+                        new_buf[i*m_buffer_cols +j] = m_buffer[index(i,j)];
+                    }
+                }
+            }
+
+            m_buffer.swap(new_buf);
+            m_buffer_rows = grow_rows;
+        }
+        else if (new_rows < m_rows) // shrinkage case
+        {
+            // As we are reducing the number of rows , so we zero out deleted rows
+            for ( size_t i = new_rows; i < m_rows ; ++i)
+            {
+                size_t base = i * m_buffer_cols;
+
+                // Zero out the entire row in one operation
+                std::fill(&m_buffer[base], &m_buffer[base + m_buffer_cols],T(0));
+            }
+
+           /* Note: We don't shrink the actual buffer capacity here
+            * This is intentional for performance - if you're shrinking temporarily,
+            * you don't want to pay the cost of reallocation when you grow again.
+            * Call shrink_to_fit() explicitly if you need to reclaim memory.
+            */
+        }
+        // We just update the logical row count to reflect the new size
+        m_rows =new_rows;
     }
 
     /**
