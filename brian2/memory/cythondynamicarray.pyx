@@ -371,9 +371,9 @@ def DynamicArray(shape, dtype=float, factor=2, use_numpy_resize=False, refcheck=
     elif len(shape) == 2:
         return DynamicArray2DClass(shape, dtype, factor)
     else:
-        # Flatten higher dimensions to 2D
-        flat_shape = (int(np.prod(shape[:-1])), shape[-1])
-        return DynamicArray2DClass(flat_shape, dtype, factor)
+        raise ValueError(
+            f"DynamicArray only supports 1D or 2D shapes. Got shape={shape} (dim={len(shape)})"
+        )
 
 def DynamicArray1D(shape, dtype=float, factor=2, use_numpy_resize=False, refcheck=True):
     """Create 1D dynamic array"""
