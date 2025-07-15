@@ -33,6 +33,7 @@ cdef extern from "dynamic_array.h":
         void resize(size_t, size_t) except +
         void resize(int, int) except + # Legacy method
         void resize() except +
+        void resize_along_first(size_t) except +
         void shrink_to_fit()
         T& operator()(size_t, size_t)
         T& operator()(int, int)
@@ -294,18 +295,25 @@ cdef class DynamicArray2DClass:
             (<DynamicArray2DCpp[cython.bint]*>self.thisptr).resize(new_rows, new_cols)
 
     def resize_along_first(self, new_shape):
-        """Resize along first dimension (rows), keeping second dimension (cols) same"""
+        """Resize along first dimension (rows), keeping columns unchanged"""
         if isinstance(new_shape, int):
             new_rows = new_shape
-            current_cols = self.get_cols()
         elif isinstance(new_shape, (tuple, list)):
             new_rows = new_shape[0]
-            current_cols = self.get_cols()
         else:
             raise ValueError("new_shape must be int, tuple, or list")
 
-        # Use existing resize method with current columns
-        self.resize((new_rows, current_cols))
+        cdef size_t rows = new_rows
+        if self.dtype == np.float64:
+            (<DynamicArray2DCpp[double]*>self.thisptr).resize_along_first(rows)
+        elif self.dtype == np.float32:
+            (<DynamicArray2DCpp[float]*>self.thisptr).resize_along_first(rows)
+        elif self.dtype == np.int32:
+            (<DynamicArray2DCpp[int32_t]*>self.thisptr).resize_along_first(rows)
+        elif self.dtype == np.int64:
+            (<DynamicArray2DCpp[int64_t]*>self.thisptr).resize_along_first(rows)
+        elif self.dtype == np.bool_:
+            (<DynamicArray2DCpp[cython.bint]*>self.thisptr).resize_along_first(rows)
 
     @property
     def data(self):
