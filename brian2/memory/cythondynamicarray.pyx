@@ -10,6 +10,7 @@ cimport cython
 from libc.string cimport memset
 from libc.stdint cimport int64_t, int32_t
 from cython cimport view
+from cpython.pycapsule cimport PyCapsule_New
 
 cnp.import_array()
 
@@ -114,6 +115,15 @@ cdef class DynamicArray1DClass:
         elif self.dtype == np.bool_:
             return <void*>(<DynamicArray1DCpp[cython.bint]*>self.thisptr).get_data_ptr()
         return NULL
+
+    def get_capsule(self):
+        """
+        Returns a PyCapsule object wrapping the underlying C++ Dynamic1D Array class pointer.
+
+        PyCapsules are used to safely pass raw C/C++ pointers between Python modules
+        or C extensions without exposing the actual implementation details to Python.
+        """
+        return PyCapsule_New(<void*>self.thisptr, "DynamicArray1D", NULL)
 
     cdef size_t get_size(self):
         """C-level access to size"""
@@ -220,6 +230,15 @@ cdef class DynamicArray2DClass:
             elif self.dtype == np.bool_:
                 ptr_bool = <DynamicArray2DCpp[cython.bint]*>self.thisptr
                 del ptr_bool
+
+    def get_capsule(self):
+        """
+        Returns a PyCapsule object wrapping the underlying C++ Dynamic1D Array class pointer.
+
+        PyCapsules are used to safely pass raw C/C++ pointers between Python modules
+        or C extensions without exposing the actual implementation details to Python.
+        """
+        return PyCapsule_New(<void*>self.thisptr, "DynamicArray2D", NULL)
 
     cdef void* get_data_ptr(self):
         """C-level access to data pointer"""
