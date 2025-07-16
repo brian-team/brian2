@@ -109,9 +109,9 @@ class Device:
         """
         self._maximum_run_time = maximum_run_time
 
-    def get_array_name(self, var, access_data=True):
+    def get_array_name(self, var, access_data=True, get_pointer=False):
         """
-        Return a globally unique name for `var`.
+        Return a globally unique name for `var`,optionally with pointer access for dynamic arrays
 
         Parameters
         ----------
@@ -120,10 +120,16 @@ class Device:
             name for the underlying data is returned. If specifying `False`,
             the name of object itself is returned (e.g. to allow resizing).
 
+        get_pointer : bool, optional
+            If `True` and `var` is a `DynamicArrayVariable`, returns a tuple
+            `(name, capsule)` where capsule is the PyCapsule object for direct
+            C++ access. If `False`, returns just the name string. Default: False.
+
         Returns
         -------
-        name : str
-            The name for `var`.
+        name : str or tuple
+            The name for `var`. If `get_pointer=True` and `var` is a
+            `DynamicArrayVariable`, returns `(name, capsule)` tuple.
         """
         raise NotImplementedError()
 
@@ -324,6 +330,7 @@ class Device:
         scalar_code, vector_code, kwds = generator.translate(
             abstract_code, dtype=prefs["core.default_float_dtype"]
         )
+
         # Add the array names as keywords as well
         for varname, var in variables.items():
             if isinstance(var, ArrayVariable):
@@ -342,7 +349,7 @@ class Device:
         logger.diagnostic(
             f"{name} snippet (vector):\n{indent(code_representation(vector_code))}"
         )
-
+        print("template_kwds", template_kwds)
         code = template(
             scalar_code,
             vector_code,
@@ -494,23 +501,45 @@ class RuntimeDevice(Device):
         self.__dict__ = state
         self.__dict__["arrays"] = WeakKeyDictionary(self.__dict__["arrays"])
 
-    def get_array_name(self, var, access_data=True):
+    def get_array_name(self, var, access_data=True, get_pointer=False):
         # if no owner is set, this is a temporary object (e.g. the array
         # of indices when doing G.x[indices] = ...). The name is not
         # necessarily unique over several CodeObjects in this case.
         owner_name = getattr(var.owner, "name", "temporary")
 
         if isinstance(var, DynamicArrayVariable):
+            print("get_array_name", var.get_capsule())
             if access_data:
-                return f"_array_{owner_name}_{var.name}"
+                name = f"_array_{owner_name}_{var.name}"
             else:
-                return f"_dynamic_array_{owner_name}_{var.name}"
+                name = f"_dynamic_array_{owner_name}_{var.name}"
+
+            if get_pointer:
+                try:
+                    capsule = self.get_capsule(var)
+                    return (name, capsule)
+                except Exception as e:
+                    # If capsule creation fails, fall back to name only
+                    # This ensures backward compatibility even if something goes wrong
+                    import warnings
+
+                    warnings.warn(
+                        f"Could not create capsule for {var.name}: {e}. "
+                        f"Returning name only.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    return name
+            else:
+                return name
+
         elif isinstance(var, ArrayVariable):
             return f"_array_{owner_name}_{var.name}"
         else:
             raise TypeError(f"Do not have a name for variable of type {type(var)}.")
 
     def add_array(self, var):
+        print("called array")
         # This creates the actual numpy arrays (or DynamicArrayVariable objects)
         if isinstance(var, DynamicArrayVariable):
             if var.ndim == 1:
@@ -527,6 +556,28 @@ class RuntimeDevice(Device):
             return self.arrays[var].data
         else:
             return self.arrays[var]
+
+    def get_capsule(self, var):
+        """
+        Get a PyCapsule object for direct C++ pointer access to dynamic arrays.
+
+        Parameters
+        ----------
+        var : DynamicArrayVariable
+            The dynamic array variable to get the capsule for.
+
+        Returns
+        -------
+        capsule : PyCapsule
+            A PyCapsule containing the C++ pointer to the dynamic array.
+        """
+        if not isinstance(var, DynamicArrayVariable):
+            raise TypeError(
+                f"get_capsule only supports DynamicArrayVariable, got {type(var)}"
+            )
+
+        array_obj = self.arrays[var]
+        return array_obj.get_capsule()
 
     def set_value(self, var, value):
         self.arrays[var][:] = value
