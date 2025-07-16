@@ -507,7 +507,6 @@ class RuntimeDevice(Device):
         owner_name = getattr(var.owner, "name", "temporary")
 
         if isinstance(var, DynamicArrayVariable):
-            print("get_array_name", var.get_capsule())
             if access_data:
                 name = f"_array_{owner_name}_{var.name}"
             else:
@@ -538,7 +537,6 @@ class RuntimeDevice(Device):
             raise TypeError(f"Do not have a name for variable of type {type(var)}.")
 
     def add_array(self, var):
-        print("called array")
         # This creates the actual numpy arrays (or DynamicArrayVariable objects)
         if isinstance(var, DynamicArrayVariable):
             if var.ndim == 1:
