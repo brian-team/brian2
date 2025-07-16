@@ -349,7 +349,6 @@ class Device:
         logger.diagnostic(
             f"{name} snippet (vector):\n{indent(code_representation(vector_code))}"
         )
-        print("template_kwds", template_kwds)
         code = template(
             scalar_code,
             vector_code,
