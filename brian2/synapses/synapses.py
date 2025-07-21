@@ -327,23 +327,12 @@ class SynapticPathway(CodeRunner, Group):
         #: The `SpikeQueue`
         self.queue = get_device().spike_queue(self.source.start, self.source.stop)
         self.variables.add_object("_queue", self.queue)
-        # ==================================================
-        #
-        # Inject C++ pointer to our CSpikeQueue class(_queue_capsule) as a runtime constant,wrapped in a PyCapsule (a safe Python container for C pointers).
-        # rather than baking it into the template at compile time.
-        #
-        # 1. CACHING PRESERVATION: Template content stays constant, allowing Brian2's
-        #    caching mechanism to reuse compiled .so files across runs
-        #
-        # 2. RUNTIME FLEXIBILITY: Pointer value can change between runs without
-        #    triggering expensive recompilation
-        #
-        # 3. PERFORMANCE MAINTAINED: Template still gets direct C++ access via
-        #    runtime namespace lookup (minimal overhead)
-        self.variables.add_object(
-            "_queue_capsule",
-            self.queue.get_capsule(),  # Wrapped C++ pointer in a PyCapsule
-        )
+
+        if self.queue:  # when using RuntimeDevice
+            self.variables.add_object(
+                "_queue_capsule",
+                self.queue.get_capsule(),  # Wrapped C++ pointer in a PyCapsule
+            )
 
         self._enable_group_attributes()
 
