@@ -109,9 +109,9 @@ class Device:
         """
         self._maximum_run_time = maximum_run_time
 
-    def get_array_name(self, var, access_data=True, get_pointer=False):
+    def get_array_name(self, var, access_data=True):
         """
-        Return a globally unique name for `var`,optionally with pointer access for dynamic arrays
+        Return a globally unique name for `var`.
 
         Parameters
         ----------
@@ -120,16 +120,10 @@ class Device:
             name for the underlying data is returned. If specifying `False`,
             the name of object itself is returned (e.g. to allow resizing).
 
-        get_pointer : bool, optional
-            If `True` and `var` is a `DynamicArrayVariable`, returns a tuple
-            `(name, capsule)` where capsule is the PyCapsule object for direct
-            C++ access. If `False`, returns just the name string. Default: False.
-
         Returns
         -------
-        name : str or tuple
-            The name for `var`. If `get_pointer=True` and `var` is a
-            `DynamicArrayVariable`, returns `(name, capsule)` tuple.
+        name : str
+            The name for `var`.
         """
         raise NotImplementedError()
 
@@ -500,7 +494,7 @@ class RuntimeDevice(Device):
         self.__dict__ = state
         self.__dict__["arrays"] = WeakKeyDictionary(self.__dict__["arrays"])
 
-    def get_array_name(self, var, access_data=True, get_pointer=False):
+    def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
         # of indices when doing G.x[indices] = ...). The name is not
         # necessarily unique over several CodeObjects in this case.
@@ -508,28 +502,9 @@ class RuntimeDevice(Device):
 
         if isinstance(var, DynamicArrayVariable):
             if access_data:
-                name = f"_array_{owner_name}_{var.name}"
+                return f"_array_{owner_name}_{var.name}"
             else:
-                name = f"_dynamic_array_{owner_name}_{var.name}"
-
-            if get_pointer:
-                try:
-                    capsule = self.get_capsule(var)
-                    return (name, capsule)
-                except Exception as e:
-                    # If capsule creation fails, fall back to name only
-                    # This ensures backward compatibility even if something goes wrong
-                    import warnings
-
-                    warnings.warn(
-                        f"Could not create capsule for {var.name}: {e}. "
-                        f"Returning name only.",
-                        UserWarning,
-                        stacklevel=2,
-                    )
-                    return name
-            else:
-                return name
+                return f"_dynamic_array_{owner_name}_{var.name}"
 
         elif isinstance(var, ArrayVariable):
             return f"_array_{owner_name}_{var.name}"
