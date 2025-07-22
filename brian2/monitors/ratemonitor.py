@@ -2,8 +2,11 @@
 Module defining `PopulationRateMonitor`.
 """
 
+from abc import ABC, abstractmethod
+
 import numpy as np
 
+from brian2.core.clocks import Clock
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
 from brian2.units.allunits import hertz, second
@@ -14,6 +17,114 @@ __all__ = ["PopulationRateMonitor"]
 
 
 logger = get_logger(__name__)
+
+
+class RateMoniter(CodeRunner, Clock, ABC):
+    """
+    Abstract base class for monitors that record rates.
+    """
+
+    @abstractmethod
+    @check_units(bin_size=second)
+    def binned(self, bin_size):
+        """
+        Return the rate calculated in bins of a certain size.
+
+        Parameters
+        -------------
+        bin_size : `Quantity`
+            The size of the bins in seconds. Should be a multiple of dt.
+
+        Returns
+        -------
+        bins : `Quantity`
+            The midpoints of the bins.
+        binned_values : `Quantity`
+            The binned values. For EventMonitor subclasses, this is a 2D array
+            with shape (neurons, bins). For PopulationRateMonitor, this is a 1D array.
+        """
+        raise NotImplementedError()
+
+    @check_units(width=second)
+    def smooth_rates(self, window="gaussian", width=None):
+        """
+        Returns a smooted out version of the firing rate(s).
+
+        Parameters
+        ----------
+        window : str, ndarray
+            The window to use for smoothing. Can be a string to chose a
+            predefined window(`flat` for a rectangular, and `gaussian`
+            for a Gaussian-shaped window).
+
+            In this case the width of the window
+            is determined by the `width` argument. Note that for the Gaussian
+            window, the `width` parameter specifies the standard deviation of
+            the Gaussian, the width of the actual window is `4*width + dt`
+            (rounded to the nearest dt). For the flat window, the width is
+            rounded to the nearest odd multiple of dt to avoid shifting the rate
+            in time.
+            Alternatively, an arbitrary window can be given as a numpy array
+            (with an odd number of elements). In this case, the width in units
+            of time depends on the ``dt`` of the simulation, and no `width`
+            argument can be specified. The given window will be automatically
+            normalized to a sum of 1.
+        width : `Quantity`, optional
+            The width of the ``window`` in seconds (for a predefined window).
+
+        Returns
+        -------
+        rate : `Quantity`
+            The smoothed firing rate(s) in Hz. For EventMonitor subclasses,
+            this returns a 2D array with shape (neurons, time_bins).
+            For PopulationRateMonitor, this returns a 1D array.
+            Note that the rates are smoothed and not re-binned, i.e. the length
+            of the returned array is the same as the length of the binned data
+            and can be plotted against the bin centers from the ``binned`` method.
+        """
+        if width is None and isinstance(window, str):
+            raise TypeError("Need a width when using a predefined window.")
+        if width is not None and not isinstance(window, str):
+            raise TypeError("Can only specify a width for a predefined window")
+
+        if isinstance(window, str):
+            if window == "gaussian":
+                width_dt = int(np.round(2 * width / self.clock.dt))
+                # Rounding only for the size of the window, not for the standard
+                # deviation of the Gaussian
+                window = np.exp(
+                    -np.arange(-width_dt, width_dt + 1) ** 2
+                    * 1.0
+                    / (2 * (width / self.clock.dt) ** 2)
+                )
+            elif window == "flat":
+                width_dt = int(np.round(width / (2 * self.clock.dt))) * 2 + 1
+                used_width = width_dt * self.clock.dt
+                if abs(used_width - width) > 1e-6 * self.clock.dt:
+                    logger.info(
+                        f"width adjusted from {width} to {used_width}",
+                        "adjusted_width",
+                        once=True,
+                    )
+                window = np.ones(width_dt)
+            else:
+                raise NotImplementedError(f'Unknown pre-defined window "{window}"')
+        else:
+            try:
+                window = np.asarray(window)
+            except TypeError:
+                raise TypeError(f"Cannot use a window of type {type(window)}")
+            if window.ndim != 1:
+                raise TypeError("The provided window has to be one-dimensional.")
+            if len(window) % 2 != 1:
+                raise TypeError("The window has to have an odd number of values.")
+
+        # Get the binned rates at the finest resolution
+        _, binned_values = self.binned(bin_size=self.clock.dt)
+
+        # The actual smoothing
+        smoothed = np.convolve(binned_values, window * 1.0 / sum(window), mode="same")
+        return Quantity(smoothed, dim=hertz.dim)
 
 
 class PopulationRateMonitor(Group, CodeRunner):
