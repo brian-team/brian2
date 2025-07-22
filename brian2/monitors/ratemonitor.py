@@ -13,7 +13,7 @@ from brian2.units.allunits import hertz, second
 from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.utils.logger import get_logger
 
-__all__ = ["PopulationRateMonitor"]
+__all__ = ["PopulationRateMonitor", "RateMoniter"]
 
 
 logger = get_logger(__name__)
