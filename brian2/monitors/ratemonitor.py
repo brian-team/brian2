@@ -89,12 +89,15 @@ class RateMoniter(CodeRunner, Group, Clock, ABC):
 
         if isinstance(window, str):
             if window == "gaussian":
-                width_dt = int(np.round(2 * width / self.clock.dt))
-                # Rounding only for the size of the window, not for the standard
+                # basically Gaussian theoretically spans infinite time, but practically it falls off quickly,
+                # So we choose a window of +- 2*(Standard deviations), i.e 95% of gaussian curve
+                width_dt = int(
+                    np.round(2 * width / self.clock.dt)
+                )  # Rounding only for the size of the window, not for the standard
                 # deviation of the Gaussian
                 window = np.exp(
                     -np.arange(-width_dt, width_dt + 1) ** 2
-                    * 1.0
+                    * 1.0  # hack to ensure floating-point division :)
                     / (2 * (width / self.clock.dt) ** 2)
                 )
             elif window == "flat":
@@ -210,6 +213,49 @@ class PopulationRateMonitor(RateMoniter):
         Clears all recorded rates
         """
         raise NotImplementedError()
+
+    @check_units(bin_size=second)
+    def binned(self, bin_size):
+        """
+        Return the population rate binned with the given bin size.
+
+        Parameters
+        ----------
+        bin_size : `Quantity`
+            The size of the bins in seconds. Should be a multiple of dt.
+
+        Returns
+        -------
+        bins : `Quantity`
+            The midpoints of the bins.
+        binned_values : `Quantity`
+            The binned population rates as a 1D array in Hz.
+        """
+        if (
+            bin_size / self.clock.dt
+        ) % 1 > 1e-6:  # to make sure bin_size is an integer multiple of the internal time resolution dt
+            raise ValueError("bin_size has to be a multiple of dt.")
+        if bin_size == self.clock.dt:
+            return self.t[:], self.rate
+
+        num_bins = int(self.clock.t / bin_size)
+        bins = (
+            np.arange(num_bins) * bin_size + bin_size / 2.0
+        )  # as we want Bin centers (not edges)
+
+        t_indices = (self.t / self.clock.dt).astype(int)
+        bin_indices = (t_indices * self.clock.dt / bin_size).astype(int)
+
+        binned_values = np.zeros(num_bins)  # to store total firing rate values per bin
+        bin_counts = np.zeros(num_bins)  # to store how many samples went into each bin
+
+        np.add.at(binned_values, bin_indices, self.rate)
+        np.add.at(bin_counts, bin_indices, 1)
+
+        # Avoid division by zero for empty bins
+        non_empty_bins = bin_counts > 0
+        binned_values[non_empty_bins] /= bin_counts[non_empty_bins]
+        return bins, Quantity(binned_values, dim=hertz.dim)
 
     def __repr__(self):
         classname = self.__class__.__name__
