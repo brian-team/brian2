@@ -19,7 +19,7 @@ __all__ = ["PopulationRateMonitor"]
 logger = get_logger(__name__)
 
 
-class RateMoniter(CodeRunner, Clock, ABC):
+class RateMoniter(CodeRunner, Group, Clock, ABC):
     """
     Abstract base class for monitors that record rates.
     """
@@ -127,7 +127,7 @@ class RateMoniter(CodeRunner, Clock, ABC):
         return Quantity(smoothed, dim=hertz.dim)
 
 
-class PopulationRateMonitor(Group, CodeRunner):
+class PopulationRateMonitor(RateMoniter):
     """
     Record instantaneous firing rates, averaged across neurons from a
     `NeuronGroup` or other spike source.
@@ -210,83 +210,6 @@ class PopulationRateMonitor(Group, CodeRunner):
         Clears all recorded rates
         """
         raise NotImplementedError()
-
-    @check_units(width=second)
-    def smooth_rate(self, window="gaussian", width=None):
-        """
-        smooth_rate(self, window='gaussian', width=None)
-
-        Return a smooth version of the population rate.
-
-        Parameters
-        ----------
-        window : str, ndarray
-            The window to use for smoothing. Can be a string to chose a
-            predefined window(``'flat'`` for a rectangular, and ``'gaussian'``
-            for a Gaussian-shaped window). In this case the width of the window
-            is determined by the ``width`` argument. Note that for the Gaussian
-            window, the ``width`` parameter specifies the standard deviation of
-            the Gaussian, the width of the actual window is ``4*width + dt``
-            (rounded to the nearest dt). For the flat window, the width is
-            rounded to the nearest odd multiple of dt to avoid shifting the rate
-            in time.
-            Alternatively, an arbitrary window can be given as a numpy array
-            (with an odd number of elements). In this case, the width in units
-            of time depends on the ``dt`` of the simulation, and no ``width``
-            argument can be specified. The given window will be automatically
-            normalized to a sum of 1.
-        width : `Quantity`, optional
-            The width of the ``window`` in seconds (for a predefined window).
-
-        Returns
-        -------
-        rate : `Quantity`
-            The population rate in Hz, smoothed with the given window. Note that
-            the rates are smoothed and not re-binned, i.e. the length of the
-            returned array is the same as the length of the ``rate`` attribute
-            and can be plotted against the `PopulationRateMonitor` 's ``t``
-            attribute.
-        """
-        if width is None and isinstance(window, str):
-            raise TypeError("Need a width when using a predefined window.")
-        if width is not None and not isinstance(window, str):
-            raise TypeError("Can only specify a width for a predefined window")
-
-        if isinstance(window, str):
-            if window == "gaussian":
-                width_dt = int(np.round(2 * width / self.clock.dt))
-                # Rounding only for the size of the window, not for the standard
-                # deviation of the Gaussian
-                window = np.exp(
-                    -np.arange(-width_dt, width_dt + 1) ** 2
-                    * 1.0
-                    / (2 * (width / self.clock.dt) ** 2)
-                )
-            elif window == "flat":
-                width_dt = int(width / 2 / self.clock.dt) * 2 + 1
-                used_width = width_dt * self.clock.dt
-                if abs(used_width - width) > 1e-6 * self.clock.dt:
-                    logger.info(
-                        f"width adjusted from {width} to {used_width}",
-                        "adjusted_width",
-                        once=True,
-                    )
-                window = np.ones(width_dt)
-            else:
-                raise NotImplementedError(f'Unknown pre-defined window "{window}"')
-        else:
-            try:
-                window = np.asarray(window)
-            except TypeError:
-                raise TypeError(f"Cannot use a window of type {type(window)}")
-            if window.ndim != 1:
-                raise TypeError("The provided window has to be one-dimensional.")
-            if len(window) % 2 != 1:
-                raise TypeError("The window has to have an odd number of values.")
-        return Quantity(
-            np.convolve(self.rate_, window * 1.0 / sum(window), mode="same"),
-            dim=hertz.dim,
-        )
 
     def __repr__(self):
         classname = self.__class__.__name__
