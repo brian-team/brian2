@@ -35,8 +35,13 @@
     {{N}} = _new_len
 
     # Set the new values
-    double* _t_data = {{_dynamic_t_ptr}}.get_data_ptr();
-    double* _rate_data = {{_dynamic_rate_ptr}}.get_data_ptr();
+    {% set dynamic_var = variables['_dynamic_t'] %}
+    {% set dynamic_c_type = cpp_dtype(dynamic_var.dtype) %}
+    {% set dynamic_rate_var = variables['_dynamic_rate'] %}
+    {% set dynamic_rate_c_type = cpp_dtype(dynamic_rate_var.dtype) %}
+
+    {{dynamic_c_type}}* _t_data = {{_dynamic_t_ptr}}.get_data_ptr();
+    {{dynamic_rate_c_type}}* _rate_data = {{_dynamic_rate_ptr}}.get_data_ptr();
 
     _t_data[_new_len-1] = {{_clock_t}}
     _rate_data[_new_len-1] = static_cast<double> _num_spikes/{{_clock_dt}}/_num_source_neurons
