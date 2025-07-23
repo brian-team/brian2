@@ -5,7 +5,7 @@
 {% block maincode %}
 
     cdef size_t _num_spikes = {{_spikespace}}[_num{{_spikespace}}-1]
-    
+
     # For subgroups, we do not want to record all spikes
     # We assume that spikes are ordered
     cdef int _start_idx = -1
@@ -26,7 +26,7 @@
     if _end_idx == -1:
         _end_idx =_num_spikes
     _num_spikes = _end_idx - _start_idx
-    
+
     # Calculate the new length for the arrays
     cdef size_t _new_len = {{_dynamic_t}}.shape[0] + 1
 
@@ -35,7 +35,10 @@
     {{N}} = _new_len
 
     # Set the new values
-    {{_dynamic_t}}.data[_new_len-1] = {{_clock_t}}
-    {{_dynamic_rate}}.data[_new_len-1] = _num_spikes/{{_clock_dt}}/_num_source_neurons
+    double* _t_data = {{_dynamic_t_ptr}}.get_data_ptr();
+    double* _rate_data = {{_dynamic_rate_ptr}}.get_data_ptr();
+
+    _t_data[_new_len-1] = {{_clock_t}}
+    _rate_data[_new_len-1] = static_cast<double> _num_spikes/{{_clock_dt}}/_num_source_neurons
 
 {% endblock %}
