@@ -335,6 +335,9 @@ class Device:
                 if hasattr(var, "resize"):
                     dyn_array_name = generator.get_array_name(var, access_data=False)
                     template_kwds[f"_dynamic_{varname}"] = dyn_array_name
+                    template_kwds[f"_dynamic_{varname}_ptr"] = (
+                        f"{dyn_array_name}_ptr"  # so we can access the right name of dynamic array pointer
+                    )
 
         template_kwds.update(kwds)
         logger.diagnostic(
