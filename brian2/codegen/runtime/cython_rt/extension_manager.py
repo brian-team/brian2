@@ -264,6 +264,13 @@ class CythonExtensionManager:
             synapses_dir = os.path.dirname(synapses.__file__)
             c_include_dirs.append(synapses_dir)
 
+            import brian2
+
+            brian2_base_dir = os.path.dirname(brian2.__file__)
+            brianlib_dir = os.path.join(
+                brian2_base_dir, "devices", "cpp_standalone", "brianlib"
+            )
+            c_include_dirs.append(brianlib_dir)
             pyx_file = os.path.join(lib_dir, f"{module_name}.pyx")
             # ignore Python 3 unicode stuff for the moment
             # pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
