@@ -2017,9 +2017,11 @@ _random_values = {
     ),
     ("RuntimeDevice", "cython", None): (
         [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
-        [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
+        # Cython uses a buffer for the random values that it gets from numpy, the
+        # values for the second call are therefore different
+        [-0.24349748, 1.1164414, -1.97421849, 1.58092889, -0.06444478],
     ),
-    ("CPPStandaloneDevice", "cython", 1): (
+    ("CPPStandaloneDevice", None, 1): (
         [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
         [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
     ),
@@ -2059,7 +2061,9 @@ def test_random_values_fixed_seed_numbers():
     run(0 * ms)  # for standalone
     expected_values = _random_values.get(_config_tuple(), None)
     if expected_values is None:
-        pytest.skip("Random values not known for this configuration")
+        pytest.skip(
+            f"Random values not known for this configuration (config_tuple: {_config_tuple()})"
+        )
     assert_allclose(G.v1[::20], expected_values[0])
     assert_allclose(G.v2[::20], expected_values[1])
 
@@ -2391,6 +2395,7 @@ if __name__ == "__main__":
     test_random_vector_values()
     test_random_values_random_seed()
     test_random_values_fixed_seed()
+    test_random_values_fixed_seed_numbers()
     test_random_values_fixed_and_random()
     test_no_code()
     test_run_regularly_scheduling()

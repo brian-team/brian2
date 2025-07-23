@@ -278,7 +278,6 @@ def test_user_defined_function_units():
     """
     Test the preparation of functions for use in code with check_units.
     """
-    prefs.codegen.target = "numpy"
     if prefs.codegen.target != "numpy":
         pytest.skip("numpy-only test")
 
