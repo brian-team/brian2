@@ -50,11 +50,11 @@ jobs:
         include:
           - os: {image: ubuntu-24.04, triplet: x64-linux}
             standalone: false
-            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
+            python-version: "${{ needs.get_python_versions.outputs.min-python }} < 3.11.9 || ${{ needs.get_python_versions.outputs.min-python }} >= 3.12"
             float_dtype_32: false
           - os: {image: ubuntu-24.04, triplet: x64-linux}
             standalone: true
-            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
+            python-version: "${{ needs.get_python_versions.outputs.min-python }} < 3.11.9 || ${{ needs.get_python_versions.outputs.min-python }} >= 3.12"
             float_dtype_32: false
 
     defaults:
