@@ -97,9 +97,12 @@ jobs:
       - name: Determine Cython cache dir
         id: cython-cache
         run: |
-          CACHE_DIR=$(python -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
+          cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
+          CACHE_DIR=$("$PYTHON_BINARY" -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
           echo "Cython cache dir: $CACHE_DIR"
           echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
 
       - name: restore Cython cache
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3

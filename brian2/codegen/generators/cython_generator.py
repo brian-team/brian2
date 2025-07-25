@@ -5,6 +5,7 @@ from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import (
     AuxiliaryVariable,
     Constant,
+    DynamicArrayVariable,
     Subexpression,
     Variable,
     get_dtype_str,
@@ -42,6 +43,35 @@ def get_cpp_dtype(obj):
 
 def get_numpy_dtype(obj):
     return numpy_dtype[get_dtype_str(obj)]
+
+
+def get_dynamic_array_cpp_type(var):
+    """Get the full templated C++ type for a DynamicArrayVariable"""
+    cpp_dtype = get_cpp_dtype(var.dtype)  # e.g., 'double', 'int32_t', 'float'
+
+    if var.ndim == 1:
+        return f"DynamicArray1DCpp[{cpp_dtype}]"  # Returns "DynamicArray1DCpp[double]"
+    elif var.ndim == 2:
+        return f"DynamicArray2DCpp[{cpp_dtype}]"  # Returns "DynamicArray2DCpp[double]"
+    else:
+        raise ValueError(
+            f"Unsupported dynamic array dimension: {var.ndim}. Only 1D and 2D arrays are supported."
+        )
+
+
+def get_capsule_type(var):
+    """Get the capsule type name for PyCapsule_GetPointer"""
+    if not hasattr(var, "ndim"):
+        raise ValueError(f"Variable {var.name} does not have ndim attribute")
+
+    if var.ndim == 1:
+        return "DynamicArray1D"
+    elif var.ndim == 2:
+        return "DynamicArray2D"
+    else:
+        raise ValueError(
+            f"Unsupported dynamic array dimension: {var.ndim}. Only 1D and 2D arrays are supported."
+        )
 
 
 class CythonNodeRenderer(NodeRenderer):
@@ -151,9 +181,15 @@ class CythonCodeGenerator(CodeGenerator):
         for varname in itertools.chain(sorted(indices), sorted(read)):
             var = self.variables[varname]
             index = self.variable_indices[varname]
-            arrayname = self.get_array_name(var)
-            line = f"{varname} = {arrayname}[{index}]"
-            lines.append(line)
+            if isinstance(var, DynamicArrayVariable):
+                dyn_array_name = self.get_array_name(var, access_data=False)
+                cpp_ptr_name = f"{dyn_array_name}_ptr"
+                arrayname = self.get_array_name(var)
+                lines.append(f"{varname} = {cpp_ptr_name}[0][{index}]")
+            else:
+                arrayname = self.get_array_name(var)
+                line = f"{varname} = {arrayname}[{index}]"
+                lines.append(line)
         return lines
 
     def translate_to_statements(self, statements, conditional_write_vars):
@@ -175,9 +211,16 @@ class CythonCodeGenerator(CodeGenerator):
         for varname in sorted(write):
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
-            line = (
-                f"{self.get_array_name(var, self.variables)}[{index_var}] = {varname}"
-            )
+            # CHECK: Is this a dynamic array variable?
+            if isinstance(var, DynamicArrayVariable):
+                # Use C++ pointer access for writing
+                dyn_array_name = self.get_array_name(var, access_data=False)
+                cpp_ptr_name = f"{dyn_array_name}_ptr"
+                line = f"{cpp_ptr_name}[0][{index_var}] = {varname}"
+            else:
+                # Use regular array access
+                line = f"{self.get_array_name(var, self.variables)}[{index_var}] = {varname}"
+
             lines.append(line)
         return lines
 
@@ -348,10 +391,35 @@ class CythonCodeGenerator(CodeGenerator):
                 load_namespace.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:
-                    pointer_name = self.get_array_name(var, False)
-                    load_namespace.append(
-                        f'{pointer_name} = _namespace["{pointer_name}"]'
-                    )
+                    if isinstance(var, DynamicArrayVariable):
+                        # We're dealing with a dynamic array (like synaptic connections that grow during simulation)
+                        # For these arrays, we want BLAZING FAST access, so we'll create direct C++ pointers
+                        # This bypasses all Python overhead and gives us pure C++ speed!
+
+                        # We define unique names for the array object, its pointer, and the capsule.
+                        dyn_array_name = self.get_array_name(var, access_data=False)
+                        capsule_name = f"{dyn_array_name}_capsule"
+
+                        # Get the C++ type for accurate casting (e.g., "DynamicArray1DCpp[double]").
+                        cpp_type = get_dynamic_array_cpp_type(var)
+
+                        # Generate Cython code to retrieve the C++ pointer from the capsule.
+                        # This is a two-step process in Cython:
+                        # 1. Look up the capsule object in the provided namespace.
+                        # 2. Unwrap the raw C++ pointer from the capsule for direct C++ object access.
+                        load_namespace.append(
+                            f'cdef object {capsule_name} = _namespace["{capsule_name}"]'
+                        )
+                        load_namespace.append(
+                            f"cdef {cpp_type}* {dyn_array_name}_ptr = "
+                            f'<{cpp_type}*>PyCapsule_GetPointer({capsule_name}, "{get_capsule_type(var)}")'
+                        )
+                        handled_pointers.add(dyn_array_name)
+                    else:
+                        pointer_name = self.get_array_name(var, False)
+                        load_namespace.append(
+                            f'{pointer_name} = _namespace["{pointer_name}"]'
+                        )
 
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
