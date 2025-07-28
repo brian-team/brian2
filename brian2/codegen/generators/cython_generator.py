@@ -420,7 +420,7 @@ class CythonCodeGenerator(CodeGenerator):
                     cpp_dtype = get_cpp_dtype(var.dtype)
                     if get_dtype_str(var.dtype) == "bool":
                         # Use cython.bint for boolean dynamic arrays
-                        cpp_dtype = "cython.bint"
+                        cpp_dtype = "char"
 
                     newlines = [
                         (
