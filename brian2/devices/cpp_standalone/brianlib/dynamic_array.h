@@ -8,6 +8,13 @@
 #include <cstring>
 #include <cassert>
 
+// NOTE : using std::vector<T> in our code, and everything works fine until we use it with T = bool.
+// Because std::vector<bool> is not like other vectors.Normally, a vector like std::vector<int> or std::vector<float> ,
+// stores items in a normal array. So it can give a pointer to its raw data using .data() ( as method we defined in class).
+// But for bool, C++ tries to optimize and save memory by packing all the boolean values tightly — 1 bit per value, instead of 1 byte.
+// That means we can’t get a real pointer to each individual boolean anymore, since pointers work on bytes, not bits :(
+// So C++ deletes the .data() function for std::vector<bool> to prevent misuse.
+
 /**
  * A simple 1D dynamic array that grows efficiently over time.
  *

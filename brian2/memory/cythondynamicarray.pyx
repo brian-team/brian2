@@ -66,15 +66,16 @@ cdef class DynamicArray1DClass:
         self.numpy_type = NUMPY_TYPE_MAP[self.dtype.type]
 
         if self.dtype == np.float64:
-            self.thisptr = <void*>new DynamicArray1DCpp[double](intial_size,factor)
+            self.thisptr = new DynamicArray1DCpp[double](intial_size,factor)
         elif self.dtype == np.float32:
-            self.thisptr = <void*>new DynamicArray1DCpp[float](intial_size,factor)
+            self.thisptr = new DynamicArray1DCpp[float](intial_size,factor)
         elif self.dtype == np.int32:
-            self.thisptr = <void*>new DynamicArray1DCpp[int32_t](intial_size,factor)
+            self.thisptr = new DynamicArray1DCpp[int32_t](intial_size,factor)
         elif self.dtype == np.int64:
-            self.thisptr = <void*>new DynamicArray1DCpp[int64_t](intial_size,factor)
+            self.thisptr = new DynamicArray1DCpp[int64_t](intial_size,factor)
         elif self.dtype == np.bool_:
-            self.thisptr = <void*>new DynamicArray1DCpp[cython.bint](intial_size,factor)
+             # When asked for a bool array, we create a char array in C++ as for bool, C++ tries to optimize and save memory by packing all the boolean values tightly — 1 bit per value, instead of 1 byte.
+            self.thisptr = new DynamicArray1DCpp[char](intial_size,factor)
         else:
             raise TypeError("Unsupported dtype: {}".format(self.dtype))
 
@@ -83,7 +84,7 @@ cdef class DynamicArray1DClass:
         cdef DynamicArray1DCpp[float]* ptr_float
         cdef DynamicArray1DCpp[int32_t]* ptr_int
         cdef DynamicArray1DCpp[int64_t]* ptr_long
-        cdef DynamicArray1DCpp[cython.bint]* ptr_bool
+        cdef DynamicArray1DCpp[char]* ptr_bool
         if self.thisptr != NULL:
             if self.dtype == np.float64:
                 ptr_double = <DynamicArray1DCpp[double]*>self.thisptr
@@ -98,7 +99,7 @@ cdef class DynamicArray1DClass:
                 ptr_long = <DynamicArray1DCpp[int64_t]*>self.thisptr
                 del ptr_long
             elif self.dtype == np.bool_:
-                ptr_bool = <DynamicArray1DCpp[cython.bint]*>self.thisptr
+                ptr_bool = <DynamicArray1DCpp[char]*>self.thisptr
                 del ptr_bool
 
 
@@ -113,7 +114,7 @@ cdef class DynamicArray1DClass:
         elif self.dtype == np.int64:
             return <void*>(<DynamicArray1DCpp[int64_t]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.bool_:
-            return <void*>(<DynamicArray1DCpp[cython.bint]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray1DCpp[char]*>self.thisptr).get_data_ptr()
         return NULL
 
     def get_capsule(self):
@@ -136,7 +137,7 @@ cdef class DynamicArray1DClass:
         elif self.dtype == np.int64:
             return (<DynamicArray1DCpp[int64_t]*>self.thisptr).size()
         elif self.dtype == np.bool_:
-            return (<DynamicArray1DCpp[cython.bint]*>self.thisptr).size()
+            return (<DynamicArray1DCpp[char]*>self.thisptr).size()
         return 0
 
     def resize(self, size_t new_size):
@@ -150,7 +151,7 @@ cdef class DynamicArray1DClass:
         elif self.dtype == np.int64:
             (<DynamicArray1DCpp[int64_t]*>self.thisptr).resize(new_size)
         elif self.dtype == np.bool_:
-            (<DynamicArray1DCpp[cython.bint]*>self.thisptr).resize(new_size)
+            (<DynamicArray1DCpp[char]*>self.thisptr).resize(new_size)
 
     @property
     def data(self):
@@ -204,7 +205,8 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.int64:
             self.thisptr = new DynamicArray2DCpp[int64_t](rows, cols, factor)
         elif self.dtype == np.bool_:
-            self.thisptr = new DynamicArray2DCpp[cython.bint](rows, cols, factor)
+            # When asked for a bool array, we create a char array in C++ as for bool, C++ tries to optimize and save memory by packing all the boolean values tightly — 1 bit per value, instead of 1 byte.
+            self.thisptr = new DynamicArray2DCpp[char](rows, cols, factor)
         else:
             raise TypeError(f"Unsupported dtype: {dtype}")
 
@@ -213,7 +215,7 @@ cdef class DynamicArray2DClass:
         cdef DynamicArray2DCpp[float]* ptr_float
         cdef DynamicArray2DCpp[int32_t]* ptr_int
         cdef DynamicArray2DCpp[int64_t]* ptr_long
-        cdef DynamicArray2DCpp[cython.bint]* ptr_bool
+        cdef DynamicArray2DCpp[char]* ptr_bool
         if self.thisptr != NULL:
             if self.dtype == np.float64:
                 ptr_double = <DynamicArray2DCpp[double]*>self.thisptr
@@ -228,7 +230,7 @@ cdef class DynamicArray2DClass:
                 ptr_long = <DynamicArray2DCpp[int64_t]*>self.thisptr
                 del ptr_long
             elif self.dtype == np.bool_:
-                ptr_bool = <DynamicArray2DCpp[cython.bint]*>self.thisptr
+                ptr_bool = <DynamicArray2DCpp[char]*>self.thisptr
                 del ptr_bool
 
     def get_capsule(self):
@@ -251,7 +253,7 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.int64:
             return <void*>(<DynamicArray2DCpp[int64_t]*>self.thisptr).get_data_ptr()
         elif self.dtype == np.bool_:
-            return <void*>(<DynamicArray2DCpp[cython.bint]*>self.thisptr).get_data_ptr()
+            return <void*>(<DynamicArray2DCpp[char]*>self.thisptr).get_data_ptr()
         return NULL
 
     cdef size_t get_rows(self):
@@ -265,7 +267,7 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.int64:
             return (<DynamicArray2DCpp[int64_t]*>self.thisptr).rows()
         elif self.dtype == np.bool_:
-            return (<DynamicArray2DCpp[cython.bint]*>self.thisptr).rows()
+            return (<DynamicArray2DCpp[char]*>self.thisptr).rows()
         return 0
 
     cdef size_t get_cols(self):
@@ -279,7 +281,7 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.int64:
             return (<DynamicArray2DCpp[int64_t]*>self.thisptr).cols()
         elif self.dtype == np.bool_:
-            return (<DynamicArray2DCpp[cython.bint]*>self.thisptr).cols()
+            return (<DynamicArray2DCpp[char]*>self.thisptr).cols()
         return 0
 
 
@@ -294,7 +296,7 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.int64:
             return (<DynamicArray2DCpp[int64_t]*>self.thisptr).stride()
         elif self.dtype == np.bool_:
-            return (<DynamicArray2DCpp[cython.bint]*>self.thisptr).stride()
+            return (<DynamicArray2DCpp[char]*>self.thisptr).stride()
         return 0
 
     def resize(self, tuple new_shape):
@@ -311,7 +313,7 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.int64:
             (<DynamicArray2DCpp[int64_t]*>self.thisptr).resize(new_rows, new_cols)
         elif self.dtype == np.bool_:
-            (<DynamicArray2DCpp[cython.bint]*>self.thisptr).resize(new_rows, new_cols)
+            (<DynamicArray2DCpp[char]*>self.thisptr).resize(new_rows, new_cols)
 
     def resize_along_first(self, new_shape):
         """Resize along first dimension (rows), keeping columns unchanged"""
@@ -332,7 +334,7 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.int64:
             (<DynamicArray2DCpp[int64_t]*>self.thisptr).resize_along_first(rows)
         elif self.dtype == np.bool_:
-            (<DynamicArray2DCpp[cython.bint]*>self.thisptr).resize_along_first(rows)
+            (<DynamicArray2DCpp[char]*>self.thisptr).resize_along_first(rows)
 
     @property
     def data(self):
