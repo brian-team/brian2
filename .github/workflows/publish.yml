@@ -53,8 +53,6 @@ jobs:
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS: auto64
-          # Do not build for PyPy
-          CIBW_SKIP: 'pp*'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
         with:
