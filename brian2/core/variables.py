@@ -673,12 +673,6 @@ class DynamicArrayVariable(ArrayVariable):
         capsule : PyCapsule
             A PyCapsule containing the C++ pointer to the dynamic array.
 
-        Examples
-        --------
-        >>> # In Cython template code:
-        >>> capsule = {{_dynamic_varname}}.get_capsule()
-        >>> cdef DynamicArray1D[double]* ptr = get_1d_double_ptr(capsule)
-        >>> ptr.resize(new_size)
         """
         return self.device.get_capsule(self)
 
