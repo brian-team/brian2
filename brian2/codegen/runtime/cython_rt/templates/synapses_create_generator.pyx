@@ -213,7 +213,7 @@ cdef void _flush_buffer(int[:] buf,DynamicArray1DCpp[int32_t]* dynarr, int buf_l
     _flush_buffer(_postbuf, {{_dynamic__synaptic_post_ptr}}, _curbuf)
     _curbuf = 0  # reset the buffer for the next run
 
-    newsize ={{_dynamic__synaptic_pre_ptr}}.size()
+    newsize = {{_dynamic__synaptic_pre_ptr}}.size()
     # now we need to resize all registered variables and set the total number
     # of synapse (via Python)
     _owner._resize(newsize)

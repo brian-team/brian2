@@ -12,8 +12,8 @@
     {{_dynamic__synaptic_pre_ptr}}.resize(_new_num_synapses)
     {{_dynamic__synaptic_post_ptr}}.resize(_new_num_synapses)
     # Get the potentially newly created underlying data arrays
-    cdef int32_t* _synaptic_pre_data = {{_dynamic__synaptic_pre}}.get_data_ptr()
-    cdef int32_t* _synaptic_post_data = {{_dynamic__synaptic_post}}.get_data_ptr()
+    cdef int32_t* _synaptic_pre_data = {{_dynamic__synaptic_pre_ptr}}.get_data_ptr()
+    cdef int32_t* _synaptic_post_data = {{_dynamic__synaptic_post_ptr}}.get_data_ptr()
 
     for _idx in range(_num{{sources}}):
         # After this code has been executed, the arrays _real_sources and
