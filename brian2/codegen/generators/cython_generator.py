@@ -181,15 +181,9 @@ class CythonCodeGenerator(CodeGenerator):
         for varname in itertools.chain(sorted(indices), sorted(read)):
             var = self.variables[varname]
             index = self.variable_indices[varname]
-            if isinstance(var, DynamicArrayVariable):
-                dyn_array_name = self.get_array_name(var, access_data=False)
-                cpp_ptr_name = f"{dyn_array_name}_ptr"
-                arrayname = self.get_array_name(var)
-                lines.append(f"{varname} = {cpp_ptr_name}[0][{index}]")
-            else:
-                arrayname = self.get_array_name(var)
-                line = f"{varname} = {arrayname}[{index}]"
-                lines.append(line)
+            arrayname = self.get_array_name(var)
+            line = f"{varname} = {arrayname}[{index}]"
+            lines.append(line)
         return lines
 
     def translate_to_statements(self, statements, conditional_write_vars):
@@ -211,15 +205,9 @@ class CythonCodeGenerator(CodeGenerator):
         for varname in sorted(write):
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
-            # CHECK: Is this a dynamic array variable?
-            if isinstance(var, DynamicArrayVariable):
-                # Use C++ pointer access for writing
-                dyn_array_name = self.get_array_name(var, access_data=False)
-                cpp_ptr_name = f"{dyn_array_name}_ptr"
-                line = f"{cpp_ptr_name}[0][{index_var}] = {varname}"
-            else:
-                # Use regular array access
-                line = f"{self.get_array_name(var, self.variables)}[{index_var}] = {varname}"
+            line = (
+                f"{self.get_array_name(var, self.variables)}[{index_var}] = {varname}"
+            )
 
             lines.append(line)
         return lines
@@ -414,7 +402,6 @@ class CythonCodeGenerator(CodeGenerator):
                             f"cdef {cpp_type}* {dyn_array_name}_ptr = "
                             f'<{cpp_type}*>PyCapsule_GetPointer({capsule_name}, "{get_capsule_type(var)}")'
                         )
-                        handled_pointers.add(dyn_array_name)
                     else:
                         pointer_name = self.get_array_name(var, False)
                         load_namespace.append(
@@ -424,32 +411,48 @@ class CythonCodeGenerator(CodeGenerator):
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
                 pointer_name = self.get_array_name(var)
+                dyn_array_name = self.get_array_name(var, access_data=False)
                 if pointer_name in handled_pointers:
                     continue
-                if getattr(var, "ndim", 1) > 1:
-                    continue  # multidimensional (dynamic) arrays have to be treated differently
-                if get_dtype_str(var.dtype) == "bool":
+                if isinstance(var, DynamicArrayVariable):
+                    # For Dynamic Arrays, we get the data pointer directly from the C++ object
+                    # This works for all types, including bools, because the C++ class handles the type correctly.
+                    cpp_dtype = get_cpp_dtype(var.dtype)
+                    if get_dtype_str(var.dtype) == "bool":
+                        # Use cython.bint for boolean dynamic arrays
+                        cpp_dtype = "cython.bint"
+
                     newlines = [
                         (
-                            "cdef _numpy.ndarray[char, ndim=1, mode='c', cast=True]"
-                            " _buf_{array_name} = _namespace['{array_name}']"
-                        ),
-                        (
-                            "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *>"
-                            " _buf_{array_name}.data"
-                        ),
+                            f"cdef {cpp_dtype}* {array_name} = <{cpp_dtype}*>"
+                            f" {dyn_array_name}_ptr.get_data_ptr()"
+                        )
                     ]
                 else:
-                    newlines = [
-                        (
-                            "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c']"
-                            " _buf_{array_name} = _namespace['{array_name}']"
-                        ),
-                        (
-                            "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *>"
-                            " _buf_{array_name}.data"
-                        ),
-                    ]
+                    if getattr(var, "ndim", 1) > 1:
+                        continue  # multidimensional (dynamic) arrays have to be treated differently
+                    if get_dtype_str(var.dtype) == "bool":
+                        newlines = [
+                            (
+                                "cdef _numpy.ndarray[char, ndim=1, mode='c', cast=True]"
+                                " _buf_{array_name} = _namespace['{array_name}']"
+                            ),
+                            (
+                                "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *>"
+                                " _buf_{array_name}.data"
+                            ),
+                        ]
+                    else:
+                        newlines = [
+                            (
+                                "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c']"
+                                " _buf_{array_name} = _namespace['{array_name}']"
+                            ),
+                            (
+                                "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *>"
+                                " _buf_{array_name}.data"
+                            ),
+                        ]
 
                 if not var.scalar:
                     newlines += [
@@ -467,6 +470,7 @@ class CythonCodeGenerator(CodeGenerator):
                         numpy_dtype=get_numpy_dtype(var.dtype),
                         pointer_name=pointer_name,
                         array_name=array_name,
+                        dyn_array_name=dyn_array_name,
                         varname=varname,
                     )
                     load_namespace.append(line)
