@@ -88,6 +88,41 @@ public:
     }
 
     /**
+     * Shrink array to exact new size as mentioned , freezing unused memory
+     * @param new_size Must be <= current logical size
+     *
+     * Unlike resize(), this immediately frees unused memory by creating
+     * a new buffer of exactly new_size .
+     * Note: Use it with precaution as it defeats the purpose of amortized growth optimisation
+     */
+    void shrink(size_t new_size)
+    {
+        if(new_size > m_size){
+            // Don't allow growing via shrink method
+            return;
+        }
+        if(new_size < m_size){
+            std::vector<T> new_buffer(new_size); // We create a new buffer of exact size
+            if (std::is_trivially_copyable<T>::value && new_size > 0)
+            {
+                std::memcpy(new_buffer.data(), m_data.data(), new_size* sizeof(T));
+            }else
+            {
+                for ( size_t i =0; i < new_size; ++i)
+                {
+                    new_buffer[i] = m_data[i];
+                }
+            }
+            m_data.swap(new_buffer);
+            m_size = new_size;
+        }
+        // If new_size == m_size, we still shrink the buffer to fit
+        else{
+            shrink_to_fit();
+        }
+    }
+
+    /**
      * Shrink capacity to match current size
      * Use with precaution as it defeats the purpose of amortized growth
      */
@@ -315,6 +350,54 @@ public:
         }
         // We just update the logical row count to reflect the new size
         m_rows =new_rows;
+    }
+
+
+    /**
+     * @brief Shrink array to exact new shape, freeing unused memory
+     * @param new_rows Must be <= current logical rows
+     * @param new_cols Must be <= current logical cols
+     */
+    void shrink(size_t new_rows, size_t new_cols)
+    {
+        if (new_rows > m_rows || new_cols > m_cols) {
+            // Don't allow growing via shrink
+            return;
+        }
+
+        if (new_rows < m_rows || new_cols < m_cols) {
+            // Create new compact buffer
+            std::vector<T> new_buffer(new_rows * new_cols);
+
+            // Copy existing data row by row
+            for (size_t i = 0; i < new_rows; ++i) {
+                if (std::is_trivially_copyable<T>::value && new_cols > 0) {
+                    std::memcpy(&new_buffer[i * new_cols],
+                              &m_buffer[i * m_buffer_cols],
+                              new_cols * sizeof(T));
+                } else {
+                    for (size_t j = 0; j < new_cols; ++j) {
+                        new_buffer[i * new_cols + j] = m_buffer[index(i, j)];
+                    }
+                }
+            }
+
+            // Replace buffer and update dimensions
+            m_buffer.swap(new_buffer);
+            m_rows = new_rows;
+            m_cols = new_cols;
+            m_buffer_rows = new_rows;
+            m_buffer_cols = new_cols;
+        }
+        // If dimensions unchanged, just compact buffer
+        else {
+            shrink_to_fit();
+        }
+    }
+
+    // Convenience overload for 1D shrink (just rows)
+    void shrink(size_t new_rows) {
+        shrink(new_rows, m_cols);
     }
 
     /**

@@ -20,6 +20,7 @@ cdef extern from "dynamic_array.h":
         DynamicArray1DCpp(size_t,double) except +
         void resize(size_t) except +
         void shrink_to_fit()
+        void shrink(size_t) except +
         T& operator[](size_t)
         T* get_data_ptr()
         size_t size()
@@ -36,6 +37,8 @@ cdef extern from "dynamic_array.h":
         void resize() except +
         void resize_along_first(size_t) except +
         void shrink_to_fit()
+        void shrink(size_t, size_t) except +
+        void shrink(size_t) except +
         T& operator()(size_t, size_t)
         T& operator()(int, int)
         T* get_data_ptr()
@@ -152,6 +155,19 @@ cdef class DynamicArray1DClass:
             (<DynamicArray1DCpp[int64_t]*>self.thisptr).resize(new_size)
         elif self.dtype == np.bool_:
             (<DynamicArray1DCpp[char]*>self.thisptr).resize(new_size)
+
+    def shrink(self, size_t new_size):
+        """Shrink array to exact new size, freeing unused memory"""
+        if self.dtype == np.float64:
+            (<DynamicArray1DCpp[double]*>self.thisptr).shrink(new_size)
+        elif self.dtype == np.float32:
+            (<DynamicArray1DCpp[float]*>self.thisptr).shrink(new_size)
+        elif self.dtype == np.int32:
+            (<DynamicArray1DCpp[int32_t]*>self.thisptr).shrink(new_size)
+        elif self.dtype == np.int64:
+            (<DynamicArray1DCpp[int64_t]*>self.thisptr).shrink(new_size)
+        elif self.dtype == np.bool_:
+            (<DynamicArray1DCpp[char]*>self.thisptr).shrink(new_size)
 
     @property
     def data(self):
@@ -336,6 +352,37 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.bool_:
             (<DynamicArray2DCpp[char]*>self.thisptr).resize_along_first(rows)
 
+    cdef shrink(self, new_shape):
+        """Shrink array to exact new shape, freeing unused memory"""
+        cdef size_t new_rows
+        cdef size_t new_cols
+        if isinstance(new_shape, int):
+            # Shrink just rows, keep cols
+            new_rows = new_shape
+            if self.dtype == np.float64:
+                (<DynamicArray2DCpp[double]*>self.thisptr).shrink(new_rows)
+            elif self.dtype == np.float32:
+                (<DynamicArray2DCpp[float]*>self.thisptr).shrink(new_rows)
+            elif self.dtype == np.int32:
+                (<DynamicArray2DCpp[int32_t]*>self.thisptr).shrink(new_rows)
+            elif self.dtype == np.int64:
+                (<DynamicArray2DCpp[int64_t]*>self.thisptr).shrink(new_rows)
+            elif self.dtype == np.bool_:
+                (<DynamicArray2DCpp[char]*>self.thisptr).shrink(new_rows)
+        else:
+            # Shrink both dimensions
+            new_rows = new_shape[0]
+            new_cols = new_shape[1]
+            if self.dtype == np.float64:
+                (<DynamicArray2DCpp[double]*>self.thisptr).shrink(new_rows, new_cols)
+            elif self.dtype == np.float32:
+                (<DynamicArray2DCpp[float]*>self.thisptr).shrink(new_rows, new_cols)
+            elif self.dtype == np.int32:
+                (<DynamicArray2DCpp[int32_t]*>self.thisptr).shrink(new_rows, new_cols)
+            elif self.dtype == np.int64:
+                (<DynamicArray2DCpp[int64_t]*>self.thisptr).shrink(new_rows, new_cols)
+            elif self.dtype == np.bool_:
+                (<DynamicArray2DCpp[char]*>self.thisptr).shrink(new_rows, new_cols)
     @property
     def data(self):
         """Return numpy array view with proper strides"""
