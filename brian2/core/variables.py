@@ -1580,7 +1580,7 @@ class VariableView:
     @property
     def shape(self):
         if self.ndim == 1:
-            if not self.variable.scalar:
+            if hasattr(self, "group.start") and hasattr(self, "group.stop"):
                 # This is safer than using the variable size, since it also works for subgroups
                 # see GitHub issue #1555
                 size = self.group.stop - self.group.start
