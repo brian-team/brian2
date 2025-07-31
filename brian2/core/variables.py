@@ -1579,6 +1579,10 @@ class VariableView:
     # Get access to some basic properties of the underlying array
     @property
     def shape(self):
+        if isinstance(self.variable, DynamicArrayVariable):
+            # For dynamic variables, we need to make sure that their size is up-to-date in standalone mode
+            # We can trigger the update by asking for the values, even though we don't need them here
+            self.variable.get_value()
         if self.ndim == 1:
             if (
                 hasattr(self, "group")
