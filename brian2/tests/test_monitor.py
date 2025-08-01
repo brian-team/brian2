@@ -156,6 +156,7 @@ def test_spike_monitor_subgroups():
     spikes_2 = SpikeMonitor(G[2:4])
     spikes_3 = SpikeMonitor(G[4:])
     run(defaultclock.dt)
+    assert spikes_all.i.shape == (3,)
     assert_allclose(spikes_all.i, [0, 4, 5])
     assert_allclose(spikes_all.t, [0, 0, 0] * ms)
     assert_allclose(spikes_1.i, [0])
