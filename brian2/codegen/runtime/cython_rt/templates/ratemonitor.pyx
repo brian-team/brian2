@@ -27,23 +27,24 @@
         _end_idx =_num_spikes
     _num_spikes = _end_idx - _start_idx
 
-    # Calculate the new length for the arrays
-    cdef size_t _new_len = {{_dynamic_t}}.shape[0] + 1
+    # First we get the current size of array from the C++ Object itself
+    {% set t_array = get_array_name(variables['t'],access_data=False) %}
+    {% set rate_array = get_array_name(variables['rate'],access_data=False) %}
+    cdef size_t _current_len = {{t_array}}_ptr.size()
+    cdef size_t _new_len = _current_len + 1
 
-    # Resize the arrays
-    _owner.resize(_new_len)
+    # Now we resize the arrays directly , avoiding python indirection
+    {{t_array}}_ptr.resize(_new_len)
+    {{rate_array}}_ptr.resize(_new_len)
+
+    # Update N after resizing
     {{N}} = _new_len
 
-    # Set the new values
-    {% set dynamic_var = variables['_dynamic_t'] %}
-    {% set dynamic_c_type = cpp_dtype(dynamic_var.dtype) %}
-    {% set dynamic_rate_var = variables['_dynamic_rate'] %}
-    {% set dynamic_rate_c_type = cpp_dtype(dynamic_rate_var.dtype) %}
+    cdef double* _t_data = {{t_array}}_ptr.get_data_ptr()
+    cdef double* _rate_data = {{rate_array}}_ptr.get_data_ptr()
 
-    {{dynamic_c_type}}* _t_data = {{_dynamic_t_ptr}}.get_data_ptr();
-    {{dynamic_rate_c_type}}* _rate_data = {{_dynamic_rate_ptr}}.get_data_ptr();
-
+    # At last we set the new values using the new pointers
     _t_data[_new_len-1] = {{_clock_t}}
-    _rate_data[_new_len-1] = static_cast<double> _num_spikes/{{_clock_dt}}/_num_source_neurons
+    _rate_data[_new_len-1] = _num_spikes/{{_clock_dt}}/_num_source_neurons
 
 {% endblock %}
