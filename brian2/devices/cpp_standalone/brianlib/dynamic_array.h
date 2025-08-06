@@ -177,14 +177,14 @@ private:
 
 public:
     // We keep these for backwards compatibility
-    size_t *n;
-    size_t *m;
+    size_t &n;
+    size_t &m;
 
     DynamicArray2D(size_t rows = 0, size_t cols = 0, double factor = 2.0)
         : m_rows(rows), m_cols(cols),
           m_buffer_rows(rows), m_buffer_cols(cols),
           m_growth_factor(factor),
-          n(&m_rows), m(&m_cols)
+          n(m_rows), m(m_cols)
     {
         m_buffer.resize(m_buffer_rows * m_buffer_cols);
     }
@@ -453,6 +453,9 @@ public:
     inline T &operator()(int i, int j)  { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
     inline const T &operator()(int i, int j) const { return operator()(static_cast<size_t>(i), static_cast<size_t>(j)); }
 
+    // mixed-type overloads to resolve ambiguity
+    inline T &operator()(size_t i, int j) { return operator()(i, static_cast<size_t>(j));}
+    inline T &operator()(int i, size_t j) { return operator()(static_cast<size_t>(i), j);}
     /**
      * @brief Returns a copy of row i as std::vector<T>.
      * @note This is a copy; for slicing without copy, consider returning a view.
