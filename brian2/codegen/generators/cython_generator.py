@@ -419,7 +419,7 @@ class CythonCodeGenerator(CodeGenerator):
                     # This works for all types, including bools, because the C++ class handles the type correctly.
                     cpp_dtype = get_cpp_dtype(var.dtype)
                     if get_dtype_str(var.dtype) == "bool":
-                        # Use cython.bint for boolean dynamic arrays
+                        # Use char for boolean dynamic arrays
                         cpp_dtype = "char"
 
                     newlines = [
