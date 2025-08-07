@@ -49,6 +49,10 @@ def get_dynamic_array_cpp_type(var):
     """Get the full templated C++ type for a DynamicArrayVariable"""
     cpp_dtype = get_cpp_dtype(var.dtype)  # e.g., 'double', 'int32_t', 'float'
 
+    # Special handling for bool - use char instead
+    if get_dtype_str(var.dtype) == "bool":
+        cpp_dtype = "char"
+
     if var.ndim == 1:
         return f"DynamicArray1DCpp[{cpp_dtype}]"  # Returns "DynamicArray1DCpp[double]"
     elif var.ndim == 2:
