@@ -95,7 +95,7 @@ def test_dynamic_array_2d_resize_up_down():
         assert_equal(da[:, :], np.arange(200).reshape((10, 20)))
 
 
-@pytest.mark.codegen_independentq
+@pytest.mark.codegen_independent
 def test_dynamic_array_2d_resize_down_up():
     for numpy_resize in [True, False]:
         da = DynamicArray((10, 20), use_numpy_resize=numpy_resize, refcheck=False)
