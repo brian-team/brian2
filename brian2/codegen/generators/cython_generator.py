@@ -390,6 +390,10 @@ class CythonCodeGenerator(CodeGenerator):
 
                         # We define unique names for the array object, its pointer, and the capsule.
                         dyn_array_name = self.get_array_name(var, access_data=False)
+
+                        if dyn_array_name in handled_pointers:
+                            continue
+
                         capsule_name = f"{dyn_array_name}_capsule"
 
                         # Get the C++ type for accurate casting (e.g., "DynamicArray1DCpp[double]").
@@ -406,6 +410,7 @@ class CythonCodeGenerator(CodeGenerator):
                             f"cdef {cpp_type}* {dyn_array_name}_ptr = "
                             f'<{cpp_type}*>PyCapsule_GetPointer({capsule_name}, "{get_capsule_type(var)}")'
                         )
+                        handled_pointers.add(dyn_array_name)
                     else:
                         pointer_name = self.get_array_name(var, False)
                         load_namespace.append(
