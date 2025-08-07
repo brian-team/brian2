@@ -352,7 +352,7 @@ cdef class DynamicArray2DClass:
         elif self.dtype == np.bool_:
             (<DynamicArray2DCpp[char]*>self.thisptr).resize_along_first(rows)
 
-    cdef shrink(self, new_shape):
+    def shrink(self, new_shape):
         """Shrink array to exact new shape, freeing unused memory"""
         cdef size_t new_rows
         cdef size_t new_cols
@@ -387,31 +387,37 @@ cdef class DynamicArray2DClass:
     def data(self):
         """Return numpy array view with proper strides"""
         cdef cnp.npy_intp shape[2]
-        cdef cnp.npy_intp strides[2]
+        cdef cnp.npy_intp flat_size
+        cdef cnp.ndarray buffer_view
         cdef size_t rows = self.get_rows()
         cdef size_t cols = self.get_cols()
         cdef size_t stride = self.get_stride()
         cdef void* data_ptr = self.get_data_ptr()
-        cdef size_t itemsize = self.dtype.itemsize
+        cdef size_t i, start_idx, end_idx  # Loop variables
 
         if rows == 0 or cols == 0:
             return np.array([], dtype=self.dtype).reshape((0, 0))
 
-        shape[0] = rows
-        shape[1] = cols
-        strides[0] = stride * itemsize
-        strides[1] = itemsize
 
-        # Create array first
-        cdef object result = cnp.PyArray_SimpleNewFromData(2, shape, self.numpy_type, data_ptr)
+        if stride ==cols:
+            # Easy Case : buffer width =  what we what
+            shape[0] = rows
+            shape[1] = cols
+            return cnp.PyArray_SimpleNewFromData(2, shape , self.numpy_type,data_ptr)
+        else:
+            # if stride != cols , we copy data instead of using strides
+            # Tricky case : buffer is wider than what we want , so
+            # We just copy the parts we need for the view
+            result = np.empty((rows,cols),dtype=self.dtype)
+            flat_size = rows * stride
+            buffer_view = cnp.PyArray_SimpleNewFromData(1, &flat_size, self.numpy_type, data_ptr)
+            # Copy each row from buffer to result
+            for i in range(rows):
+                start_idx = i * stride
+                end_idx = start_idx + cols
+                result[i, :] = buffer_view[start_idx:end_idx]
 
-        # Set strides manually without creating temporary tuple
-        cdef cnp.npy_intp[2] custom_strides
-        custom_strides[0] = stride * itemsize
-        custom_strides[1] = itemsize
-        result.strides = custom_strides
-
-        return result
+            return result
 
     @property
     def shape(self):

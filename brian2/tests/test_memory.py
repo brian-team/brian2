@@ -60,12 +60,12 @@ def test_dynamic_array_1d_shrink():
         assert len(da) == 5
         assert all(da[:] == np.arange(5))
         # After using shrink, the underlying array should have changed
-        assert len(da._data) == 5
+        assert len(da.data) == 5
 
 
 @pytest.mark.codegen_independent
 def test_dynamic_array_2d_access():
-    da = DynamicArray1D((10, 20))
+    da = DynamicArray((10, 20))
     da[:, :] = np.arange(200).reshape((10, 20))
     assert da[5, 10] == 5 * 20 + 10
     assert da.shape == (10, 20)
@@ -95,7 +95,7 @@ def test_dynamic_array_2d_resize_up_down():
         assert_equal(da[:, :], np.arange(200).reshape((10, 20)))
 
 
-@pytest.mark.codegen_independent
+@pytest.mark.codegen_independentq
 def test_dynamic_array_2d_resize_down_up():
     for numpy_resize in [True, False]:
         da = DynamicArray((10, 20), use_numpy_resize=numpy_resize, refcheck=False)
@@ -123,7 +123,7 @@ def test_dynamic_array_2d_shrink():
         da.shrink((5, 15))
         assert da.shape == (5, 15)
         # After using shrink, the underlying array should have changed
-        assert da._data.shape == (5, 15)
+        assert da.data.shape == (5, 15)
         assert_equal(
             da[:, :], np.arange(15).reshape((1, 15)) + 20 * np.arange(5).reshape((5, 1))
         )
