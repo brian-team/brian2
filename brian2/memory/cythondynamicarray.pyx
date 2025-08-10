@@ -213,6 +213,14 @@ cdef class DynamicArray1DClass:
         return self.data[item]
 
     def __setitem__(self, item, val):
+        if isinstance(item, tuple) and len(item) == 2:
+            idx0, idx1 = item
+            if isinstance(idx0, int) and idx0 == -1:
+                current_rows = self.get_rows()
+                self.resize((current_rows + 1, self.get_cols()))
+                cdef cnp.ndarray arr = self.data
+                arr[current_rows, idx1] = val
+                return
         cdef cnp.ndarray arr = self.data
         arr[item] = val
 
@@ -425,9 +433,9 @@ cdef class DynamicArray2DClass:
         # How many bytes does one element take up? (e.g., 8 for a float64)
         cdef size_t itemsize = self.dtype.itemsize
 
-        # Handle the boring edge case: if the array is empty, just give back an empty NumPy array.
+        # Handle the boring edge case: if the array is empty, just give back an empty NumPy array, with the correct shape
         if rows == 0 or cols == 0:
-            return np.array([], dtype=self.dtype).reshape((0, 0))
+            return np.array((rows, cols), dtype=self.dtype).reshape((0, 0))
 
         # --- Now we create the "map" that tells NumPy how to navigate our C++ memory correctly ---
 

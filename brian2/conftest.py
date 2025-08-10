@@ -63,6 +63,9 @@ def setup_and_teardown(request):
     # Set preferences before each test
     import brian2
 
+    # Clean up any leftover state from previous tests
+    reinit_and_delete()
+
     if hasattr(request.config, "workerinput"):
         config = request.config.workerinput
         for key, value in config["brian_prefs"].items():
@@ -98,8 +101,17 @@ def setup_and_teardown(request):
 
     yield  # run test
 
+    # Clean up after test
+    device = get_device()
+    if device.__class__.__name__ == "CPPStandaloneDevice":
+        # For standalone, we need to ensure complete cleanup
+        device.reinit()
+
     # Reset defaultclock.dt to be sure
     defaultclock.dt = 0.1 * ms
+
+    # Clean up devices
+    reinit_and_delete()
 
 
 # (Optionally) mark tests raising NotImplementedError as skipped (mostly used

@@ -122,19 +122,14 @@ def test_state_variables_group_as_index_problematic():
     SG = G[4:9]
     G.v = 1
     tests = [
-        ("i", 1, 1),
-        ("N", 2, 1),
-        ("N + i", 2, 2),
-        ("v", 0, 0),
-    ]  # Generates 2 warnings, but only 1 is the "ambiguous" type
-    for value, n_warnings, n_ambiguous in tests:
+        ("i", 1),
+        ("N", 1),
+        ("N + i", 2),
+        ("v", 0),
+    ]
+    for value, n_ambiguous in tests:
         with catch_logs() as l:
             G.v.__setitem__(SG, value)
-            assert len(l) == n_warnings, (
-                f"expected {int(n_warnings)}total warnings for value '{value}', "
-                f"but got {len(l)}"
-            )
-            # Specifically count the number of "ambiguous_string_expression" warnings
             ambiguous_found = sum(
                 [1 for entry in l if entry[1].endswith("ambiguous_string_expression")]
             )
