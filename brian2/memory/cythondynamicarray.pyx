@@ -11,9 +11,31 @@ from libc.string cimport memset
 from libc.stdint cimport int64_t, int32_t
 from cython cimport view
 from cpython.pycapsule cimport PyCapsule_New
+from cpython.ref cimport PyTypeObject
 
 cnp.import_array()
 
+cdef extern from "numpy/ndarrayobject.h":
+    object PyArray_NewFromDescr(PyTypeObject* subtype,
+                                cnp.PyArray_Descr* descr,
+                                int nd,
+                                cnp.npy_intp* dims,
+                                cnp.npy_intp* strides,
+                                void* data,
+                                int flags,
+                                object obj)
+    cnp.PyArray_Descr* PyArray_DescrFromType(int)
+
+cdef extern from "numpy/ndarraytypes.h":
+    void PyArray_CLEARFLAGS(cnp.PyArrayObject *arr, int flags)
+    enum:
+        NPY_ARRAY_C_CONTIGUOUS
+        NPY_ARRAY_F_CONTIGUOUS
+        NPY_ARRAY_OWNDATA
+        NPY_ARRAY_WRITEABLE
+        NPY_ARRAY_ALIGNED
+        NPY_ARRAY_WRITEBACKIFCOPY
+        NPY_ARRAY_UPDATEIFCOPY
 
 cdef extern from "dynamic_array.h":
     cdef cppclass DynamicArray1DCpp "DynamicArray1D"[T]:
@@ -383,41 +405,76 @@ cdef class DynamicArray2DClass:
                 (<DynamicArray2DCpp[int64_t]*>self.thisptr).shrink(new_rows, new_cols)
             elif self.dtype == np.bool_:
                 (<DynamicArray2DCpp[char]*>self.thisptr).shrink(new_rows, new_cols)
+
     @property
     def data(self):
-        """Return numpy array view with proper strides"""
-        cdef cnp.npy_intp shape[2]
-        cdef cnp.npy_intp flat_size
-        cdef cnp.ndarray buffer_view
+        """
+        The magic getter! This creates a zero-copy NumPy 'view' of our C++ data.
+        It's not a copy; it's a direct window into the C++ memory, which is why it's so fast.
+        Every time our code accesses `my_array.data`, this code runs to build that view on the fly.
+        """
+        # First, what's the logical shape the user sees,we get it ...
         cdef size_t rows = self.get_rows()
         cdef size_t cols = self.get_cols()
-        cdef size_t stride = self.get_stride()
+        # Now, the two most important pieces for our zero-copy trick:
+        # 1. The actual memory address where our data lives in C++.
         cdef void* data_ptr = self.get_data_ptr()
-        cdef size_t i, start_idx, end_idx  # Loop variables
+        # 2. The *physical* width of a row in memory. This might be wider than `cols`
+        #    if we've over-allocated space to make future growth faster.
+        cdef size_t stride = self.get_stride()
+        # How many bytes does one element take up? (e.g., 8 for a float64)
+        cdef size_t itemsize = self.dtype.itemsize
 
+        # Handle the boring edge case: if the array is empty, just give back an empty NumPy array.
         if rows == 0 or cols == 0:
             return np.array([], dtype=self.dtype).reshape((0, 0))
 
+        # --- Now we create the "map" that tells NumPy how to navigate our C++ memory correctly ---
 
-        if stride ==cols:
-            # Easy Case : buffer width =  what we what
-            shape[0] = rows
-            shape[1] = cols
-            return cnp.PyArray_SimpleNewFromData(2, shape , self.numpy_type,data_ptr)
-        else:
-            # if stride != cols , we copy data instead of using strides
-            # Tricky case : buffer is wider than what we want , so
-            # We just copy the parts we need for the view
-            result = np.empty((rows,cols),dtype=self.dtype)
-            flat_size = rows * stride
-            buffer_view = cnp.PyArray_SimpleNewFromData(1, &flat_size, self.numpy_type, data_ptr)
-            # Copy each row from buffer to result
-            for i in range(rows):
-                start_idx = i * stride
-                end_idx = start_idx + cols
-                result[i, :] = buffer_view[start_idx:end_idx]
+        # These are C-style arrays to hold the shape and the "stride map".
+        cdef cnp.npy_intp shape[2]
+        cdef cnp.npy_intp strides[2]
 
-            return result
+        # So the shape is easy as it's just the logical dimensions.
+        shape[0] = rows
+        shape[1] = cols
+
+        # Now, the stride map. This tells NumPy how many *bytes* to jump to move through the data.
+        # To move to the next item in the same row (j -> j+1), just jump by one item's size.
+        strides[1] = itemsize
+        # To move to the *next row* (i -> i+1), we have to jump over a whole physical row in memory.
+        strides[0] = stride * itemsize
+
+        # We also need to describe our data type (e.g., float64) to NumPy in its native C language.
+        cdef cnp.PyArray_Descr* descr = PyArray_DescrFromType(self.numpy_type)
+
+        # Now we set the permissions and properties for our numpy view
+        # Let's start with a crucial permission: making the array writeable!
+        # Without this, NumPy would make it read-only, and `arr[i] = x` would fail.
+        cdef int flags = cnp.NPY_ARRAY_WRITEABLE
+
+        # A little optimization: if the memory is perfectly packed (no extra space in rows),
+        # we can tell NumPy it's "C-contiguous". This can speed up some operations.
+        if stride == cols:
+            flags |= cnp.NPY_ARRAY_C_CONTIGUOUS
+
+        # Here we call the master C-API function, we give it:
+        # the memory pointer, the shape map, the stride map, the data type, and the permissions.
+        cdef cnp.ndarray result = <cnp.ndarray>PyArray_NewFromDescr(
+            <PyTypeObject*>np.ndarray,
+            descr,
+            2,
+            shape,
+            strides,
+            data_ptr,
+            flags,  # Use our flags variable
+            None
+        )
+
+        # By default, NumPy assumes it owns the data and will try to free it later.
+        # But *our* C++ vector owns it! Clearing this flag prevents a double-free, which would crash the program.
+        cnp.PyArray_CLEARFLAGS(result, cnp.NPY_ARRAY_OWNDATA)
+        return result
 
     @property
     def shape(self):
