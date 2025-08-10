@@ -213,15 +213,16 @@ cdef class DynamicArray1DClass:
         return self.data[item]
 
     def __setitem__(self, item, val):
+        cdef cnp.ndarray arr
         if isinstance(item, tuple) and len(item) == 2:
             idx0, idx1 = item
             if isinstance(idx0, int) and idx0 == -1:
                 current_rows = self.get_rows()
                 self.resize((current_rows + 1, self.get_cols()))
-                cdef cnp.ndarray arr = self.data
+                arr = self.data
                 arr[current_rows, idx1] = val
                 return
-        cdef cnp.ndarray arr = self.data
+        arr = self.data
         arr[item] = val
 
     def __len__(self):
