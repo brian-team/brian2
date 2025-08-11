@@ -63,9 +63,6 @@ def setup_and_teardown(request):
     # Set preferences before each test
     import brian2
 
-    # Clean up any leftover state from previous tests
-    reinit_and_delete()
-
     if hasattr(request.config, "workerinput"):
         config = request.config.workerinput
         for key, value in config["brian_prefs"].items():
