@@ -396,7 +396,7 @@ cdef class DynamicArray2DClass:
         cdef size_t i, start_idx, end_idx  # Loop variables
 
         if rows == 0 or cols == 0:
-            return np.array((rows, cols), dtype=self.dtype).reshape((0, 0))
+            return np.empty((0, 0), dtype=self.dtype)
 
 
         if stride ==cols:
