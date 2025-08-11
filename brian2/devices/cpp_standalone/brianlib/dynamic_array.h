@@ -50,7 +50,7 @@ public:
     DynamicArray1D(size_t initial_size = 0, double factor = 2.0)
         : m_size(initial_size), m_growth_factor(factor)
     {
-        m_data.resize(initial_size);
+        m_data.resize(initial_size,T(0));
     }
 
     ~DynamicArray1D(){}; // note earlier we needed a destructor properly because we had a vector of pointers ...
@@ -186,7 +186,7 @@ public:
           m_growth_factor(factor),
           n(m_rows), m(m_cols)
     {
-        m_buffer.resize(m_buffer_rows * m_buffer_cols);
+        m_buffer.resize(m_buffer_rows * m_buffer_cols,T(0));
     }
     /**
      * @brief Legacy constructor

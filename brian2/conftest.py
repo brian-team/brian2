@@ -63,6 +63,13 @@ def setup_and_teardown(request):
     # Set preferences before each test
     import brian2
 
+    # Clean up any leftover state from previous tests FIRST
+    device = get_device()
+    if device.__class__.__name__ == "CPPStandaloneDevice":
+        if hasattr(device, "has_been_run") and device.has_been_run:
+            device.reinit()
+    reinit_and_delete()  # Clean up any remaining objects
+
     if hasattr(request.config, "workerinput"):
         config = request.config.workerinput
         for key, value in config["brian_prefs"].items():
