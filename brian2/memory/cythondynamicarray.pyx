@@ -404,7 +404,6 @@ cdef class DynamicArray2DClass:
         cdef void* data_ptr = self.get_data_ptr()
         cdef size_t i, start_idx, end_idx  # Loop variables
 
-        # Handle the boring edge case: if the array is empty, just give back an empty NumPy array, with the correct shape
         if rows == 0 or cols == 0:
             return np.array((rows, cols), dtype=self.dtype).reshape((0, 0))
 
