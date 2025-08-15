@@ -625,42 +625,36 @@ def test_allowed_integration():
 
     allowed_eqs = [
         "Im = gL*(EL-v) : amp/meter**2",
+        """Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) : amp/meter**2
+                      dm/dt = alpham * (1-m) - betam * m : 1
+                      dh/dt = alphah * (1-h) - betah * h : 1
+                      alpham = (0.1/mV) * (-v+25*mV) / (exp((-v+25*mV) / (10*mV)) - 1)/ms : Hz
+                      betam = 4 * exp(-v/(18*mV))/ms : Hz
+                      alphah = 0.07 * exp(-v/(20*mV))/ms : Hz
+                      betah = 1/(exp((-v+30*mV) / (10*mV)) + 1)/ms : Hz""",
+        """Im = gl * (El-v) : amp/meter**2
+                      I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp (point current)""",
+        """Im = I_leak + I_spike : amp/meter**2
+                      I_leak = gL*(EL - v) : amp/meter**2
+                      I_spike = gL*DeltaT*exp((v - VT)/DeltaT): amp/meter**2 (constant over dt)
+                   """,
         """
-        Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) : amp/meter**2
-        dm/dt = alpham * (1-m) - betam * m : 1
-        dh/dt = alphah * (1-h) - betah * h : 1
-        alpham = (0.1/mV) * (-v+25*mV) / (exp((-v+25*mV) / (10*mV)) - 1)/ms : Hz
-        betam = 4 * exp(-v/(18*mV))/ms : Hz
-        alphah = 0.07 * exp(-v/(20*mV))/ms : Hz
-        betah = 1/(exp((-v+30*mV) / (10*mV)) + 1)/ms : Hz
-        """,
-        """
-        Im = gl * (El-v) : amp/meter**2
-        I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp (point current)
-        """,
-        """
-        Im = I_leak + I_spike : amp/meter**2
-        I_leak = gL*(EL - v) : amp/meter**2
-        I_spike = gL*DeltaT*exp((v - VT)/DeltaT): amp/meter**2 (constant over dt)
-        """,
-        """
-        Im = gL*(EL-v) : amp/meter**2
-        I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
-        gNMDA : siemens
-        Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1 (constant over dt)
-        """,
+                   Im = gL*(EL-v) : amp/meter**2
+                   I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
+                   gNMDA : siemens
+                   Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1 (constant over dt)
+                   """,
         "Im = gL*(EL - v) + gL*DeltaT*exp((v - VT)/DeltaT) : amp/meter**2",
+        """Im = I_leak + I_spike : amp/meter**2
+                      I_leak = gL*(EL - v) : amp/meter**2
+                      I_spike = gL*DeltaT*exp((v - VT)/DeltaT): amp/meter**2
+                   """,
         """
-        Im = I_leak + I_spike : amp/meter**2
-        I_leak = gL*(EL - v) : amp/meter**2
-        I_spike = gL*DeltaT*exp((v - VT)/DeltaT): amp/meter**2
-        """,
-        """
-        Im = gL*(EL-v) : amp/meter**2
-        I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
-        gNMDA : siemens
-        Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1
-        """,
+                   Im = gL*(EL-v) : amp/meter**2
+                   I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
+                   gNMDA : siemens
+                   Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1
+                   """,
     ]
     forbidden_eqs = [
         """Im = gl * (El-v + user_fun(v)) : amp/meter**2""",
@@ -718,6 +712,15 @@ def test_spatialneuron_indexing():
     assert len(neuron[0:1].indices[:]) == 1
     assert len(neuron[sec.sec2.indices[:]]) == 16
     assert len(neuron[sec.sec2]) == 16
+    assert len(neuron[:16:2].indices[:]) == 8
+    assert len(neuron["i < 16 and i % 2 == 0"].indices[:]) == 8
+    assert len(neuron[:8][4:].indices[:]) == 4
+    assert len(neuron[:8][::2].indices[:]) == 4
+    assert len(neuron[:8]["i % 2 == 0"].indices[:]) == 4
+    assert len(neuron[::2][:8].indices[:]) == 8
+    assert len(neuron["i % 2 == 0"][:8].indices[:]) == 8
+    assert len(neuron["distance >= 100*um"].indices[:]) == 44
+    assert len(neuron["distance >= 100*um"][:8].indices[:]) == 8
     assert_equal(neuron.sec1.sec11.v, [3, 4, 5, 6] * volt)
     assert_equal(neuron.sec1.sec11[1].v, neuron.sec1.sec11.v[1])
     assert_equal(neuron.sec1.sec11[1:3].v, neuron.sec1.sec11.v[1:3])

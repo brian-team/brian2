@@ -85,9 +85,9 @@ def test_creation_errors():
     # Check that using pre and on_pre (resp. post/on_post) at the same time
     # raises an error
     with pytest.raises(TypeError):
-        Synapses(G, G, "w:1", pre="v+=w", on_pre="v+=w", connect=True)
+        Synapses(G, G, "w:1", pre="v+=w", on_pre="v+=w")
     with pytest.raises(TypeError):
-        Synapses(G, G, "w:1", post="v+=w", on_post="v+=w", connect=True)
+        Synapses(G, G, "w:1", post="v+=w", on_post="v+=w")
 
 
 @pytest.mark.codegen_independent
@@ -307,10 +307,9 @@ def test_connection_string_deterministic_full_one_to_one():
         G,
         G,
         """
-        sub_1 = v_pre : 1
-        sub_2 = v_post : 1
-        w:1
-        """,
+                         sub_1 = v_pre : 1
+                         sub_2 = v_post : 1
+                         w:1""",
     )
     S3.connect("sub_1 == sub_2")
 
@@ -532,18 +531,14 @@ def test_connection_random_with_indices():
 def test_connection_random_without_condition():
     G = NeuronGroup(
         4,
-        """
-        v: 1
-        x : integer
-        """,
+        """v: 1
+                          x : integer""",
     )
     G.x = "i"
     G2 = NeuronGroup(
         7,
-        """
-        v: 1
-        y : 1
-        """,
+        """v: 1
+                           y : 1""",
     )
     G2.y = "1.0*i/N"
 
@@ -720,9 +715,23 @@ def test_state_variable_indexing():
     assert len(S.w[:]) == len(S.w[np.arange(len(G1) * len(G2) * 2)])
     assert S.w[3] == S.w[np.int32(3)] == S.w[np.int64(3)]  # See issue #888
 
-    # Array-indexing (not yet supported for synapse index)
+    # Array-indexing
     assert_equal(S.w[:, 0:3], S.w[:, [0, 1, 2]])
     assert_equal(S.w[:, 0:3], S.w[np.arange(len(G1)), [0, 1, 2]])
+    assert_equal(S.w[:, 0:3], S.w[:, [0, 1, 2], [0, 1]])
+    assert_equal(S.w[:, 0:3, 0], S.w[:, [0, 1, 2], [0]])
+
+    # Array indexing with boolean arrays
+    assert_equal(
+        S.w[:, 0:3], S.w[:, np.array([True, True, True, False, False, False, False])]
+    )
+    assert_equal(
+        S.w[:, 0:3],
+        S.w[
+            [True, True, True, True, True],
+            [True, True, True, False, False, False, False],
+        ],
+    )
 
     # string-based indexing
     assert_equal(S.w[0:3, :], S.w["i<3"])
@@ -735,9 +744,79 @@ def test_state_variable_indexing():
     with pytest.raises(IndexError):
         S.w.__getitem__((1, 2, 3, 4))
     with pytest.raises(IndexError):
-        S.w.__getitem__(object())
+        S.w[[0, 5], :]  # out-of-range array index
     with pytest.raises(IndexError):
+        S.w[[True, False], :]  # too few boolean indices
+    with pytest.raises(IndexError):
+        S.w[[True, False, True, False, True, False], :]  # too many boolean indices
+    with pytest.raises(TypeError):
+        S.w.__getitem__(object())
+    with pytest.raises(TypeError):
         S.w.__getitem__(1.5)
+
+
+def test_state_variable_indexing_with_subgroups():
+    G1 = NeuronGroup(5, "v:volt")
+    G1.v = "i*mV"
+    G2 = NeuronGroup(7, "v:volt")
+    G2.v = "10*mV + i*mV"
+    S = Synapses(G1, G2, "w:1", multisynaptic_index="k")
+    S.connect(True, n=2)
+    S.w[:, :, 0] = "5*i + j"
+    S.w[:, :, 1] = "35 + 5*i + j"
+
+    # Slicing
+    assert len(S[:].w) == len(S[:, :].w) == len(S[:, :, :].w) == len(G1) * len(G2) * 2
+    assert len(S[0:, 0:].w) == len(S[0:, 0:, 0:].w) == len(G1) * len(G2) * 2
+    assert len(S[0::2, 0:].w) == 3 * len(G2) * 2
+    assert len(S[0, :].w) == len(S[0, :, :].w) == len(G2) * 2
+    assert len(S[0:2, :].w) == len(S[0:2, :, :].w) == 2 * len(G2) * 2
+    assert len(S[:2, :].w) == len(S[:2, :, :].w) == 2 * len(G2) * 2
+    assert len(S[0:4:2, :].w) == len(S[0:4:2, :, :].w) == 2 * len(G2) * 2
+    assert len(S[:4:2, :].w) == len(S[:4:2, :, :].w) == 2 * len(G2) * 2
+    assert len(S[:, 0].w) == len(S[:, 0, :].w) == len(G1) * 2
+    assert len(S[:, 0:2].w) == len(S[:, 0:2, :].w) == 2 * len(G1) * 2
+    assert len(S[:, :2].w) == len(S[:, :2, :].w) == 2 * len(G1) * 2
+    assert len(S[:, 0:4:2].w) == len(S[:, 0:4:2, :].w) == 2 * len(G1) * 2
+    assert len(S[:, :4:2].w) == len(S[:, :4:2, :].w) == 2 * len(G1) * 2
+    assert len(S[:, :, 0].w) == len(G1) * len(G2)
+    assert len(S[:, :, 0:2].w) == len(G1) * len(G2) * 2
+    assert len(S[:, :, :2].w) == len(G1) * len(G2) * 2
+    assert len(S[:, :, 0:2:2].w) == len(G1) * len(G2)
+    assert len(S[:, :, :2:2].w) == len(G1) * len(G2)
+
+    # 1d indexing is directly indexing synapses and should be equivalent to numpy syntax!
+    assert len(S[:].w) == len(S[0:].w) == len(S.w[:])
+    assert len(S[[0, 1]].w) == len(S[3:5].w) == len(S.w[:][[0, 1]]) == 2
+    assert (
+        len(S[:].w)
+        == len(S[np.arange(len(G1) * len(G2) * 2)].w)
+        == len(S.w[:][np.arange(len(G1) * len(G2) * 2)])
+    )
+    assert S[3].w == S[np.int32(3)].w == S[np.int64(3)].w  # See issue #888
+
+    # Array-indexing
+    assert_equal(S[:, 0:3].w[:], S[:, [0, 1, 2]].w[:])
+    assert_equal(S[:, 0:3].w[:], S[np.arange(len(G1)), [0, 1, 2]].w[:])
+    assert_equal(S[:, 0:3].w[:], S[:, [0, 1, 2], [0, 1]].w[:])
+    assert_equal(S[:, 0:3, 0].w[:], S[:, [0, 1, 2], [0]].w[:])
+
+    # string-based indexing
+    assert_equal(S[0:3, :].w[:], S["i<3"].w[:])
+    assert_equal(S[:, 0:3].w[:], S["j<3"].w[:])
+    assert_equal(S[:, :, 0].w[:], S["k == 0"].w[:])
+    assert_equal(S[0:3, :].w[:], S["v_pre < 2.5*mV"].w[:])
+    assert_equal(S[:, 0:3].w[:], S["v_post < 12.5*mV"].w[:])
+
+    # invalid indices
+    with pytest.raises(IndexError):
+        S.__getitem__((1, 2, 3, 4))
+    with pytest.raises(TypeError):
+        S.__getitem__(object())
+    with pytest.raises(TypeError):
+        S.__getitem__(1.5)
+    with pytest.raises(IndexError):
+        S.__getitem__(np.arange(len(G1) * len(G2) * 2 + 1))
 
 
 def test_indices():
@@ -758,20 +837,16 @@ def test_subexpression_references():
     """
     G = NeuronGroup(
         10,
-        """
-        v : 1
-        v2 = 2*v : 1
-        """,
+        """v : 1
+                           v2 = 2*v : 1""",
     )
     G.v = np.arange(10)
     S = Synapses(
         G,
         G,
-        """
-        w : 1
-        u = v2_post + 1 : 1
-        x = v2_pre + 1 : 1
-        """,
+        """w : 1
+                          u = v2_post + 1 : 1
+                          x = v2_pre + 1 : 1""",
     )
     S.connect("i==(10-1-j)")
     assert_equal(S.u[:], np.arange(10)[::-1] * 2 + 1)
@@ -784,15 +859,13 @@ def test_constant_variable_subexpression_in_synapses():
     S = Synapses(
         G,
         G,
-        """
-        dv1/dt = -v1**2 / (10*ms) : 1 (clock-driven)
-        dv2/dt = -v_const**2 / (10*ms) : 1 (clock-driven)
-        dv3/dt = -v_var**2 / (10*ms) : 1 (clock-driven)
-        dv4/dt = -v_noflag**2 / (10*ms) : 1 (clock-driven)
-        v_const = v2 : 1 (constant over dt)
-        v_var = v3 : 1
-        v_noflag = v4 : 1
-        """,
+        """ dv1/dt = -v1**2 / (10*ms) : 1 (clock-driven)
+                           dv2/dt = -v_const**2 / (10*ms) : 1 (clock-driven)
+                           dv3/dt = -v_var**2 / (10*ms) : 1 (clock-driven)
+                           dv4/dt = -v_noflag**2 / (10*ms) : 1 (clock-driven)
+                           v_const = v2 : 1 (constant over dt)
+                           v_var = v3 : 1
+                           v_noflag = v4 : 1""",
         method="rk2",
     )
     S.connect(j="i")
@@ -818,11 +891,9 @@ def test_nested_subexpression_references():
     """
     G = NeuronGroup(
         10,
-        """
-        v : 1
-        v2 = 2*v : 1
-        v3 = 1.5*v2 : 1
-        """,
+        """v : 1
+                           v2 = 2*v : 1
+                           v3 = 1.5*v2 : 1""",
         threshold="v>=5",
     )
     G2 = NeuronGroup(10, "v : 1")
@@ -840,10 +911,8 @@ def test_equations_unit_check():
     syn = Synapses(
         group,
         group,
-        """
-        sub1 = 3 : 1
-        sub2 = sub1 + 1*mV : volt
-        """,
+        """sub1 = 3 : 1
+                                    sub2 = sub1 + 1*mV : volt""",
         on_pre="v += sub2",
     )
     syn.connect()
@@ -979,10 +1048,8 @@ def test_pre_before_post():
     # The pre pathway should be executed before the post pathway
     G = NeuronGroup(
         1,
-        """
-        x : 1
-        y : 1
-        """,
+        """x : 1
+                          y : 1""",
         threshold="True",
     )
     S = Synapses(G, G, "", on_pre="x=1; y=1", on_post="x=2")
@@ -1003,10 +1070,8 @@ def test_pre_post_simple():
         S = Synapses(
             G1,
             G2,
-            """
-            pre_value : 1
-            post_value : 1
-            """,
+            """pre_value : 1
+                                post_value : 1""",
             pre="pre_value +=1",
             post="post_value +=2",
         )
@@ -1122,10 +1187,8 @@ def test_transmission():
         # Make sure that the Synapses class actually propagates spikes :)
         source = NeuronGroup(
             4,
-            """
-            dv/dt = rate : 1
-            rate : Hz
-            """,
+            """dv/dt = rate : 1
+                                   rate : Hz""",
             threshold="v>1",
             reset="v=0",
         )
@@ -1236,8 +1299,8 @@ def test_transmission_scalar_delay_different_clocks():
             run(2 * ms)
             assert len(l) == 1, "expected a warning, got %d" % len(l)
             assert l[0][1].endswith("synapses_dt_mismatch")
-
-    run(0 * ms)
+    else:
+        run(2 * ms)
     assert_allclose(mon[0].v[mon.t < 0.5 * ms], 0)
     assert_allclose(mon[0].v[mon.t >= 0.5 * ms], 1)
     assert_allclose(mon[1].v[mon.t < 1.5 * ms], 0)
@@ -1370,11 +1433,9 @@ def test_summed_variable():
     S = Synapses(
         source,
         target,
-        """
-        w : volt
-        x : volt
-        v_post = 2*x : volt (summed)
-        """,
+        """w : volt
+                                    x : volt
+                                    v_post = 2*x : volt (summed)""",
         on_pre="x+=w",
         multisynaptic_index="k",
     )
@@ -1392,33 +1453,28 @@ def test_summed_variable():
 def test_summed_variable_pre_and_post():
     G1 = NeuronGroup(
         4,
-        """
-        neuron_var : 1
-        syn_sum : 1
-        neuron_sum : 1
-        """,
+        """neuron_var : 1
+                           syn_sum : 1
+                           neuron_sum : 1""",
     )
     G1.neuron_var = "i"
     G2 = NeuronGroup(
         4,
-        """
-        neuron_var : 1
-        syn_sum : 1
-        neuron_sum : 1
-        """,
+        """neuron_var : 1
+                               syn_sum : 1
+                               neuron_sum : 1""",
     )
     G2.neuron_var = "i+4"
 
     synapses = Synapses(
         G1,
         G2,
-        """
-        syn_var : 1
-        neuron_sum_pre = neuron_var_post : 1 (summed)
-        syn_sum_pre = syn_var : 1 (summed)
-        neuron_sum_post = neuron_var_pre : 1 (summed)
-        syn_sum_post = syn_var : 1 (summed)
-        """,
+        """syn_var : 1
+                                    neuron_sum_pre = neuron_var_post : 1 (summed)
+                                    syn_sum_pre = syn_var : 1 (summed)
+                                    neuron_sum_post = neuron_var_pre : 1 (summed)
+                                    syn_sum_post = syn_var : 1 (summed)
+                                    """,
     )
     # The first three cells in G1 connect to the first cell in G2
     # The remaining three cells of G2 all connect to the last cell of G1
@@ -1441,10 +1497,8 @@ def test_summed_variable_differing_group_size():
     syn1 = Synapses(
         G1,
         G2,
-        """
-        syn_var : 1
-        var_pre = syn_var + var_post : 1 (summed)
-        """,
+        """syn_var : 1
+                              var_pre = syn_var + var_post : 1 (summed)""",
     )
     syn1.connect(i=0, j=[0, 1, 2, 3, 4])
     syn1.connect(i=1, j=[5, 6, 7, 8, 9])
@@ -1457,10 +1511,8 @@ def test_summed_variable_differing_group_size():
     syn2 = Synapses(
         G3,
         G4,
-        """
-        syn_var : 1
-        var_post = syn_var + var_pre : 1 (summed)
-        """,
+        """syn_var : 1
+                               var_post = syn_var + var_pre : 1 (summed)""",
     )
     syn2.connect(i=[0, 1, 2, 3, 4], j=0)
     syn2.connect(i=[5, 6, 7, 8, 9], j=1)
@@ -1478,11 +1530,9 @@ def test_summed_variable_differing_group_size():
 def test_summed_variable_errors():
     G = NeuronGroup(
         10,
-        """
-        dv/dt = -v / (10*ms) : volt
-        sub = 2*v : volt
-        p : volt
-        """,
+        """dv/dt = -v / (10*ms) : volt
+                           sub = 2*v : volt
+                           p : volt""",
         threshold="False",
         reset="",
     )
@@ -1515,10 +1565,8 @@ def test_summed_variable_errors():
         Synapses(
             G,
             G,
-            """
-            p_post = 3*volt : volt (summed)
-            p_pre = 3*volt : volt (summed)
-            """,
+            """p_post = 3*volt : volt (summed)
+                          p_pre = 3*volt : volt (summed)""",
         )
 
     # Summed variable referring to an event-driven variable
@@ -1526,10 +1574,8 @@ def test_summed_variable_errors():
         Synapses(
             G,
             G,
-            """
-            ds/dt = -s/(3*ms) : volt (event-driven)
-            p_post = s : volt (summed)
-            """,
+            """ds/dt = -s/(3*ms) : volt (event-driven)
+                          p_post = s : volt (summed)""",
             on_pre="s += 1*mV",
         )
     assert "'p_post'" in str(ex.value) and "'s'" in str(ex.value)
@@ -1539,12 +1585,10 @@ def test_summed_variable_errors():
         Synapses(
             G,
             G,
-            """
-            ds/dt = -s/(3*ms) : volt (event-driven)
-            x = s : volt
-            y = x : volt
-            p_post = y : 1 (summed)
-            """,
+            """ds/dt = -s/(3*ms) : volt (event-driven)
+                          x = s : volt
+                          y = x : volt
+                          p_post = y : 1 (summed)""",
             on_pre="s += 1*mV",
         )
     assert "'p_post'" in str(ex.value) and "'s'" in str(ex.value)
@@ -1554,10 +1598,8 @@ def test_summed_variable_errors():
         S = Synapses(
             G,
             G,
-            """
-            y : siemens
-            p_post = y : volt (summed)
-            """,
+            """y : siemens
+                              p_post = y : volt (summed)""",
         )
         run(0 * ms)
 
@@ -1686,20 +1728,16 @@ def test_linked_to_non_shared_variables():
 def test_scalar_parameter_access():
     G = NeuronGroup(
         10,
-        """
-        v : 1
-        scalar : Hz (shared)
-        """,
+        """v : 1
+                           scalar : Hz (shared)""",
         threshold="False",
     )
     S = Synapses(
         G,
         G,
-        """
-        w : 1
-        s : Hz (shared)
-        number : 1 (shared)
-        """,
+        """w : 1
+                          s : Hz (shared)
+                          number : 1 (shared)""",
         on_pre="v+=w*number",
     )
     S.connect()
@@ -1746,19 +1784,15 @@ def test_scalar_parameter_access():
 def test_scalar_subexpression():
     G = NeuronGroup(
         10,
-        """
-        v : 1
-        number : 1 (shared)
-        """,
+        """v : 1
+                           number : 1 (shared)""",
         threshold="False",
     )
     S = Synapses(
         G,
         G,
-        """
-        s : 1 (shared)
-        sub = number_post + s : 1 (shared)
-        """,
+        """s : 1 (shared)
+                          sub = number_post + s : 1 (shared)""",
         on_pre="v+=s",
     )
     S.connect()
@@ -1770,10 +1804,8 @@ def test_scalar_subexpression():
         Synapses(
             G,
             G,
-            """
-            s : 1 (shared)
-            sub = v_post + s : 1 (shared)
-            """,
+            """s : 1 (shared)
+                          sub = v_post + s : 1 (shared)""",
             on_pre="v+=s",
         )
 
@@ -1785,10 +1817,8 @@ def test_sim_with_scalar_variable():
     syn = Synapses(
         inp,
         out,
-        """
-        w : 1
-        s : 1 (shared)
-        """,
+        """w : 1
+                                s : 1 (shared)""",
         on_pre="v += s + w",
     )
     syn.connect(j="i")
@@ -1805,10 +1835,8 @@ def test_sim_with_scalar_subexpression():
     syn = Synapses(
         inp,
         out,
-        """
-        w : 1
-        s = 5 : 1 (shared)
-        """,
+        """w : 1
+                                s = 5 : 1 (shared)""",
         on_pre="v += s + w",
     )
     syn.connect(j="i")
@@ -1824,10 +1852,8 @@ def test_sim_with_constant_subexpression():
     syn = Synapses(
         inp,
         out,
-        """
-        w : 1
-        s = 5 : 1 (constant over dt)
-        """,
+        """w : 1
+                                s = 5 : 1 (constant over dt)""",
         on_pre="v += s + w",
     )
     syn.connect(j="i")
@@ -1856,20 +1882,16 @@ def test_event_driven():
     # trains with different rates
     pre = NeuronGroup(
         2,
-        """
-        dv/dt = rate : 1
-        rate : Hz
-        """,
+        """dv/dt = rate : 1
+                            rate : Hz""",
         threshold="v>1",
         reset="v=0",
     )
     pre.rate = [1000, 1500] * Hz
     post = NeuronGroup(
         2,
-        """
-        dv/dt = rate : 1
-        rate : Hz
-        """,
+        """dv/dt = rate : 1
+                             rate : Hz""",
         threshold="v>1",
         reset="v=0",
     )
@@ -1886,43 +1908,31 @@ def test_event_driven():
     S1 = Synapses(
         pre,
         post,
-        """
-        w : 1
-        dApre/dt = -Apre/taupre : 1 (event-driven)
-        dApost/dt = -Apost/taupost : 1 (event-driven)
-        """,
-        on_pre="""
-        Apre += dApre
-        w = clip(w+Apost, 0, gmax)
-        """,
-        on_post="""
-        Apost += dApost
-        w = clip(w+Apre, 0, gmax)
-        """,
+        """w : 1
+                     dApre/dt = -Apre/taupre : 1 (event-driven)
+                     dApost/dt = -Apost/taupost : 1 (event-driven)""",
+        on_pre="""Apre += dApre
+                         w = clip(w+Apost, 0, gmax)""",
+        on_post="""Apost += dApost
+                          w = clip(w+Apre, 0, gmax)""",
     )
     S1.connect(j="i")
     # not event-driven
     S2 = Synapses(
         pre,
         post,
-        """
-        w : 1
-        Apre : 1
-        Apost : 1
-        lastupdate : second
-        """,
-        on_pre="""
-        Apre=Apre*exp((lastupdate-t)/taupre)+dApre
-        Apost=Apost*exp((lastupdate-t)/taupost)
-        w = clip(w+Apost, 0, gmax)
-        lastupdate = t
-        """,
-        on_post="""
-        Apre=Apre*exp((lastupdate-t)/taupre)
-        Apost=Apost*exp((lastupdate-t)/taupost) +dApost
-        w = clip(w+Apre, 0, gmax)
-        lastupdate = t
-        """,
+        """w : 1
+                     Apre : 1
+                     Apost : 1
+                     lastupdate : second""",
+        on_pre="""Apre=Apre*exp((lastupdate-t)/taupre)+dApre
+                         Apost=Apost*exp((lastupdate-t)/taupost)
+                         w = clip(w+Apost, 0, gmax)
+                         lastupdate = t""",
+        on_post="""Apre=Apre*exp((lastupdate-t)/taupre)
+                          Apost=Apost*exp((lastupdate-t)/taupost) +dApost
+                          w = clip(w+Apre, 0, gmax)
+                          lastupdate = t""",
     )
     S2.connect(j="i")
     S1.w = 0.5 * gmax
@@ -1941,8 +1951,8 @@ def test_event_driven_dependency_checks():
         dummy,
         dummy,
         """
-        da/dt = (a-b) / (5*ms): 1 (event-driven)
-        b : 1""",
+                   da/dt = (a-b) / (5*ms): 1 (event-driven)
+                   b : 1""",
         on_pre="b+=1",
     )
     syn.connect()
@@ -1952,9 +1962,9 @@ def test_event_driven_dependency_checks():
         dummy,
         dummy,
         """
-        da/dt = (a-b) / (5*ms): 1 (event-driven)
-        b = c : 1
-        c : 1""",
+                   da/dt = (a-b) / (5*ms): 1 (event-driven)
+                   b = c : 1
+                   c : 1""",
         on_pre="c+=1",
     )
     syn2.connect()
@@ -1968,9 +1978,9 @@ def test_event_driven_dependency_error():
         stim,
         stim,
         """
-        da/dt = -a / (5*ms) : 1 (event-driven)
-        db/dt = -b / (5*ms) : 1 (event-driven)
-        dc/dt = a*b / (5*ms) : 1 (event-driven)""",
+                   da/dt = -a / (5*ms) : 1 (event-driven)
+                   db/dt = -b / (5*ms) : 1 (event-driven)
+                   dc/dt = a*b / (5*ms) : 1 (event-driven)""",
         on_pre="a+=1",
     )
     syn.connect()
@@ -1989,10 +1999,9 @@ def test_event_driven_dependency_error2():
             stim,
             stim,
             """
-            da/dt = -a / (5*ms) : 1 (clock-driven)
-            db/dt = -b / (5*ms) : 1 (clock-driven)
-            dc/dt = a*b / (5*ms) : 1 (event-driven)
-            """,
+                       da/dt = -a / (5*ms) : 1 (clock-driven)
+                       db/dt = -b / (5*ms) : 1 (clock-driven)
+                       dc/dt = a*b / (5*ms) : 1 (event-driven)""",
             on_pre="a+=1",
         )
     assert "'c'" in str(exc.value) and (
@@ -2005,10 +2014,9 @@ def test_event_driven_dependency_error2():
             stim,
             stim,
             """
-            da/dt = -a / (5*ms) : 1 (clock-driven)
-            b = a : 1
-            dc/dt = b / (5*ms) : 1 (event-driven)
-            """,
+                           da/dt = -a / (5*ms) : 1 (clock-driven)
+                           b = a : 1
+                           dc/dt = b / (5*ms) : 1 (event-driven)""",
             on_pre="a+=1",
         )
     assert (
@@ -2023,10 +2031,9 @@ def test_event_driven_dependency_error3():
         Synapses(
             P,
             P,
-            """
-            ds/dt = -s/(3*ms) : 1 (event-driven)
-            df/dt = f*s/(5*ms) : 1 (clock-driven)
-            """,
+            """ds/dt = -s/(3*ms) : 1 (event-driven)
+                          df/dt = f*s/(5*ms) : 1 (clock-driven)
+                          """,
             on_pre="s += 1",
         )
     assert "'s'" in str(ex.value) and "'f'" in str(ex.value)
@@ -2036,12 +2043,11 @@ def test_event_driven_dependency_error3():
         Synapses(
             P,
             P,
-            """
-            ds/dt = -s/(3*ms) : 1 (event-driven)
-            x = s : 1
-            y = x : 1
-            df/dt = f*y/(5*ms) : 1 (clock-driven)
-            """,
+            """ds/dt = -s/(3*ms) : 1 (event-driven)
+                          x = s : 1
+                          y = x : 1
+                          df/dt = f*y/(5*ms) : 1 (clock-driven)
+                          """,
             on_pre="s += 1",
         )
     assert "'s'" in str(ex.value) and "'f'" in str(ex.value)
@@ -2054,19 +2060,13 @@ def test_repr():
     S = Synapses(
         G,
         G,
-        """
-        w : 1
-        dApre/dt = -Apre/taupre : 1 (event-driven)
-        dApost/dt = -Apost/taupost : 1 (event-driven)
-        """,
-        on_pre="""
-        Apre += dApre
-        w = clip(w+Apost, 0, gmax)
-        """,
-        on_post="""
-        Apost += dApost
-        w = clip(w+Apre, 0, gmax)
-        """,
+        """w : 1
+                    dApre/dt = -Apre/taupre : 1 (event-driven)
+                    dApost/dt = -Apost/taupost : 1 (event-driven)""",
+        on_pre="""Apre += dApre
+                        w = clip(w+Apost, 0, gmax)""",
+        on_post="""Apost += dApost
+                         w = clip(w+Apre, 0, gmax)""",
     )
     # Test that string/LaTeX representations do not raise errors
     for func in [str, repr, sympy.latex]:
@@ -2078,10 +2078,8 @@ def test_pre_post_variables():
     G = NeuronGroup(10, "v : 1", threshold="False")
     G2 = NeuronGroup(
         10,
-        """
-        v : 1
-        w : 1
-        """,
+        """v : 1
+                            w : 1""",
         threshold="False",
     )
     S = Synapses(G, G2, "x : 1")
@@ -2120,10 +2118,8 @@ def test_variables_by_owner():
     G = NeuronGroup(10, "v : 1")
     G2 = NeuronGroup(
         10,
-        """
-        v : 1
-        w : 1
-        """,
+        """v : 1
+                            w : 1""",
     )
     S = Synapses(G, G2, "x : 1")
 
@@ -2420,19 +2416,16 @@ def test_vectorisation():
     source = NeuronGroup(10, "v : 1", threshold="v>1")
     target = NeuronGroup(
         10,
-        """
-        x : 1
-        y : 1
-        """,
+        """x : 1
+                                y : 1""",
     )
     syn = Synapses(
         source,
         target,
         "w_syn : 1",
-        on_pre="""
-        v_pre += w_syn
-        x_post = y_post
-        """,
+        on_pre="""v_pre += w_syn
+                          x_post = y_post
+                       """,
     )
     syn.connect()
     syn.w_syn = 1
@@ -2451,12 +2444,10 @@ def test_vectorisation_STDP_like():
     w_max = 10
     neurons = NeuronGroup(
         6,
-        """
-        dv/dt = rate : 1
-        ge : 1
-        rate : Hz
-        dA/dt = -A/(1*ms) : 1
-        """,
+        """dv/dt = rate : 1
+                                ge : 1
+                                rate : Hz
+                                dA/dt = -A/(1*ms) : 1""",
         threshold="v>1",
         reset="v=0",
     )
@@ -2469,19 +2460,15 @@ def test_vectorisation_STDP_like():
     syn = Synapses(
         neurons[:3],
         neurons[3:],
-        """
-        w_dep : 1
-        w_fac : 1
-        """,
-        on_pre="""
-        ge_post += w_dep - w_fac
-        A_pre += 1
-        w_dep = clip(w_dep + A_post, 0, w_max)
-        """,
-        on_post="""
-        A_post += 1
-        w_fac = clip(w_fac + A_pre, 0, w_max)
-        """,
+        """w_dep : 1
+                                                w_fac : 1""",
+        on_pre="""ge_post += w_dep - w_fac
+                          A_pre += 1
+                          w_dep = clip(w_dep + A_post, 0, w_max)
+                       """,
+        on_post="""A_post += 1
+                           w_fac = clip(w_fac + A_pre, 0, w_max)
+                        """,
     )
     syn.connect()
     neurons.rate = 1000 * Hz
@@ -2773,10 +2760,8 @@ def test_synapses_to_synapses_summed_variable():
     summed_conn = Synapses(
         source,
         conn,
-        """
-        w_post = x : integer (summed)
-        x : integer
-        """,
+        """w_post = x : integer (summed)
+                                            x : integer""",
     )
     summed_conn.connect("i>=j")
     summed_conn.x = "i"
@@ -3682,17 +3667,47 @@ def test_synaptic_subgroups():
     from_3 = syn[3, :]
     assert len(from_3) == 3
     assert all(syn.i[from_3] == 3)
+    assert all(from_3.i == 3)
     assert_array_equal(syn.j[from_3], np.arange(3))
+    assert_array_equal(from_3.j, np.arange(3))
 
     to_2 = syn[:, 2]
     assert len(to_2) == 5
     assert all(syn.j[to_2] == 2)
-    assert_array_equal(syn.i[to_2], np.arange(5))
+    assert all(to_2.j == 2)
 
     mixed = syn[1:3, :2]
     assert len(mixed) == 4
     connections = {(i, j) for i, j in zip(syn.i[mixed], syn.j[mixed])}
-    assert connections == {(1, 0), (1, 1), (2, 0), (2, 1)}
+    expected = {(1, 0), (1, 1), (2, 0), (2, 1)}
+    # assert connections == expected
+    connections = {(i, j) for i, j in zip(mixed.i[:], mixed.j[:])}
+    assert connections == expected
+
+    string_based = syn["i > 1 and j % 2 == 0"]
+    assert len(string_based) == 6
+    connections = {(i, j) for i, j in zip(syn.i[string_based], syn.j[string_based])}
+    expected = {(2, 0), (2, 2), (3, 0), (3, 2), (4, 0), (4, 2)}
+    assert connections == expected
+    connections = {(i, j) for i, j in zip(string_based.i[:], string_based.j[:])}
+    assert connections == expected
+
+    array_based_2d = syn[[2, 3, 4], [0, 2]]  # same as above
+    assert len(array_based_2d) == 6
+    connections = {(i, j) for i, j in zip(syn.i[array_based_2d], syn.j[array_based_2d])}
+    expected = {(2, 0), (2, 2), (3, 0), (3, 2), (4, 0), (4, 2)}
+    assert connections == expected
+    connections = {(i, j) for i, j in zip(array_based_2d.i[:], array_based_2d.j[:])}
+    assert connections == expected
+
+    indices = np.flatnonzero((syn.i > 1) & (syn.j % 2 == 0))
+    array_based_1d = syn[indices]  # same as above
+    assert len(array_based_1d) == 6
+    connections = {(i, j) for i, j in zip(syn.i[array_based_1d], syn.j[array_based_1d])}
+    expected = {(2, 0), (2, 2), (3, 0), (3, 2), (4, 0), (4, 2)}
+    assert connections == expected
+    connections = {(i, j) for i, j in zip(array_based_1d.i[:], array_based_1d.j[:])}
+    assert connections == expected
 
 
 @pytest.mark.codegen_independent

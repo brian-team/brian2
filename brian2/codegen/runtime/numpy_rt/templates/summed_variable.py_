@@ -17,6 +17,9 @@ _vectorisation_idx = LazyArange(N)
 # We write to the array, using the name provided as a keyword argument to the
 # template
 # Note that for subgroups, we do not want to overwrite the full array
+{% if not _target_contiguous %}
+{{_target_var_array}}[{{_target_indices}}] = _numpy.broadcast_to(_synaptic_var, (N, ))
+{% else %}
 {% if _target_start > 0 %}
 _indices = {{_index_array}} - {{_target_start}}
 {% else %}
@@ -32,4 +35,5 @@ _length = _target_stop - {{_target_start}}
 {{_target_var_array}}[{{_target_start}}:_target_stop] = _numpy.bincount(_indices,
                                  minlength=_length,
                                  weights=_numpy.broadcast_to(_synaptic_var, (N, )))
+{% endif %}
 {% endblock %}

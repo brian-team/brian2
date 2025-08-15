@@ -127,7 +127,7 @@ class LazyArange(Iterable):
             return iter(self.indices)
 
     # Allow conversion to a proper array with np.array(...)
-    def __array__(self, dtype=None, copy=None):
+    def __array__(self, dtype=np.int32, copy=None):
         if copy is False:
             raise ValueError("LazyArange does not support copy=False")
         if self.indices is None:

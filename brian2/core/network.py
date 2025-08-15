@@ -16,6 +16,8 @@ import time
 from collections import Counter, defaultdict, namedtuple
 from collections.abc import Mapping, Sequence
 
+import numpy as np
+
 from brian2.core.base import BrianObject, BrianObjectException
 from brian2.core.clocks import Clock, defaultclock
 from brian2.core.names import Nameable
@@ -321,18 +323,26 @@ def _check_multiple_summed_updaters(objects):
                         "the target group instead."
                     )
                     raise NotImplementedError(msg)
-                elif (
-                    obj.target.start < other_target.stop
-                    and other_target.start < obj.target.stop
-                ):
-                    # Overlapping subgroups
-                    msg = (
-                        "Multiple 'summed variables' target the "
-                        f"variable '{obj.target_var.name}' in overlapping "
-                        f"groups '{other_target.name}' and '{obj.target.name}'. "
-                        "Use separate variables in the target groups instead."
-                    )
-                    raise NotImplementedError(msg)
+                else:
+                    if getattr(obj.target, "contiguous", True):
+                        target_indices = np.arange(obj.target.start, obj.target.stop)
+                    else:
+                        target_indices = obj.target.indices[:]
+                    if getattr(other_target, "contiguous", True):
+                        other_indices = np.arange(other_target.start, other_target.stop)
+                    else:
+                        other_indices = other_target.indices[:]
+                    if np.intersect1d(
+                        target_indices, other_indices, assume_unique=True
+                    ).size:
+                        # Overlapping subgroups
+                        msg = (
+                            "Multiple 'summed variables' target the "
+                            f"variable '{obj.target_var.name}' in overlapping "
+                            f"groups '{other_target.name}' and '{obj.target.name}'. "
+                            "Use separate variables in the target groups instead."
+                        )
+                        raise NotImplementedError(msg)
             summed_targets[obj.target_var] = obj.target
 
 

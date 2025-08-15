@@ -19,9 +19,10 @@ from hashlib import md5
 
 import numpy as np
 
-from brian2.codegen.codeobject import check_compiler_kwds
+from brian2.codegen.codeobject import check_compiler_kwds, create_runner_codeobj
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
 from brian2.codegen.generators.cpp_generator import c_data_type
+from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
 from brian2.core.network import Network
@@ -31,6 +32,7 @@ from brian2.core.variables import (
     Constant,
     DynamicArrayVariable,
     Variable,
+    Variables,
     VariableView,
 )
 from brian2.devices.device import Device, all_devices, reset_device, set_device
@@ -484,8 +486,8 @@ class CPPStandaloneDevice(Device):
         self.main_queue.append(("resize_array", (array_name, new_size)))
 
     def variableview_set_with_index_array(self, variableview, item, value, check_units):
-        if isinstance(item, slice) and item == slice(None):
-            item = "True"
+        if item == "True":
+            item = slice(None)
         value = Quantity(value)
 
         if (
@@ -500,7 +502,7 @@ class CPPStandaloneDevice(Device):
                 ("set_by_single_value", (array_name, item, value_str))
             )
         # Simple case where we don't have to do any indexing
-        elif item == "True" and variableview.index_var in ("_idx", "0"):
+        elif item == slice(None) and variableview.index_var in ("_idx", "0"):
             self.fill_with_array(variableview.variable, value)
         else:
             # We have to calculate indices. This will not work for synaptic
@@ -532,7 +534,10 @@ class CPPStandaloneDevice(Device):
 
             staticarrayname_index = self.static_array(f"_index_{arrayname}", indices)
             staticarrayname_value = self.static_array(f"_value_{arrayname}", value)
-            self.array_cache[variableview.variable] = None
+            # Put values into the cache
+            cache_variable = self.array_cache[variableview.variable]
+            if cache_variable is not None:
+                cache_variable[indices] = value
             self.main_queue.append(
                 (
                     "set_array_by_array",
@@ -547,7 +552,14 @@ class CPPStandaloneDevice(Device):
         # however (values that have been set with explicit values and not
         # changed in code objects)
         if self.array_cache.get(var, None) is not None:
-            return self.array_cache[var]
+            values = self.array_cache[var]
+            if isinstance(var, DynamicArrayVariable):
+                # Make sure that size information is up-to-date as well
+                if var.ndim == 2:
+                    var.size = values.shape
+                else:
+                    var.size = values.size
+            return values
         else:
             # After the network has been run, we can retrieve the values from
             # disk
@@ -556,27 +568,16 @@ class CPPStandaloneDevice(Device):
                 fname = os.path.join(self.results_dir, self.get_array_filename(var))
                 with open(fname, "rb") as f:
                     data = np.fromfile(f, dtype=dtype)
-                # This is a bit of an heuristic, but our 2d dynamic arrays are
-                # only expanding in one dimension, we assume here that the
-                # other dimension has size 0 at the beginning
-                if isinstance(var.size, tuple) and len(var.size) == 2:
-                    if var.size[0] * var.size[1] == len(data):
-                        size = var.size
-                    elif var.size[0] == 0:
-                        size = (len(data) // var.size[1], var.size[1])
-                    elif var.size[1] == 0:
-                        size = (var.size[0], len(data) // var.size[0])
-                    else:
-                        raise IndexError(
-                            "Do not now how to deal with 2d "
-                            f"array of size {var.size!s}, the array on "
-                            f"disk has length {len(data)}."
-                        )
+                if (
+                    isinstance(var.size, tuple) and len(var.size) == 2
+                ):  # 2D dynamic array
+                    values = data.reshape(var.size)
+                else:
+                    values = data
+                # assert (np.atleast_1d(values.shape) == np.atleast_1d(var.size)).all(), f"{values.shape} ≠ {var.size} ({var.name})"
+                self.array_cache[var] = values
+                return values
 
-                    var.size = size
-                    return data.reshape(var.size)
-                var.size = len(data)
-                return data
             raise NotImplementedError(
                 "Cannot retrieve the values of state "
                 "variables in standalone code before the "
@@ -607,6 +608,39 @@ class CPPStandaloneDevice(Device):
             "variables with string expressions in "
             "standalone scripts."
         )
+
+    def index_wrapper_get_item(self, index_wrapper, item, level):
+        if isinstance(item, str):
+            variables = Variables(None)
+            variables.add_auxiliary_variable("_indices", dtype=np.int32)
+            variables.add_auxiliary_variable("_cond", dtype=bool)
+
+            abstract_code = "_cond = " + item
+            namespace = get_local_namespace(level=level + 2)
+            try:
+                codeobj = create_runner_codeobj(
+                    index_wrapper.group,
+                    abstract_code,
+                    "group_get_indices",
+                    run_namespace=namespace,
+                    additional_variables=variables,
+                    codeobj_class=NumpyCodeObject,
+                )
+            except NotImplementedError:
+                raise NotImplementedError(
+                    "Cannot calculate indices with string "
+                    "expressions in standalone mode if "
+                    "the expression refers to variable "
+                    "with values not known before running "
+                    "the simulation."
+                )
+            indices = codeobj()
+            # Delete code object from device to avoid trying to build it later
+            del self.code_objects[codeobj.name]
+            # Handle subgroups correctly
+            return index_wrapper.indices(indices)
+        else:
+            return index_wrapper.indices(item)
 
     def code_object_class(self, codeobj_class=None, fallback_pref=None):
         """
@@ -703,6 +737,9 @@ class CPPStandaloneDevice(Device):
                         cache.get(var, np.empty(0, dtype=int)), value
                     )
                     do_not_invalidate.add(var)
+                # Also update the size attribute
+                variables["_synaptic_pre"].size += variables["sources"].size
+                variables["_synaptic_post"].size += variables["targets"].size
 
         codeobj = super().code_object(
             owner,
@@ -750,7 +787,7 @@ class CPPStandaloneDevice(Device):
                 and var not in do_not_invalidate
                 and (not var.read_only or var in written_readonly_vars)
             ):
-                self.array_cache[var] = None
+                codeobj.invalidate_cache_variables.add(var)
 
         return codeobj
 
@@ -1252,7 +1289,6 @@ class CPPStandaloneDevice(Device):
                 list_rep.append(f"{name}={string_value}")
 
             run_args = list_rep
-
         # Invalidate array cache for all variables set on the command line
         for arg in run_args:
             s = arg.split("=")
@@ -1263,6 +1299,12 @@ class CPPStandaloneDevice(Device):
                         and var.owner.name + "." + var.name == s[0]
                     ):
                         self.array_cache[var] = None
+
+        # Invalidate array cache for all variables written by code objects
+        for codeobj in self.code_objects.values():
+            for var in codeobj.invalidate_cache_variables:
+                self.array_cache[var] = None
+
         run_args = ["--results_dir", self.results_dir] + run_args
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
         for clock in self.clocks:
@@ -1340,12 +1382,28 @@ class CPPStandaloneDevice(Device):
             except ReferenceError:
                 pass
 
+        # Make sure the size information is up-to-date for dynamic variables
+        # Note that the actual data will only be loaded on demand
+        with in_directory(directory):
+            for var in self.dynamic_arrays:
+                fname = self.get_array_filename(var) + "_size"
+                new_size = int(np.loadtxt(fname, delimiter=" ", dtype=np.int32))
+                var.size = new_size
+            for var in self.dynamic_arrays_2d:
+                fname = self.get_array_filename(var) + "_size"
+                new_size = tuple(np.loadtxt(fname, delimiter=" ", dtype=np.int32))
+                var.size = new_size
+
     def _prepare_variableview_run_arg(self, key, value):
         fail_for_dimension_mismatch(key.dim, value)  # TODO: Give name of variable
         value_ar = np.asarray(value, dtype=key.dtype)
         if value_ar.ndim == 0 or value_ar.size == 1:
             # single value, give value directly on command line
-            string_value = repr(value_ar.item())
+            value = value_ar.item()
+            if value is True or value is None:  # translate True/False to 1/0
+                string_value = "1" if value else "0"
+            else:
+                string_value = repr(value)
             value_name = None
         else:
             if value_ar.ndim != 1 or (
@@ -1368,7 +1426,11 @@ class CPPStandaloneDevice(Device):
         value_ar = np.asarray(value, dtype=key.values.dtype)
         if value_ar.ndim == 0 or value_ar.size == 1:
             # single value, give value directly on command line
-            string_value = repr(value_ar.item())
+            value = value_ar.item()
+            if value is True or value is None:  # translate True/False to 1/0
+                string_value = "1" if value else "0"
+            else:
+                string_value = repr(value)
             value_name = None
         elif value_ar.shape == key.values.shape:
             value_name = f"init_{key.name}_values_{md5(value_ar.data).hexdigest()}.dat"
@@ -1937,6 +1999,11 @@ class CPPStandaloneDevice(Device):
         self.main_queue.append(("run_network", (net, run_lines)))
 
         net.after_run()
+
+        # Invalidate array cache for all variables written by code objects
+        for _, codeobj in code_objects:
+            for var in codeobj.invalidate_cache_variables:
+                self.array_cache[var] = None
 
         # Manually set the cache for the clocks, simulation scripts might
         # want to access the time (which has been set in code and is therefore

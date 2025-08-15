@@ -214,8 +214,8 @@ monitor::
 
 Note that this technique cannot be applied in :ref:`standalone mode <cpp_standalone>`.
 
-Recording random subsets of neurons
------------------------------------
+Recording subsets of neurons
+----------------------------
 
 In large networks, you might only be interested in the activity of a
 random subset of neurons. While you can specify a ``record`` argument
@@ -227,65 +227,15 @@ by using a :ref:`subgroup <subgroups>`::
     group = NeuronGroup(1000, ...)
     spike_mon = SpikeMonitor(group[:100])  # only record first 100 neurons
 
-It might seem like a restriction that such a subgroup has to be contiguous, but
-the order of neurons in a group does not have any meaning as such; in a randomly
-ordered group of neurons, any contiguous group of neurons can be considered a
-random subset. If some aspects of your model *do* depend on the position of the
-neuron in a group (e.g. a ring model, where neurons are connected based on their
-distance in the ring, or a model where initial values or parameters span a
-range of values in a regular fashion), then this requires an extra step: instead
-of using the order of neurons in the group directly, or depending on the neuron
-index ``i``, create a new, shuffled, index variable as part of the model
-definition and then depend on this index instead::
+This also extends to non-contiguous subgroups, e.g. to record every second cell
+you can use::
 
-    group = NeuronGroup(10000, '''....
-                                  index : integer (constant)''')
-    indices = group.i[:]
-    np.random.shuffle(indices)
-    group.index = indices
-    # Then use 'index' in string expressions or use it as an index array
-    # for initial values/parameters defined as numpy arrays
+    group = NeuronGroup(1000, ...)
+    spike_mon = SpikeMonitor(group[::2])  # record every second neuron
 
-If this solution is not feasible for some reason, there is another approach that
-works for a `SpikeMonitor`/`EventMonitor`. You can add an additional flag to
-each neuron, stating whether it should be recorded or not. Then, you define a
-new :doc:`custom event </advanced/custom_events>` that is identical to the event you are
-interested in, but additionally requires the flag to be set. E.g. to only record
-the spikes of neurons with the ``to_record`` attribute set::
-
-    group = NeuronGroup(..., '''...
-                                to_record : boolean (constant)''',
-                        threshold='...', reset='...',
-                        events={'recorded_spike': '... and to_record'})
-    group.to_record = ...
-    mon_events = EventMonitor(group, 'recorded_spike')
-
-Note that this solution will evaluate the threshold condition for each neuron
-twice, and is therefore slightly less efficient. There's one additional caveat:
-you'll have to manually include ``and not_refractory`` in your ``events``
-definition if your neuron uses refractoriness. This is done automatically
-for the ``threshold`` condition, but not for any user-defined events.
-
-Recording population averages
------------------------------
-
-Continuous recordings from large groups over long simulation times can
-fill up the working memory quickly: recording a single variable from
-1000 neurons for 100 seconds at the default time resolution results in
-an array of about 8 Gigabytes. While this issue can be ameliorated using the
-above approaches, the downstream data analysis is often based on
-population averages. These can be recorded efficiently using a dummy
-group and the `Synapses` class' :ref:`summed variable syntax
-<summed_variables>`::
-
-    group = NeuronGroup(..., 'dv/dt = ... : volt', ...)
-
-    # Dummy group to store the average membrane potential at every time step
-    vm_container = NeuronGroup(1, 'average_vm : volt')
-
-    # Synapses averaging the membrane potential of all neurons in group
-    vm_averager = Synapses(group, vm_container, 'average_vm_post = v_pre/N_pre : volt (summed)')
-    vm_averager.connect()
-
-    # Monitor recording the average membrane potential
-    vm_monitor = StateMonitor(vm_container, 'average_vm', record=True)
+Note that this is less efficient than recording from a contiguous subgroup, since
+for every spike in ``group``, Brian needs to check whether its index is part of the
+subgroup (this check is quicker to do when the subgroup is a contiguous range).
+In many models, the order of neurons in a group does not have any meaning as such.
+If your model is randomly ordered, then recording from the first half of neurons
+is equivalent to recording from every second neuron, but more efficient.

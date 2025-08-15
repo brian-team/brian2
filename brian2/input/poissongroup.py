@@ -8,7 +8,7 @@ from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Subexpression, Variables
 from brian2.groups.group import Group
 from brian2.groups.neurongroup import Thresholder
-from brian2.groups.subgroup import Subgroup
+from brian2.groups.subgroup import Subgroup, to_start_stop_or_index
 from brian2.parsing.expressions import parse_expression_dimensions
 from brian2.units.fundamentalunits import check_units, fail_for_dimension_mismatch
 from brian2.units.stdunits import Hz
@@ -111,17 +111,8 @@ class PoissonGroup(Group, SpikeSource):
             self.rates = rates
 
     def __getitem__(self, item):
-        if not isinstance(item, slice):
-            raise TypeError("Subgroups can only be constructed using slicing syntax")
-        start, stop, step = item.indices(self._N)
-        if step != 1:
-            raise IndexError("Subgroups have to be contiguous")
-        if start >= stop:
-            raise IndexError(
-                f"Illegal start/end values for subgroup, {int(start)}>={int(stop)}"
-            )
-
-        return Subgroup(self, start, stop)
+        start, stop, indices = to_start_stop_or_index(item, self, level=1)
+        return Subgroup(self, start, stop, indices)
 
     def before_run(self, run_namespace=None):
         rates_var = self.variables["rates"]

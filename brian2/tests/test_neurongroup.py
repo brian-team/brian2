@@ -1225,19 +1225,26 @@ def test_state_variable_access():
     assert_allclose(np.asarray(G.v[:]), np.arange(10))
     assert have_same_dimensions(G.v[:], volt)
     assert_allclose(np.asarray(G.v[:]), G.v_[:])
-    # Accessing single elements, slices and arrays
+    # Accessing single elements, slices and integer and boolean arrays
     assert G.v[5] == 5 * volt
     assert G.v_[5] == 5
     assert_allclose(G.v[:5], np.arange(5) * volt)
     assert_allclose(G.v_[:5], np.arange(5))
     assert_allclose(G.v[[0, 5]], [0, 5] * volt)
     assert_allclose(G.v_[[0, 5]], np.array([0, 5]))
+    assert_allclose(G.v[[True, False] * 5], np.arange(10)[::2] * volt)
 
     # Illegal indexing
     with pytest.raises(IndexError):
         G.v[0, 0]
     with pytest.raises(IndexError):
         G.v_[0, 0]
+    with pytest.raises(IndexError):
+        G.v[[0, 10]]  # out of range array indices
+    with pytest.raises(IndexError):
+        G.v[[True, False]]  # too few boolean indices
+    with pytest.raises(IndexError):
+        G.v[[True] * 11]  # too many boolean indices
     with pytest.raises(TypeError):
         G.v[object()]
     with pytest.raises(TypeError):

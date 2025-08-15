@@ -26,12 +26,13 @@ from brian2.equations.equations import (
     Equations,
     check_subexpressions,
 )
-from brian2.groups.group import CodeRunner, Group, get_dtype
+from brian2.groups.group import CodeRunner, Group, Indexing, get_dtype
 from brian2.groups.neurongroup import (
     SubexpressionUpdater,
     check_identifier_pre_post,
     extract_constant_subexpressions,
 )
+from brian2.groups.subgroup import Subgroup
 from brian2.parsing.bast import brian_ast
 from brian2.parsing.expressions import (
     is_boolean_expression,
@@ -122,7 +123,7 @@ class SummedVariableUpdater(CodeRunner):
     def __init__(
         self, expression, target_varname, synapses, target, target_size_name, index_var
     ):
-        # Handling sumped variables using the standard mechanisms is not
+        # Handling summed variables using the standard mechanisms is not
         # possible, we therefore also directly give the names of the arrays
         # to the template.
 
@@ -139,14 +140,21 @@ class SummedVariableUpdater(CodeRunner):
             "_index_var": synapses.variables[index_var],
             "_target_start": getattr(target, "start", 0),
             "_target_stop": getattr(target, "stop", -1),
+            "_target_contiguous": True,
         }
+        needed_variables = [target_varname, target_size_name, index_var]
+        self.variables = Variables(synapses)
+        if not getattr(target, "contiguous", True):
+            self.variables.add_reference("_target_indices", target, "_sub_idx")
+            needed_variables.append("_target_indices")
+            template_kwds["_target_contiguous"] = False
 
         CodeRunner.__init__(
             self,
             group=synapses,
             template="summed_variable",
             code=code,
-            needed_variables=[target_varname, target_size_name, index_var],
+            needed_variables=needed_variables,
             # We want to update the summed variable before
             # the target group gets updated
             clock=target.clock,
@@ -483,7 +491,7 @@ def slice_to_test(x):
         pass
 
     if isinstance(x, slice):
-        if isinstance(x, slice) and x == slice(None):
+        if x == slice(None):
             # No need for testing
             return lambda y: np.repeat(True, len(y))
         start, stop, step = x.start, x.stop, x.step
@@ -538,9 +546,9 @@ def find_synapses(index, synaptic_neuron):
     return synapses
 
 
-class SynapticSubgroup:
+class SynapticSubgroup(Group):
     """
-    A simple subgroup of `Synapses` that can be used for indexing.
+    A subgroup of `Synapses` that can be used for indexing and for accessing variables.
 
     Parameters
     ----------
@@ -551,21 +559,41 @@ class SynapticSubgroup:
         when new synapses where added after creating this object.
     """
 
-    def __init__(self, synapses, indices):
+    def __init__(self, synapses, indices, name=None):
+        indices = np.atleast_1d(indices)  # Deal with scalar indices
         self.synapses = weakproxy_with_fallback(synapses)
+        self.source = weakproxy_with_fallback(synapses.source)
+        self.target = weakproxy_with_fallback(synapses.target)
+        self.multisynaptic_index = self.synapses.multisynaptic_index
         self._stored_indices = indices
+        self._N = len(indices)
         self._synaptic_pre = synapses.variables["_synaptic_pre"]
         self._source_N = self._synaptic_pre.size  # total number of synapses
 
-    def _indices(self, index_var="_idx"):
-        if index_var != "_idx":
-            raise AssertionError(f"Did not expect index {index_var} here.")
-        if len(self._synaptic_pre.get_value()) != self._source_N:
-            raise RuntimeError(
-                "Synapses have been added/removed since this "
-                "synaptic subgroup has been created"
-            )
-        return self._stored_indices
+        if name is None:
+            name = f"{self.synapses.name}_subgroup*"
+
+        Group.__init__(
+            self,
+            name=name,
+        )
+        self.variables = Variables(self, default_index="_sub_idx")
+        self.variables.add_constant("N", self._N)
+        self.variables.add_references(synapses, list(synapses.variables.keys()))
+        self.variables.add_array(
+            "_sub_idx",
+            size=self._N,
+            dtype=np.int32,
+            values=indices,
+            index="_idx",
+            constant=True,
+            read_only=True,
+            unique=True,
+        )
+
+        self._indices = SynapticIndexing(self, self.variables["_sub_idx"])
+
+        self._enable_group_attributes()
 
     def __len__(self):
         return len(self._stored_indices)
@@ -577,11 +605,11 @@ class SynapticSubgroup:
         )
 
 
-class SynapticIndexing:
-    def __init__(self, synapses):
-        self.synapses = weakref.proxy(synapses)
-        self.source = weakproxy_with_fallback(self.synapses.source)
-        self.target = weakproxy_with_fallback(self.synapses.target)
+class SynapticIndexing(Indexing):
+    def __init__(self, synapses, default_idx="_idx"):
+        super().__init__(synapses, default_idx)
+        self.source = weakproxy_with_fallback(synapses.source)
+        self.target = weakproxy_with_fallback(synapses.target)
         self.synaptic_pre = synapses.variables["_synaptic_pre"]
         self.synaptic_post = synapses.variables["_synaptic_post"]
         if synapses.multisynaptic_index is not None:
@@ -589,90 +617,101 @@ class SynapticIndexing:
         else:
             self.synapse_number = None
 
-    def __call__(self, index=None, index_var="_idx"):
+    def __call__(self, item=slice(None), index_var=None):  # noqa: B008
         """
         Returns synaptic indices for `index`, which can be a tuple of indices
         (including arrays and slices), a single index or a string.
 
         """
-        if index is None or (isinstance(index, str) and index == "True"):
-            index = slice(None)
+        if index_var is None:
+            index_var = self.default_index
 
-        if not isinstance(index, (tuple, str)) and (
-            isinstance(index, (numbers.Integral, np.ndarray, slice, Sequence))
-            or hasattr(index, "_indices")
-        ):
-            if hasattr(index, "_indices"):
-                final_indices = index._indices(index_var=index_var).astype(np.int32)
-            elif isinstance(index, slice):
-                start, stop, step = index.indices(len(self.synaptic_pre.get_value()))
-                final_indices = np.arange(start, stop, step, dtype=np.int32)
-            else:
-                final_indices = np.asarray(index)
-        elif isinstance(index, tuple):
-            if len(index) == 2:  # two indices (pre- and postsynaptic cell)
-                index = (index[0], index[1], slice(None))
-            elif len(index) > 3:
-                raise IndexError(f"Need 1, 2 or 3 indices, got {len(index)}.")
+        if not isinstance(item, tuple):
+            # 1d indexing = synaptic indices
+            if hasattr(item, "_indices"):
+                item = item._indices()
+            final_indices = self._to_index_array(item, index_var)
+            if final_indices.size > 0:
+                if np.min(final_indices) < 0:
+                    raise IndexError("Negative indices are not allowed.")
+                try:
+                    N = self.N.get_value()
+                    if np.max(final_indices) >= N:
+                        raise IndexError(
+                            f"Index {np.max(final_indices)} is out of bounds for "
+                            f"{N} synapses."
+                        )
+                except NotImplementedError:
+                    logger.warn("Cannot check synaptic indices for correctness")
+        else:
+            # 2d or 3d indexing = pre-/post-synaptic indices and (optionally) synapse number
+            if len(item) == 2:  # two indices (pre- and postsynaptic cell)
+                item = (item[0], item[1], slice(None))
+            elif len(item) > 3:
+                raise IndexError(f"Need 1, 2 or 3 indices, got {len(item)}.")
 
-            i_indices, j_indices, k_indices = index
-            # Convert to absolute indices (e.g. for subgroups)
-            # Allow the indexing to fail, we'll later return an empty array in
-            # that case
-            try:
-                if hasattr(
-                    i_indices, "_indices"
-                ):  # will return absolute indices already
-                    i_indices = i_indices._indices()
-                else:
-                    i_indices = self.source._indices(i_indices)
-                pre_synapses = find_synapses(i_indices, self.synaptic_pre.get_value())
-            except IndexError:
-                pre_synapses = np.array([], dtype=np.int32)
-            try:
-                if hasattr(j_indices, "_indices"):
-                    j_indices = j_indices._indices()
-                else:
-                    j_indices = self.target._indices(j_indices)
-                post_synapses = find_synapses(j_indices, self.synaptic_post.get_value())
-            except IndexError:
-                post_synapses = np.array([], dtype=np.int32)
+            i_indices, j_indices, k_indices = item
 
-            matching_synapses = np.intersect1d(
-                pre_synapses, post_synapses, assume_unique=True
+            if k_indices != slice(None) and self.synapse_number is None:
+                raise IndexError(
+                    "To index by the third dimension you need "
+                    "to switch on the calculation of the "
+                    "'multisynaptic_index' when you create "
+                    "the Synapses object."
+                )
+
+            final_indices = self._from_3d_indices_to_index_array(
+                i_indices, j_indices, k_indices
             )
 
-            if isinstance(k_indices, slice) and k_indices == slice(None):
-                final_indices = matching_synapses
-            else:
-                if self.synapse_number is None:
-                    raise IndexError(
-                        "To index by the third dimension you need "
-                        "to switch on the calculation of the "
-                        "'multisynaptic_index' when you create "
-                        "the Synapses object."
-                    )
-                if isinstance(k_indices, (numbers.Integral, slice)):
-                    test_k = slice_to_test(k_indices)
-                else:
-                    raise NotImplementedError(
-                        "Indexing synapses with arrays notimplemented yet"
-                    )
-
-                # We want to access the raw arrays here, not go through the Variable
-                synapse_numbers = self.synapse_number.get_value()[matching_synapses]
-                final_indices = np.intersect1d(
-                    matching_synapses,
-                    np.flatnonzero(test_k(synapse_numbers)),
-                    assume_unique=True,
-                )
-        else:
-            raise IndexError(f"Unsupported index type {type(index)}")
-
         if index_var not in ("_idx", "0"):
-            return index_var.get_value()[final_indices.astype(np.int32)]
+            try:
+                return index_var.get_value()[final_indices.astype(np.int32)]
+            except IndexError as ex:
+                # We try to emulate numpy's indexing semantics here:
+                # slices never lead to IndexErrors, instead they return an
+                # empty array if they don't match anything
+                if isinstance(item, slice):
+                    return np.array([], dtype=np.int32)
+                else:
+                    raise ex
         else:
             return final_indices.astype(np.int32)
+
+    def _from_3d_indices_to_index_array(self, i_indices, j_indices, k_indices):
+        # Convert to absolute indices (e.g. for subgroups)
+        if hasattr(i_indices, "_indices"):  # will return absolute indices already
+            i_indices = i_indices._indices()
+        else:
+            i_indices = self.source._indices(i_indices)
+        pre_synapses = find_synapses(i_indices, self.synaptic_pre.get_value())
+
+        if hasattr(j_indices, "_indices"):
+            j_indices = j_indices._indices()
+        else:
+            j_indices = self.target._indices(j_indices)
+        post_synapses = find_synapses(j_indices, self.synaptic_post.get_value())
+
+        matching_synapses = np.intersect1d(
+            pre_synapses, post_synapses, assume_unique=True
+        )
+
+        if k_indices == slice(None):
+            final_indices = matching_synapses
+        else:
+            # We want to access the raw arrays here, not go through the Variable
+            synapse_numbers = self.synapse_number.get_value()[matching_synapses]
+            if isinstance(k_indices, (numbers.Integral, slice)):
+                test_k = slice_to_test(k_indices)
+                final_indices = matching_synapses[test_k(synapse_numbers)]
+            else:
+                k_indices = np.asarray(k_indices)
+                if k_indices.dtype == bool:
+                    raise NotImplementedError(
+                        "Boolean indexing not supported for synapse number"
+                    )
+                final_indices = matching_synapses[np.in1d(synapse_numbers, k_indices)]
+        return final_indices
 
 
 class Synapses(Group):
@@ -1313,10 +1352,14 @@ class Synapses(Group):
             self.variables.add_reference("_target_offset", self.target, "_offset")
         else:
             self.variables.add_constant("_target_offset", value=0)
+        if "_sub_idx" in self.source.variables:
+            self.variables.add_reference("_source_sub_idx", self.source, "_sub_idx")
         if "_offset" in self.source.variables:
             self.variables.add_reference("_source_offset", self.source, "_offset")
         else:
             self.variables.add_constant("_source_offset", value=0)
+        if "_sub_idx" in self.target.variables:
+            self.variables.add_reference("_target_sub_idx", self.target, "_sub_idx")
         # To cope with connections to/from other synapses, N_incoming/N_outgoing
         # will be resized when synapses are created
         self.variables.add_dynamic_array(
@@ -1345,35 +1388,55 @@ class Synapses(Group):
         self.variables.add_reference("_presynaptic_idx", self, "_synaptic_pre")
         self.variables.add_reference("_postsynaptic_idx", self, "_synaptic_post")
 
-        # Except for subgroups (which potentially add an offset), the "i" and
-        # "j" variables are simply equivalent to `_synaptic_pre` and
-        # `_synaptic_post`
-        if getattr(self.source, "start", 0) == 0:
-            self.variables.add_reference("i", self, "_synaptic_pre")
-        else:
+        # Except for subgroups, the "i" and "j" variables are simply equivalent to
+        # `_synaptic_pre` and `_synaptic_post`
+        if (
+            isinstance(self.source, Subgroup)
+            and not getattr(self.source, "start", -1) == 0
+        ):
             self.variables.add_reference(
                 "_source_i", self.source.source, "i", index="_presynaptic_idx"
             )
-            self.variables.add_reference("_source_offset", self.source, "_offset")
-            self.variables.add_subexpression(
-                "i",
-                dtype=self.source.source.variables["i"].dtype,
-                expr="_source_i - _source_offset",
-                index="_presynaptic_idx",
-            )
-        if getattr(self.target, "start", 0) == 0:
-            self.variables.add_reference("j", self, "_synaptic_post")
+            if getattr(self.source, "contiguous", True):
+                # Contiguous subgroup simply shift the indices
+                self.variables.add_subexpression(
+                    "i",
+                    dtype=self.source.source.variables["i"].dtype,
+                    expr="_source_i - _source_offset",
+                    index="_presynaptic_idx",
+                )
+            else:
+                # Non-contiguous subgroups need a full translation
+                self.variables.add_reference(
+                    "i", self.source, "i", index="_presynaptic_idx"
+                )
         else:
+            # No subgroup or subgroup starting at 0
+            self.variables.add_reference("i", self, "_synaptic_pre")
+
+        if (
+            isinstance(self.target, Subgroup)
+            and not getattr(self.target, "start", -1) == 0
+        ):
             self.variables.add_reference(
                 "_target_j", self.target.source, "i", index="_postsynaptic_idx"
             )
-            self.variables.add_reference("_target_offset", self.target, "_offset")
-            self.variables.add_subexpression(
-                "j",
-                dtype=self.target.source.variables["i"].dtype,
-                expr="_target_j - _target_offset",
-                index="_postsynaptic_idx",
-            )
+            if getattr(self.target, "contiguous", True):
+                # Contiguous subgroup simply shift the indices
+                self.variables.add_subexpression(
+                    "j",
+                    dtype=self.target.source.variables["i"].dtype,
+                    expr="_target_j - _target_offset",
+                    index="_postsynaptic_idx",
+                )
+            else:
+                # Non-contiguous subgroups need a full translation
+                self.variables.add_reference(
+                    "j", self.target, "i", index="_postsynaptic_idx"
+                )
+        else:
+            # No subgroup or subgroup starting at 0
+            self.variables.add_reference("j", self, "_synaptic_post")
 
         # Add the standard variables
         self.variables.add_array(
@@ -1787,13 +1850,19 @@ class Synapses(Group):
         self.variables["N"].set_value(number)
 
     def _update_synapse_numbers(self, old_num_synapses):
-        source_offset = self.variables["_source_offset"].get_value()
-        target_offset = self.variables["_target_offset"].get_value()
-        # This resizing is only necessary if we are connecting to/from synapses
-        post_with_offset = self.variables["N_post"].item() + target_offset
-        pre_with_offset = self.variables["N_pre"].item() + source_offset
+        if "_source_sub_idx" in self.variables:
+            pre_with_offset = self.variables["_source_sub_idx"].get_value()[-1] + 1
+        else:
+            source_offset = self.variables["_source_offset"].get_value()
+            pre_with_offset = self.variables["N_pre"].item() + source_offset
+        if "_target_sub_idx" in self.variables:
+            post_with_offset = self.variables["_target_sub_idx"].get_value()[-1] + 1
+        else:
+            target_offset = self.variables["_target_offset"].get_value()
+            post_with_offset = self.variables["N_post"].item() + target_offset
         self.variables["N_incoming"].resize(post_with_offset)
         self.variables["N_outgoing"].resize(pre_with_offset)
+
         N_outgoing = self.variables["N_outgoing"].get_value()
         N_incoming = self.variables["N_incoming"].get_value()
         synaptic_pre = self.variables["_synaptic_pre"].get_value()
@@ -1908,11 +1977,15 @@ class Synapses(Group):
         if "_offset" in self.source.variables:
             variables.add_reference("_source_offset", self.source, "_offset")
             abstract_code += "_real_sources = sources + _source_offset\n"
+        elif not getattr(self.source, "contiguous", True):
+            abstract_code += "_real_sources = _source_sub_idx\n"
         else:
             abstract_code += "_real_sources = sources\n"
         if "_offset" in self.target.variables:
             variables.add_reference("_target_offset", self.target, "_offset")
             abstract_code += "_real_targets = targets + _target_offset\n"
+        elif not getattr(self.target, "contiguous", True):
+            abstract_code += "_real_targets = _target_sub_idx\n"
         else:
             abstract_code += "_real_targets = targets"
         logger.debug(
@@ -1996,11 +2069,25 @@ class Synapses(Group):
         outer_index_size = "N_pre" if over_presynaptic else "N_post"
         outer_index_array = "_pre_idx" if over_presynaptic else "_post_idx"
         outer_index_offset = "_source_offset" if over_presynaptic else "_target_offset"
+        outer_sub_idx = "_source_sub_idx" if over_presynaptic else "_target_sub_idx"
+        outer_contiguous = (
+            getattr(self.source, "contiguous", True)
+            if over_presynaptic
+            else getattr(self.target, "contiguous", True)
+        )
+
         result_index = "j" if over_presynaptic else "i"
         result_index_size = "N_post" if over_presynaptic else "N_pre"
         target_idx = "_postsynaptic_idx" if over_presynaptic else "_presynaptic_idx"
         result_index_array = "_post_idx" if over_presynaptic else "_pre_idx"
         result_index_offset = "_target_offset" if over_presynaptic else "_source_offset"
+        result_sub_idx = "_target_sub_idx" if over_presynaptic else "_source_sub_idx"
+        result_contiguous = (
+            getattr(self.target, "contiguous", True)
+            if over_presynaptic
+            else getattr(self.source, "contiguous", True)
+        )
+
         result_index_name = "postsynaptic" if over_presynaptic else "presynaptic"
         template_kwds.update(
             {
@@ -2008,11 +2095,15 @@ class Synapses(Group):
                 "outer_index_size": outer_index_size,
                 "outer_index_array": outer_index_array,
                 "outer_index_offset": outer_index_offset,
+                "outer_sub_idx": outer_sub_idx,
+                "outer_contiguous": outer_contiguous,
                 "result_index": result_index,
                 "result_index_size": result_index_size,
                 "result_index_name": result_index_name,
                 "result_index_array": result_index_array,
                 "result_index_offset": result_index_offset,
+                "result_sub_idx": result_sub_idx,
+                "result_contiguous": result_contiguous,
             }
         )
         abstract_code = {
@@ -2100,10 +2191,16 @@ class Synapses(Group):
         else:
             variables.add_constant("_source_offset", value=0)
 
+        if not getattr(self.source, "contiguous", True):
+            needed_variables.append("_source_sub_idx")
+
         if "_offset" in self.target.variables:
             variables.add_reference("_target_offset", self.target, "_offset")
         else:
             variables.add_constant("_target_offset", value=0)
+
+        if not getattr(self.target, "contiguous", True):
+            needed_variables.append("_target_sub_idx")
 
         variables.add_auxiliary_variable("_raw_pre_idx", dtype=np.int32)
         variables.add_auxiliary_variable("_raw_post_idx", dtype=np.int32)

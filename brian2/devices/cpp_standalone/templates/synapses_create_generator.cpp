@@ -18,8 +18,16 @@
     constants or scalar arrays#}
     const size_t _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
     const size_t _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
+    {% if "_target_sub_idx" in variables %}
+    {{_dynamic_N_incoming}}.resize({{get_array_name(variables['_target_sub_idx'])}}[_num_target_sub_idx - 1] + 1);
+    {% else %}
     {{_dynamic_N_incoming}}.resize(_N_post + _target_offset);
+    {% endif %}
+    {% if "_source_sub_idx" in variables %}
+    {{_dynamic_N_outgoing}}.resize({{get_array_name(variables['_source_sub_idx'])}}[_num_source_sub_idx - 1] + 1);
+    {% else %}
     {{_dynamic_N_outgoing}}.resize(_N_pre + _source_offset);
+    {% endif %}
     size_t _raw_pre_idx, _raw_post_idx;
     {# For a connect call j='k+i for k in range(0, N_post, 2) if k+i < N_post'
     "j" is called the "result index" (and "_post_idx" the "result index array", etc.)
@@ -35,7 +43,11 @@
     for(size_t _{{outer_index}}=0; _{{outer_index}}<_{{outer_index_size}}; _{{outer_index}}++)
     {
         bool __cond, _cond;
+        {% if outer_contiguous %}
         _raw{{outer_index_array}} = _{{outer_index}} + {{outer_index_offset}};
+        {% else %}
+        _raw{{outer_index_array}} = {{get_array_name(variables[outer_sub_idx])}}[_{{outer_index}}];
+        {% endif %}
         {% if not result_index_condition %}
         {
             {{vector_code['create_cond']|autoindent}}
@@ -181,7 +193,11 @@
             }
             _{{result_index}} = __{{result_index}}; // make the previously locally scoped var available
             {{outer_index_array}} = _{{outer_index_array}};
+            {% if result_contiguous %}
             _raw{{result_index_array}} = _{{result_index}} + {{result_index_offset}};
+            {% else %}
+            _raw{{result_index_array}} = {{get_array_name(variables[result_sub_idx])}}[_{{result_index}}];
+            {% endif %}
             {% if result_index_condition %}
             {
                 {% if result_index_used %}

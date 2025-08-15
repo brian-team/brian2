@@ -68,8 +68,11 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     {{scalar_code['update']|autoindent}}
 
     for _{{outer_index}} in range({{outer_index_size}}):
+        {% if outer_contiguous %}
         _raw{{outer_index_array}} = _{{outer_index}} + {{outer_index_offset}}
-
+        {% else %}
+        _raw{{outer_index_array}} = {{get_array_name(variables[outer_sub_idx])}}[_{{outer_index}}]
+        {% endif %}
         {% if not result_index_condition %}
         {{vector_code['create_cond']|autoindent}}
         if not _cond:
@@ -162,8 +165,11 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% endif %}
 
             {{vector_code['generator_expr']|autoindent}}
+            {% if result_contiguous %}
             _raw{{result_index_array}} = _{{result_index}} + {{result_index_offset}}
-
+            {% else %}
+            _raw{{result_index_array}} = {{get_array_name(variables[result_sub_idx])}}[_{{result_index}}]
+            {% endif %}
             {% if result_index_condition %}
             {% if result_index_used %}
             {# The condition could index outside of array range #}
