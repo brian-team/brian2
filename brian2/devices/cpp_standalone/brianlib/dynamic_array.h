@@ -269,6 +269,28 @@ public:
                 std::fill(&m_buffer[base], &m_buffer[base + (m_buffer_cols - new_cols)], T(0));
             }
         }
+        else if (new_rows > m_rows || new_cols > m_cols)
+        {
+            // Initialize new regions to zero
+
+            // Zero new rows
+            for (size_t i = m_rows; i < new_rows; ++i)
+            {
+                size_t base = i * m_buffer_cols;
+                std::fill(&m_buffer[base], &m_buffer[base + m_buffer_cols], T(0));
+            }
+
+            // Zero new columns in existing rows
+            for (size_t i = 0; i < m_rows; ++i)
+            {
+                size_t base = i * m_buffer_cols + m_cols;
+                size_t new_cols_in_row = std::min(new_cols, m_buffer_cols) - m_cols;
+                if (new_cols_in_row > 0)
+                {
+                    std::fill(&m_buffer[base], &m_buffer[base + new_cols_in_row], T(0));
+                }
+            }
+        }
 
         // Finally, we update logical dimensions
         m_rows = new_rows;
@@ -347,6 +369,15 @@ public:
             * you don't want to pay the cost of reallocation when you grow again.
             * Call shrink_to_fit() explicitly if you need to reclaim memory.
             */
+        }
+        else if (new_rows > m_rows)
+        {
+            // Initialize new rows to zero
+            for (size_t i = m_rows; i < new_rows; ++i)
+            {
+                size_t base = i * m_buffer_cols;
+                std::fill(&m_buffer[base], &m_buffer[base + m_buffer_cols], T(0));
+            }
         }
         // We just update the logical row count to reflect the new size
         m_rows =new_rows;
