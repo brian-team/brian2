@@ -75,7 +75,7 @@ public:
             // Growing: allocate more than strictly needed to reduce future allocations
             size_t grown = static_cast<size_t>(m_data.size() * m_growth_factor) + 1;
             size_t new_capacity = std::max(new_size, grown);
-            m_data.resize(new_capacity);
+            m_data.resize(new_capacity,T(0));
         }
         else if (new_size < m_size)
         {
@@ -237,7 +237,7 @@ public:
         if (needs_realloc)
         {
             // Allocate new buffer and copy existing data
-            std::vector<T> new_buf(grow_rows * grow_cols);
+            std::vector<T> new_buf(grow_rows * grow_cols,T(0));
             size_t copy_rows = std::min(m_rows, new_rows);
             size_t copy_cols = std::min(m_cols, new_cols);
 
@@ -301,7 +301,7 @@ public:
             size_t grow_rows = std::max(new_rows,candidate);
 
             // now we create a new buffer with new row capacity , while the column capacity remains same
-            std::vector<T> new_buf(grow_rows * m_buffer_cols);
+            std::vector<T> new_buf(grow_rows * m_buffer_cols,T(0));
 
             // Figure out how many rows of existing data we can preserve
             size_t copy_rows = std::min(m_rows, new_rows);
