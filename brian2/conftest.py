@@ -63,16 +63,12 @@ def setup_and_teardown(request):
     # Set preferences before each test
     import brian2
 
-    # This ensures deterministic behavior for tests that depend on randomness
-    np.random.seed(0)
-
     # Clean up any leftover state from previous tests FIRST
     device = get_device()
     if device.__class__.__name__ == "CPPStandaloneDevice":
         if hasattr(device, "has_been_run") and device.has_been_run:
             device.reinit()
     reinit_and_delete()  # Clean up any remaining objects
-    reinit_devices()  # Force a complete clean slate for devices
 
     if hasattr(request.config, "workerinput"):
         config = request.config.workerinput
@@ -111,15 +107,6 @@ def setup_and_teardown(request):
 
     # Reset defaultclock.dt to be sure
     defaultclock.dt = 0.1 * ms
-
-    # Restore preferences to their original state
-    brian2.prefs._restore()
-
-    # Ensure the next test doesn't inherit random state
-    np.random.seed(0)
-
-    # THOROUGH CLEANUP
-    reinit_and_delete()
 
 
 # (Optionally) mark tests raising NotImplementedError as skipped (mostly used
