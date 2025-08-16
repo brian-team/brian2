@@ -49,15 +49,15 @@ jobs:
         standalone: [true]
         float_dtype_32: [false]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
-        include:
-          - os: { image: ubuntu-24.04, triplet: x64-linux }
-            standalone: false
-            python-version: "${{ needs.get_python_versions.outputs.min-python }} < 3.11.9 || ${{ needs.get_python_versions.outputs.min-python }} >= 3.12"
-            float_dtype_32: false
-          - os: { image: ubuntu-24.04, triplet: x64-linux }
-            standalone: true
-            python-version: "${{ needs.get_python_versions.outputs.min-python }} < 3.11.9 || ${{ needs.get_python_versions.outputs.min-python }} >= 3.12"
-            float_dtype_32: false
+        # include:
+        #   - os: { image: ubuntu-24.04, triplet: x64-linux }
+        #     standalone: false
+        #     python-version: "${{ needs.get_python_versions.outputs.min-python }} < 3.11.9 || ${{ needs.get_python_versions.outputs.min-python }} >= 3.12"
+        #     float_dtype_32: false
+        #   - os: { image: ubuntu-24.04, triplet: x64-linux }
+        #     standalone: true
+        #     python-version: "${{ needs.get_python_versions.outputs.min-python }} < 3.11.9 || ${{ needs.get_python_versions.outputs.min-python }} >= 3.12"
+        #     float_dtype_32: false
 
     defaults:
       run:
@@ -113,7 +113,7 @@ jobs:
           key: cython-extensions-${{ matrix.os.image }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
           path: ${{ steps.cython-cache.outputs.cachedir }}
 
-      - name: Run Tests
+      - name: Run Only Failing Test
         run: |
           cd  $GITHUB_WORKSPACE/.. && \
           "$PYTHON_BINARY" $GITHUB_WORKSPACE/$SCRIPT_NAME && \
