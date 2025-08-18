@@ -78,12 +78,12 @@ dzi/dt = -zi / tau_stdp : 1 (event-driven)
 dzj/dt = -zj / tau_stdp : 1 (event-driven)
 """
 on_pre = """
-zi += 1.
-wij += eta * G * zj
-"""
-on_post = """
 zj += 1.
 wij += eta * G * (zi + 1)
+"""
+on_post = """
+zi += 1.
+wij += eta * G * zj
 """
 synapse = b2.Synapses(
     presynaptic_neuron, postsynaptic_neuron,
