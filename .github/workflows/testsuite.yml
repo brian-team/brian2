@@ -111,13 +111,8 @@ jobs:
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         if: ${{ ! matrix.standalone }}
         with:
-          key: cython-extensions-${{ matrix.os.image }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}-v2
+          key: cython-extensions-${{ matrix.os.image }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
           path: ${{ steps.cython-cache.outputs.cachedir }}
-
-      - name: Clear Cython cache for debugging
-        run: |
-          echo "Clearing Cython cache to ensure fresh build"
-          rm -rf ${{ steps.cython-cache.outputs.cachedir }}/*
 
       - name: Run Tests
         run: |
