@@ -182,7 +182,7 @@ def test_openmp_consistency():
         dg/dt = -g/taus         : volt
         """
     )
-    numpy.random.seed(42)  # Use numpy's random, not brian2's numpy import
+    numpy.random.seed(42)
     connectivity = numpy.random.randn(n_cells, n_cells)
     sources = numpy.random.randint(0, n_cells - 1, 10 * n_cells)
     # Only use one spike per time step (to rule out that a single source neuron
@@ -288,13 +288,32 @@ def test_openmp_consistency():
         # Check for the specific mismatch
         w_diff = np.abs(w1 - w2)
         r_diff = np.abs(r1 - r2)
-        print(f"  max w diff: {np.max(w_diff)}")
-        print(f"  max r diff: {np.max(r_diff)}")
+        v_diff = np.abs(v1 - v2)
 
-        if np.max(r_diff) > 1e-10:
-            print(f"  r mismatch locations: {np.where(r_diff > 1e-10)}")
-            print(f"  r1 mismatched values: {r1[r_diff > 1e-10][:10]}")
-            print(f"  r2 mismatched values: {r2[r_diff > 1e-10][:10]}")
+        w_diff_val = float(np.max(w_diff))
+        r_diff_val = float(np.max(r_diff / brian2.Hz))  # Convert Hz to dimensionless
+        v_diff_val = float(np.max(v_diff / brian2.mV))  # Convert mV to dimensionless
+
+        print(f"  max w diff: {w_diff_val:.6f}")
+        print(f"  max r diff: {r_diff_val:.6f} Hz")
+        print(f"  max v diff: {v_diff_val:.6f} mV")
+
+        if r_diff_val > 1e-10:
+            print("RATE MISMATCH DETECTED!")
+            print(f"  r mismatch count: {np.sum(r_diff/brian2.Hz > 1e-10)}")
+            mismatched_r1 = r1[r_diff / brian2.Hz > 1e-10][:10]
+            mismatched_r2 = r2[r_diff / brian2.Hz > 1e-10][:10]
+            print(f"  r1 mismatched values: {mismatched_r1}")
+            print(f"  r2 mismatched values: {mismatched_r2}")
+        else:
+            print("Rates match perfectly")
+
+        if w_diff_val > 1e-10:
+            print("WEIGHT MISMATCH DETECTED!")
+            print(f"  w1 sample: {w1.flatten()[:10]}")
+            print(f"  w2 sample: {w2.flatten()[:10]}")
+        else:
+            print("Weights match perfectly")
 
     # Now run the assertions
     for key1, key2 in [
