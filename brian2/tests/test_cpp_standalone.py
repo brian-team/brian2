@@ -157,7 +157,6 @@ def test_openmp_consistency():
     import brian2
 
     brian2.prefs._restore()  # Reset any preference changes
-    reinit_and_delete()  # Clean device state
 
     previous_device = get_device()
     n_cells = 100
