@@ -184,7 +184,7 @@ def test_openmp_consistency():
     )
     numpy.random.seed(42)  # Use numpy's random, not brian2's numpy import
     connectivity = numpy.random.randn(n_cells, n_cells)
-    sources = npascal.random.randint(0, n_cells - 1, 10 * n_cells)
+    sources = numpy.random.randint(0, n_cells - 1, 10 * n_cells)
     # Only use one spike per time step (to rule out that a single source neuron
     # has more than one spike in a time step)
     times = (
