@@ -154,8 +154,6 @@ def test_storing_loading():
 @pytest.mark.standalone_only
 @pytest.mark.openmp
 def test_openmp_consistency():
-    import numpy as np
-
     import brian2
 
     brian2.prefs._restore()  # Reset any preference changes
@@ -184,15 +182,16 @@ def test_openmp_consistency():
         dg/dt = -g/taus         : volt
         """
     )
-    np.random.seed(42)  # Use numpy's random, not brian2's numpy import
-    connectivity = np.random.randn(n_cells, n_cells)
+    numpy.random.seed(42)  # Use numpy's random, not brian2's numpy import
+    connectivity = numpy.random.randn(n_cells, n_cells)
     sources = npascal.random.randint(0, n_cells - 1, 10 * n_cells)
     # Only use one spike per time step (to rule out that a single source neuron
     # has more than one spike in a time step)
     times = (
-        np.random.choice(numpy.arange(10 * n_cells), 10 * n_cells, replace=False) * ms
+        numpy.random.choice(numpy.arange(10 * n_cells), 10 * n_cells, replace=False)
+        * ms
     )
-    v_init = Vr + np.random.rand(n_cells) * (Vt - Vr)
+    v_init = Vr + numpy.random.rand(n_cells) * (Vt - Vr)
 
     results = {}
 
