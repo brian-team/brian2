@@ -201,14 +201,14 @@ jobs:
       # https://github.com/docker/setup-buildx-action
     - name: Login to DockerHub
       if: ${{ github.event_name == 'push' && github.repository == 'brian-team/brian2' && github.actor != 'dependabot[bot]'}}
-      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+      uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
       # https://github.com/docker/login-action
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Login to GitHub Container Registry
       if: ${{ github.event_name == 'push' && github.repository == 'brian-team/brian2' && github.actor != 'dependabot[bot]'}}
-      uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+      uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
