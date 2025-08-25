@@ -49,7 +49,7 @@ jobs:
           path: ${{ steps.cibuildwheel-cache.outputs.dir }}
           key: ${{ runner.os }}-cibuildwheel
       - name: Build wheels
-        uses: pypa/cibuildwheel@e6de07ed3921b51089aae6981989889cf1eddd0c # v3.1.1
+        uses: pypa/cibuildwheel@c923d83ad9c1bc00211c5041d0c3f73294ff88f6 # v3.1.4
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS: auto64
@@ -103,7 +103,7 @@ jobs:
           path: ${{ steps.cibuildwheel-cache.outputs.dir }}
           key: ${{ matrix.config.image }}-${{ matrix.config.arch }}-cibuildwheel
       - name: Build wheels
-        uses: pypa/cibuildwheel@e6de07ed3921b51089aae6981989889cf1eddd0c # v3.1.1
+        uses: pypa/cibuildwheel@c923d83ad9c1bc00211c5041d0c3f73294ff88f6 # v3.1.4
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_LINUX: ${{ matrix.config.arch }}
