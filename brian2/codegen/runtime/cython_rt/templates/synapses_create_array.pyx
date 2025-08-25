@@ -9,11 +9,11 @@
     cdef size_t _old_num_synapses = {{N}}
     cdef size_t _new_num_synapses = _old_num_synapses + _num{{sources}}
 
-    {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
-    {{_dynamic__synaptic_post}}.resize(_new_num_synapses)
+    {{_dynamic__synaptic_pre_ptr}}.resize(_new_num_synapses)
+    {{_dynamic__synaptic_post_ptr}}.resize(_new_num_synapses)
     # Get the potentially newly created underlying data arrays
-    cdef int32_t[:] _synaptic_pre_data = {{_dynamic__synaptic_pre}}.data
-    cdef int32_t[:] _synaptic_post_data = {{_dynamic__synaptic_post}}.data
+    cdef int32_t* _synaptic_pre_data = {{_dynamic__synaptic_pre_ptr}}.get_data_ptr()
+    cdef int32_t* _synaptic_post_data = {{_dynamic__synaptic_post_ptr}}.get_data_ptr()
 
     for _idx in range(_num{{sources}}):
         # After this code has been executed, the arrays _real_sources and
@@ -22,7 +22,7 @@
         {{ vector_code | autoindent }}
         _synaptic_pre_data[_idx + _old_num_synapses] = _real_sources
         _synaptic_post_data[_idx + _old_num_synapses] = _real_targets
-    
+
     # now we need to resize all registered variables and set the total number
     # of synapses (via Python)
     _owner._resize(_new_num_synapses)

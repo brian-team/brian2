@@ -6,11 +6,10 @@
 
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
-
     cdef size_t _num_events = {{_eventspace}}[_num{{_eventspace}}-1]
     cdef size_t _start_idx, _end_idx, _curlen, _newlen, _j
     {% for varname, var in record_variables | dictsort %}
-    cdef {{cpp_dtype(var.dtype)}}[:] _{{varname}}_view
+    cdef {{cpp_dtype(var.dtype)}}* _{{varname}}_ptr
     {% endfor %}
     if _num_events > 0:
         # For subgroups, we do not want to record all spikes
@@ -34,19 +33,27 @@
             {{ scalar_code|autoindent }}
             _curlen = {{N}}
             _newlen = _curlen + _num_events
-            # Resize the arrays
-            _owner.resize(_newlen)
-            {{N}} = _newlen
+            # Resize the C++ arrays directly - earlier we called spikemoniter's resize function which did resizing using python indirection
             {% for varname, var in record_variables | dictsort %}
-            _{{varname}}_view = {{get_array_name(var, access_data=False)}}.data
+            {% set dyn_array_name = get_array_name(var, access_data=False) %}
+            {{dyn_array_name}}_ptr.resize(_newlen)
             {% endfor %}
+            # Update N after resize
+            {{N}} = _newlen
+
+            # No we get new fresh pointers after resize
+            {% for varname, var in record_variables | dictsort %}
+            {% set dyn_array_name = get_array_name(var, access_data=False) %}
+            _{{varname}}_ptr = {{dyn_array_name}}_ptr.get_data_ptr()
+            {% endfor %}
+
             # Copy the values across
             for _j in range(_start_idx, _end_idx):
                 _idx = {{_eventspace}}[_j]
                 _vectorisation_idx = _idx
                 {{ vector_code|autoindent }}
                 {% for varname in record_variables | sort %}
-                _{{varname}}_view [_curlen + _j - _start_idx] = _to_record_{{varname}}
+                _{{varname}}_ptr[_curlen + _j - _start_idx] = _to_record_{{varname}}
                 {% endfor %}
                 {{count}}[_idx - _source_start] += 1
 {% endblock %}

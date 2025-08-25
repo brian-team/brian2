@@ -154,10 +154,14 @@ def test_storing_loading():
 @pytest.mark.standalone_only
 @pytest.mark.openmp
 def test_openmp_consistency():
+    import brian2
+
+    brian2.prefs._restore()  # Reset any preference changes
+    reinit_and_delete()
+
     previous_device = get_device()
     n_cells = 100
     n_recorded = 10
-    numpy.random.seed(42)
     taum = 20 * ms
     taus = 5 * ms
     Vt = -50 * mV
@@ -172,6 +176,13 @@ def test_openmp_consistency():
     dApost *= 0.1 * gmax
     dApre *= 0.1 * gmax
 
+    eqs = Equations(
+        """
+        dv/dt = (g-(v-El))/taum : volt
+        dg/dt = -g/taus         : volt
+        """
+    )
+    numpy.random.seed(42)
     connectivity = numpy.random.randn(n_cells, n_cells)
     sources = numpy.random.randint(0, n_cells - 1, 10 * n_cells)
     # Only use one spike per time step (to rule out that a single source neuron
@@ -181,13 +192,6 @@ def test_openmp_consistency():
         * ms
     )
     v_init = Vr + numpy.random.rand(n_cells) * (Vt - Vr)
-
-    eqs = Equations(
-        """
-        dv/dt = (g-(v-El))/taum : volt
-        dg/dt = -g/taus         : volt
-        """
-    )
 
     results = {}
 
@@ -199,22 +203,26 @@ def test_openmp_consistency():
         (3, "cpp_standalone"),
         (4, "cpp_standalone"),
     ]:
-        set_device(devicename, build_on_run=False, with_output=False)
+        reinit_and_delete()  # Reset ALL devices, not just cpp_standalone
+        brian2.prefs._restore()  # Reset preferences
+        np.random.seed(42)  # Ensure deterministic state
+
+        # clear all instances
         Synapses.__instances__().clear()
-        if devicename == "cpp_standalone":
-            reinit_and_delete()
+        set_device(devicename, build_on_run=False, with_output=False)
+
         prefs.devices.cpp_standalone.openmp_threads = n_threads
         P = NeuronGroup(
             n_cells, model=eqs, threshold="v>Vt", reset="v=Vr", refractory=5 * ms
         )
         Q = SpikeGeneratorGroup(n_cells, sources, times)
-        P.v = v_init
+        P.v = v_init.copy()  # Use copy to avoid reference issues
         P.g = 0 * mV
         S = Synapses(
             P,
             P,
             model="""
-            dApre/dt=-Apre/taupre    : 1 (event-driven)    
+            dApre/dt=-Apre/taupre    : 1 (event-driven)
             dApost/dt=-Apost/taupost : 1 (event-driven)
             w                        : 1
             """,
@@ -247,11 +255,67 @@ def test_openmp_consistency():
             device.build(directory=None, with_output=False)
 
         results[n_threads, devicename] = {}
-        results[n_threads, devicename]["w"] = state_mon.w
-        results[n_threads, devicename]["v"] = v_mon.v
+        results[n_threads, devicename]["w"] = state_mon.w.copy()
+        results[n_threads, devicename]["v"] = v_mon.v.copy()
         results[n_threads, devicename]["s"] = spike_mon.num_spikes
-        results[n_threads, devicename]["r"] = rate_mon.rate[:]
+        results[n_threads, devicename]["r"] = rate_mon.rate[:].copy()
 
+    # ADD DEBUGGING BEFORE ASSERTIONS
+    print("=== Debugging Results ===")
+    for key1, key2 in [
+        ((0, "runtime"), (0, "cpp_standalone")),
+        ((1, "cpp_standalone"), (0, "cpp_standalone")),
+        ((2, "cpp_standalone"), (0, "cpp_standalone")),
+        ((3, "cpp_standalone"), (0, "cpp_standalone")),
+        ((4, "cpp_standalone"), (0, "cpp_standalone")),
+    ]:
+        w1, w2 = results[key1]["w"], results[key2]["w"]
+        v1, v2 = results[key1]["v"], results[key2]["v"]
+        r1, r2 = results[key1]["r"], results[key2]["r"]
+        s1, s2 = results[key1]["s"], results[key2]["s"]
+
+        print(f"Comparing {key1} vs {key2}:")
+        print(f"  w shapes: {w1.shape} vs {w2.shape}")
+        print(
+            f"  w ranges: [{np.min(w1):.3f}, {np.max(w1):.3f}] vs [{np.min(w2):.3f}, {np.max(w2):.3f}]"
+        )
+        print(
+            f"  r ranges: [{np.min(r1):.3f}, {np.max(r1):.3f}] vs [{np.min(r2):.3f}, {np.max(r2):.3f}]"
+        )
+        print(f"  r non-zero counts: {np.sum(r1 > 0)} vs {np.sum(r2 > 0)}")
+        print(f"  spikes: {s1} vs {s2}")
+
+        # Check for the specific mismatch
+        w_diff = np.abs(w1 - w2)
+        r_diff = np.abs(r1 - r2)
+        v_diff = np.abs(v1 - v2)
+
+        w_diff_val = float(np.max(w_diff))
+        r_diff_val = float(np.max(r_diff / brian2.Hz))  # Convert Hz to dimensionless
+        v_diff_val = float(np.max(v_diff / brian2.mV))  # Convert mV to dimensionless
+
+        print(f"  max w diff: {w_diff_val:.6f}")
+        print(f"  max r diff: {r_diff_val:.6f} Hz")
+        print(f"  max v diff: {v_diff_val:.6f} mV")
+
+        if r_diff_val > 1e-10:
+            print("RATE MISMATCH DETECTED!")
+            print(f"  r mismatch count: {np.sum(r_diff/brian2.Hz > 1e-10)}")
+            mismatched_r1 = r1[r_diff / brian2.Hz > 1e-10][:10]
+            mismatched_r2 = r2[r_diff / brian2.Hz > 1e-10][:10]
+            print(f"  r1 mismatched values: {mismatched_r1}")
+            print(f"  r2 mismatched values: {mismatched_r2}")
+        else:
+            print("Rates match perfectly")
+
+        if w_diff_val > 1e-10:
+            print("WEIGHT MISMATCH DETECTED!")
+            print(f"  w1 sample: {w1.flatten()[:10]}")
+            print(f"  w2 sample: {w2.flatten()[:10]}")
+        else:
+            print("Weights match perfectly")
+
+    # Now run the assertions
     for key1, key2 in [
         ((0, "runtime"), (0, "cpp_standalone")),
         ((1, "cpp_standalone"), (0, "cpp_standalone")),
@@ -264,6 +328,7 @@ def test_openmp_consistency():
         assert_allclose(results[key1]["r"], results[key2]["r"])
         assert_allclose(results[key1]["s"], results[key2]["s"])
     reset_device(previous_device)
+    reinit_and_delete()
 
 
 @pytest.mark.cpp_standalone
