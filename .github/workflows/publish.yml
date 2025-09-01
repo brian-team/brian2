@@ -24,7 +24,7 @@ jobs:
       matrix:
         os: [ windows-latest, macOS-13, macOS-14 ]
     steps:
-      - uses:  actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses:  actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -73,7 +73,7 @@ jobs:
         config: [{arch: auto64, image: ubuntu-24.04},
                  {arch: aarch64, image: ubuntu-24.04-arm}] 
     steps:
-      - uses:  actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses:  actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -169,7 +169,7 @@ jobs:
     if: ${{ github.event_name == 'push' || (github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'OWNER') }}
     steps:
     - name: Checkout repository
-      uses:  actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      uses:  actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         persist-credentials: false
       # https://github.com/actions/checkout/
