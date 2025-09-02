@@ -1,8 +1,6 @@
 {# USES_VARIABLES { N, _spikespace, t } #}
 {# ALLOWS_SCALAR_WRITE #}
 
-// Support code
-{{support_code_lines}}
 
 // Scalar code
 {% if scalar_code %}

@@ -1,8 +1,5 @@
 {# Base template for groups - handles most common cases #}
-{# Don't declare specific variables here - let child templates do it #}
 
-// Support code
-{{support_code_lines}}
 
 // Scalar code
 {% if scalar_code %}

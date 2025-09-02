@@ -8,16 +8,20 @@ This is the core of our implementation. It handles:
 """
 
 import cppyy
+import cppyy.ll
 import numpy as np
 
-from brian2.codegen.codeobject import check_compiler_kwds, constant_or_scalar
+from brian2.codegen.codeobject import (
+    CodeObject,
+    check_compiler_kwds,
+    constant_or_scalar,
+)
 from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.codegen.generators.cppyy_generator import CppyyCodeGenerator
-from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
 from brian2.codegen.targets import codegen_targets
 from brian2.codegen.templates import Templater
-from brian2.core.base import BrianObjectException
-from brian2.core.functions import Function
+from brian2.core.base import BrianObjectException, weakproxy_with_fallback
+from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.preferences import BrianPreference, prefs
 from brian2.core.variables import (
     ArrayVariable,
@@ -33,6 +37,9 @@ logger = get_logger(__name__)
 # Configure cppyy for better performance
 # WHY: These settings optimize cppyy for numerical computing
 cppyy.add_include_path(np.get_include())  # Include numpy headers
+cppyy.ll.set_signals_as_exception(
+    True
+)  # to log failures , https://cppyy.readthedocs.io/en/latest/debugging.html
 
 # Register preferences
 prefs.register_preferences(
@@ -115,7 +122,7 @@ def compile_support_code():
         raise
 
 
-class CppyyCodeObject(NumpyCodeObject):
+class CppyyCodeObject(CodeObject):
     """
     Execute Brian2 code using cppyy JIT compilation.
 
@@ -174,6 +181,21 @@ class CppyyCodeObject(NumpyCodeObject):
             ["include_dirs", "libraries"],  # Minimal set for cppyy
             "cppyy",
         )
+
+        print("\n=== DEBUGGING TEMPLATE VARIABLE PASSING ===")
+        print(f"Template name: {template_name}")
+        print(f"Template source type: {type(template_source)}")
+        print(f"Code parameter type: {type(code)}")
+        print(f"Code parameter content: '{str(code)[:500]}...'")
+
+        # This is crucial - let's see what the template actually received
+        if hasattr(template_source, "globals"):
+            print(f"Template globals: {template_source .globals.keys()}")
+
+        # Let's also check if Brian2 is calling our generator correctly
+        print(f"Variables passed to code object: {list(variables.keys())}")
+        print("=" * 60)
+
         super().__init__(
             owner,
             code,
@@ -193,6 +215,16 @@ class CppyyCodeObject(NumpyCodeObject):
 
         # Lists for tracking non-constant values (like CythonCodeObject)
         self.nonconstant_values = []
+        self.namespace = {"_owner": weakproxy_with_fallback(owner)}
+
+        # Add default functions and constants
+        self.namespace.update(DEFAULT_FUNCTIONS)
+
+        from brian2.devices.device import get_device
+
+        self.device = get_device()
+        # Process variables into namespace
+        self.variables_to_namespace()
 
     @classmethod
     def is_available(cls):
@@ -206,121 +238,372 @@ class CppyyCodeObject(NumpyCodeObject):
         except ImportError:
             return False
 
+    # def compile_block(self, block):
+    #     """Compile a specific code block - CORRECTED VERSION"""
+
+    #     print(f"\n=== DEBUGGING BLOCK ACCESS ===")
+    #     print(f"Looking for block: {block}")
+    #     print(f"Code object type: {type(self.code)}")
+    #     print(f"Code object length: {len(str(self.code))}")
+
+    #     # For runtime code objects, the code is usually a single string
+    #     # Let's first check if it's a simple string containing all the code
+    #     if isinstance(self.code, str):
+    #         print("Code is a single string - this is typical for runtime targets")
+    #         code = self.code.strip()
+    #         print(f"Full code content (first 500 chars):\n{code[:500]}...")
+
+    #     # If it's an object with attributes, try the standard approach
+    #     elif hasattr(self.code, block):
+    #         code = getattr(self.code, block, "").strip()
+    #         print(f"Found {block} attribute with content: {code[:200]}...")
+
+    #     # Try the cpp_file variant (like standalone mode as our generator inherits from cppone)
+    #     elif hasattr(self.code, f"{block}_cpp_file"):
+    #         code = getattr(self.code, f"{block}_cpp_file", "").strip()
+    #         print(f"Found {block}_cpp_file attribute with content: {code[:200]}...")
+
+    #     else:
+    #         print("Could not find code content using any known method")
+    #         print(f"Available attributes: {dir(self.code)}")
+    #         return None
+
+    #     if not code or "EMPTY_CODE_BLOCK" in code:
+    #         print(f"Block {block} is empty or marked as empty")
+    #         return None
+    #     # Clean up the template code before building the function
+    #     if "['template" in code:
+    #         # This is a stringified list - extract and join it
+    #         import ast
+    #         try:
+    #             # Find the list representation in the code
+    #             start = code.index("['")
+    #             end = code.index("]", start) + 1
+    #             list_str = code[start:end]
+    #             actual_list = ast.literal_eval(list_str)
+    #             joined_code = '\n'.join(actual_list)
+    #             code = code[:start] + joined_code + code[end:]
+    #         except:
+    #             pass
+
+    #     # Extract the relevant part of the code for this specific block
+    #     # Since we have the full rendered template, we need to extract the part we want
+    #     if block == "run":
+    #         # For the main run block, we want the vector code section
+    #         # Look for the main computation loop
+    #         if "for(int _idx" in code and "vector_code" not in code.lower():
+    #             # This looks like rendered template code, use it as-is
+    #             extracted_code = code
+    #         else:
+    #             # If we can't identify the right section, use the whole thing
+    #             extracted_code = code
+
+    #     elif block in ["before_run", "after_run"]:
+    #         # These blocks might be empty for simple neuron groups
+    #         if len(code.strip()) < 50:  # Very short code, likely empty
+    #             print(f"Block {block} appears to be empty")
+    #             return None
+    #         extracted_code = code
+
+    #     else:
+    #         extracted_code = code
+
+    #     print(f"Extracted code for {block} (length: {len(extracted_code)}):")
+    #     print(f"Preview: {extracted_code[:300]}...")
+    #     print("=" * 60)
+
+    #     # Generate unique function name
+    #     func_name = f"brian_{self.name.replace('*', '').replace('-', '_')}_{block}"
+
+    #     # Build complete C++ function
+    #     cpp_code = self._build_block_function(func_name, extracted_code)
+
+    #     if prefs["codegen.runtime.cppyy.debug_mode"]:
+    #         print(f"Complete C++ function to compile:")
+    #         print("-" * 60)
+    #         print(cpp_code)
+    #         print("-" * 60)
+
+    #     try:
+    #         # Compile with cppyy
+    #         cppyy.cppdef(cpp_code)
+    #         compiled_func = getattr(cppyy.gbl, func_name)
+
+    #         print(f"Successfully compiled {func_name}")
+    #         return compiled_func
+
+    #     except Exception as e:
+    #         print(f"Compilation failed for {block}: {e}")
+    #         if prefs["codegen.runtime.cppyy.debug_mode"]:
+    #             print(f"Failed code was:\n{cpp_code}")
+    #         raise
+
+    # def _build_block_function(self, func_name, template_code):
+    #     """
+    #     Build a complete C++ function from template code.
+
+    #     WHY: Templates generate code fragments, we need to wrap them
+    #     in a proper C++ function that cppyy can compile.
+    #     """
+    #     # Extract array parameters from variables
+    #     params = []
+    #     param_setup = []
+
+    #     for varname, var in self.variables.items():
+    #         if isinstance(var, ArrayVariable):
+    #             # Get the exact array name that Brian2's code generator uses
+    #             brian2_array_name = self.device.get_array_name(var)
+
+    #             # Create function parameter using simplified name
+    #             simplified_param_name = f"{brian2_array_name}_void"
+    #             params.append(f"void* {simplified_param_name}")
+
+    #             # Create the pointer variable with Brian2's expected name
+    #             dtype = c_data_type(var.dtype)
+    #             param_setup.append(f"{dtype}* {brian2_array_name} = ({dtype}*){simplified_param_name};")
+
+    #             # Add size parameter for dynamic arrays
+    #             if isinstance(var, DynamicArrayVariable):
+    #                 params.append(f"int _num_{varname}")
+
+    #     # Add standard parameters
+    #     params.extend(["double t", "double dt", "int N"])
+
+    #     # Build the function
+    #     function_code = f"""
+    #     extern "C" void {func_name}({', '.join(params)}) {{
+    #         // Cast void pointers to proper types
+    #         {''.join(param_setup)}
+
+    #         // Original template code
+    #         {template_code}
+    #     }}
+    #     """
+
+    #     return function_code
+    #
+
     def compile_block(self, block):
-        """
-        Compile a specific code block (before_run, run, after_run).
-        """
-        # Get the code for this block first
-        code = getattr(self.code, block, "").strip()
-        if not code or "EMPTY_CODE_BLOCK" in code:
+        """focus on just getting it working"""
+        # Only handle the main 'run' block for the now
+        if block != "run":
             return None
 
-        # Generate unique function Name
-        func_name = f"{self.name.replace('*' , '').replace('-' , '_')}_{block}"
-        # Build complete C++ function
-        cpp_code = self._build_block_function(func_name, code)
+        code = str(self.code).strip()
+        if not code:
+            return None
+
+        print(f"Template generated code:\n{code}")
+
+        # Generate unique function name with timestamp to avoid conflicts
+        import time
+
+        timestamp = str(int(time.time() * 1000000))  # microsecond precision
+        base_name = self.name.replace("*", "").replace("-", "_")
+        func_name = f"brian_poc_{base_name}_{timestamp}"
+
+        # Check if function already exists in cppyy
+        try:
+            existing_func = getattr(cppyy.gbl, func_name, None)
+            if existing_func is not None:
+                print(f"Function {func_name} already exists, reusing it")
+                return existing_func
+        except AttributeError:
+            pass  # Function doesn't exist, which is what we want
+
+        # Create the function with EXACT variable names Brian2 expects
+        cpp_code = self._create_poc_function(func_name, code)
 
         if prefs["codegen.runtime.cppyy.debug_mode"]:
-            logger.debug(f"Compiling {block} block:\n{cpp_code}")
+            print("POC C++ function to compile:")
+            print("-" * 60)
+            print(cpp_code)
+            print("-" * 60)
 
         try:
-            # Compile with cppyy
             cppyy.cppdef(cpp_code)
-
-            # Get reference to compiled function
             compiled_func = getattr(cppyy.gbl, func_name)
-
+            print(f"Successfully compiled {func_name}")
             return compiled_func
-
         except Exception as e:
-            logger.error(f"Failed to compile {block} block: {e}")
-            if prefs["codegen.runtime.cppyy.debug_mode"]:
-                logger.error(f"Code was:\n{cpp_code}")
+            print(f"Compilation failed: {e}")
             raise
 
-    def _build_block_function(self, func_name, template_code):
-        """
-        Build a complete C++ function from template code.
+    def _create_poc_function(self, func_name, template_code):
+        """Create a simple working function for POC"""
 
-        WHY: Templates generate code fragments, we need to wrap them
-        in a proper C++ function that cppyy can compile.
-        """
-        # Extract array parameters from variables
-        params = []
-        param_setup = []
+        # for now as we  know the exact variables needed
+        # for testing we create them with the exact names Brian2 uses
 
-        for varname, var in self.variables.items():
-            if isinstance(var, ArrayVariable):
-                dtype = c_data_type(var.dtype)
-                ptr_name = f"_ptr_{varname}"
-                # Function parameter
-                params.append(f"void* {ptr_name}_void")
+        # Remove the problematic block markers that create scoping issues
+        processed_code = template_code.replace("// Scalar code\n{", "// Scalar code")
+        processed_code = processed_code.replace("// Vector code\n{", "// Vector code")
 
-                # Cast to proper type inside function
-                param_setup.append(f"{dtype}* {ptr_name} = ({dtype}*){ptr_name}_void;")
+        # Remove closing braces that aren't part of for loops
+        lines = processed_code.split("\n")
+        cleaned_lines = []
 
-                # Add size parameter for dynamic arrays
-                if isinstance(var, DynamicArrayVariable):
-                    params.append(f"int _num_{varname}")
+        for line in lines:
+            stripped = line.strip()
+            # Keep braces that are part of for loops or have content after them
+            if stripped == "}" or "{" and len(cleaned_lines) > 0:
+                # Check if this is likely a block-ending brace we want to remove
+                prev_line = cleaned_lines[-1].strip() if cleaned_lines else ""
+                if not (prev_line.endswith(";") or prev_line.endswith("}")):
+                    continue  # Skip this closing brace
+            cleaned_lines.append(line)
 
-        # Add standard parameters
-        params.extend(["double t", "double dt", "int N"])
+        processed_code = "\n".join(cleaned_lines)
 
-        # Build the function
         function_code = f"""
-        extern "C" void {func_name}({', '.join(params)}) {{
-            // Cast void pointers to proper types
-            {' '.join(param_setup)}
+    extern "C" void {func_name}(void* dt_ptr, void* tau_ptr, void* v_ptr,
+                                double t_val, double dt_val, int N_val) {{
+        // Create variables with EXACT names that Brian2 expects
+        double* _ptr_array_defaultclock_dt = (double*)dt_ptr;
+        double* _array_defaultclock_dt = (double*)dt_ptr;
+        double* _ptr_array_neurongroup_tau = (double*)tau_ptr;
+        double* _ptr_array_neurongroup_v = (double*)v_ptr;
 
-            // Original template code
-            {template_code}
-        }}
-        """
+        // Set up scalar variables
+        double t = t_val;
+        int N = N_val;
+
+        // Execute flattened template code (no problematic scoping)
+        {processed_code}
+    }}
+    """
 
         return function_code
 
+    # def run_block(self, block):
+    #     """
+    #     Run a compiled code block.
+
+    #     This is called by Brian2's execution system.
+    #     """
+    #     compiled_func = self.compiled_code.get(block)
+    #     print('test',getattr(self.code, block, "").strip())
+    #     if compiled_func is None:
+    #         return  # Nothing to run
+
+    #     try:
+    #         # Prepare arguments for the C++ function
+    #         args = []
+
+    #         # Add array pointers
+    #         for _, var in self.variables.items():
+    #             if isinstance(var, ArrayVariable):
+    #                 # Get the numpy array
+    #                 value = var.get_value()
+    #                 if isinstance(value, np.ndarray):
+    #                     # Pass the data pointer
+    #                     args.append(value.ctypes.data)
+
+    #                     # Add size for dynamic arrays
+    #                     if isinstance(var, DynamicArrayVariable):
+    #                         args.append(len(value))
+
+    #         # Add scalar values
+    #         args.append(self.namespace.get("t", 0.0))
+    #         args.append(self.namespace.get("dt", 0.0001))
+    #         args.append(self.namespace.get("N", 0))
+
+    #         # Call the compiled function
+    #         compiled_func(*args)
+
+    #     except Exception as exc:
+    #         message = (
+    #             f"An exception occurred during execution of the "
+    #             f"'{block}' block of code object '{self.name}'.\n"
+    #         )
+    #         raise BrianObjectException(message, self.owner) from exc
+    #
     def run_block(self, block):
-        """
-        Run a compiled code block.
 
-        This is called by Brian2's execution system.
-        """
-        compiled_func = self.compiled_code.get(block)
+        if block not in self.compiled_funcs:
+            self.compiled_funcs[block] = self.compile_block(block)
 
+        compiled_func = self.compiled_funcs[block]
         if compiled_func is None:
-            return  # Nothing to run
+            return
 
         try:
-            # Prepare arguments for the C++ function
-            args = []
+            # Get the numpy arrays for your specific variables
+            dt_array = None
+            tau_array = None
+            v_array = None
+            N_val = 0
 
-            # Add array pointers
+            # Find the arrays we need
             for _, var in self.variables.items():
                 if isinstance(var, ArrayVariable):
-                    # Get the numpy array
                     value = var.get_value()
                     if isinstance(value, np.ndarray):
-                        # Pass the data pointer
-                        args.append(value.ctypes.data)
+                        array_name = self.device.get_array_name(var)
+                        # print(f"Found array {name} -> {array_name}: shape={value.shape}")
 
-                        # Add size for dynamic arrays
-                        if isinstance(var, DynamicArrayVariable):
-                            args.append(len(value))
+                        if "defaultclock" in array_name and "dt" in array_name:
+                            dt_array = value
+                        elif "tau" in array_name:
+                            tau_array = value
+                            N_val = len(value)
+                        elif "v" in array_name:
+                            v_array = value
 
-            # Add scalar values
-            args.append(self.namespace.get("t", 0.0))
-            args.append(self.namespace.get("dt", 0.0001))
-            args.append(self.namespace.get("N", 0))
+            if dt_array is None or tau_array is None or v_array is None:
+                return
 
-            # Call the compiled function
-            compiled_func(*args)
+            # CRITICAL FIX: Convert numpy arrays to cppyy-compatible pointers
+            import ctypes
 
-        except Exception as exc:
-            message = (
-                f"An exception occurred during execution of the "
-                f"'{block}' block of code object '{self.name}'.\n"
+            # Ensure arrays are contiguous and have the right data type
+            dt_array = np.ascontiguousarray(dt_array, dtype=np.float64)
+            tau_array = np.ascontiguousarray(tau_array, dtype=np.float64)
+            v_array = np.ascontiguousarray(v_array, dtype=np.float64)
+
+            # Create ctypes pointers that cppyy can understand
+            dt_ptr = dt_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+            tau_ptr = tau_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+            v_ptr = v_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+
+            # Convert ctypes pointers to cppyy void* pointers
+            dt_void_ptr = ctypes.cast(dt_ptr, ctypes.c_void_p)
+            tau_void_ptr = ctypes.cast(tau_ptr, ctypes.c_void_p)
+            v_void_ptr = ctypes.cast(v_ptr, ctypes.c_void_p)
+
+            print("Calling compiled function with properly converted pointers...")
+            print(f"  dt_array: {dt_array} -> pointer: {dt_void_ptr}")
+            print(f"  tau_array shape: {tau_array.shape}")
+            print(f"  v_array shape: {v_array.shape}")
+            print(f"  N_val: {N_val}")
+
+            # Store original values for comparison
+            v_original = v_array.copy()
+
+            # Call the function with properly converted pointers
+            compiled_func(
+                dt_void_ptr,  # dt pointer
+                tau_void_ptr,  # tau pointer
+                v_void_ptr,  # v pointer
+                0.0,  # t value
+                float(dt_array[0]) if len(dt_array) > 0 else 0.0001,  # dt value
+                N_val,  # N value
             )
-            raise BrianObjectException(message, self.owner) from exc
+
+            print("Execution completed successfully!")
+            print(f"Original v values (first 5): {v_original[:5]}")
+            print(f"Updated v values (first 5):  {v_array[:5]}")
+            print(f"Values changed: {not np.array_equal(v_original, v_array)}")
+
+        except Exception as e:
+            print(f"✗ Execution failed: {e}")
+            print(f"Error type: {type(e)}")
+            import traceback
+
+            traceback.print_exc()
+            raise BrianObjectException(
+                f"Execution failed in {block} block", self.owner
+            ) from e
 
     def _insert_func_namespace(self, func):
         """Insert function namespace (copied from CythonCodeObject)."""

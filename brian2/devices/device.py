@@ -8,6 +8,7 @@ from weakref import WeakKeyDictionary
 
 import numpy as np
 
+from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
 from brian2.codegen.targets import codegen_targets
 from brian2.core.names import find_name
 from brian2.core.preferences import prefs
@@ -271,6 +272,7 @@ class Device:
                 for target in codegen_targets:
                     if target.class_name == codeobj_class:
                         return target
+                print("codegen_targets", codegen_targets)
                 # No target found
                 targets = ["auto"] + [
                     target.class_name for target in codegen_targets if target.class_name
@@ -785,3 +787,15 @@ def seed(seed=None):
 
 runtime_device = RuntimeDevice()
 all_devices["runtime"] = runtime_device
+
+
+class CppyyDevice(RuntimeDevice):
+    """
+    A Brian 2 device for running simulations using the cppyy JIT compiler.
+    """
+
+    code_object_class = CppyyCodeObject
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        self.name = "cppyy"

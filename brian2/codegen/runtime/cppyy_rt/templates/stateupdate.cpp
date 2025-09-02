@@ -1,9 +1,6 @@
 {# USES_VARIABLES { N, dt } #}
 {# ALLOWS_SCALAR_WRITE #}
 
-// Support code
-{{support_code_lines}}
-
 // Scalar code
 {% if scalar_code %}
 {

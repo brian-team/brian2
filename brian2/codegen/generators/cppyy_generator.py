@@ -73,6 +73,68 @@ class CppyyCodeGenerator(CPPCodeGenerator):
         """Override to use cppyy-specific preference."""
         return prefs["codegen.generators.cppyy.flush_denormals"]
 
+    def translate(self, abstract_code, dtype):
+        """Override to flatten the generated code structure for cppyy templates"""
+
+        # Get the standard CPP generator result
+        scalar_code, vector_code, kwds = super().translate(abstract_code, dtype)
+
+        print("\n=== DEBUGGING CODE TRANSLATION (Before Flattening) ===")
+        print(f"Raw scalar_code type: {type(scalar_code)}")
+        print(f"Raw scalar_code: {scalar_code}")
+        print(f"Raw vector_code type: {type(vector_code)}")
+        print(f"Raw vector_code: {vector_code}")
+
+        # Flatten the code structures into simple strings
+        flattened_scalar = self._flatten_code_block(scalar_code)
+        flattened_vector = self._flatten_code_block(vector_code)
+
+        print(f"Flattened scalar_code: '{flattened_scalar}'")
+        print(f"Flattened vector_code: '{flattened_vector}'")
+        print("=" * 60)
+
+        return flattened_scalar, flattened_vector, kwds
+
+    def _flatten_code_block(self, code_block):
+        """
+        Convert Brian2's multi-block code structure into a simple string.
+
+        This handles the conversion from:
+          {None: ['line1', 'line2', 'line3']}
+        To:
+          "line1\nline2\nline3"
+        """
+
+        if isinstance(code_block, str):
+            # Already a simple string, return as-is
+            return code_block
+
+        if isinstance(code_block, dict):
+            # This is the multi-block structure we need to flatten
+            all_lines = []
+
+            # Process each block (usually just None for simple cases)
+            for _, line_list in code_block.items():
+                if isinstance(line_list, list):
+                    # Join all lines in this block
+                    for line in line_list:
+                        if line.strip():  # Skip empty lines
+                            all_lines.append(line)
+                elif isinstance(line_list, str):
+                    # Sometimes it's already a string
+                    if line_list.strip():
+                        all_lines.append(line_list)
+
+            # Join all lines with newlines to create proper C++ code
+            return "\n".join(all_lines)
+
+        if isinstance(code_block, list):
+            # Sometimes it's just a list directly
+            return "\n".join(line for line in code_block if line.strip())
+
+        # Fallback: convert to string
+        return str(code_block)
+
     def translate_expression(self, expr):
         """
         Translate a Brian2 expression to C++ code.
@@ -115,6 +177,8 @@ class CppyyCodeGenerator(CPPCodeGenerator):
         keywords["support_code_lines"] = self._adapt_support_code(
             keywords.get("support_code_lines", "")
         )
+        print(f"Final keywords: {list(keywords.keys())}")
+        print("=" * 50)
         return keywords
 
     def _adapt_support_code(self, support_code):
