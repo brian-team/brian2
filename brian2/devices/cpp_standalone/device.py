@@ -1258,11 +1258,14 @@ class CPPStandaloneDevice(Device):
             s = arg.split("=")
             if len(s) == 2:
                 for var in self.array_cache:
-                    if (
-                        hasattr(var.owner, "name")
-                        and var.owner.name + "." + var.name == s[0]
-                    ):
-                        self.array_cache[var] = None
+                    try:
+                        if (
+                            hasattr(var.owner, "name")
+                            and var.owner.name + "." + var.name == s[0]
+                        ):
+                            self.array_cache[var] = None
+                    except ReferenceError:
+                        pass  # Happens when ephemeral subgroups have been used to set a variable
         run_args = ["--results_dir", self.results_dir] + run_args
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
         for clock in self.clocks:
