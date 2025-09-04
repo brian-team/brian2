@@ -13,13 +13,13 @@ from brian2.units.allunits import hertz, second
 from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.utils.logger import get_logger
 
-__all__ = ["PopulationRateMonitor", "RateMoniter"]
+__all__ = ["PopulationRateMonitor", "RateMonitor"]
 
 
 logger = get_logger(__name__)
 
 
-class RateMoniter(CodeRunner, Group, Clock, ABC):
+class RateMonitor(CodeRunner, Group, Clock, ABC):
     """
     Abstract base class for monitors that record rates.
     """
@@ -130,7 +130,7 @@ class RateMoniter(CodeRunner, Group, Clock, ABC):
         return Quantity(smoothed, dim=hertz.dim)
 
 
-class PopulationRateMonitor(RateMoniter):
+class PopulationRateMonitor(RateMonitor):
     """
     Record instantaneous firing rates, averaged across neurons from a
     `NeuronGroup` or other spike source.
