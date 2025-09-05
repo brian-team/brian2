@@ -260,61 +260,6 @@ def test_openmp_consistency():
         results[n_threads, devicename]["s"] = spike_mon.num_spikes
         results[n_threads, devicename]["r"] = rate_mon.rate[:].copy()
 
-    # ADD DEBUGGING BEFORE ASSERTIONS
-    print("=== Debugging Results ===")
-    for key1, key2 in [
-        ((0, "runtime"), (0, "cpp_standalone")),
-        ((1, "cpp_standalone"), (0, "cpp_standalone")),
-        ((2, "cpp_standalone"), (0, "cpp_standalone")),
-        ((3, "cpp_standalone"), (0, "cpp_standalone")),
-        ((4, "cpp_standalone"), (0, "cpp_standalone")),
-    ]:
-        w1, w2 = results[key1]["w"], results[key2]["w"]
-        v1, v2 = results[key1]["v"], results[key2]["v"]
-        r1, r2 = results[key1]["r"], results[key2]["r"]
-        s1, s2 = results[key1]["s"], results[key2]["s"]
-
-        print(f"Comparing {key1} vs {key2}:")
-        print(f"  w shapes: {w1.shape} vs {w2.shape}")
-        print(
-            f"  w ranges: [{np.min(w1):.3f}, {np.max(w1):.3f}] vs [{np.min(w2):.3f}, {np.max(w2):.3f}]"
-        )
-        print(
-            f"  r ranges: [{np.min(r1):.3f}, {np.max(r1):.3f}] vs [{np.min(r2):.3f}, {np.max(r2):.3f}]"
-        )
-        print(f"  r non-zero counts: {np.sum(r1 > 0)} vs {np.sum(r2 > 0)}")
-        print(f"  spikes: {s1} vs {s2}")
-
-        # Check for the specific mismatch
-        w_diff = np.abs(w1 - w2)
-        r_diff = np.abs(r1 - r2)
-        v_diff = np.abs(v1 - v2)
-
-        w_diff_val = float(np.max(w_diff))
-        r_diff_val = float(np.max(r_diff / brian2.Hz))  # Convert Hz to dimensionless
-        v_diff_val = float(np.max(v_diff / brian2.mV))  # Convert mV to dimensionless
-
-        print(f"  max w diff: {w_diff_val:.6f}")
-        print(f"  max r diff: {r_diff_val:.6f} Hz")
-        print(f"  max v diff: {v_diff_val:.6f} mV")
-
-        if r_diff_val > 1e-10:
-            print("RATE MISMATCH DETECTED!")
-            print(f"  r mismatch count: {np.sum(r_diff/brian2.Hz > 1e-10)}")
-            mismatched_r1 = r1[r_diff / brian2.Hz > 1e-10][:10]
-            mismatched_r2 = r2[r_diff / brian2.Hz > 1e-10][:10]
-            print(f"  r1 mismatched values: {mismatched_r1}")
-            print(f"  r2 mismatched values: {mismatched_r2}")
-        else:
-            print("Rates match perfectly")
-
-        if w_diff_val > 1e-10:
-            print("WEIGHT MISMATCH DETECTED!")
-            print(f"  w1 sample: {w1.flatten()[:10]}")
-            print(f"  w2 sample: {w2.flatten()[:10]}")
-        else:
-            print("Weights match perfectly")
-
     # Now run the assertions
     for key1, key2 in [
         ((0, "runtime"), (0, "cpp_standalone")),
