@@ -46,7 +46,7 @@ class RateMonitor(CodeRunner, Group, Clock, ABC):
         raise NotImplementedError()
 
     @check_units(width=second)
-    def smooth_rates(self, window="gaussian", width=None):
+    def smooth_rate(self, window="gaussian", width=None):
         """
         Returns a smooted out version of the firing rate(s).
 
