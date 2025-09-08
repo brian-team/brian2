@@ -5,10 +5,10 @@
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp.string cimport string
-
 import cython
 from cython.operator import dereference
 from cython.operator cimport dereference
+from cpython.pycapsule cimport PyCapsule_New
 
 cimport numpy as np
 import numpy as np
@@ -53,6 +53,15 @@ cdef class SpikeQueue:
 
     def _full_state(self):
         return self.thisptr._full_state()
+
+    def get_capsule(self):
+        """
+        Returns a PyCapsule object wrapping the underlying C++ CSpikeQueue pointer.
+
+        PyCapsules are used to safely pass raw C/C++ pointers between Python modules
+        or C extensions without exposing the actual implementation details to Python.
+        """
+        return PyCapsule_New(<void*>self.thisptr, "CSpikeQueue", NULL)
 
     cdef object __weakref__  # Allows weak references to the SpikeQueue
 
