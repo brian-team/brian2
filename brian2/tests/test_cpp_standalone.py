@@ -154,11 +154,6 @@ def test_storing_loading():
 @pytest.mark.standalone_only
 @pytest.mark.openmp
 def test_openmp_consistency():
-    import brian2
-
-    brian2.prefs._restore()  # Reset any preference changes
-    reinit_and_delete()
-
     previous_device = get_device()
     n_cells = 100
     n_recorded = 10
