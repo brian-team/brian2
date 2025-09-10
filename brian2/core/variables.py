@@ -634,6 +634,19 @@ class DynamicArrayVariable(ArrayVariable):
             unique=unique,
         )
 
+    def get_size(self):
+        if self.ndim == 1:
+            return self.get_value().size
+        else:
+            return self.get_value().shape
+
+    def set_size(self, value):
+        # The size of a DynamicArray is never set directly, but we need to keep this
+        # setter around since it is called in the ArrayVariable initializer
+        pass
+
+    size = property(fget=get_size, fset=set_size)
+
     @property
     def dimensions(self):
         logger.warn(
@@ -658,8 +671,6 @@ class DynamicArrayVariable(ArrayVariable):
             self.device.resize_along_first(self, new_size)
         else:
             self.device.resize(self, new_size)
-
-        self.size = new_size
 
     def get_capsule(self):
         """
