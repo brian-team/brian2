@@ -250,7 +250,7 @@ def test_openmp_consistency():
         results[n_threads, devicename]["w"] = state_mon.w.copy()
         results[n_threads, devicename]["v"] = v_mon.v.copy()
         results[n_threads, devicename]["s"] = spike_mon.num_spikes
-        results[n_threads, devicename]["r"] = rate_mon.rate[:].copy()
+        results[n_threads, devicename]["r"] = rate_mon.rate[:]
 
     # Now run the assertions
     for key1, key2 in [
