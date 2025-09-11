@@ -198,14 +198,11 @@ def test_openmp_consistency():
         (3, "cpp_standalone"),
         (4, "cpp_standalone"),
     ]:
-        reinit_and_delete()  # Reset ALL devices, not just cpp_standalone
-        brian2.prefs._restore()  # Reset preferences
-        np.random.seed(42)  # Ensure deterministic state
-
+        set_device(devicename, build_on_run=False, with_output=False)
         # clear all instances
         Synapses.__instances__().clear()
-        set_device(devicename, build_on_run=False, with_output=False)
-
+        if devicename == "cpp_standalone":
+            reinit_and_delete()
         prefs.devices.cpp_standalone.openmp_threads = n_threads
         P = NeuronGroup(
             n_cells, model=eqs, threshold="v>Vt", reset="v=Vr", refractory=5 * ms
@@ -268,7 +265,6 @@ def test_openmp_consistency():
         assert_allclose(results[key1]["r"], results[key2]["r"])
         assert_allclose(results[key1]["s"], results[key2]["s"])
     reset_device(previous_device)
-    reinit_and_delete()
 
 
 @pytest.mark.cpp_standalone
