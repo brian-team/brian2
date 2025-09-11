@@ -7,6 +7,8 @@
 ######################## TEMPLATE SUPPORT CODE ##############################
 
 {% block template_support_code %}
+from libc.string cimport memcpy
+
 cdef int _buffer_size = 1024
 cdef int[:] _prebuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
 cdef int[:] _postbuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
@@ -14,14 +16,17 @@ cdef int _curbuf = 0
 cdef int _raw_pre_idx
 cdef int _raw_post_idx
 
-cdef void _flush_buffer(buf, dynarr, int buf_len):
-    cdef size_t _curlen = dynarr.shape[0]
+# We now update this function to be a use direct dynamic array pointers
+cdef void _flush_buffer(int[:] buf,DynamicArray1DCpp[int32_t]* dynarr, int buf_len):
+    cdef size_t _curlen = dynarr.size()
     cdef size_t _newlen = _curlen+buf_len
     # Resize the array
     dynarr.resize(_newlen)
-    # Get the potentially newly created underlying data arrays
-    data = dynarr.data
-    data[_curlen:_curlen+buf_len] = buf[:buf_len]
+    # Get raw data pointer from C++ array
+    cdef int32_t* data_ptr = dynarr.get_data_ptr()
+
+    # Use memcpy for fast bulk copy
+    memcpy(&data_ptr[_curlen], &buf[0], buf_len * sizeof(int32_t))
 
 {% endblock %}
 
@@ -34,7 +39,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
 
     global _curbuf
 
-    cdef size_t oldsize = len({{_dynamic__synaptic_pre}})
+    cdef size_t oldsize = {{_dynamic__synaptic_pre_ptr}}.size()
     cdef size_t newsize
 
     # The following variables are only used for probabilistic connections
@@ -199,16 +204,16 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                 _curbuf += 1
                 # Flush buffer
                 if _curbuf==_buffer_size:
-                    _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)
-                    _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
+                    _flush_buffer(_prebuf, {{_dynamic__synaptic_pre_ptr}}, _curbuf)
+                    _flush_buffer(_postbuf, {{_dynamic__synaptic_post_ptr}}, _curbuf)
                     _curbuf = 0
 
     # Final buffer flush
-    _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf)
-    _flush_buffer(_postbuf, {{_dynamic__synaptic_post}}, _curbuf)
+    _flush_buffer(_prebuf, {{_dynamic__synaptic_pre_ptr}}, _curbuf)
+    _flush_buffer(_postbuf, {{_dynamic__synaptic_post_ptr}}, _curbuf)
     _curbuf = 0  # reset the buffer for the next run
 
-    newsize = len({{_dynamic__synaptic_pre}})
+    newsize = {{_dynamic__synaptic_pre_ptr}}.size()
     # now we need to resize all registered variables and set the total number
     # of synapse (via Python)
     _owner._resize(newsize)
