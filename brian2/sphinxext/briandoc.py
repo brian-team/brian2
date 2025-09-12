@@ -145,6 +145,7 @@ def mangle_docstrings(app, what, name, obj, options, lines, reference_offset=Non
         exported_members = getattr(obj, "__all__", None)
         if exported_members:
             lines.append("*Exported members:* ")
+            exported_members = sorted(exported_members)
             # do not print more than 25 members
             lines.append(", ".join([f"`{member}`" for member in exported_members[:25]]))
             if len(exported_members) > 25:
