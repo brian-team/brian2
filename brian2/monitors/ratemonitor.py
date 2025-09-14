@@ -48,7 +48,7 @@ class RateMonitor(CodeRunner, Group, Clock, ABC):
     @check_units(width=second)
     def smooth_rate(self, window="gaussian", width=None):
         """
-        Returns a smooted out version of the firing rate(s).
+        Returns a smoothed out version of the firing rate(s).
 
         Parameters
         ----------
