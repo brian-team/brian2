@@ -588,7 +588,16 @@ def test_rate_monitor_smoothed_rate():
     assert_allclose(smoothed[index - 2 : index + 3], 0.2 / defaultclock.dt)
     with catch_logs(log_level=logging.INFO):
         smoothed2 = r_mon.smooth_rate(window="flat", width=5.4 * defaultclock.dt)
-        assert_array_equal(smoothed, smoothed2)
+
+        # The window size should round up to 7.
+        # So, the spike at 'index' should be spread over 7 bins.
+        # The center is at 'index', with 3 bins on each side.
+        assert_array_equal(smoothed2[: index - 3], 0 * Hz)
+        assert_array_equal(smoothed2[index + 4 :], 0 * Hz)
+
+        # The value should be 1/dt spread over 7 bins.
+        expected_value = (1 / defaultclock.dt) / 7.0
+        assert_allclose(smoothed2[index - 3 : index + 4], expected_value)
 
     ### Gaussian window
     width = 5 * defaultclock.dt
@@ -684,6 +693,188 @@ def test_rate_monitor_subgroups_2():
     assert_allclose(rate_3.rate, 1 / defaultclock.dt)
 
 
+# ====== Tests to test the added rate monitoring functionality in monitors =====
+
+
+@pytest.mark.codegen_independent
+def test_population_rate_monitor_binning():
+    """Test binning functionality for PopulationRateMonitor."""
+    # Create a group with regular spiking
+    N = 10
+    rate = 100 * Hz
+    duration = 100 * ms
+
+    G = NeuronGroup(N, "v : 1", threshold="rand() < rate*dt")
+    G.run_regularly("v = 0")  # Dummy operation
+
+    mon = PopulationRateMonitor(G)
+
+    run(duration)
+
+    # Test binning with different bin sizes
+    for bin_size in [1 * ms, 5 * ms, 10 * ms]:
+        bins, binned_rates = mon.binned(bin_size)
+
+        # Check that bins are correct
+        expected_bins = np.arange(int(duration / bin_size)) * bin_size + bin_size / 2
+        assert_allclose(bins, expected_bins)
+
+        # Check that rates are reasonable (around N*rate)
+        assert np.mean(binned_rates) > 0  # Should have some spikes
+        assert np.mean(binned_rates) < N * rate * 2  # Sanity check
+
+    # Test that bin_size must be multiple of dt
+    with pytest.raises(ValueError):
+        mon.binned(1.5 * defaultclock.dt)
+
+
+@pytest.mark.codegen_independent
+def test_spike_monitor_binning():
+    """Test binning functionality for SpikeMonitor."""
+    # Create neurons with known spike times
+    indices = [0, 0, 1, 1, 2]
+    times = [10, 30, 20, 40, 50] * ms
+
+    G = SpikeGeneratorGroup(3, indices, times)
+    mon = SpikeMonitor(G)
+
+    run(100 * ms)
+
+    # Test binning with 20ms bins
+    bins, binned_rates = mon.binned(20 * ms)
+
+    # Expected: 5 bins of 20ms each
+    assert len(bins) == 5
+    assert bins[0] == 10 * ms  # First bin center
+
+    # Check spike counts/rates for each neuron
+    # Neuron 0: spikes at 10ms (bin 0) and 30ms (bin 1)
+    assert binned_rates[0, 0] == 50 * Hz  # 1 spike / 20ms
+    assert binned_rates[0, 1] == 50 * Hz
+    assert np.sum(binned_rates[0, 2:]) == 0
+
+    # Neuron 1: spikes at 20ms (bin 1) and 40ms (bin 2)
+    assert binned_rates[1, 1] == 50 * Hz
+    assert binned_rates[1, 2] == 50 * Hz
+
+    # Neuron 2: spike at 50ms (bin 2)
+    assert binned_rates[2, 2] == 50 * Hz
+    assert np.sum(binned_rates[2, [0, 1, 3, 4]]) == 0
+
+
+@pytest.mark.codegen_independent
+def test_smooth_rates_spike_monitor():
+    """Test smoothing functionality for SpikeMonitor."""
+    # Create a neuron with a burst of spikes
+    times = np.arange(40, 61) * ms  # Burst from 40-60ms
+    indices = np.zeros(21, dtype=int)
+
+    G = SpikeGeneratorGroup(1, indices, times)
+    mon = SpikeMonitor(G)
+
+    run(100 * ms)
+
+    # Test Gaussian smoothing
+    width = 5 * ms
+    smoothed = mon.smooth_rate(window="gaussian", width=width)
+
+    # Should be smooth and peak around the burst
+    assert smoothed.ndim == 2  # (neurons, time)
+    assert smoothed.shape[0] == 1  # One neuron
+
+    # Peak should be around 50ms (middle of burst)
+    peak_time = np.argmax(smoothed[0]) * defaultclock.dt
+    assert 45 * ms < peak_time < 55 * ms
+
+    # Test flat window smoothing
+    smoothed_flat = mon.smooth_rate(window="flat", width=10 * ms)
+    assert smoothed_flat.shape == smoothed.shape
+
+    # Test custom window
+    custom_window = np.array([0.25, 0.5, 0.25])
+    smoothed_custom = mon.smooth_rate(window=custom_window)
+    assert smoothed_custom.shape == smoothed.shape
+
+
+@pytest.mark.codegen_independent
+def test_smooth_rates_population_monitor():
+    """Test that smooth_rates works correctly for PopulationRateMonitor."""
+    N = 100
+
+    rate_val = 50 * Hz
+    G = NeuronGroup(N, "rate : Hz", threshold="rand() < rate*dt")
+    G.rate = rate_val
+    mon = PopulationRateMonitor(G)
+    run(200 * ms)
+
+    # Test different smoothing windows
+    smoothed_gauss = mon.smooth_rate("gaussian", width=10 * ms)
+    smoothed_flat = mon.smooth_rate("flat", width=10 * ms)
+
+    # Smoothed rates should have same length as original
+    assert len(smoothed_gauss) == len(mon.rate)
+    assert len(smoothed_flat) == len(mon.rate)
+
+    # Smoothed version should have less variance
+    assert np.var(smoothed_gauss) < np.var(mon.rate)
+    assert np.var(smoothed_flat) < np.var(mon.rate)
+
+
+@pytest.mark.codegen_independent
+def test_subgroup_spike_monitor():
+    """Test that binning works correctly with subgroups."""
+    N = 10
+    G = NeuronGroup(N, "v:1", threshold="i<5 and rand()<0.1")
+
+    # Monitor only neurons 2-7
+    subgroup = G[2:8]
+    mon = SpikeMonitor(subgroup)
+
+    run(100 * ms)
+
+    _, rates = mon.binned(10 * ms)
+
+    # Should have 6 neurons (indices 2-7)
+    assert rates.shape[0] == 6
+
+    # Only neurons 0,1,2 of subgroup (i.e., 2,3,4 of full group) can spike
+    if mon.num_spikes > 0:
+        assert np.all(mon.i[:] < 5)  # In original indices
+        # In binned output, only first 3 rows can be non-zero
+        assert np.sum(rates[3:, :]) == 0
+
+
+@pytest.mark.codegen_independent
+def test_rate_monitor_errors():
+    """Test error conditions."""
+    G = NeuronGroup(
+        10, "v : 1", threshold="v > 1000"
+    )  # Very high threshold , as we don;t need actual spikes
+    mon = SpikeMonitor(G)
+
+    run(10 * ms)
+
+    # Test that width is required for predefined windows
+    with pytest.raises(TypeError):
+        mon.smooth_rate("gaussian")
+
+    # Test that width cannot be specified for custom windows
+    with pytest.raises(TypeError):
+        mon.smooth_rate(np.array([1, 2, 1]), width=5 * ms)
+
+    # Test unknown window type
+    with pytest.raises(NotImplementedError):
+        mon.smooth_rate("unknown", width=5 * ms)
+
+    # Test that custom window must be 1D
+    with pytest.raises(TypeError):
+        mon.smooth_rate(np.array([[1, 2], [3, 4]]))
+
+    # Test that custom window must have odd length
+    with pytest.raises(TypeError):
+        mon.smooth_rate(np.array([1, 2, 3, 4]))
+
+
 @pytest.mark.codegen_independent
 def test_monitor_str_repr():
     # Basic test that string representations are not empty
@@ -725,3 +916,10 @@ if __name__ == "__main__":
     test_rate_monitor_subgroups()
     test_rate_monitor_subgroups_2()
     test_monitor_str_repr()
+    # Rate moniter test
+    test_population_rate_monitor_binning()
+    test_spike_monitor_binning()
+    test_smooth_rates_spike_monitor()
+    test_smooth_rates_population_monitor()
+    test_subgroup_spike_monitor()
+    test_rate_monitor_errors()
