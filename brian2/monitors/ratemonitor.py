@@ -130,8 +130,26 @@ class RateMonitor(CodeRunner, Group, Clock, ABC):
         # Get the binned rates at the finest resolution
         _, binned_values = self.binned(bin_size=self.clock.dt)
 
-        # The actual smoothing
-        smoothed = np.convolve(binned_values, window * 1.0 / sum(window), mode="same")
+        # Normalize the window
+        window = window * 1.0 / sum(window)
+
+        # Extract the raw numpy array from the Quantity (if it is one)
+        if hasattr(binned_values, "dimensions"):
+            binned_array = np.asarray(binned_values)
+        else:
+            binned_array = binned_values
+
+        # So we need to handle for both 1D (PopulationRateMonitor) and 2D (EventMonitor) cases separately as `np.convolve()` only works with 1D arrays
+        if binned_values.ndim == 1:
+            # PopulationRateMonitor case - 1D convolution
+            smoothed = np.convolve(binned_values, window, mode="same")
+        else:
+            # EventMonitor/SpikeMonitor case - convolve each neuron and then we return the smoothed 2D array ( neuron * bins )
+            num_neurons, num_bins = binned_array.shape
+            smoothed = np.zeros((num_neurons, num_bins))
+            for i in range(num_neurons):
+                smoothed[i, :] = np.convolve(binned_array[i, :], window, mode="same")
+
         return Quantity(smoothed, dim=hertz.dim)
 
 

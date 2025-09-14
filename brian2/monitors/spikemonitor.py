@@ -406,7 +406,7 @@ class EventMonitor(RateMonitor):
             raise ValueError("bin_size has to be a multiple of dt.")
 
         # Get the total duration and number of bins
-        duration = self.clock.dt
+        duration = self.clock.t
         num_bins = int(duration / bin_size)
         bins = np.arange(num_bins) * bin_size + bin_size / 2  # As we want bin centers
 
@@ -424,7 +424,6 @@ class EventMonitor(RateMonitor):
 
         # Now we initialize the binned values array (neurons × bins)
         binned_values = np.zeros((num_neurons, num_bins))
-
         if self.record:
             # Get the event times and indices
             event_times = self.t[:]
@@ -433,7 +432,6 @@ class EventMonitor(RateMonitor):
             )  # Adjust for subgroups as stated above
 
             bin_indices = (event_times / bin_size).astype(int)
-
             # Now this is the main core code , here we count the events in each bin that happened for each neuron
             # Like after this we should have something like :
             # Example :
@@ -443,14 +441,13 @@ class EventMonitor(RateMonitor):
             #     [0.0, 2.0, 0.0, 0.0, 1.0]   # Neuron 2: 2 in bin 1, 1 in bin 4
             # ]
             for event_idx, neuron_idx in enumerate(event_indices):
-                if 0 <= neuron_idx < num_neurons:
+                if 0 <= neuron_idx < num_neurons:  # sanity check
                     bin_idx = bin_indices[event_idx]
                     if bin_idx < num_bins:  # To handle edge case at the end
                         binned_values[neuron_idx, bin_idx] += 1
 
             # Convert counts to rates (Hz)
             binned_values = binned_values / float(bin_size)
-
         return bins, Quantity(binned_values, dim=hertz.dim)
 
     @property
