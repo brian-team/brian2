@@ -92,10 +92,6 @@ class RateMonitor(CodeRunner, Group, Clock, ABC):
                 # basically Gaussian theoretically spans infinite time, but practically it falls off quickly,
                 # So we choose a window of +- 2*(Standard deviations), i.e 95% of gaussian curve
 
-                assert (
-                    width is not None
-                ), "Width cannot be None for gaussian window"  # Make Pyright happy
-
                 width_dt = int(
                     np.round(2 * width / self.clock.dt)
                 )  # Rounding only for the size of the window, not for the standard
