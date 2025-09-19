@@ -397,11 +397,13 @@ class GSLCodeGenerator:
             code describing ``_GSL_func`` that is sent to GSL integrator.
         """
         code = [
+            "\n//CONSTANTS"
+            "\n%CONSTANTS%\n"
             "\n{start_declare}int _GSL_func(double t, const double "
             "_GSL_y[], double f[], void * params){open_function}"
-            "\n\t{start_declare}_dataholder * _GSL_dataholder = {open_cast}"
+            "\n\t_dataholder * _GSL_dataholder = {open_cast}"
             "_dataholder *{close_cast} params{end_statement}"
-            "\n\t{start_declare}int _idx = _GSL_dataholder{access_pointer}_idx"
+            "\n\tint _idx = _GSL_dataholder{access_pointer}_idx"
             "{end_statement}"
         ]
         code += [lines]
@@ -1110,7 +1112,7 @@ class GSLCPPCodeGenerator(GSLCodeGenerator):
     syntax = {
         "end_statement": ";",
         "access_pointer": "->",
-        "start_declare": 'extern "C" ',
+        "start_declare": "",
         "open_function": "\n{",
         "open_struct": "\n{",
         "end_function": "\n}",
