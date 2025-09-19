@@ -397,13 +397,11 @@ class GSLCodeGenerator:
             code describing ``_GSL_func`` that is sent to GSL integrator.
         """
         code = [
-            "\n//CONSTANTS"
-            "\n%CONSTANTS%\n"
             "\n{start_declare}int _GSL_func(double t, const double "
             "_GSL_y[], double f[], void * params){open_function}"
-            "\n\t_dataholder * _GSL_dataholder = {open_cast}"
+            "\n\t{start_declare}_dataholder * _GSL_dataholder = {open_cast}"
             "_dataholder *{close_cast} params{end_statement}"
-            "\n\tint _idx = _GSL_dataholder{access_pointer}_idx"
+            "\n\t{start_declare}int _idx = _GSL_dataholder{access_pointer}_idx"
             "{end_statement}"
         ]
         code += [lines]
@@ -1161,3 +1159,14 @@ class GSLCPPCodeGenerator(GSLCodeGenerator):
                 return f"_GSL_dataholder.{var_obj.name} = {var_obj.name};"
             else:
                 return ""
+
+    def make_function_code(self, lines):
+        # To pass constants that might be used in the function, we need to
+        # add a %CONSTANTS% placeholder that will be replaced by the standalone
+        # device
+        return """
+        // CONSTANTS
+        %CONSTANTS%
+        """ + super().make_function_code(
+            lines
+        )
