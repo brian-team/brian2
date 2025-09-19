@@ -459,9 +459,68 @@ class SynapticPathway(CodeRunner, Group):
         super()._restore_from_full_state(state)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
-        self.queue._restore_from_full_state(queue_state)
+
+        if queue_state is not None:
+            converted_queue_state = self._convert_queue_state_if_needed(queue_state)
+            self.queue._restore_from_full_state(converted_queue_state)
+        else:
+            # Handle None case (empty queue)
+            self.queue._restore_from_full_state(None)
+
         # Put the spike queue state back for future restore calls
         state["_spikequeue"] = queue_state
+
+    def _convert_queue_state_if_needed(self, queue_state):
+        """
+        Convert spike queue state from Python format to Cython format if needed.
+
+        Python format: (time, spike_indices_array, queue_capacities)
+        Cython format: (offset, list_of_spike_lists)
+
+        Returns the queue_state in Cython format.
+        """
+        # Check if this is the old Python format (3-tuple vs 2-tuple) , also note this is sort of a hack
+        # As it's completely based on Python format being a 3 tuple ...
+        if isinstance(queue_state, tuple) and len(queue_state) == 3:
+            # This is Python spike queue format, need to convert
+            return self._python_to_cython_format(queue_state)
+        else:
+            return queue_state
+
+    def _python_to_cython_format(self, python_state):
+        """
+        Convert Python spike queue format to Cython format.
+
+        Python format: (current_time, spike_array, queue_sizes)
+        - current_time: float representing current simulation time
+        - spike_array: 2D array where spike_array[delay_slot][spike_index] = neuron_id
+        - queue_sizes: tuple of queue capacities
+
+        Cython format: (offset, spike_lists)
+        - offset: int representing current position in circular buffer
+        - spike_lists: list of lists, where spike_lists[i] contains spikes for time slot i
+        """
+        _, spike_array, __ = python_state
+
+        # The Cython format uses a circular buffer approach
+        # So We need to extract the actual spikes and organize them by time slots
+        max_delay_slots = spike_array.shape[0] if len(spike_array.shape) > 0 else 1
+        spike_lists = [[] for _ in range(max_delay_slots)]
+
+        # Convert the 2D spike array to lists of spikes per time slot
+        if spike_array.size > 0:
+            for delay_slot in range(spike_array.shape[0]):
+                for spike_idx in range(spike_array.shape[1]):
+                    neuron_id = spike_array[delay_slot][spike_idx]
+                    if (
+                        neuron_id >= 0
+                    ):  # Valid neuron ID (negative values often indicate empty slots)
+                        spike_lists[delay_slot].append(int(neuron_id))
+
+        # The offset in Cython format represents the current position in the circular buffer
+        # For a newly converted queue, we typically start at offset 0
+        offset = 0
+        return (offset, spike_lists)
 
     def push_spikes(self):
         # Push new events (e.g. spikes) into the queue
