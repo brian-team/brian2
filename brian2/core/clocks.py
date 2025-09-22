@@ -181,20 +181,15 @@ class EventClock(BaseClock):
             error_message="'times' must have dimensions of time",
             dim=times,
         )
-        self._times = sorted(times)
-        seen = set()
-        duplicates = []
-        for time in self._times:
-            if float(time) in seen:
-                duplicates.append(time)
-            else:
-                seen.add(float(time))
-        if duplicates:
+
+        times_array = np.asarray(times, dtype=float)
+        unique_times = np.unique(times_array)
+        if len(unique_times) != len(times_array):
             raise ValueError(
-                "The times provided to EventClock must not contain duplicates. "
-                f"Duplicates found: {duplicates}"
+                "The times provided to EventClock must not contain duplicates."
             )
 
+        self._times = sorted(times)
         self._times.append(np.inf * ms)
         self.variables.add_array(
             "times",

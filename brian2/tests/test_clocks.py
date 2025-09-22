@@ -65,9 +65,6 @@ def test_event_clock():
     times = [0.0 * ms, 0.3 * ms, 0.5 * ms, 0.6 * ms]
     event_clock = EventClock(times)
 
-    for i in range(4):
-        print(event_clock[i])
-
     assert_equal(event_clock.variables["t"].get_value(), 0.0 * ms)
     assert_equal(event_clock[1], 0.3 * ms)
 
@@ -124,8 +121,8 @@ def test_combined_clocks_with_run_at():
         y_count == expected_y_count
     ), f"Expected {expected_y_count} y's, got {y_count}"
 
-    # Optional: check full string if needed
-    print(updates)
+    expected_output = "xyxxyxxy"
+    assert updates == expected_output, f"Expected {expected_output}, got {updates}"
 
 
 if __name__ == "__main__":
