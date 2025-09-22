@@ -7,7 +7,8 @@
 
     # Resize the recorded times
     _var_t.resize(_new_len)
-    {{_dynamic_t}}[_new_len-1] = {{_clock_t}}
+    cdef double* _t_data = {{_dynamic_t_ptr}}.get_data_ptr()
+    _t_data[_new_len-1] = {{_clock_t}}
 
     # scalar code
     _vectorisation_idx = 1
@@ -21,18 +22,12 @@
     # Resize the recorded variable "{{varname}}" and get the (potentially
     # changed) reference to the underlying data
     _var_{{varname}}.resize((_new_len, _num{{_indices}}))
-    {% if c_type == 'bool'%}
-    cdef _numpy.ndarray[char, ndim=2, mode='c', cast=True] _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
-    cdef bool* _record_data_{{varname}} = <{{c_type}}*> _record_buf_{{varname}}.data
-    {% else %}
-    cdef _numpy.ndarray[{{c_type}}, ndim=2, mode='c'] _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
-    cdef {{c_type}}* _record_data_{{varname}} = <{{c_type}}*> _record_buf_{{varname}}.data
-    {% endif %}
+    cdef {{c_type}}* _record_data_{{varname}} = <{{c_type}}*> {{get_array_name(var, access_data=False) + "_ptr"}}.get_data_ptr()
     for _i in range(_num{{_indices}}):
         # vector code
         _idx = {{_indices}}[_i]
         _vectorisation_idx = _idx
-        
+
         {{ vector_code | autoindent }}
 
         _record_data_{{varname}}[(_new_len-1)*_num{{_indices}} + _i] = _to_record_{{varname}}

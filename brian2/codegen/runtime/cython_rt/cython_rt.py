@@ -246,6 +246,11 @@ class CythonCodeObject(NumpyCodeObject):
                 dyn_array_name = self.generator_class.get_array_name(
                     var, access_data=False
                 )
+                # Adding logic to pass in the capsule object to namespace , we already have code set in generator to
+                # take the passed in object and work on it
+                capsule_name = f"{dyn_array_name}_capsule"
+                capsule = self.device.get_capsule(var)
+                self.namespace[capsule_name] = capsule
                 self.namespace[dyn_array_name] = self.device.get_value(
                     var, access_data=False
                 )
@@ -264,7 +269,6 @@ class CythonCodeObject(NumpyCodeObject):
         self.namespace = {
             k: v for k, v in self.namespace.items() if k in all_identifiers
         }
-
         # There is one type of objects that we have to inject into the
         # namespace with their current value at each time step: dynamic
         # arrays that change in size during runs, where the size change is not
