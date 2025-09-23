@@ -389,7 +389,11 @@ def run(
         if test_standalone:
             from brian2.devices.device import get_device, set_device
 
-            pref_plugin.device_options = {"directory": None, "with_output": False}
+            pref_plugin.device_options = {
+                "directory": None,
+                "with_output": True,
+                "debug": True,
+            }
             pref_plugin.device_options.update(build_options)
             print(f'Testing standalone device "{test_standalone}"')
             print("Running standalone-compatible standard tests (single run statement)")
@@ -431,7 +435,11 @@ def run(
 
             if test_openmp and test_standalone == "cpp_standalone":
                 # Run all the standalone compatible tests again with 4 threads
-                pref_plugin.device_options = {"directory": None, "with_output": False}
+                pref_plugin.device_options = {
+                    "directory": None,
+                    "with_output": True,
+                    "debug": True,
+                }
                 pref_plugin.device_options.update(build_options)
                 prefs["devices.cpp_standalone.openmp_threads"] = 4
                 print(
@@ -451,7 +459,8 @@ def run(
 
                 pref_plugin.device_options = {
                     "directory": None,
-                    "with_output": False,
+                    "with_output": True,
+                    "debug": True,
                     "build_on_run": False,
                 }
                 pref_plugin.device_options.update(build_options)
