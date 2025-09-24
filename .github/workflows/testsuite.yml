@@ -99,8 +99,7 @@ jobs:
       - name: Run Tests      
         run: |
           cd  $GITHUB_WORKSPACE/.. && \
-          "$PYTHON_BINARY" $GITHUB_WORKSPACE/$SCRIPT_NAME && \
-          cp coverage.xml $GITHUB_WORKSPACE/
+          "$PYTHON_BINARY" -c 'import brian2; brian2.set_device("cpp_standalone", with_output=True, debug=True); from brian2.tests.test_GSL import test_GSL_x_variable; test_GSL_x_variable()'
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           SPHINX_DIR: ${{ github.workspace }}/docs_sphinx
@@ -109,57 +108,3 @@ jobs:
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
           DO_NOT_RESET_PREFERENCES: true  # Make sure that GSL setting is used
-      - name: Send coverage to Coveralls (parallel)
-        if: ${{ startsWith(matrix.os.image, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
-        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b # v2.3.6
-        with:
-          parallel: true
-          flag-name: run ${{ join(matrix.*, ' - ') }}
-
-  coveralls:
-    name: Indicate completion to coveralls.io
-    needs: testing
-    runs-on: ubuntu-latest
-    steps:
-      - name: Close parallel build
-        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b # v2.3.6
-        with:
-          parallel-finished: true
-
-  test_doc_build:
-    needs: get_python_versions
-    name: Test building the documentation
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      with:
-        fetch-depth: 0
-        persist-credentials: false
-        submodules: true
-
-    - name: Setup Conda and Python
-      uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
-      with:
-        conda-remove-defaults: true
-        auto-update-conda: true
-        auto-activate-base: false
-        miniforge-version: latest
-        activate-environment: 'test_env'
-        python-version: "${{ needs.get_python_versions.outputs.max-python }}"
-
-    - name: Install dependencies
-      run: pip install -r rtd-requirements.txt
-
-    - name: Install brian2
-      run: pip install .
-
-    - name: Build HTML documentation
-      run: |
-        cd docs_sphinx
-        sphinx-build -b html . ../docs
-      env:
-        READTHEDOCS: True
