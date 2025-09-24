@@ -1312,7 +1312,7 @@ class CPPStandaloneDevice(Device):
                     with open(stdout_fname) as f:
                         print(f.read())
                 raise RuntimeError(
-                    "Project run failed (project directory:"
+                    f"Project run failed with error code {x} (project directory:"
                     f" {os.path.abspath(directory)})"
                 )
             self.has_been_run = True
