@@ -4,7 +4,6 @@ provided in the GNU Scientific Library (GSL)
 """
 
 import os
-import sys
 
 from brian2.utils.logger import get_logger
 
@@ -102,15 +101,16 @@ class GSLContainer:
                     "<gsl/gsl_errno.h>",
                     "<gsl/gsl_matrix.h>",
                 ]
-                if sys.platform == "win32":
+                if os.name == "nt":
                     device.define_macros += [("WIN32", "1"), ("GSL_DLL", "1")]
                 if prefs.GSL.directory is not None:
                     device.include_dirs += [prefs.GSL.directory]
                     device.library_dirs += [
                         os.path.abspath(os.path.join(prefs.GSL.directory, "..", "lib"))
                     ]
-                    if sys.platform == "win32":
+                    if os.name == "nt":
                         # Add DLL directory to path
+                        print("Changing PATH")
                         old_path = os.environ.get("PATH", "")
                         os.environ["PATH"] = (
                             os.path.abspath(
@@ -119,6 +119,7 @@ class GSLContainer:
                             + ";"
                             + old_path
                         )
+                        print("PATH is now: ", os.environ["PATH"])
             return GSLCPPStandaloneCodeObject
 
         elif isinstance(device, RuntimeDevice):
