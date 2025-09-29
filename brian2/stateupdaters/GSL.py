@@ -109,6 +109,9 @@ class GSLContainer:
                     device.library_dirs += [
                         os.path.abspath(os.path.join(prefs.GSL.directory, "..", "lib"))
                     ]
+                    device.runtime_library_dirs += [
+                        os.path.abspath(os.path.join(prefs.GSL.directory, "..", "lib"))
+                    ]
             return GSLCPPStandaloneCodeObject
 
         elif isinstance(device, RuntimeDevice):
