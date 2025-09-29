@@ -34,7 +34,7 @@ jobs:
         run: pre-commit run --all-files --show-diff-on-failure
 
   testing:
-    needs: [get_python_versions, pre-commit]
+    needs: [get_python_versions]
     name: "Python ${{ matrix.python-version }} on ${{ matrix.os.image }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
     runs-on: ${{ matrix.os.image }}
     strategy:
@@ -81,27 +81,11 @@ jobs:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           "$PYTHON_BINARY" -m pip install .[test]
-      
-      - name: Determine Cython cache dir
-        id: cython-cache
-        run: |
-          CACHE_DIR=$(python -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
-          echo "Cython cache dir: $CACHE_DIR"
-          echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
-
-      - name: restore Cython cache
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        if: ${{ ! matrix.standalone }}
-        with:
-          key: cython-extensions-${{ matrix.os.image }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
-          path: ${{ steps.cython-cache.outputs.cachedir }}
 
       - name: Run Tests      
         run: |
           cd  $GITHUB_WORKSPACE/.. && \
-          "$PYTHON_BINARY" -c 'import brian2; brian2.set_device("cpp_standalone", with_output=True, debug=True, build_on_run=False); from brian2.tests.test_GSL import test_GSL_x_variable; test_GSL_x_variable(); brian2.device.build()'
-          cd D:/a/brian2/output/output/code_objects
-          for f in *.cpp; do echo $f; cat $f; done
+          "$PYTHON_BINARY" -c 'import brian2; brian2.set_device("cpp_standalone", with_output=True, debug=True); from brian2.tests.test_GSL import test_GSL_x_variable; test_GSL_x_variable()'
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           SPHINX_DIR: ${{ github.workspace }}/docs_sphinx
