@@ -12,7 +12,7 @@ gsl_odeiv2_system _sys;
 _sys.function = _GSL_func;
 set_dimension(&_sys.dimension);
 _sys.params = &_GSL_dataholder;
-
+std::cerr << "Creating GSL driver" << std::endl;
 gsl_odeiv2_driver * _GSL_driver =
         gsl_odeiv2_driver_alloc_scaled_new(&_sys,gsl_odeiv2_step_{{GSL_settings['integrator']}},
                                           {{GSL_settings['dt_start']}}, 1, 0, 0, 0, _GSL_scale_array);
@@ -20,6 +20,7 @@ if (_GSL_driver == NULL) {
     fprintf(stderr, "Failed to allocate GSL driver\n");
     exit(1);
 }
+std::cerr << "Setting GSL driver parameters" << std::endl;
 gsl_odeiv2_driver_set_nmax(_GSL_driver, {{GSL_settings['max_steps']}});
 gsl_odeiv2_driver_set_hmax(_GSL_driver, {{GSL_settings['dt_start']}});
 // This allows everything to work correctly for synapses where N is not a
@@ -32,6 +33,7 @@ const double dt = {{dt_array}};
 {% endif %}
 {{scalar_code['GSL']|autoindent}}
 
+std::cerr << "Starting update loop" << std::endl;
 for(int _idx=0; _idx<_N; _idx++)
 {
     // vector code
@@ -73,5 +75,7 @@ for(int _idx=0; _idx<_N; _idx++)
     {% endif %}
     _empty_y_vector(&_GSL_dataholder, _GSL_y, _idx);
 }
+std::cerr << "Freeing driver" << std::endl;
 gsl_odeiv2_driver_free(_GSL_driver);
+std::cerr << "End update" << std::endl;
 {% endblock %}

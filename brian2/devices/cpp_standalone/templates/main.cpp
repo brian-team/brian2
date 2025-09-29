@@ -46,6 +46,7 @@ void _int_handler(int signal_num) {
 
 int main(int argc, char **argv)
 {
+	std::cerr << "Starting main" << std::endl;
 	{% if prefs.core.stop_on_keyboard_interrupt %}
 	std::signal(SIGINT, _int_handler);
 	{% endif %}
@@ -60,14 +61,17 @@ int main(int argc, char **argv)
 		args.erase(args.begin(), args.begin()+2);
 	}
     {{'\n'.join(code_lines['before_start'])|autoindent}}
+	std::cerr << "Brian start" << std::endl;
 	brian_start();
     {{'\n'.join(code_lines['after_start'])|autoindent}}
 	{
 		using namespace brian;
 
 		{{ openmp_pragma('set_num_threads') }}
+		std::cerr << "Main lines" << std::endl;
         {{main_lines|autoindent}}
 	}
+	std::cerr << "Brian end" << std::endl;
     {{'\n'.join(code_lines['before_end'])|autoindent}}
 	brian_end();
     {{'\n'.join(code_lines['after_end'])|autoindent}}
