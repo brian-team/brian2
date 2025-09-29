@@ -1292,6 +1292,7 @@ class CPPStandaloneDevice(Device):
             if os.name == "nt":
                 start_time = time.time()
                 Network._globally_running = True
+                print("PATH: ", os.environ["PATH"])
                 x = subprocess.call(["main"] + run_args, stdout=stdout)
                 self.timers["run_binary"] = time.time() - start_time
                 Network._globally_running = False
