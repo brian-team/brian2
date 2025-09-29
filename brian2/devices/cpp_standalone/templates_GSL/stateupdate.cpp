@@ -16,6 +16,10 @@ _sys.params = &_GSL_dataholder;
 gsl_odeiv2_driver * _GSL_driver =
         gsl_odeiv2_driver_alloc_scaled_new(&_sys,gsl_odeiv2_step_{{GSL_settings['integrator']}},
                                           {{GSL_settings['dt_start']}}, 1, 0, 0, 0, _GSL_scale_array);
+if (_GSL_driver == NULL) {
+    fprintf(stderr, "Failed to allocate GSL driver\n");
+    exit(1);
+}
 gsl_odeiv2_driver_set_nmax(_GSL_driver, {{GSL_settings['max_steps']}});
 gsl_odeiv2_driver_set_hmax(_GSL_driver, {{GSL_settings['dt_start']}});
 // This allows everything to work correctly for synapses where N is not a
