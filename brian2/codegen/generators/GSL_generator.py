@@ -1110,7 +1110,7 @@ class GSLCPPCodeGenerator(GSLCodeGenerator):
     syntax = {
         "end_statement": ";",
         "access_pointer": "->",
-        "start_declare": 'extern "C" ',
+        "start_declare": "",
         "open_function": "\n{",
         "open_struct": "\n{",
         "end_function": "\n}",
@@ -1159,3 +1159,14 @@ class GSLCPPCodeGenerator(GSLCodeGenerator):
                 return f"_GSL_dataholder.{var_obj.name} = {var_obj.name};"
             else:
                 return ""
+
+    def make_function_code(self, lines):
+        # To pass constants that might be used in the function, we need to
+        # add a %CONSTANTS% placeholder that will be replaced by the standalone
+        # device
+        return """
+        // CONSTANTS
+        %CONSTANTS%
+        """ + super().make_function_code(
+            lines
+        )

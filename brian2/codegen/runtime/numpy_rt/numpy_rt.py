@@ -200,11 +200,6 @@ class NumpyCodeObject(CodeObject):
         )
         self.variables_to_namespace()
 
-    @classmethod
-    def is_available(cls):
-        # no test necessary for numpy
-        return True
-
     def variables_to_namespace(self):
         # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the

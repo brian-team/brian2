@@ -144,7 +144,10 @@ class Templater:
         self.templates = LazyTemplateLoader(self.env, extension)
 
     def __getattr__(self, item):
-        return self.templates.get_template(item)
+        try:
+            return self.templates.get_template(item)
+        except KeyError as ex:
+            raise AttributeError from ex  # raise the correct error type for __getattr__
 
     def derive(
         self, package_name, extension=None, env_globals=None, templates_dir="templates"

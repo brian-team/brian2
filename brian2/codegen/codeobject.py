@@ -5,6 +5,7 @@ Module providing the base `CodeObject` and related functions.
 import collections
 import copy
 import platform
+from abc import ABC, abstractmethod
 
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
@@ -42,7 +43,7 @@ def constant_or_scalar(varname, variable):
         return f"{varname}"
 
 
-class CodeObject(Nameable):
+class CodeObject(Nameable, ABC):
     """
     Executable code object.
 
@@ -105,9 +106,7 @@ class CodeObject(Nameable):
         Whether this target for code generation is available. Should use a
         minimal example to check whether code generation works in general.
         """
-        raise NotImplementedError(
-            f"CodeObject class {cls.__name__} is missing an 'is_available' method."
-        )
+        return True
 
     def update_namespace(self):
         """
@@ -117,8 +116,8 @@ class CodeObject(Nameable):
         """
         pass
 
-    def compile_block(self, block):
-        raise NotImplementedError("Implement compile_block method")
+    @abstractmethod
+    def compile_block(self, block): ...
 
     def compile(self):
         for block in ["before_run", "run", "after_run"]:
@@ -130,8 +129,8 @@ class CodeObject(Nameable):
 
         return self.run()
 
-    def run_block(self, block):
-        raise NotImplementedError("Implement run_block method")
+    @abstractmethod
+    def run_block(self, block): ...
 
     def before_run(self):
         """
