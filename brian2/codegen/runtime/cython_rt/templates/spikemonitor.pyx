@@ -33,7 +33,7 @@
             {{ scalar_code|autoindent }}
             _curlen = {{N}}
             _newlen = _curlen + _num_events
-            # Resize the C++ arrays directly - earlier we called spikemoniter's resize function which did resizing using python indirection
+            # Resize the C++ arrays directly, avoiding Python indirection for efficiency
             {% for varname, var in record_variables | dictsort %}
             {% set dyn_array_name = get_array_name(var, access_data=False) %}
             {{dyn_array_name}}_ptr.resize(_newlen)
