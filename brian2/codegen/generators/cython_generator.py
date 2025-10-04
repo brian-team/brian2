@@ -65,9 +65,6 @@ def get_dynamic_array_cpp_type(var):
 
 def get_capsule_type(var):
     """Get the capsule type name for PyCapsule_GetPointer"""
-    if not hasattr(var, "ndim"):
-        raise ValueError(f"Variable {var.name} does not have ndim attribute")
-
     if var.ndim == 1:
         return "DynamicArray1D"
     elif var.ndim == 2:
@@ -384,10 +381,7 @@ class CythonCodeGenerator(CodeGenerator):
             elif isinstance(var, Variable):
                 if var.dynamic:
                     if isinstance(var, DynamicArrayVariable):
-                        # We're dealing with a dynamic array (like synaptic connections that grow during simulation)
-                        # For these arrays, we want BLAZING FAST access, so we'll create direct C++ pointers
-                        # This bypasses all Python overhead and gives us pure C++ speed!
-
+                        # Uses direct C++ pointers for fast access, avoiding Python overhead.
                         # We define unique names for the array object, its pointer, and the capsule.
                         dyn_array_name = self.get_array_name(var, access_data=False)
 
@@ -425,7 +419,8 @@ class CythonCodeGenerator(CodeGenerator):
                     continue
                 if isinstance(var, DynamicArrayVariable):
                     # For Dynamic Arrays, we get the data pointer directly from the C++ object
-                    # This works for all types, including bools, because the C++ class handles the type correctly.
+                    # The C++ DynamicArray class handles bool types correctly when we provide
+                    # them as char (unlike non-dynamic arrays which require special Cython buffer handling).
                     cpp_dtype = get_cpp_dtype(var.dtype)
                     if get_dtype_str(var.dtype) == "bool":
                         # Use char for boolean dynamic arrays
@@ -438,8 +433,6 @@ class CythonCodeGenerator(CodeGenerator):
                         )
                     ]
                 else:
-                    if getattr(var, "ndim", 1) > 1:
-                        continue  # multidimensional (dynamic) arrays have to be treated differently
                     if get_dtype_str(var.dtype) == "bool":
                         newlines = [
                             (
