@@ -8,12 +8,7 @@
 #include <cstring>
 #include <cassert>
 
-// NOTE : using std::vector<T> in our code, and everything works fine until we use it with T = bool.
-// Because std::vector<bool> is not like other vectors.Normally, a vector like std::vector<int> or std::vector<float> ,
-// stores items in a normal array. So it can give a pointer to its raw data using .data() ( as method we defined in class).
-// But for bool, C++ tries to optimize and save memory by packing all the boolean values tightly — 1 bit per value, instead of 1 byte.
-// That means we can’t get a real pointer to each individual boolean anymore, since pointers work on bytes, not bits :(
-// So C++ deletes the .data() function for std::vector<bool> to prevent misuse.
+// NOTE : using std::vector<bool> is bit-packed and doesn’t support .data(), unlike other std::vector<T>.
 
 /**
  * A simple 1D dynamic array that grows efficiently over time.
@@ -53,7 +48,7 @@ public:
         m_data.resize(initial_size,T(0));
     }
 
-    ~DynamicArray1D(){}; // note earlier we needed a destructor properly because we had a vector of pointers ...
+    ~DynamicArray1D(){};
 
     /**
      * @brief Resizes the array to a new logical size.
@@ -487,9 +482,9 @@ public:
     // mixed-type overloads to resolve ambiguity
     inline T &operator()(size_t i, int j) { return operator()(i, static_cast<size_t>(j));}
     inline T &operator()(int i, size_t j) { return operator()(static_cast<size_t>(i), j);}
+
     /**
      * @brief Returns a copy of row i as std::vector<T>.
-     * @note This is a copy; for slicing without copy, consider returning a view.
      */
     std::vector<T> operator()(size_t i) const
     {
