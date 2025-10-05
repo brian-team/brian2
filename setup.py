@@ -41,13 +41,13 @@ spike_queue_ext = require_cython_extension(
 
 extensions.append(spike_queue_ext)
 
-dyanamic_array_ext = require_cython_extension(
+dynamic_array_ext = require_cython_extension(
     module_path=["brian2", "memory"],
     module_name="cythondynamicarray",
     extra_include_dirs=["brian2/devices/cpp_standalone/brianlib"]
 )
 
-extensions.append(dyanamic_array_ext)
+extensions.append(dynamic_array_ext)
 
 
 setup(ext_modules=extensions)
