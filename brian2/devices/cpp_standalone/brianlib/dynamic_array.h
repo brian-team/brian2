@@ -338,7 +338,7 @@ public:
             {
                 for (size_t i =0; i< copy_rows; i++)
                 {
-                    for (size_t j =0; j < m_buffer_cols; ++j) // ++j does not create a copy — it just increments and returns the reference , for iterators and classes, ++j can be significantly faster.
+                    for (size_t j =0; j < m_buffer_cols; ++j)
                     {
                         new_buf[i*m_buffer_cols +j] = m_buffer[index(i,j)];
                     }
