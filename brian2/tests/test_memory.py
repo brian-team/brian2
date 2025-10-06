@@ -150,6 +150,7 @@ if __name__ == "__main__":
     test_dynamic_array_1d_resize_down_up()
     test_dynamic_array_1d_shrink()
     test_dynamic_array_2d_access()
-    test_dynamic_array_2d_resize_up_down()
+    test_dynamic_array_2d_resize_rows_only()
+    test_dynamic_array_2d_resize_columns_fails()
     test_dynamic_array_2d_resize_down_up()
     test_dynamic_array_2d_shrink()
