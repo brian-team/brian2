@@ -337,21 +337,10 @@ cdef class DynamicArray2DClass:
             return (<DynamicArray2DCpp[char]*>self.thisptr).stride()
         return 0
 
-    def resize(self, tuple new_shape):
-        """Resize array to new shape"""
-        cdef size_t new_rows = new_shape[0]
-        cdef size_t new_cols = new_shape[1]
-
-        if self.dtype == np.float64:
-            (<DynamicArray2DCpp[double]*>self.thisptr).resize(new_rows, new_cols)
-        elif self.dtype == np.float32:
-            (<DynamicArray2DCpp[float]*>self.thisptr).resize(new_rows, new_cols)
-        elif self.dtype == np.int32:
-            (<DynamicArray2DCpp[int32_t]*>self.thisptr).resize(new_rows, new_cols)
-        elif self.dtype == np.int64:
-            (<DynamicArray2DCpp[int64_t]*>self.thisptr).resize(new_rows, new_cols)
-        elif self.dtype == np.bool_:
-            (<DynamicArray2DCpp[char]*>self.thisptr).resize(new_rows, new_cols)
+    def resize(self, new_shape):
+        if isinstance(new_shape, (tuple, list)) and new_shape[1] != self.get_cols():
+            raise ValueError("Resizing is only supported along the first dimension")
+        self.resize_along_first(new_shape)
 
     def resize_along_first(self, new_shape):
         """Resize along first dimension (rows), keeping columns unchanged"""
