@@ -502,25 +502,24 @@ class SynapticPathway(CodeRunner, Group):
         """
         _, spike_array, __ = python_state
 
-        # The Cython format uses a circular buffer approach
-        # So We need to extract the actual spikes and organize them by time slots
-        max_delay_slots = spike_array.shape[0] if len(spike_array.shape) > 0 else 1
-        spike_lists = [[] for _ in range(max_delay_slots)]
+        if not spike_array.any():
+            return (0, [])
 
-        # Convert the 2D spike array to lists of spikes per time slot
-        if spike_array.size > 0:
-            for delay_slot in range(spike_array.shape[0]):
-                for spike_idx in range(spike_array.shape[1]):
-                    neuron_id = spike_array[delay_slot][spike_idx]
-                    if (
-                        neuron_id >= 0
-                    ):  # Valid neuron ID (negative values often indicate empty slots)
-                        spike_lists[delay_slot].append(int(neuron_id))
+        # The first column contains the delay slots, the second the snyapse indexes that would be triggered
+        delay_slots = spike_array[:, 0]
+        synapse_indexes = spike_array[:, 1]
+
+        # Now we'll determine the size of the new queue by the maximum delay
+        max_delay = np.max(delay_slots)
+        new_queue = [[] for _ in range(max_delay + 1)]
+
+        for delay, synapse_idx in zip(delay_slots, synapse_indexes):
+            new_queue[delay].append(synapse_idx)
 
         # The offset in Cython format represents the current position in the circular buffer
         # For a newly converted queue, we typically start at offset 0
         offset = 0
-        return (offset, spike_lists)
+        return (offset, new_queue)
 
     def push_spikes(self):
         # Push new events (e.g. spikes) into the queue
