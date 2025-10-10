@@ -394,6 +394,16 @@ class EventMonitor(Group, CodeRunner):
         classname = self.__class__.__name__
         return f"<{classname}, recording event '{self.event}' from '{self.group.name}'>"
 
+    def after_run(self):
+        super().after_run()
+        # In Cython runtime mode, we directly update the underlying dynamic array,
+        # so the size attribute of the Variable does not get updated automatically
+        for var in self.record_variables:
+            try:
+                self.variables[var].size = len(self.variables[var].get_value())
+            except NotImplementedError:
+                pass  # Does not apply to standalone mode
+
 
 class SpikeMonitor(EventMonitor):
     """

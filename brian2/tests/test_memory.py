@@ -60,12 +60,12 @@ def test_dynamic_array_1d_shrink():
         assert len(da) == 5
         assert all(da[:] == np.arange(5))
         # After using shrink, the underlying array should have changed
-        assert len(da._data) == 5
+        assert len(da.data) == 5
 
 
 @pytest.mark.codegen_independent
 def test_dynamic_array_2d_access():
-    da = DynamicArray1D((10, 20))
+    da = DynamicArray((10, 20))
     da[:, :] = np.arange(200).reshape((10, 20))
     assert da[5, 10] == 5 * 20 + 10
     assert da.shape == (10, 20)
@@ -77,22 +77,39 @@ def test_dynamic_array_2d_access():
 
 
 @pytest.mark.codegen_independent
-def test_dynamic_array_2d_resize_up_down():
+def test_dynamic_array_2d_resize_rows_only():
     for numpy_resize in [True, False]:
         da = DynamicArray((10, 20), use_numpy_resize=numpy_resize, refcheck=False)
         da[:, :] = np.arange(200).reshape((10, 20))
+        # Resize rows up
         da.resize((15, 20))
         assert da.shape == (15, 20)
         assert_equal(da[10:, :], np.zeros((5, 20)))
         assert_equal(da[:10, :], np.arange(200).reshape((10, 20)))
-        da.resize((15, 25))
-        assert da.shape == (15, 25)
-        assert_equal(da[:10, 20:], np.zeros((10, 5)))
-        assert_equal(da[:10, :20], np.arange(200).reshape((10, 20)))
 
+        # Resize rows down
+        da.resize((10, 20))
         da.resize((10, 20))
         assert da.shape == (10, 20)
         assert_equal(da[:, :], np.arange(200).reshape((10, 20)))
+
+
+@pytest.mark.codegen_independent
+def test_dynamic_array_2d_resize_columns_fails():
+    da = DynamicArray((10, 20))
+    da[:, :] = np.arange(200).reshape((10, 20))
+
+    # Attempting to resize columns should raise ValueError
+    with pytest.raises(
+        ValueError, match="Resizing is only supported along the first dimension"
+    ):
+        da.resize((10, 25))
+
+    # Attempting to resize both dimensions should also raise ValueError
+    with pytest.raises(
+        ValueError, match="Resizing is only supported along the first dimension"
+    ):
+        da.resize((15, 25))
 
 
 @pytest.mark.codegen_independent
@@ -100,14 +117,12 @@ def test_dynamic_array_2d_resize_down_up():
     for numpy_resize in [True, False]:
         da = DynamicArray((10, 20), use_numpy_resize=numpy_resize, refcheck=False)
         da[:, :] = np.arange(200).reshape((10, 20))
+
+        # Resize rows down
         da.resize((5, 20))
         assert da.shape == (5, 20)
         assert_equal(da, np.arange(100).reshape((5, 20)))
-        da.resize((5, 15))
-        assert da.shape == (5, 15)
-        for row_idx, row in enumerate(da):
-            assert_equal(row, 20 * row_idx + np.arange(15))
-
+        # Resize rows back up
         da.resize((10, 20))
         assert da.shape == (10, 20)
         for row_idx, row in enumerate(da[:5, :15]):
@@ -123,7 +138,7 @@ def test_dynamic_array_2d_shrink():
         da.shrink((5, 15))
         assert da.shape == (5, 15)
         # After using shrink, the underlying array should have changed
-        assert da._data.shape == (5, 15)
+        assert da.data.shape == (5, 15)
         assert_equal(
             da[:, :], np.arange(15).reshape((1, 15)) + 20 * np.arange(5).reshape((5, 1))
         )
@@ -135,6 +150,7 @@ if __name__ == "__main__":
     test_dynamic_array_1d_resize_down_up()
     test_dynamic_array_1d_shrink()
     test_dynamic_array_2d_access()
-    test_dynamic_array_2d_resize_up_down()
+    test_dynamic_array_2d_resize_rows_only()
+    test_dynamic_array_2d_resize_columns_fails()
     test_dynamic_array_2d_resize_down_up()
     test_dynamic_array_2d_shrink()

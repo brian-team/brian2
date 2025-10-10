@@ -5,6 +5,7 @@ from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import (
     AuxiliaryVariable,
     Constant,
+    DynamicArrayVariable,
     Subexpression,
     Variable,
     get_dtype_str,
@@ -42,6 +43,36 @@ def get_cpp_dtype(obj):
 
 def get_numpy_dtype(obj):
     return numpy_dtype[get_dtype_str(obj)]
+
+
+def get_dynamic_array_cpp_type(var):
+    """Get the full templated C++ type for a DynamicArrayVariable"""
+    cpp_dtype = get_cpp_dtype(var.dtype)  # e.g., 'double', 'int32_t', 'float'
+
+    # Special handling for bool - use char instead
+    if get_dtype_str(var.dtype) == "bool":
+        cpp_dtype = "char"
+
+    if var.ndim == 1:
+        return f"DynamicArray1DCpp[{cpp_dtype}]"  # Returns "DynamicArray1DCpp[double]"
+    elif var.ndim == 2:
+        return f"DynamicArray2DCpp[{cpp_dtype}]"  # Returns "DynamicArray2DCpp[double]"
+    else:
+        raise ValueError(
+            f"Unsupported dynamic array dimension: {var.ndim}. Only 1D and 2D arrays are supported."
+        )
+
+
+def get_capsule_type(var):
+    """Get the capsule type name for PyCapsule_GetPointer"""
+    if var.ndim == 1:
+        return "DynamicArray1D"
+    elif var.ndim == 2:
+        return "DynamicArray2D"
+    else:
+        raise ValueError(
+            f"Unsupported dynamic array dimension: {var.ndim}. Only 1D and 2D arrays are supported."
+        )
 
 
 class CythonNodeRenderer(NodeRenderer):
@@ -178,6 +209,7 @@ class CythonCodeGenerator(CodeGenerator):
             line = (
                 f"{self.get_array_name(var, self.variables)}[{index_var}] = {varname}"
             )
+
             lines.append(line)
         return lines
 
@@ -348,40 +380,81 @@ class CythonCodeGenerator(CodeGenerator):
                 load_namespace.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:
-                    pointer_name = self.get_array_name(var, False)
-                    load_namespace.append(
-                        f'{pointer_name} = _namespace["{pointer_name}"]'
-                    )
+                    if isinstance(var, DynamicArrayVariable):
+                        # Uses direct C++ pointers for fast access, avoiding Python overhead.
+                        # We define unique names for the array object, its pointer, and the capsule.
+                        dyn_array_name = self.get_array_name(var, access_data=False)
+
+                        if dyn_array_name in handled_pointers:
+                            continue
+
+                        capsule_name = f"{dyn_array_name}_capsule"
+
+                        # Get the C++ type for accurate casting (e.g., "DynamicArray1DCpp[double]").
+                        cpp_type = get_dynamic_array_cpp_type(var)
+
+                        # Generate Cython code to retrieve the C++ pointer from the capsule.
+                        # This is a two-step process in Cython:
+                        # 1. Look up the capsule object in the provided namespace.
+                        # 2. Unwrap the raw C++ pointer from the capsule for direct C++ object access.
+                        load_namespace.append(
+                            f'cdef object {capsule_name} = _namespace["{capsule_name}"]'
+                        )
+                        load_namespace.append(
+                            f"cdef {cpp_type}* {dyn_array_name}_ptr = "
+                            f'<{cpp_type}*>PyCapsule_GetPointer({capsule_name}, "{get_capsule_type(var)}")'
+                        )
+                        handled_pointers.add(dyn_array_name)
+                    else:
+                        pointer_name = self.get_array_name(var, False)
+                        load_namespace.append(
+                            f'{pointer_name} = _namespace["{pointer_name}"]'
+                        )
 
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
                 pointer_name = self.get_array_name(var)
+                dyn_array_name = self.get_array_name(var, access_data=False)
                 if pointer_name in handled_pointers:
                     continue
-                if getattr(var, "ndim", 1) > 1:
-                    continue  # multidimensional (dynamic) arrays have to be treated differently
-                if get_dtype_str(var.dtype) == "bool":
+                if isinstance(var, DynamicArrayVariable):
+                    # For Dynamic Arrays, we get the data pointer directly from the C++ object
+                    # The C++ DynamicArray class handles bool types correctly when we provide
+                    # them as char (unlike non-dynamic arrays which require special Cython buffer handling).
+                    cpp_dtype = get_cpp_dtype(var.dtype)
+                    if get_dtype_str(var.dtype) == "bool":
+                        # Use char for boolean dynamic arrays
+                        cpp_dtype = "char"
+
                     newlines = [
                         (
-                            "cdef _numpy.ndarray[char, ndim=1, mode='c', cast=True]"
-                            " _buf_{array_name} = _namespace['{array_name}']"
-                        ),
-                        (
-                            "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *>"
-                            " _buf_{array_name}.data"
-                        ),
+                            f"cdef {cpp_dtype}* {array_name} = <{cpp_dtype}*>"
+                            f" {dyn_array_name}_ptr.get_data_ptr()"
+                        )
                     ]
                 else:
-                    newlines = [
-                        (
-                            "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c']"
-                            " _buf_{array_name} = _namespace['{array_name}']"
-                        ),
-                        (
-                            "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *>"
-                            " _buf_{array_name}.data"
-                        ),
-                    ]
+                    if get_dtype_str(var.dtype) == "bool":
+                        newlines = [
+                            (
+                                "cdef _numpy.ndarray[char, ndim=1, mode='c', cast=True]"
+                                " _buf_{array_name} = _namespace['{array_name}']"
+                            ),
+                            (
+                                "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *>"
+                                " _buf_{array_name}.data"
+                            ),
+                        ]
+                    else:
+                        newlines = [
+                            (
+                                "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c']"
+                                " _buf_{array_name} = _namespace['{array_name}']"
+                            ),
+                            (
+                                "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *>"
+                                " _buf_{array_name}.data"
+                            ),
+                        ]
 
                 if not var.scalar:
                     newlines += [
@@ -399,6 +472,7 @@ class CythonCodeGenerator(CodeGenerator):
                         numpy_dtype=get_numpy_dtype(var.dtype),
                         pointer_name=pointer_name,
                         array_name=array_name,
+                        dyn_array_name=dyn_array_name,
                         varname=varname,
                     )
                     load_namespace.append(line)

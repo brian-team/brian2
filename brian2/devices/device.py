@@ -324,6 +324,7 @@ class Device:
         scalar_code, vector_code, kwds = generator.translate(
             abstract_code, dtype=prefs["core.default_float_dtype"]
         )
+
         # Add the array names as keywords as well
         for varname, var in variables.items():
             if isinstance(var, ArrayVariable):
@@ -334,6 +335,9 @@ class Device:
                 if hasattr(var, "resize"):
                     dyn_array_name = generator.get_array_name(var, access_data=False)
                     template_kwds[f"_dynamic_{varname}"] = dyn_array_name
+                    template_kwds[f"_dynamic_{varname}_ptr"] = (
+                        f"{dyn_array_name}_ptr"  # so we can access the right name of dynamic array pointer
+                    )
 
         template_kwds.update(kwds)
         logger.diagnostic(
@@ -342,7 +346,6 @@ class Device:
         logger.diagnostic(
             f"{name} snippet (vector):\n{indent(code_representation(vector_code))}"
         )
-
         code = template(
             scalar_code,
             vector_code,
@@ -505,6 +508,7 @@ class RuntimeDevice(Device):
                 return f"_array_{owner_name}_{var.name}"
             else:
                 return f"_dynamic_array_{owner_name}_{var.name}"
+
         elif isinstance(var, ArrayVariable):
             return f"_array_{owner_name}_{var.name}"
         else:
@@ -527,6 +531,28 @@ class RuntimeDevice(Device):
             return self.arrays[var].data
         else:
             return self.arrays[var]
+
+    def get_capsule(self, var):
+        """
+        Get a PyCapsule object for direct C++ pointer access to dynamic arrays.
+
+        Parameters
+        ----------
+        var : DynamicArrayVariable
+            The dynamic array variable to get the capsule for.
+
+        Returns
+        -------
+        capsule : PyCapsule
+            A PyCapsule containing the C++ pointer to the dynamic array.
+        """
+        if not isinstance(var, DynamicArrayVariable):
+            raise TypeError(
+                f"get_capsule only supports DynamicArrayVariable, got {type(var)}"
+            )
+
+        array_obj = self.arrays[var]
+        return array_obj.get_capsule()
 
     def set_value(self, var, value):
         self.arrays[var][:] = value
