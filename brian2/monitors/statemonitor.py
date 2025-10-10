@@ -430,6 +430,13 @@ class StateMonitor(Group, CodeRunner):
         super().after_run()
         # In Cython runtime mode, we directly update the underlying dynamic array,
         # so the size attribute of the Variable does not get updated automatically
+
+        # Update the time variable also ( as it is not in record_variables)
+        try:
+            self.variables["t"].size = len(self.variables["t"].get_value())
+        except (KeyError, NotImplementedError):
+            pass
+
         for var in self.record_variables:
             try:
                 self.variables[var].size = len(self.variables[var].get_value())
