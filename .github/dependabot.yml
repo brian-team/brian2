@@ -6,9 +6,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      time: "01:00"
 
   # Maintain dependencies for the dev container
   - package-ecosystem: "devcontainers"
     directory: "/"
     schedule:
       interval: "weekly"
+      time: "01:30"
