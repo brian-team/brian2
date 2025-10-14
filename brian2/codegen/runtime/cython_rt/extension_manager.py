@@ -304,12 +304,12 @@ class CythonExtensionManager:
             build_extension = self._get_build_extension(compiler=compiler)
             try:
                 opts = dict(
-                    quiet=True,
+                    quiet=False,
                     annotate=False,
                     force=True,
                 )
                 # suppresses the output on stdout
-                with std_silent():
+                with std_silent(True):
                     build_extension.extensions = Cython_Build.cythonize(
                         [extension] + final_sources, **opts
                     )
