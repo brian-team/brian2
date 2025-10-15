@@ -7,9 +7,9 @@ clean:
 
 {% for fname, base in zip(source_files, source_bases) | sort(attribute='0')%}
 {{base}}.obj: win_makefile
-    cl /c /EHsc /DLL /I. {{compiler_flags}} {{openmp_flag}} {{fname}} /Fo{{base}}.obj {{compiler_debug_flags}}
+    cl /c /EHsc /DLL /INCREMENTAL:NO /LTCG /MANIFEST:EMBED,ID=2 /MANIFESTUAC:NO /I. {{compiler_flags}} {{openmp_flag}} {{fname}} /Fo{{base}}.obj {{compiler_debug_flags}}
     
 {% endfor %}
 
 main.exe: {% for base in source_bases | sort%}{{base}}.obj {% endfor %} win_makefile sourcefiles.txt
-    link @sourcefiles.txt {{linker_flags}} /LIBPATH:. /OUT:main.exe {{linker_debug_flags}}
+    link @sourcefiles.txt {{linker_flags}} /MANIFEST:EMBED,ID=1 /LIBPATH:. /OUT:main.exe {{linker_debug_flags}}
