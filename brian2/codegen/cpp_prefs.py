@@ -176,10 +176,6 @@ prefs.register_preferences(
     ),
     extra_compile_args_msvc=BrianPreference(
         default=[
-            "/Ox",
-            "/w",
-            msvc_arch_flag,
-            "/MP",
             "/nologo",
             "/O2",
             "/W3",
