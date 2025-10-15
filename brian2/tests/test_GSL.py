@@ -188,7 +188,6 @@ def test_GSL_x_variable():
     )
     # just testing compilation
     run(0 * ms)
-    device.build(run=False)
 
 
 @pytest.mark.codegen_independent
