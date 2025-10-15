@@ -305,7 +305,7 @@ class CythonExtensionManager:
             try:
                 opts = dict(
                     quiet=False,
-                    verbose=2,
+                    verbose=3,
                     annotate=False,
                     force=True,
                 )
