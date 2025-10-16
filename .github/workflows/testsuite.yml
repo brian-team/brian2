@@ -85,6 +85,8 @@ jobs:
       - name: Run Tests
         run: |
           ls "D:\a\brian2\brian2\vcpkg\installed\x64-windows\lib"
+          cat "D:\a\brian2\brian2\vcpkg\installed\x64-windows\lib\pkgconfig"
+          ar tv "D:\a\brian2\brian2\vcpkg\installed\x64-windows\lib\gsl.lib"
           cd  $GITHUB_WORKSPACE/..
           "$PYTHON_BINARY" -c 'import brian2; brian2.set_device("cpp_standalone"); from brian2.tests.test_GSL import test_GSL_x_variable; test_GSL_x_variable()'
         env:
