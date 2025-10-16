@@ -109,6 +109,16 @@ class GSLContainer:
                     device.library_dirs += [
                         os.path.abspath(os.path.join(prefs.GSL.directory, "..", "lib"))
                     ]
+                    if os.name == "nt":
+                        # Add DLL directory to path
+                        old_path = os.environ.get("PATH", "")
+                        device.run_environment_variables["PATH"] = (
+                            os.path.abspath(
+                                os.path.join(prefs.GSL.directory, "..", "bin")
+                            )
+                            + ";"
+                            + old_path
+                        )
             return GSLCPPStandaloneCodeObject
 
         elif isinstance(device, RuntimeDevice):
