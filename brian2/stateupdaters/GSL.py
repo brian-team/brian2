@@ -113,7 +113,7 @@ class GSLContainer:
                         old_path = os.environ.get("PATH", "")
                         device.run_environment_variables["PATH"] = (
                             os.path.abspath(
-                                os.path.join(prefs.GSL.directory, "..", "lib")
+                                os.path.join(prefs.GSL.directory, "..", "bin")
                             )
                             + ";"
                             + old_path
