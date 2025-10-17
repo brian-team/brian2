@@ -1159,6 +1159,62 @@ def test_store_restore():
     assert defaultclock.t == 10 * ms
     assert net.t == 10 * ms
 
+    # Now we do a regression test for backwards compatibility to test restore from Python spike queue format
+    import os
+
+    test_file = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "python_spikequeue_test_network_test_store_restore.pkl",
+    )
+
+    if os.path.exists(test_file):
+        # We first create a fresh network with monitors to track the behaviour
+        source2 = NeuronGroup(
+            10,
+            """dv/dt = rates : 1
+               rates : Hz""",
+            threshold="v>1",
+            reset="v=0",
+        )
+        source2.rates = "i*100*Hz"
+        target2 = NeuronGroup(10, "v:1")
+        synapses2 = Synapses(source2, target2, model="w:1", on_pre="v+=w")
+        synapses2.connect(j="i")
+        synapses2.w = "i*1.0"
+        synapses2.delay = "i*ms"
+        state_mon2 = StateMonitor(target2, "v", record=True)
+        spike_mon2 = SpikeMonitor(source2)
+        net2 = Network(source2, target2, synapses2, state_mon2, spike_mon2)
+
+        # Restore from Python spike queue state (at 10ms)
+        net2.restore(filename=test_file)
+
+        # Verify time was restored correctly
+        assert net2.t == 10 * ms
+        assert defaultclock.t == 10 * ms
+
+        # Continue running from 10ms to 20ms (same as the original test)
+        net2.run(10 * ms)
+
+        # The results should match the original run from 10ms to 20ms
+        # Compare with the v_values from the original complete 20ms run
+        assert_equal(
+            v_values,
+            state_mon2.v[:, :],
+            "Python spike queue restoration produced different results",
+        )
+        assert_equal(
+            spike_indices,
+            spike_mon2.i[:],
+            "Python spike queue restoration produced different spike indices",
+        )
+        assert_equal(
+            spike_times,
+            spike_mon2.t_[:],
+            "Python spike queue restoration produced different spike times",
+        )
+
 
 @pytest.mark.codegen_independent
 def test_store_restore_to_file():
