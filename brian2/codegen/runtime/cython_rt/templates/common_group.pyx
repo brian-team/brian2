@@ -46,6 +46,29 @@ cdef extern from "stdint_compat.h":
     cdef int int_(float)
     cdef int int_(double)
     cdef int int_(long double)
+
+# PyCapsule support for direct C++ pointer access
+from cpython.pycapsule cimport PyCapsule_GetPointer
+
+# Dynamic array C++ interface declarations
+cdef extern from "dynamic_array.h":
+    cdef cppclass DynamicArray1DCpp "DynamicArray1D"[T]:
+        void resize(size_t) except +
+        void shrink_to_fit()
+        T& operator[](size_t)
+        T* get_data_ptr()
+        size_t size()
+        size_t capacity()
+
+    cdef cppclass DynamicArray2DCpp "DynamicArray2D"[T]:
+        void resize(size_t, size_t) except +
+        void resize_along_first(size_t) except +
+        void shrink_to_fit()
+        T& operator()(size_t, size_t)
+        T* get_data_ptr()
+        size_t rows()
+        size_t cols()
+        size_t stride()
 {% endmacro %}
 
 {% macro before_run() %}
