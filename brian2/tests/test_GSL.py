@@ -21,6 +21,8 @@ def skip_if_not_implemented(func):
             prefs.codegen.target == "auto" and auto_target().class_name == "numpy"
         ):
             pytest.skip("GSL support for numpy has not been implemented yet")
+        else:
+            return func()
 
     return wrapped
 
