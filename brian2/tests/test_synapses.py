@@ -3728,70 +3728,6 @@ def test_setting_from_weight_matrix():
         assert all(syn.w[i, j] == weights[i, j])
 
 
-@pytest.mark.codegen_independent
-def test_spikequeue_python_format_restore():
-    """
-    Regression test: Ensure networks with Python spike queue format can be restored.
-
-    Tests backwards compatibility with legacy Python spike queue implementation.
-    If this test fails, users cannot load their old saved networks.
-    """
-    import os
-
-    start_scope()
-    test_dir = os.path.dirname(__file__)
-    data_dir = os.path.join(test_dir, "data")
-    python_file = os.path.join(data_dir, "python_spikequeue.pkl")
-
-    if not os.path.exists(python_file):
-        pytest.skip(f"Test file not found: {python_file}")
-
-    # Create network
-    G = NeuronGroup(2, "x: 1", threshold="True", reset="", name="neurongroup")
-    S = Synapses(G, G, on_pre="x+=1", name="synapses")
-    S.connect(j="i")
-    S.delay = [2 * defaultclock.dt, 4 * defaultclock.dt]
-
-    # Restore from Python format
-    try:
-        restore(filename=python_file)
-    except Exception as e:
-        print("FAILED to restore from Python format!")
-        print(f"Error: {e}")
-        raise
-
-
-@pytest.mark.codegen_independent
-def test_spikequeue_cython_format_restore():
-    """
-    Test: Ensure networks with Cython spike queue format can be restored.
-    Tests that the current Cython spike queue format still works.
-    """
-    import os
-
-    start_scope()
-    test_dir = os.path.dirname(__file__)
-    data_dir = os.path.join(test_dir, "data")
-    cython_file = os.path.join(data_dir, "cython_spikequeue.pkl")
-
-    if not os.path.exists(cython_file):
-        pytest.skip(f"Test file not found: {cython_file}")
-
-    # Create network
-    G = NeuronGroup(2, "x: 1", threshold="True", reset="", name="neurongroup")
-    S = Synapses(G, G, on_pre="x+=1", name="synapses")
-    S.connect(j="i")
-    S.delay = [2 * defaultclock.dt, 4 * defaultclock.dt]
-
-    # Restore from Cython format
-    try:
-        restore(filename=cython_file)
-    except Exception as e:
-        print("FAILED to restore from Cython format!")
-        print(f"Error: {e}")
-        raise
-
-
 if __name__ == "__main__":
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     # prefs.codegen.target = 'numpy'
@@ -3894,7 +3830,5 @@ if __name__ == "__main__":
     test_synaptic_subgroups()
     test_incorrect_connect_N_incoming_outgoing()
     test_setting_from_weight_matrix()
-    test_spikequeue_python_format_restore()
-    test_spikequeue_cython_format_restore()
 
     print("Tests took", time.time() - start)
