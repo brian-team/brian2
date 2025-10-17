@@ -65,20 +65,6 @@ jobs:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           "$PYTHON_BINARY" -m pip install .[test]
-      
-      - name: Determine Cython cache dir
-        id: cython-cache
-        run: |
-          CACHE_DIR=$(python -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
-          echo "Cython cache dir: $CACHE_DIR"
-          echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
-
-      - name: restore Cython cache
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        if: ${{ ! matrix.standalone }}
-        with:
-          key: cython-extensions-${{ matrix.os.image }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
-          path: ${{ steps.cython-cache.outputs.cachedir }}
 
       - name: Run Tests      
         run: |
