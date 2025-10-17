@@ -5,6 +5,7 @@ import pytest
 from brian2 import *
 from brian2.codegen.runtime.GSLcython_rt import IntegrationError
 from brian2.core.preferences import PreferenceError
+from brian2.devices.device import auto_target
 from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.tests.utils import exc_isinstance
 
@@ -16,15 +17,12 @@ pytestmark = pytest.mark.gsl
 def skip_if_not_implemented(func):
     @functools.wraps(func)
     def wrapped():
-        try:
-            func()
-        except (BrianObjectException, NotImplementedError) as exc:
-            if not (
-                isinstance(exc, NotImplementedError)
-                or isinstance(exc.__cause__, NotImplementedError)
-            ):
-                raise
+        if prefs.codegen.target == "numpy" or (
+            prefs.codegen.target == "auto" and auto_target().class_name == "numpy"
+        ):
             pytest.skip("GSL support for numpy has not been implemented yet")
+        else:
+            return func()
 
     return wrapped
 
