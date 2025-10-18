@@ -3830,4 +3830,5 @@ if __name__ == "__main__":
     test_synaptic_subgroups()
     test_incorrect_connect_N_incoming_outgoing()
     test_setting_from_weight_matrix()
+
     print("Tests took", time.time() - start)
