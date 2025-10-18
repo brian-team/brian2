@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from brian2.core.clocks import Clock
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
 from brian2.units.allunits import hertz, second
@@ -19,7 +18,7 @@ __all__ = ["PopulationRateMonitor", "RateMonitor"]
 logger = get_logger(__name__)
 
 
-class RateMonitor(CodeRunner, Group, Clock, ABC):
+class RateMonitor(CodeRunner, Group, ABC):
     """
     Abstract base class for monitors that record rates.
     """
@@ -78,9 +77,9 @@ class RateMonitor(CodeRunner, Group, Clock, ABC):
             The smoothed firing rate(s) in Hz. For EventMonitor subclasses,
             this returns a 2D array with shape (neurons, time_bins).
             For PopulationRateMonitor, this returns a 1D array.
-            Note that the rates are smoothed and not re-binned, i.e. the length
-            of the returned array is the same as the length of the binned data
-            and can be plotted against the bin centers from the ``binned`` method.
+            Note that the rates are smoothed at the original time step resolution (dt), not re-binned.
+            The length of the returned array equals the number of recorded time steps and
+            can be plotted against the original time values (e.g., self.t).
         """
         if width is None and isinstance(window, str):
             raise TypeError("Need a width when using a predefined window.")
