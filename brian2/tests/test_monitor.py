@@ -979,32 +979,32 @@ def test_monitor_str_repr():
 if __name__ == "__main__":
     from _pytest.outcomes import Skipped
 
-    # test_spike_monitor()
-    # test_spike_monitor_indexing()
-    # test_spike_monitor_get_states()
-    # test_spike_monitor_subgroups()
-    # try:
-    #     test_spike_monitor_bug_824()
-    # except Skipped:
-    #     pass
-    # test_spike_monitor_variables()
-    # test_event_monitor()
-    # test_event_monitor_no_record()
-    # test_spike_trains()
-    # test_synapses_state_monitor()
-    # test_state_monitor()
-    # test_state_monitor_record_single_timestep()
-    # test_state_monitor_get_states()
-    # test_state_monitor_indexing()
-    # test_state_monitor_resize()
-    # test_rate_monitor_1()
-    # test_rate_monitor_2()
-    # test_rate_monitor_smoothed_rate()
-    # test_rate_monitor_smoothed_rate_incorrect()
-    # test_rate_monitor_get_states()
-    # test_rate_monitor_subgroups()
-    # test_rate_monitor_subgroups_2()
-    # test_monitor_str_repr()
+    test_spike_monitor()
+    test_spike_monitor_indexing()
+    test_spike_monitor_get_states()
+    test_spike_monitor_subgroups()
+    try:
+        test_spike_monitor_bug_824()
+    except Skipped:
+        pass
+    test_spike_monitor_variables()
+    test_event_monitor()
+    test_event_monitor_no_record()
+    test_spike_trains()
+    test_synapses_state_monitor()
+    test_state_monitor()
+    test_state_monitor_record_single_timestep()
+    test_state_monitor_get_states()
+    test_state_monitor_indexing()
+    test_state_monitor_resize()
+    test_rate_monitor_1()
+    test_rate_monitor_2()
+    test_rate_monitor_smoothed_rate()
+    test_rate_monitor_smoothed_rate_incorrect()
+    test_rate_monitor_get_states()
+    test_rate_monitor_subgroups()
+    test_rate_monitor_subgroups_2()
+    test_monitor_str_repr()
     # Rate moniter test
     test_population_rate_monitor_binning()
     test_spike_monitor_binning()
