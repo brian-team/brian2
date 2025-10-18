@@ -4,6 +4,7 @@ Module defining `EventMonitor` and `SpikeMonitor`.
 
 import numpy as np
 
+from brian2.core.functions import timestep
 from brian2.core.names import Nameable
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables
@@ -406,9 +407,10 @@ class EventMonitor(RateMonitor):
             raise ValueError("bin_size has to be a multiple of dt.")
 
         # Get the total duration and number of bins
-        duration = self.clock.t
-        num_bins = int(duration / bin_size)
-        bins = np.arange(num_bins) * bin_size + bin_size / 2  # As we want bin centers
+        bin_timesteps = timestep(bin_size, self.clock.dt)
+        num_bins = int(self.clock.timestep // bin_timesteps)
+        bin_centers_timesteps = (np.arange(num_bins) + 0.5) * bin_timesteps
+        bins = bin_centers_timesteps * self.clock.dt
 
         # Now we determine the number of neurons ( as the moniter can be only monitoring a subset of the actual Group of Neurons)
         if hasattr(self.source, "start") and hasattr(self.source, "stop"):
@@ -424,14 +426,16 @@ class EventMonitor(RateMonitor):
 
         # Now we initialize the binned values array (neurons × bins)
         binned_values = np.zeros((num_neurons, num_bins))
-        if self.record:
+        if self.record and len(self.t) > 0:
             # Get the event times and indices
             event_times = self.t[:]
             event_indices = (
                 self.i[:] - neuron_offset
             )  # Adjust for subgroups as stated above
 
-            bin_indices = (event_times / bin_size).astype(int)
+            event_timesteps = np.asarray(timestep(event_times, self.clock.dt))
+            bin_indices = event_timesteps // bin_timesteps
+
             # Now this is the main core code , here we count the events in each bin that happened for each neuron
             # Like after this we should have something like :
             # Example :
@@ -440,11 +444,26 @@ class EventMonitor(RateMonitor):
             #     [0.0, 1.0, 0.0, 1.0, 0.0],  # Neuron 1: 1 in bin 1, 1 in bin 3
             #     [0.0, 2.0, 0.0, 0.0, 1.0]   # Neuron 2: 2 in bin 1, 1 in bin 4
             # ]
-            for event_idx, neuron_idx in enumerate(event_indices):
-                if 0 <= neuron_idx < num_neurons:  # sanity check
-                    bin_idx = bin_indices[event_idx]
-                    if bin_idx < num_bins:  # To handle edge case at the end
-                        binned_values[neuron_idx, bin_idx] += 1
+
+            # Filter out events outside valid range (incomplete bins at end, invalid neurons)
+            valid_mask = (
+                (event_indices >= 0)
+                & (event_indices < num_neurons)
+                & (bin_indices >= 0)
+                & (bin_indices < num_bins)
+            )
+            if np.any(valid_mask):
+                valid_neuron_indices = event_indices[valid_mask].astype(np.int64)
+                valid_bin_indices = bin_indices[valid_mask].astype(np.int64)
+                combined_idx = valid_neuron_indices * num_bins + valid_bin_indices
+                counts = np.bincount(combined_idx, minlength=num_neurons * num_bins)
+
+                # Reshape back to 2D array (neurons × bins)
+                binned_values = (
+                    counts[: num_neurons * num_bins]
+                    .reshape(num_neurons, num_bins)
+                    .astype(float)
+                )
 
             # Convert counts to rates (Hz)
             binned_values = binned_values / float(bin_size)
