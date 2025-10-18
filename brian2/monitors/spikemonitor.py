@@ -386,7 +386,7 @@ class EventMonitor(RateMonitor):
         return self.values("t")
 
     @check_units(bin_size=second)
-    def binned(self, bin_size):
+    def binned_rate(self, bin_size):
         """
         Return the event rates binned with the given bin size.
 

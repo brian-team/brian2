@@ -26,7 +26,7 @@ class RateMonitor(CodeRunner, Group, ABC):
 
     @abstractmethod
     @check_units(bin_size=second)
-    def binned(self, bin_size):
+    def binned_rate(self, bin_size):
         """
         Return the rate calculated in bins of a certain size.
 
@@ -124,7 +124,7 @@ class RateMonitor(CodeRunner, Group, ABC):
                 raise TypeError("The window has to have an odd number of values.")
 
         # Get the binned rates at the finest resolution
-        _, binned_values = self.binned(bin_size=self.clock.dt)
+        _, binned_values = self.binned_rate(bin_size=self.clock.dt)
 
         # Normalize the window
         window = window * 1.0 / sum(window)
@@ -234,7 +234,7 @@ class PopulationRateMonitor(RateMonitor):
         raise NotImplementedError()
 
     @check_units(bin_size=second)
-    def binned(self, bin_size):
+    def binned_rate(self, bin_size):
         """
         Return the population rate binned with the given bin size.
 
@@ -250,6 +250,8 @@ class PopulationRateMonitor(RateMonitor):
         binned_values : `Quantity`
             The binned population rates as a 1D array in Hz.
         """
+        if (bin_size / self.clock.dt) % 1 > 1e-6:
+            raise ValueError("bin_size has to be a multiple of dt.")
 
         bin_timesteps = timestep(
             bin_size, self.clock.dt

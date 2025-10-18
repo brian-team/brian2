@@ -713,7 +713,7 @@ def test_population_rate_monitor_binning():
 
     # Test binning with different bin sizes
     for bin_size in [1 * ms, 5 * ms, 10 * ms]:
-        bins, binned_rates = mon.binned(bin_size)
+        bins, binned_rates = mon.binned_rate(bin_size)
 
         # Check that bins are correct
         expected_bins = np.arange(int(duration / bin_size)) * bin_size + bin_size / 2
@@ -725,7 +725,7 @@ def test_population_rate_monitor_binning():
 
     # Test that bin_size must be multiple of dt
     with pytest.raises(ValueError):
-        mon.binned(1.5 * defaultclock.dt)
+        mon.binned_rate(1.5 * defaultclock.dt)
 
 
 @pytest.mark.codegen_independent
@@ -741,7 +741,7 @@ def test_spike_monitor_binning():
     run(100 * ms)
 
     # Test binning with 20ms bins
-    bins, binned_rates = mon.binned(20 * ms)
+    bins, binned_rates = mon.binned_rate(20 * ms)
 
     # Expected: 5 bins of 20ms each
     assert len(bins) == 5
@@ -832,7 +832,7 @@ def test_subgroup_spike_monitor():
 
     run(100 * ms)
 
-    _, rates = mon.binned(10 * ms)
+    _, rates = mon.binned_rate(10 * ms)
 
     # Should have 6 neurons (indices 2-7)
     assert rates.shape[0] == 6
@@ -890,32 +890,32 @@ def test_monitor_str_repr():
 if __name__ == "__main__":
     from _pytest.outcomes import Skipped
 
-    test_spike_monitor()
-    test_spike_monitor_indexing()
-    test_spike_monitor_get_states()
-    test_spike_monitor_subgroups()
-    try:
-        test_spike_monitor_bug_824()
-    except Skipped:
-        pass
-    test_spike_monitor_variables()
-    test_event_monitor()
-    test_event_monitor_no_record()
-    test_spike_trains()
-    test_synapses_state_monitor()
-    test_state_monitor()
-    test_state_monitor_record_single_timestep()
-    test_state_monitor_get_states()
-    test_state_monitor_indexing()
-    test_state_monitor_resize()
-    test_rate_monitor_1()
-    test_rate_monitor_2()
-    test_rate_monitor_smoothed_rate()
-    test_rate_monitor_smoothed_rate_incorrect()
-    test_rate_monitor_get_states()
-    test_rate_monitor_subgroups()
-    test_rate_monitor_subgroups_2()
-    test_monitor_str_repr()
+    # test_spike_monitor()
+    # test_spike_monitor_indexing()
+    # test_spike_monitor_get_states()
+    # test_spike_monitor_subgroups()
+    # try:
+    #     test_spike_monitor_bug_824()
+    # except Skipped:
+    #     pass
+    # test_spike_monitor_variables()
+    # test_event_monitor()
+    # test_event_monitor_no_record()
+    # test_spike_trains()
+    # test_synapses_state_monitor()
+    # test_state_monitor()
+    # test_state_monitor_record_single_timestep()
+    # test_state_monitor_get_states()
+    # test_state_monitor_indexing()
+    # test_state_monitor_resize()
+    # test_rate_monitor_1()
+    # test_rate_monitor_2()
+    # test_rate_monitor_smoothed_rate()
+    # test_rate_monitor_smoothed_rate_incorrect()
+    # test_rate_monitor_get_states()
+    # test_rate_monitor_subgroups()
+    # test_rate_monitor_subgroups_2()
+    # test_monitor_str_repr()
     # Rate moniter test
     test_population_rate_monitor_binning()
     test_spike_monitor_binning()
