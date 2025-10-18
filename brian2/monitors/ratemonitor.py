@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+from brian2.core.functions import timestep
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
 from brian2.units.allunits import hertz, second
@@ -249,30 +250,33 @@ class PopulationRateMonitor(RateMonitor):
         binned_values : `Quantity`
             The binned population rates as a 1D array in Hz.
         """
+
+        bin_timesteps = timestep(
+            bin_size, self.clock.dt
+        )  # Convert bin_size to integer timesteps (also validates it's a multiple of dt)
+
         if (
-            bin_size / self.clock.dt
-        ) % 1 > 1e-6:  # to make sure bin_size is an integer multiple of the internal time resolution dt
-            raise ValueError("bin_size has to be a multiple of dt.")
-        if bin_size == self.clock.dt:
+            bin_timesteps == 1
+        ):  # Early return for dt-sized bins (no binning needed) as bin_size and clock timesteps are same
             return self.t[:], self.rate
 
-        num_bins = int(self.clock.t / bin_size)
-        bins = (
-            np.arange(num_bins) * bin_size + bin_size / 2.0
-        )  # as we want Bin centers (not edges)
+        # Calculate number of complete bins based on recorded data , Note we don't use `self.clock.timestep` as we want the recorded rates
+        num_bins = int(
+            len(self.rate) // bin_timesteps
+        )  # int for type conversion from numpy int
 
-        t_indices = (self.t / self.clock.dt).astype(int)
-        bin_indices = (t_indices * self.clock.dt / bin_size).astype(int)
+        num_values = num_bins * bin_timesteps
+        rate_to_bin = self.rate[:num_values]  # # Only use complete bins
 
-        binned_values = np.zeros(num_bins)  # to store total firing rate values per bin
-        bin_counts = np.zeros(num_bins)  # to store how many samples went into each bin
+        # No we reshape into (num_bins, bin_timesteps) and take mean over each bin
+        binned_values = rate_to_bin.reshape(num_bins, bin_timesteps).mean(axis=1)
 
-        np.add.at(binned_values, bin_indices, self.rate)
-        np.add.at(bin_counts, bin_indices, 1)
+        # Calculate bin centers based on ACTUAL recorded times
+        # Start from when recording began, not from t=0
+        t_start = self.t[0]
+        bin_centers_timesteps = (np.arange(num_bins) + 0.5) * bin_timesteps
+        bins = t_start + bin_centers_timesteps * self.clock.dt
 
-        # Avoid division by zero for empty bins
-        non_empty_bins = bin_counts > 0
-        binned_values[non_empty_bins] /= bin_counts[non_empty_bins]
         return bins, Quantity(binned_values, dim=hertz.dim)
 
     def __repr__(self):
