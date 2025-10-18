@@ -699,33 +699,122 @@ def test_rate_monitor_subgroups_2():
 @pytest.mark.codegen_independent
 def test_population_rate_monitor_binning():
     """Test binning functionality for PopulationRateMonitor."""
-    # Create a group with regular spiking
+    # Create a group with deterministic regular spiking
+    # 10 neurons, each spiking every 10ms, but staggered by 1ms
     N = 10
-    rate = 100 * Hz
-    duration = 100 * ms
+    spike_times = []
+    spike_indices = []
 
-    G = NeuronGroup(N, "v : 1", threshold="rand() < rate*dt")
-    G.run_regularly("v = 0")  # Dummy operation
+    # Generate regular spike pattern: neuron i spikes at i*1ms, (i+10)*1ms, (i+20)*1ms, etc.
+    for neuron_idx in range(N):
+        for spike_time in range(
+            neuron_idx, 100, 10
+        ):  # Every 10ms, offset by neuron_idx
+            spike_indices.append(neuron_idx)
+            spike_times.append(spike_time)
 
+    spike_indices = np.array(spike_indices)
+    spike_times = np.array(spike_times) * ms
+
+    G = SpikeGeneratorGroup(N, spike_indices, spike_times)
     mon = PopulationRateMonitor(G)
+    run(100 * ms)
 
-    run(duration)
+    # Test 1: bin_size = 10ms
+    # Each 10ms bin should have exactly 10 spikes (one per neuron)
+    # Rate = 10 spikes / 10 neurons / 0.01s = 100 Hz
+    bins, binned_rates = mon.binned_rate(10 * ms)
+    expected_bins = np.arange(10) * 10 * ms + 5 * ms  # Centers at 5, 15, 25, ..., 95 ms
+    assert_allclose(bins, expected_bins)
+    assert len(binned_rates) == 10
+    # Each bin has 10 spikes over 10 neurons over 10ms = 100 Hz average
+    expected_rate = 10 / (10 * 0.01) * Hz  # 10 spikes / (10 neurons * 0.01s)
+    assert_allclose(binned_rates, expected_rate, rtol=1e-6)
 
-    # Test binning with different bin sizes
-    for bin_size in [1 * ms, 5 * ms, 10 * ms]:
-        bins, binned_rates = mon.binned_rate(bin_size)
+    # Test 2: bin_size = 20ms
+    # Each 20ms bin should have exactly 20 spikes
+    bins, binned_rates = mon.binned_rate(20 * ms)
+    expected_bins = np.arange(5) * 20 * ms + 10 * ms  # Centers at 10, 30, 50, 70, 90 ms
+    assert_allclose(bins, expected_bins)
+    assert len(binned_rates) == 5
+    expected_rate = 20 / (10 * 0.02) * Hz  # 20 spikes / (10 neurons * 0.02s)
+    assert_allclose(binned_rates, expected_rate, rtol=1e-6)
 
-        # Check that bins are correct
-        expected_bins = np.arange(int(duration / bin_size)) * bin_size + bin_size / 2
-        assert_allclose(bins, expected_bins)
+    # Test 3: bin_size = 1ms
+    # Each 1ms bin has 1 spike from one neuron
+    # Bins are centered at 0.5, 1.5, 2.5, ..., 99.5 ms
+    bins, binned_rates = mon.binned_rate(1 * ms)
+    expected_bins = np.arange(100) * 1 * ms + 0.5 * ms
+    assert_allclose(bins, expected_bins)
+    assert len(binned_rates) == 100
+    # Average rate should be 100 Hz (10 neurons × 10 spikes each / 100ms)
+    assert_allclose(np.mean(binned_rates), 100 * Hz, rtol=0.01)
 
-        # Check that rates are reasonable (around N*rate)
-        assert np.mean(binned_rates) > 0  # Should have some spikes
-        assert np.mean(binned_rates) < N * rate * 2  # Sanity check
+    # Test 4: bin_size = dt (should return original data)
+    dt = defaultclock.dt
+    bins, binned_rates = mon.binned_rate(dt)
+    assert_allclose(bins, mon.t[:])
+    assert_allclose(binned_rates, mon.rate[:])
 
-    # Test that bin_size must be multiple of dt
+    # Test 5: bin_size must be multiple of dt
     with pytest.raises(ValueError):
-        mon.binned_rate(1.5 * defaultclock.dt)
+        mon.binned_rate(1.5 * dt)
+
+
+@pytest.mark.codegen_independent
+def test_population_rate_monitor_binning_incomplete_bins():
+    """Test that incomplete bins at the end are handled correctly."""
+    # Create spikes such that the last bin is incomplete
+    N = 5
+    spike_indices = [0, 1, 2, 3, 4] * 7  # 35 spikes total
+    spike_times = list(range(35))  # At 0ms, 1ms, 2ms, ..., 34ms
+
+    G = SpikeGeneratorGroup(N, spike_indices, spike_times * ms)
+    mon = PopulationRateMonitor(G)
+    run(35 * ms)
+
+    # With bin_size = 10ms, we should have 3 complete bins (0-10, 10-20, 20-30)
+    # The last 5ms (30-35) should be excluded
+    bins, binned_rates = mon.binned_rate(10 * ms)
+
+    assert len(bins) == 3
+    assert len(binned_rates) == 3
+    expected_bins = [5, 15, 25] * ms
+    assert_allclose(bins, expected_bins)
+
+    # Each bin has 10 spikes / 5 neurons / 0.01s = 200 Hz
+    expected_rate = 10 / (5 * 0.01) * Hz
+    assert_allclose(binned_rates, expected_rate, rtol=1e-6)
+
+
+@pytest.mark.codegen_independent
+def test_population_rate_monitor_binning_midrun():
+    """Test binning when monitor is added mid-simulation."""
+    N = 5
+    spike_indices = [0, 1, 2, 3, 4] * 10  # 50 spikes
+    spike_times = list(range(50))  # At 0-49ms
+
+    G = SpikeGeneratorGroup(N, spike_indices, spike_times * ms)
+
+    # Run first 20ms without monitor
+    run(20 * ms)
+
+    # Add monitor and run another 30ms
+    mon = PopulationRateMonitor(G)
+    run(30 * ms)
+
+    # Monitor only recorded from 20-50ms (30ms total)
+    # With bin_size = 10ms, should have 3 bins
+    bins, binned_rates = mon.binned_rate(10 * ms)
+
+    assert len(bins) == 3
+    # Bins should be centered at 25, 35, 45 ms (not 5, 15, 25!)
+    expected_bins = [25, 35, 45] * ms
+    assert_allclose(bins, expected_bins)
+
+    # Each bin still has 10 spikes / 5 neurons / 0.01s = 200 Hz
+    expected_rate = 10 / (5 * 0.01) * Hz
+    assert_allclose(binned_rates, expected_rate, rtol=1e-6)
 
 
 @pytest.mark.codegen_independent
