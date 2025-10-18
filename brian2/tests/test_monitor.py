@@ -769,7 +769,7 @@ def test_smooth_rates_spike_monitor():
     times = np.arange(40, 61) * ms  # Burst from 40-60ms
     indices = np.zeros(21, dtype=int)
 
-    G = SpikeGeneratorGroup(1, indices, times)
+    G = SpikeGeneratorGroup(10, indices, times)
     mon = SpikeMonitor(G)
 
     run(100 * ms)
@@ -780,7 +780,7 @@ def test_smooth_rates_spike_monitor():
 
     # Should be smooth and peak around the burst
     assert smoothed.ndim == 2  # (neurons, time)
-    assert smoothed.shape[0] == 1  # One neuron
+    assert smoothed.shape[0] == 10  # ten neuron
 
     # Peak should be around 50ms (middle of burst)
     peak_time = np.argmax(smoothed[0]) * defaultclock.dt
