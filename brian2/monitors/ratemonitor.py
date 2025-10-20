@@ -1,5 +1,5 @@
 """
-Module defining `PopulationRateMonitor`.
+Module defining `PopulationRateMonitor` and the abstract `RateMonitor` class.
 """
 
 from abc import ABC, abstractmethod
@@ -81,6 +81,11 @@ class RateMonitor(CodeRunner, Group, ABC):
             Note that the rates are smoothed at the original time step resolution (dt), not re-binned.
             The length of the returned array equals the number of recorded time steps and
             can be plotted against the original time values (e.g., self.t).
+
+        Warnings
+        --------
+        This method will give incorrect results if the monitor has recorded values with
+        varying ``dt`` values.
         """
         if width is None and isinstance(window, str):
             raise TypeError("Need a width when using a predefined window.")
@@ -249,13 +254,18 @@ class PopulationRateMonitor(RateMonitor):
             The midpoints of the bins.
         binned_values : `Quantity`
             The binned population rates as a 1D array in Hz.
+
+        Warnings
+        --------
+        This method will give incorrect results if the monitor has recorded values with
+        varying ``dt`` values.
         """
         if (bin_size / self.clock.dt) % 1 > 1e-6:
             raise ValueError("bin_size has to be a multiple of dt.")
 
         bin_timesteps = timestep(
             bin_size, self.clock.dt
-        )  # Convert bin_size to integer timesteps (also validates it's a multiple of dt)
+        )  # Convert bin_size to integer timestep
 
         if (
             bin_timesteps == 1

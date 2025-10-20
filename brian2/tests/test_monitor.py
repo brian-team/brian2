@@ -1005,7 +1005,7 @@ if __name__ == "__main__":
     test_rate_monitor_subgroups()
     test_rate_monitor_subgroups_2()
     test_monitor_str_repr()
-    # Rate moniter test
+    # Rate monitor tests
     test_population_rate_monitor_binning()
     test_spike_monitor_binning()
     test_smooth_rates_spike_monitor()
