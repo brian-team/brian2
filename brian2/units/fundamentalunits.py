@@ -15,6 +15,7 @@ Luminosity             candle    cd
 """
 
 import collections
+import functools
 import itertools
 import numbers
 import operator
@@ -2569,6 +2570,7 @@ def check_units(**au):
     """
 
     def do_check_units(f):
+        @functools.wraps(f)
         def new_f(*args, **kwds):
             newkeyset = kwds.copy()
             arg_names = f.__code__.co_varnames[0 : f.__code__.co_argcount]
