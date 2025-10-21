@@ -171,11 +171,13 @@ class PopulationRateMonitor(RateMonitor):
     dtype : dtype, optional
         The dtype to use to store the ``rate`` variable. Defaults to
         `~numpy.float64`, i.e. double precision.
+
     Notes
     -----
     Currently, this monitor can only monitor the instantaneous firing rates at
     each time step of the source clock. Any binning/smoothing of the firing
-    rates has to be done manually afterwards.
+    rates has to be done afterwards using the `binned_rate` or `smooth_rate`
+    methods.
     """
 
     invalidates_magic_network = False
