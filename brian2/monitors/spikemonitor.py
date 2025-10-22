@@ -399,7 +399,7 @@ class EventMonitor(RateMonitor):
         Returns
         -------
         bins : `Quantity`
-            The midpoints of the bins.
+            The start time of the bins.
         binned_values : `Quantity`
             The binned rates as a 2D array (neurons × bins) in Hz.
         """
@@ -409,8 +409,8 @@ class EventMonitor(RateMonitor):
         # Get the total duration and number of bins
         bin_timesteps = timestep(bin_size, self.clock.dt)
         num_bins = int(self.clock.timestep // bin_timesteps)
-        bin_centers_timesteps = (np.arange(num_bins) + 0.5) * bin_timesteps
-        bins = bin_centers_timesteps * self.clock.dt
+        bin_starts_timesteps = (np.arange(num_bins)) * bin_timesteps
+        bins = bin_starts_timesteps * self.clock.dt
 
         num_neurons = len(self.source)
 

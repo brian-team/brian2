@@ -38,7 +38,7 @@ class RateMonitor(CodeRunner, Group, ABC):
         Returns
         -------
         bins : `Quantity`
-            The midpoints of the bins.
+            The start time of the bins.
         binned_values : `Quantity`
             The binned values. For EventMonitor subclasses, this is a 2D array
             with shape (neurons, bins). For PopulationRateMonitor, this is a 1D array.
@@ -253,7 +253,7 @@ class PopulationRateMonitor(RateMonitor):
         Returns
         -------
         bins : `Quantity`
-            The midpoints of the bins.
+            The start time of the bins.
         binned_values : `Quantity`
             The binned population rates as a 1D array in Hz.
 
@@ -288,8 +288,8 @@ class PopulationRateMonitor(RateMonitor):
         # Calculate bin centers based on ACTUAL recorded times
         # Start from when recording began, not from t=0
         t_start = self.t[0]
-        bin_centers_timesteps = (np.arange(num_bins) + 0.5) * bin_timesteps
-        bins = t_start + bin_centers_timesteps * self.clock.dt
+        bin_starts_timesteps = (np.arange(num_bins)) * bin_timesteps
+        bins = t_start + bin_starts_timesteps * self.clock.dt
 
         return bins, Quantity(binned_values, dim=hertz.dim)
 
