@@ -402,6 +402,24 @@ class EventMonitor(RateMonitor):
             The start time of the bins.
         binned_values : `Quantity`
             The binned rates as a 2D array (neurons × bins) in Hz.
+
+        Notes
+        -----
+        The returned bin times represent the **start** of each bin interval, not the center.
+        This is consistent with how Brian2 records spike times and other temporal data.
+        For example, a spike recorded at time `t` occurred during the interval `[t, t+dt)`.
+
+        For plotting purposes, especially with larger bin sizes, you may want to use bin
+        centers instead of bin starts for a more intuitive visualization. You can easily
+        calculate the bin centers by adding half the bin size:
+
+        >>> bins, rates = monitor.binned_rate(10*ms)
+        >>> bin_centers = bins + 10*ms / 2
+        >>> plt.plot(bin_centers, rates)
+
+        This adjustment is particularly helpful when the bins are large relative to the
+        time scale of interest, as it better represents where the rate measurement applies
+        within each time window.
         """
         if (bin_size / self.clock.dt) % 1 > 1e-6:
             raise ValueError("bin_size has to be a multiple of dt.")
