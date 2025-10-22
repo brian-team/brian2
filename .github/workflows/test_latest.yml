@@ -13,12 +13,15 @@ jobs:
       min-python: ${{ steps.nep29.outputs.min-python }}
       max-python: ${{ steps.nep29.outputs.max-python }}
     steps:
-      - name: "calculate versions according to NEP29"
+      - name: "calculate versions according to SPEC-0"
         id: nep29
         uses: mstimberg/github-calc-nep29@a73481e4e8488a5fa0b3be70a385cc5206a261ba # v0.7
         with:
           include-release-candidates: true
           include-beta-releases: true
+          # Match SPEC-0
+          deprecate-python-after: 36
+          min-python-releases: 0
           token: ${{ secrets.GITHUB_TOKEN }}
   
   testing:
