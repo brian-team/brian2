@@ -724,7 +724,7 @@ def test_population_rate_monitor_binning():
     # Each 10ms bin should have exactly 10 spikes (one per neuron)
     # Rate = 10 spikes / 10 neurons / 0.01s = 100 Hz
     bins, binned_rates = mon.binned_rate(10 * ms)
-    expected_bins = np.arange(10) * 10 * ms + 5 * ms  # Centers at 5, 15, 25, ..., 95 ms
+    expected_bins = np.arange(10) * 10 * ms  # Starts at 0, 10, 20, ..., 90 ms
     assert_allclose(bins, expected_bins)
     assert len(binned_rates) == 10
     # Each bin has 10 spikes over 10 neurons over 10ms = 100 Hz average
@@ -734,7 +734,7 @@ def test_population_rate_monitor_binning():
     # Test 2: bin_size = 20ms
     # Each 20ms bin should have exactly 20 spikes
     bins, binned_rates = mon.binned_rate(20 * ms)
-    expected_bins = np.arange(5) * 20 * ms + 10 * ms  # Centers at 10, 30, 50, 70, 90 ms
+    expected_bins = np.arange(5) * 20 * ms  # Starts at 0, 20, 40, 60, 80 ms
     assert_allclose(bins, expected_bins)
     assert len(binned_rates) == 5
     expected_rate = 20 / (10 * 0.02) * Hz  # 20 spikes / (10 neurons * 0.02s)
@@ -742,9 +742,9 @@ def test_population_rate_monitor_binning():
 
     # Test 3: bin_size = 1ms
     # Each 1ms bin has 1 spike from one neuron
-    # Bins are centered at 0.5, 1.5, 2.5, ..., 99.5 ms
+    # Bins starts at 0, 1, 2, 3, ..., 99 ms
     bins, binned_rates = mon.binned_rate(1 * ms)
-    expected_bins = np.arange(100) * 1 * ms + 0.5 * ms
+    expected_bins = np.arange(100) * 1 * ms
     assert_allclose(bins, expected_bins)
     assert len(binned_rates) == 100
     # Average rate should be 100 Hz (10 neurons × 10 spikes each / 100ms)
@@ -779,7 +779,7 @@ def test_population_rate_monitor_binning_incomplete_bins():
 
     assert len(bins) == 3
     assert len(binned_rates) == 3
-    expected_bins = [5, 15, 25] * ms
+    expected_bins = [0, 10, 20] * ms
     assert_allclose(bins, expected_bins)
 
     # Each bin has 10 spikes / 5 neurons / 0.01s = 200 Hz
@@ -808,8 +808,8 @@ def test_population_rate_monitor_binning_midrun():
     bins, binned_rates = mon.binned_rate(10 * ms)
 
     assert len(bins) == 3
-    # Bins should be centered at 25, 35, 45 ms (not 5, 15, 25!)
-    expected_bins = [25, 35, 45] * ms
+    # Bins should start at 20, 30, 40 ms (where recording began)
+    expected_bins = [20, 30, 40] * ms
     assert_allclose(bins, expected_bins)
 
     # Each bin still has 10 spikes / 5 neurons / 0.01s = 200 Hz
@@ -834,10 +834,11 @@ def test_spike_monitor_binning():
 
     # Expected: 5 bins of 20ms each
     assert len(bins) == 5
-    assert bins[0] == 10 * ms  # First bin center
+    assert bins[0] == 0 * ms  # First bin start
 
     # Check spike counts/rates for each neuron
-    # Neuron 0: spikes at 10ms (bin 0) and 30ms (bin 1)
+    # Bins: [0-20ms), [20-40ms), [40-60ms), [60-80ms), [80-100ms) with starts at 0, 20, 40, 60, 80
+    # Neuron 0: spikes at 10ms (bin 0: [0-20ms)) and 30ms (bin 1: [20-40ms))
     assert binned_rates[0, 0] == 50 * Hz  # 1 spike / 20ms
     assert binned_rates[0, 1] == 50 * Hz
     assert np.sum(binned_rates[0, 2:]) == 0
