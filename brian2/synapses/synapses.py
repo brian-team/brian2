@@ -460,12 +460,8 @@ class SynapticPathway(CodeRunner, Group):
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
 
-        if queue_state is not None:
-            converted_queue_state = self._convert_queue_state_if_needed(queue_state)
-            self.queue._restore_from_full_state(converted_queue_state)
-        else:
-            # Handle None case (empty queue)
-            self.queue._restore_from_full_state(None)
+        converted_queue_state = self._convert_queue_state_if_needed(queue_state)
+        self.queue._restore_from_full_state(converted_queue_state)
 
         # Put the spike queue state back for future restore calls
         state["_spikequeue"] = queue_state
