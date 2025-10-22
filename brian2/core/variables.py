@@ -661,6 +661,21 @@ class DynamicArrayVariable(ArrayVariable):
 
         self.size = new_size
 
+    def get_capsule(self):
+        """
+        Get a PyCapsule object for direct C++ pointer access.
+
+        This provides safe access to the underlying C++ dynamic array object
+        for high-performance operations in Cython code.
+
+        Returns
+        -------
+        capsule : PyCapsule
+            A PyCapsule containing the C++ pointer to the dynamic array.
+
+        """
+        return self.device.get_capsule(self)
+
 
 class Subexpression(Variable):
     """

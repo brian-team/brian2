@@ -157,7 +157,6 @@ def test_openmp_consistency():
     previous_device = get_device()
     n_cells = 100
     n_recorded = 10
-    numpy.random.seed(42)
     taum = 20 * ms
     taus = 5 * ms
     Vt = -50 * mV
@@ -172,6 +171,13 @@ def test_openmp_consistency():
     dApost *= 0.1 * gmax
     dApre *= 0.1 * gmax
 
+    eqs = Equations(
+        """
+        dv/dt = (g-(v-El))/taum : volt
+        dg/dt = -g/taus         : volt
+        """
+    )
+    numpy.random.seed(42)
     connectivity = numpy.random.randn(n_cells, n_cells)
     sources = numpy.random.randint(0, n_cells - 1, 10 * n_cells)
     # Only use one spike per time step (to rule out that a single source neuron
@@ -181,13 +187,6 @@ def test_openmp_consistency():
         * ms
     )
     v_init = Vr + numpy.random.rand(n_cells) * (Vt - Vr)
-
-    eqs = Equations(
-        """
-        dv/dt = (g-(v-El))/taum : volt
-        dg/dt = -g/taus         : volt
-        """
-    )
 
     results = {}
 
@@ -200,6 +199,7 @@ def test_openmp_consistency():
         (4, "cpp_standalone"),
     ]:
         set_device(devicename, build_on_run=False, with_output=False)
+        # clear all instances
         Synapses.__instances__().clear()
         if devicename == "cpp_standalone":
             reinit_and_delete()
@@ -208,13 +208,13 @@ def test_openmp_consistency():
             n_cells, model=eqs, threshold="v>Vt", reset="v=Vr", refractory=5 * ms
         )
         Q = SpikeGeneratorGroup(n_cells, sources, times)
-        P.v = v_init
+        P.v = v_init.copy()  # Use copy to avoid reference issues
         P.g = 0 * mV
         S = Synapses(
             P,
             P,
             model="""
-            dApre/dt=-Apre/taupre    : 1 (event-driven)    
+            dApre/dt=-Apre/taupre    : 1 (event-driven)
             dApost/dt=-Apost/taupost : 1 (event-driven)
             w                        : 1
             """,
@@ -247,11 +247,12 @@ def test_openmp_consistency():
             device.build(directory=None, with_output=False)
 
         results[n_threads, devicename] = {}
-        results[n_threads, devicename]["w"] = state_mon.w
-        results[n_threads, devicename]["v"] = v_mon.v
+        results[n_threads, devicename]["w"] = state_mon.w.copy()
+        results[n_threads, devicename]["v"] = v_mon.v.copy()
         results[n_threads, devicename]["s"] = spike_mon.num_spikes
-        results[n_threads, devicename]["r"] = rate_mon.rate[:]
+        results[n_threads, devicename]["r"] = rate_mon.rate[:].copy()
 
+    # Now run the assertions
     for key1, key2 in [
         ((0, "runtime"), (0, "cpp_standalone")),
         ((1, "cpp_standalone"), (0, "cpp_standalone")),

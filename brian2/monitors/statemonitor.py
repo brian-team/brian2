@@ -425,3 +425,16 @@ class StateMonitor(Group, CodeRunner):
                 "network has been run once."
             )
         self.codeobj()
+
+    def after_run(self):
+        super().after_run()
+        # In Cython runtime mode, we directly update the underlying dynamic array,
+        # so the size attribute of the Variable does not get updated automatically
+        for var in ["t"] + list(self.record_variables):
+            try:
+                val = self.variables[var].get_value()
+                # Note : For 1D arrays : size = length (integer)
+                # For 2D arrays: size = shape( tuple)
+                self.variables[var].size = val.shape if val.ndim > 1 else len(val)
+            except (KeyError, NotImplementedError):
+                pass  # Does not apply to standalone mode
