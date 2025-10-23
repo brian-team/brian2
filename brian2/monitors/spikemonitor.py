@@ -4,16 +4,19 @@ Module defining `EventMonitor` and `SpikeMonitor`.
 
 import numpy as np
 
+from brian2.core.functions import timestep
 from brian2.core.names import Nameable
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables
-from brian2.groups.group import CodeRunner, Group
-from brian2.units.fundamentalunits import Quantity
+from brian2.groups.group import CodeRunner
+from brian2.monitors.ratemonitor import RateMonitor
+from brian2.units.allunits import hertz, second
+from brian2.units.fundamentalunits import Quantity, check_units
 
 __all__ = ["EventMonitor", "SpikeMonitor"]
 
 
-class EventMonitor(Group, CodeRunner):
+class EventMonitor(RateMonitor):
     """
     Record events from a `NeuronGroup` or another event source.
 
@@ -382,6 +385,67 @@ class EventMonitor(Group, CodeRunner):
         SpikeMonitor.spike_trains
         """
         return self.values("t")
+
+    @check_units(bin_size=second)
+    def binned_rate(self, bin_size):
+        """
+        Return the event rates binned with the given bin size.
+
+        Parameters
+        ----------
+        bin_size : `Quantity`
+            The size of the bins in seconds. Should be a multiple of dt.
+
+        Returns
+        -------
+        bins : `Quantity`
+            The start time of the bins.
+        binned_values : `Quantity`
+            The binned rates as a 2D array (neurons × bins) in Hz.
+
+        Notes
+        -----
+        The returned bin times represent the **start** of each bin interval, not the center.
+        This is consistent with how Brian2 records spike times and other temporal data.
+        For example, a spike recorded at time `t` occurred during the interval `[t, t+dt)`.
+
+        For plotting purposes, especially with larger bin sizes, you may want to use bin
+        centers instead of bin starts for a more intuitive visualization. You can easily
+        calculate the bin centers by adding half the bin size::
+
+            >> bins, rates = monitor.binned_rate(10*ms)
+            >> bin_centers = bins + 10*ms / 2
+            >> plt.plot(bin_centers, rates)
+
+        This adjustment is particularly helpful when the bins are large relative to the
+        time scale of interest, as it better represents where the rate measurement applies
+        within each time window.
+        """
+        if (bin_size / self.clock.dt) % 1 > 1e-6:
+            raise ValueError("bin_size has to be a multiple of dt.")
+
+        # Get the total duration and number of bins
+        bin_timesteps = timestep(bin_size, self.clock.dt)
+        num_bins = int(self.clock.timestep // bin_timesteps)
+        bin_starts_timesteps = (np.arange(num_bins)) * bin_timesteps
+        bins = bin_starts_timesteps * self.clock.dt
+
+        num_neurons = len(self.source)
+
+        # Now we initialize the binned values array (neurons × bins)
+        binned_values = np.zeros((num_neurons, num_bins))
+        if self.record and len(self.t) > 0:
+            # Get the event times and indices
+            event_times = self.t[:]
+
+            event_timesteps = np.asarray(timestep(event_times, self.clock.dt))
+            bin_indices = event_timesteps // bin_timesteps
+
+            np.add.at(binned_values, (self.i[:], bin_indices), 1)
+
+            # Convert counts to rates (Hz)
+            binned_values = binned_values / float(bin_size)
+        return bins, Quantity(binned_values, dim=hertz.dim)
 
     @property
     def num_events(self):
