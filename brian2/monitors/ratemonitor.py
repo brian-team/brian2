@@ -50,11 +50,11 @@ class RateMonitor(CodeRunner, Group, ABC):
 
         For plotting purposes, especially with larger bin sizes, you may want to use bin
         centers instead of bin starts for a more intuitive visualization. You can easily
-        calculate the bin centers by adding half the bin size:
+        calculate the bin centers by adding half the bin size::
 
-        >>> bins, rates = monitor.binned_rate(10*ms)
-        >>> bin_centers = bins + 10*ms / 2
-        >>> plt.plot(bin_centers, rates)
+            >> bins, rates = monitor.binned_rate(10*ms)
+            >> bin_centers = bins + 10*ms / 2
+            >> plt.plot(bin_centers, rates)
 
         This adjustment is particularly helpful when the bins are large relative to the
         time scale of interest, as it better represents where the rate measurement applies
@@ -282,11 +282,11 @@ class PopulationRateMonitor(RateMonitor):
 
         For plotting purposes, especially with larger bin sizes, you may want to use bin
         centers instead of bin starts for a more intuitive visualization. You can easily
-        calculate the bin centers by adding half the bin size:
+        calculate the bin centers by adding half the bin size::
 
-        >>> bins, rates = monitor.binned_rate(10*ms)
-        >>> bin_centers = bins + 10*ms / 2
-        >>> plt.plot(bin_centers, rates)
+            >> bins, rates = monitor.binned_rate(10*ms)
+            >> bin_centers = bins + 10*ms / 2
+            >> plt.plot(bin_centers, rates)
 
         This adjustment is particularly helpful when the bins are large relative to the
         time scale of interest, as it better represents where the rate measurement applies
