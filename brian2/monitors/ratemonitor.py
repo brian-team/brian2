@@ -152,10 +152,7 @@ class RateMonitor(CodeRunner, Group, ABC):
         window = window * 1.0 / sum(window)
 
         # Extract the raw numpy array from the Quantity (if it is one)
-        if hasattr(binned_values, "dimensions"):
-            binned_array = np.asarray(binned_values)
-        else:
-            binned_array = binned_values
+        binned_array = np.asarray(binned_values)
 
         # So we need to handle for both 1D (PopulationRateMonitor) and 2D (EventMonitor) cases separately as `np.convolve()` only works with 1D arrays
         if binned_values.ndim == 1:
