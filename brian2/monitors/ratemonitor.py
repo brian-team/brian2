@@ -42,6 +42,7 @@ class RateMonitor(CodeRunner, Group, ABC):
         binned_values : `Quantity`
             The binned values. For EventMonitor subclasses, this is a 2D array
             with shape (neurons, bins). For PopulationRateMonitor, this is a 1D array.
+
         Notes
         -----
         The returned bin times represent the **start** of each bin interval, not the center.
