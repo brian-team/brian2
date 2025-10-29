@@ -1659,7 +1659,8 @@ class Quantity(np.ndarray):
     max = wrap_function_keep_dimensions(np.ndarray.max)
     mean = wrap_function_keep_dimensions(np.ndarray.mean)
     min = wrap_function_keep_dimensions(np.ndarray.min)
-    ptp = wrap_function_keep_dimensions(np.ndarray.ptp)
+    if hasattr(np.ndarray, "ptp"):
+        ptp = wrap_function_keep_dimensions(np.ndarray.ptp)
 
     # To work around an issue in matplotlib 1.3.1 (see
     # https://github.com/matplotlib/matplotlib/pull/2591), we make `ravel`
