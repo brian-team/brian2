@@ -16,7 +16,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: savente93/update-spec0-dependencies@08b04d7aea04a99654ccf57865c391ff987d46cd  # v1.0.0
+      - uses: mstimberg/update-spec0-dependencies@5c6514f44ec89284fef0dafe40a34936ed1a7c94  # mstimberg/update-spec0-dependencies
         with:
           token: ${{ secrets.GH_PAT_SPEC0 }}
           target_branch: master
