@@ -55,9 +55,10 @@ if __name__ == '__main__':
     if deprecation_error:
         args = ['-W', 'error::DeprecationWarning', '--tb=short']
     else:
-        # Use coverage when running on GitHub
+        # Use coverage and test time duration when running on GitHub
         if "GITHUB_WORKSPACE" in os.environ:
             args = [
+                "--durations=20",  # print a list of the 20 slowest tests
                 "--cov",
                 "--cov-append",
                 "--cov-report",
