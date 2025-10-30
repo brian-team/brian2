@@ -71,14 +71,9 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.black]
-target-version = ['py310']
-include = '^/brian2/.*\.pyi?$'
+[tool.ruff.lint]
+# Lambda functions are ok
+extend-ignore = ["E731"]
 
-[tool.isort]
-atomic = true
-profile = "black"
-py_version = "310"
-skip_gitignore = true
-# NOTE: isort has no "include" option, only "skip".
-skip_glob = ["dev/*", "docs_sphinx/*", "examples/*", "tutorials/*"]
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
