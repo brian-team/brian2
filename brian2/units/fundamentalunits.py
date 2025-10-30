@@ -2581,7 +2581,7 @@ def check_units(**au):
         def new_f(*args, **kwds):
             newkeyset = kwds.copy()
             arg_names = f.__code__.co_varnames[0 : f.__code__.co_argcount]
-            for n, v in zip(arg_names, args[0 : f.__code__.co_argcount], strict=True):
+            for n, v in zip(arg_names, args[0 : f.__code__.co_argcount], strict=False):
                 if (
                     not isinstance(v, (Quantity, str, bool, np.bool_))
                     and v is not None
