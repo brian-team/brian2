@@ -990,7 +990,7 @@ class Group(VariableOwner, BrianObject):
                 if (
                     isinstance(
                         match,
-                        (numbers.Number, np.ndarray, np.number, Function, Variable),
+                        (numbers.Number, np.ndarray, np.generic, Function, Variable),
                     )
                 ) or (
                     inspect.isfunction(match)

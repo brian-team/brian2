@@ -59,16 +59,24 @@ def test_default_content():
 
 
 @pytest.mark.codegen_independent
-def test_explicit_namespace():
+@pytest.mark.parametrize(
+    "variable",
+    [42, 42.0, True, numpy.int32(42), numpy.float32(42.0), numpy.bool_(True)],
+)
+def test_explicit_namespace(variable):
     """Test resolution with an explicitly provided namespace"""
-    group = SimpleGroup(namespace={"variable": 42}, variables={})
+    group = SimpleGroup(namespace={"variable": variable}, variables={})
 
     # Explicitly provided
     with catch_logs() as l:
-        assert group._resolve("variable", {}).get_value_with_unit() == 42
+        assert group._resolve("variable", {}).get_value_with_unit() == variable
         assert len(l) == 0
 
+
+@pytest.mark.codegen_independent
+def test_run_namespace():
     # Value from an explicit run namespace
+    group = SimpleGroup(namespace={}, variables={})
     with catch_logs() as l:
         assert (
             group._resolve(
@@ -94,6 +102,11 @@ def test_errors():
     # Illegal name
     with pytest.raises(ValueError):
         SimpleGroup(namespace={"_illegal": 3.0}, variables={})
+
+    # Invalid type
+    group = SimpleGroup(namespace={"str_variable": "not allowed"}, variables={})
+    with pytest.raises(KeyError):
+        group._resolve("str_variable", {})
 
 
 @pytest.mark.codegen_independent
@@ -156,7 +169,8 @@ def test_warning_internal_variables():
 
 if __name__ == "__main__":
     test_default_content()
-    test_explicit_namespace()
+    test_explicit_namespace(42)
+    test_run_namespace()
     test_errors()
     test_resolution()
     test_warning()
