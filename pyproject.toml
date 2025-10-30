@@ -23,13 +23,14 @@ keywords = ['computational neuroscience', 'simulation', 'neural networks', 'spik
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: CEA CNRS Inria Logiciel Libre License, version 2.1 (CeCILL-2.1)',
     'Natural Language :: English',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
+license = 'CECILL-2.1'
+license-files = ["LICENSE", "AUTHORS", "CONTRIBUTORS"]
 
 [project.optional-dependencies]
 test = ['pytest>=8', 'pytest-xdist>=1.22.3', 'pytest-cov>=2.0', 'pytest-timeout']
