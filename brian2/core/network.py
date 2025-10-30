@@ -288,9 +288,7 @@ class SchedulingSummary:
 {rows}
         </tbody>
         </table>
-        """.format(
-            rows="\n".join(rows)
-        )
+        """.format(rows="\n".join(rows))
         return html_code
 
 
@@ -1288,7 +1286,7 @@ class Network(Nameable):
 
         logger.debug(
             f"Finished simulating network '{self.name}' "
-            f"(took {end_time-start_time:.2f}s)",
+            f"(took {end_time - start_time:.2f}s)",
             "run",
         )
         # Store profiling info (or erase old info to avoid confusion)

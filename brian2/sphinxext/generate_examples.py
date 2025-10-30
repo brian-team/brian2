@@ -144,7 +144,7 @@ def main(rootpath, destdir):
         .. only:: html
 
             .. |launchbinder| image:: http://mybinder.org/badge.svg
-            .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=examples/{exname.replace('.', '/')}.ipynb
+            .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=examples/{exname.replace(".", "/")}.ipynb
 
             .. note::
                You can launch an interactive, editable version of this

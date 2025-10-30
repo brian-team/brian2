@@ -506,7 +506,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
             for xi in stochastic_variable:
                 # Replace the g(x, t) part
                 replace_f = lambda x, t: self.replace_func(
-                    x, t, stochastic.get(xi, 0), temp_vars, eq_symbols, xi  # noqa: B023
+                    x,
+                    t,
+                    stochastic.get(xi, 0),
+                    temp_vars,
+                    eq_symbols,
+                    xi,  # noqa: B023
                 )
                 stochastic_result = stochastic_expr.replace(
                     self.symbols["__g"], replace_f

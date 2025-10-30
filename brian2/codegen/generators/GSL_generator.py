@@ -1167,6 +1167,4 @@ class GSLCPPCodeGenerator(GSLCodeGenerator):
         return """
         // CONSTANTS
         %CONSTANTS%
-        """ + super().make_function_code(
-            lines
-        )
+        """ + super().make_function_code(lines)

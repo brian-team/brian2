@@ -27,7 +27,6 @@
 A platform independent file lock that supports the with-statement.
 """
 
-
 # Modules
 # ------------------------------------------------
 import logging

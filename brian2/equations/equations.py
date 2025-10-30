@@ -320,7 +320,7 @@ def dimensions_and_type_from_string(unit_string):
             if identifier in DEFAULT_UNITS:
                 # A known unit, but not a base unit
                 base_unit = get_unit(DEFAULT_UNITS[identifier].dim)
-                if not repr(base_unit) in _base_units:
+                if repr(base_unit) not in _base_units:
                     # Make sure that we don't suggest a unit that is not allowed
                     # (should not happen, normally)
                     base_unit = Unit(1, dim=base_unit.dim)

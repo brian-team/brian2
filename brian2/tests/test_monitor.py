@@ -285,9 +285,9 @@ def test_spike_trains():
     run(19.1 * ms)
     trains = monitor.spike_trains()
     for idx, spike_times in trains.items():
-        assert all(
-            np.diff(spike_times) > 0 * ms
-        ), f"Spike times for neuron {int(idx)} are not sorted"
+        assert all(np.diff(spike_times) > 0 * ms), (
+            f"Spike times for neuron {int(idx)} are not sorted"
+        )
 
 
 def test_synapses_state_monitor():
@@ -380,10 +380,9 @@ def test_state_monitor():
     assert_allclose(np.clip(multi_mon.v, 0.1, 0.9), multi_mon.f)
     assert_allclose(np.clip(multi_mon1.v, 0.1, 0.9), multi_mon1.f)
 
-    assert all(
-        all_mon[0].not_refractory[:] == True
-    ), "not_refractory should be True, but got(not_refractory, v):%s " % str(
-        (all_mon.not_refractory, all_mon.v)
+    assert all(all_mon[0].not_refractory[:] == True), (
+        "not_refractory should be True, but got(not_refractory, v):%s "
+        % str((all_mon.not_refractory, all_mon.v))
     )
 
     # Synapses

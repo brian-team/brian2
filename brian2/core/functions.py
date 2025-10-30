@@ -155,7 +155,7 @@ class Function:
         self._arg_units = arg_units
         self._arg_names = arg_names
         self._return_unit = return_unit
-        if return_unit == bool:
+        if return_unit is bool:
             self._returns_bool = True
         else:
             self._returns_bool = False
@@ -463,7 +463,7 @@ class FunctionImplementationContainer(Mapping):
                 new_args = []
                 for arg, arg_unit in zip(args, arg_units):
                     if (
-                        arg_unit == bool
+                        arg_unit is bool
                         or arg_unit is None
                         or isinstance(arg_unit, str)
                     ):
@@ -479,7 +479,7 @@ class FunctionImplementationContainer(Mapping):
                     )
                 else:
                     return_unit = self._function._return_unit
-                if return_unit == bool:
+                if return_unit is bool:
                     if not (
                         isinstance(result, bool) or np.asarray(result).dtype == bool
                     ):

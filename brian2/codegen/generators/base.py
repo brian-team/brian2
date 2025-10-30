@@ -202,13 +202,13 @@ class CodeGenerator:
         indices |= {
             variable_indices[varname]
             for varname in read
-            if not variable_indices[varname] in ("_idx", "0")
+            if variable_indices[varname] not in ("_idx", "0")
             and isinstance(variables[variable_indices[varname]], ArrayVariable)
         }
         indices |= {
             variable_indices[varname]
             for varname in write
-            if not variable_indices[varname] in ("_idx", "0")
+            if variable_indices[varname] not in ("_idx", "0")
             and isinstance(variables[variable_indices[varname]], ArrayVariable)
         }
         # don't list arrays that are read explicitly and used as indices twice

@@ -414,7 +414,7 @@ def create_runner_codeobj(
         if cond_write_var is not None:
             if (
                 cond_write_var.name in variables
-                and not variables[cond_write_var.name] is cond_write_var
+                and variables[cond_write_var.name] is not cond_write_var
             ):
                 logger.diagnostic(
                     f"Variable '{cond_write_var.name}' is needed for the "

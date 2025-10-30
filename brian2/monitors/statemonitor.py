@@ -234,7 +234,7 @@ class StateMonitor(Group, CodeRunner):
                     # Check whether the values in record make sense
                     error_message = (
                         "The indices to record from contain values outside of the"
-                        f" range [0, {len(source)-1}] allowed for the group"
+                        f" range [0, {len(source) - 1}] allowed for the group"
                         f" '{source.name}'"
                     )
                     raise IndexError(error_message)

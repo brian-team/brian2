@@ -2112,20 +2112,20 @@ class Synapses(Group):
         template_kwds["result_index_used"] = result_index_used
 
         abstract_code["setup_iterator"] += setupiter
-        abstract_code[
-            "generator_expr"
-        ] += f"{outer_index_array} = _raw{outer_index_array} \n"
-        abstract_code["generator_expr"] += f'_{result_index} = {parsed["element"]}\n'
+        abstract_code["generator_expr"] += (
+            f"{outer_index_array} = _raw{outer_index_array} \n"
+        )
+        abstract_code["generator_expr"] += f"_{result_index} = {parsed['element']}\n"
 
         if result_index_condition:
-            abstract_code[
-                "create_cond"
-            ] += f"{result_index_array} = _raw{result_index_array} \n"
+            abstract_code["create_cond"] += (
+                f"{result_index_array} = _raw{result_index_array} \n"
+            )
         if parsed["if_expression"] is not None:
             abstract_code["create_cond"] += "_cond = " + parsed["if_expression"] + "\n"
-            abstract_code[
-                "update"
-            ] += f"{result_index_array} = _raw{result_index_array} \n"
+            abstract_code["update"] += (
+                f"{result_index_array} = _raw{result_index_array} \n"
+            )
         abstract_code["update"] += "_n = " + str(n) + "\n"
 
         # This overwrites 'i' and 'j' in the synapses' variables dictionary

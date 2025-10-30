@@ -120,7 +120,7 @@ class RateMonitor(CodeRunner, Group, ABC):
                 )  # Rounding only for the size of the window, not for the standard
                 # deviation of the Gaussian
                 window = np.exp(
-                    -np.arange(-width_dt, width_dt + 1) ** 2
+                    -(np.arange(-width_dt, width_dt + 1) ** 2)
                     * 1.0  # hack to ensure floating-point division :)
                     / (2 * (width / self.clock.dt) ** 2)
                 )

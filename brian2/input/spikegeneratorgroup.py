@@ -212,7 +212,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             if period < dt:
                 raise ValueError(
                     f"The period of '{self.name}' is {self.period[:]!s}, "
-                    f"which is smaller than its dt of {dt*second!s}."
+                    f"which is smaller than its dt of {dt * second!s}."
                 )
 
         if self._spikes_changed:
@@ -224,7 +224,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                 logger.warn(
                     "The SpikeGeneratorGroup contains spike times "
                     "earlier than the start time of the current run "
-                    f"(t = {current_t*second!s}), these spikes will be "
+                    f"(t = {current_t * second!s}), these spikes will be "
                     "ignored.",
                     name_suffix="ignored_spikes",
                 )
@@ -259,7 +259,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             if period_bins > max_int:
                 logger.warn(
                     f"Periods longer than {max_int} timesteps "
-                    f"(={max_int*dt*second!s}) are not "
+                    f"(={max_int * dt * second!s}) are not "
                     "supported, the period will therefore be "
                     "considered infinite. Set the period to 0*second "
                     "to avoid this "
@@ -272,7 +272,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                     f"The period of '{self.name}' is "
                     f"{self.period[:]!s}, which is "
                     "not an integer multiple of its dt "
-                    f"of {dt*second!s}."
+                    f"of {dt * second!s}."
                 )
 
             self.variables["_period_bins"].set_value(period_bins)

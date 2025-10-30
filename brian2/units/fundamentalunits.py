@@ -2604,8 +2604,8 @@ def check_units(**au):
                 if (
                     k in au
                     and not isinstance(newkeyset[k], str)
-                    and not newkeyset[k] is None
-                    and not au[k] is None
+                    and newkeyset[k] is not None
+                    and au[k] is not None
                 ):
                     if au[k] in (bool, np.bool_):
                         if not isinstance(newkeyset[k], (bool, np.bool_)):
@@ -2618,7 +2618,7 @@ def check_units(**au):
                             )
                             raise TypeError(error_message)
                     elif isinstance(au[k], str):
-                        if not au[k] in newkeyset:
+                        if au[k] not in newkeyset:
                             error_message = (
                                 f"Function '{f.__name__}' "
                                 "expected its argument to have the "
@@ -2697,7 +2697,7 @@ def check_units(**au):
             new_f._return_unit = None
         else:
             new_f._return_unit = return_unit
-        if return_unit == bool:
+        if return_unit is bool:
             new_f._returns_bool = True
         else:
             new_f._returns_bool = False

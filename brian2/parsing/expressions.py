@@ -315,7 +315,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                         f"has unit {get_unit_for_display(expected_unit)}"
                     )
                     raise DimensionMismatchError(msg)
-            elif expected_unit == bool:
+            elif expected_unit is bool:
                 if not is_boolean_expression(arg, variables):
                     rendered_arg = NodeRenderer().render_node(arg)
                     raise TypeError(
@@ -329,7 +329,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                     arg_unit_dim = get_dimensions(arg_unit)
                     expected_unit_dim = get_dimensions(expected_unit)
                     msg = (
-                        f"Argument number {idx+1} for function {expr.func.id} does "
+                        f"Argument number {idx + 1} for function {expr.func.id} does "
                         f"not have the correct units. Expression '{rendered_arg}' "
                         f"has units ({arg_unit_dim}), but "
                         "should be "
@@ -337,7 +337,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                     )
                     raise DimensionMismatchError(msg)
 
-        if func._return_unit == bool:
+        if func._return_unit is bool:
             return DIMENSIONLESS
         elif isinstance(func._return_unit, (Unit, int)):
             # Function always returns the same unit

@@ -34,18 +34,20 @@ def _compare(synapses, expected):
     # also compare the correct numbers of incoming and outgoing synapses
     incoming = conn_matrix.sum(axis=0)
     outgoing = conn_matrix.sum(axis=1)
-    assert all(
-        synapses.N_outgoing[:] == outgoing[synapses.i[:]]
-    ), "N_outgoing returned an incorrect value"
-    assert_array_equal(
-        synapses.N_outgoing_pre, outgoing
-    ), "N_outgoing_pre returned an incorrect value"
-    assert all(
-        synapses.N_incoming[:] == incoming[synapses.j[:]]
-    ), "N_incoming returned an incorrect value"
-    assert_array_equal(
-        synapses.N_incoming_post, incoming
-    ), "N_incoming_post returned an incorrect value"
+    assert all(synapses.N_outgoing[:] == outgoing[synapses.i[:]]), (
+        "N_outgoing returned an incorrect value"
+    )
+    (
+        assert_array_equal(synapses.N_outgoing_pre, outgoing),
+        "N_outgoing_pre returned an incorrect value",
+    )
+    assert all(synapses.N_incoming[:] == incoming[synapses.j[:]]), (
+        "N_incoming returned an incorrect value"
+    )
+    (
+        assert_array_equal(synapses.N_incoming_post, incoming),
+        "N_incoming_post returned an incorrect value",
+    )
 
     # Compare the "synapse number" if it exists
     if synapses.multisynaptic_index is not None:
