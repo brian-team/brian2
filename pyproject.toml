@@ -72,8 +72,24 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.ruff.lint]
-# Lambda functions are ok
-extend-ignore = ["E731"]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # isort
+    "I",
+]
+# Lambda functions are ok (E731),
+# long lines are already handled by the formatter (E501)
+# For LaTeX code, percent format or `.format` is often the most readable (UP031, UP032)
+# TODO: Would be good practice to set stacklevel for warnings (B028)
+# False positives when using a name to test for its existence (B018)
+extend-ignore = ["E731", "E501", "UP031", "UP032", "B028", "B018"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
