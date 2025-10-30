@@ -299,7 +299,7 @@ If you want your simulation object to run only for a particular time
 period of the whole simulation, you can use the `~.BrianObject.active`
 attribute. For example, this can be useful when you want a monitor to be
 active only for some time out of a long simulation::
-    
+
     # Set up the network
     # ...
     monitor = SpikeMonitor(...)
@@ -307,7 +307,7 @@ active only for some time out of a long simulation::
     run(long_time*seconds)  # not recording
     monitor.active = True
     run(required_time*seconds)  # recording
-    
+
 To see how the objects in a network are scheduled, you can use the
 `scheduling_summary` function::
 

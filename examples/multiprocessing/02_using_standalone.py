@@ -73,7 +73,7 @@ def run_sim(tau):
 
 if __name__ == "__main__":
     start_time = wall_time()
-    
+
     num_proc = 4
     tau_values = np.arange(10)*ms + 5*ms
     with multiprocessing.Pool(num_proc) as p:

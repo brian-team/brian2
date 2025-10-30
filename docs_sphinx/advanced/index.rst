@@ -17,4 +17,3 @@ This section has additional information on details not covered in the
    state_update
    how_brian_works
    interface
-

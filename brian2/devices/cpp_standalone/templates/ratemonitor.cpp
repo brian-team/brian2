@@ -34,4 +34,3 @@
     {{_dynamic_t}}.push_back({{_clock_t}});
     {{N}}++;
 {% endblock %}
-

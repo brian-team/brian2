@@ -55,16 +55,16 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
 
         .. |launchbinder| image:: http://mybinder.org/badge.svg
         .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=tutorials/{tutorial}.ipynb
-    
+
         .. note::
            This tutorial is a static non-editable version. You can launch an
            interactive, editable version without installing any local files
            using the Binder service (although note that at some times this
            may be slow or fail to open): |launchbinder|_
-    
+
            Alternatively, you can download a copy of the notebook file
            to use locally: :download:`{tutorial}.ipynb`
-    
+
            See the :doc:`tutorial overview page <index>` for more details.
 
     '''.format(tutorial=basename))

@@ -38,7 +38,7 @@ The preference files are of the following form::
     b.d = 2
     [a.b]
     b.e = 3
-    
+
 This would set preferences ``a.b.c=1``, ``a.b.d=2`` and ``a.b.e=3``.
 
 .. raw:: html

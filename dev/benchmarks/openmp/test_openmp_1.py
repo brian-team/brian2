@@ -65,4 +65,3 @@ pylab.savefig('cuba_openmp.png')
 
 
 pylab.show()
-

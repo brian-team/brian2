@@ -8,7 +8,7 @@ clean:
 {% for fname, base in zip(source_files, source_bases) | sort(attribute='0')%}
 {{base}}.obj: win_makefile
     cl /c /EHsc /I. {{compiler_flags}} {{openmp_flag}} {{fname}} /Fo{{base}}.obj {{compiler_debug_flags}}
-    
+
 {% endfor %}
 
 main.exe: {% for base in source_bases | sort%}{{base}}.obj {% endfor %} win_makefile sourcefiles.txt

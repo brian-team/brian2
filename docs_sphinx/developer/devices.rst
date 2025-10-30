@@ -16,12 +16,12 @@ it can potentially be extended beyond this. The two use cases are:
 2. Standalone mode. In this mode, running a Brian script leads to generating
    an entire source code project tree which can be compiled and run
    independently of Brian or Python.
-   
+
 Runtime mode is handled by `RuntimeDevice` and is already implemented, so here
 I will mainly discuss standalone devices. A good way to understand these
 devices is to look at the implementation of `CPPStandaloneDevice` (the only
 one implemented in the core of Brian). In many cases, the simplest way to
-implement a new standalone device would be to derive a class from 
+implement a new standalone device would be to derive a class from
 `CPPStandaloneDevice` and overwrite just a few methods.
 
 Memory management

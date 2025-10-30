@@ -120,4 +120,3 @@ A simple way is to perform fixed point iterations::
 
 This includes a loop with a different number of iterations depending on the
 neuron.
-

@@ -24,7 +24,7 @@ The following command runs ``myscript.py`` with the container image providing Br
 .. code:: shell
 
     docker run -v "$(pwd):/workdir" brian1 python myscript.py
- 
+
 For Windows users using the Command Prompt (``cmd.exe``) instead of the Powershell, the following command will do the same thing:
 
 .. code:: shell
@@ -44,4 +44,3 @@ Depending on your operating system, files written by the container might be owne
     docker run -u $(id -u):$(id -g) -v "$(pwd):/workdir" brian1 python myscript.py
 
 Please report any issues to the `Brian discussion forum <https://brian.discourse.group>`_.
-

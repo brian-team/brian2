@@ -44,4 +44,3 @@ code is language-specific. In the case of C++, it's a dictionary of code blocks:
             '''}
     DEFAULT_FUNCTIONS['clip'].implementations[CPPCodeGenerator] = FunctionImplementation('_clip',
                                                                                     code=clip_code)
-

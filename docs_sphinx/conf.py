@@ -63,7 +63,7 @@ if 'BRIAN2_DOCS_QUICK_REBUILD' not in os.environ:
     generate_reference.main(abs_root, exclude_dirs=['tests', 'sphinxext'],
                             exclude_files=['conftest.py'],
                             destdir=target_dir)
-    
+
     # -- Automatically generate the examples documentation -------------------------
     import brian2.sphinxext.generate_examples as generate_examples
     target_dir = './examples'
@@ -329,7 +329,7 @@ highlight_language = 'python'  # instead of python3 (default for sphinx>=1.4)
 # Configure linking to github
 import sphinx
 sphinx_version = tuple(int(x) for x in sphinx.__version__.split('.'))
-if sphinx_version >= (4, 0, 0): 
+if sphinx_version >= (4, 0, 0):
     extlinks = {'issue': ('https://github.com/brian-team/brian2/issues/%s',
                           '# %s')}
 else:

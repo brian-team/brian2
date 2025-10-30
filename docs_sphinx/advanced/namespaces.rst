@@ -39,12 +39,12 @@ variable values, all having the same effect in this case::
 	G = NeuronGroup(1, 'dv/dt = -v / tau : 1', namespace={'tau': 10*ms})
 	net = Network(G)
 	net.run(10*ms)
-	
+
 	# Explicit argument to the run function
 	G = NeuronGroup(1, 'dv/dt = -v / tau : 1')
 	net = Network(G)
 	net.run(10*ms, namespace={'tau': 10*ms})
-	 
+
 	# Implicit namespace from the context
 	G = NeuronGroup(1, 'dv/dt = -v / tau : 1')
 	net = Network(G)
@@ -52,4 +52,4 @@ variable values, all having the same effect in this case::
 	net.run(10*ms)
 
 External variables are free to change between runs (but not during one run),
-the value at the time of the `run` call is used in the simulation. 
+the value at the time of the `run` call is used in the simulation.

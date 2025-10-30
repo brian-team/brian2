@@ -99,14 +99,14 @@ external variables and parameters, in the same way as model descriptions::
 
 You can also create non-spike events. See :doc:`/advanced/custom_events`
 for more details.
-                     
+
 Refractoriness
 --------------
 To make a neuron non-excitable for a certain time period after a spike, the
 refractory keyword can be used::
 
     G = NeuronGroup(10, 'dv/dt = -v/tau : volt', threshold='v > -50*mV',
-                    reset='v = -70*mV', refractory=5*ms)    
+                    reset='v = -70*mV', refractory=5*ms)
 
 This will not allow any threshold crossing for a neuron for 5ms after a spike.
 The refractory keyword allows for more flexible refractoriness specifications,
@@ -116,7 +116,7 @@ see :doc:`refractoriness` for details.
 
 State variables
 ---------------
-Differential equations and parameters in model descriptions are stored as 
+Differential equations and parameters in model descriptions are stored as
 *state variables* of the `NeuronGroup`. In addition to these variables, Brian
 also defines two variables automatically:
 

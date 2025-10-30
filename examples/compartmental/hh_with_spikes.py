@@ -35,7 +35,7 @@ betan = 0.125*exp(-v/(80*mV))/ms : Hz
 gNa : siemens/meter**2
 '''
 
-neuron = SpatialNeuron(morphology=morpho, model=eqs, method="exponential_euler", 
+neuron = SpatialNeuron(morphology=morpho, model=eqs, method="exponential_euler",
                        refractory="m > 0.4", threshold="m > 0.5",
                        Cm=1*uF/cm**2, Ri=35.4*ohm*cm)
 neuron.v = 0*mV

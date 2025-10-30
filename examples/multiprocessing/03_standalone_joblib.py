@@ -33,7 +33,7 @@ def run_sim(tau):
 
 if __name__ == "__main__":
     start_time = wall_time()
-    
+
     n_jobs = 4
     tau_values = np.arange(10)*ms + 5*ms
 

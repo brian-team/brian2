@@ -1,5 +1,5 @@
 Units
-=====  
+=====
 
 Casting rules
 -------------
@@ -61,15 +61,15 @@ appropriate. Most of the methods are overwritten using thin function wrappers:
 
 ``wrap_function_dimensionless``:
 	Raises an error if the method is called on a quantity with dimensions (i.e.
-	it works on dimensionless quantities). 
+	it works on dimensionless quantities).
 
 **List of methods**
 
-``all``, ``any``, ``argmax``, ``argsort``, ``clip``, ``compress``, ``conj``, ``conjugate``, 
-``copy``, ``cumsum``, ``diagonal``, ``dot``, ``dump``, ``dumps``, ``fill``, ``flatten``, ``getfield``, 
-``item``, ``itemset``, ``max``, ``mean``, ``min``, ``newbyteorder``, ``nonzero``, ``prod``, ``ptp``, 
-``put``, ``ravel``, ``repeat``, ``reshape``, ``round``, ``searchsorted``, ``setasflat``, ``setfield``, 
-``setflags``, ``sort``, ``squeeze``, ``std``, ``sum``, ``take``, ``tolist``, ``trace``, ``transpose``, 
+``all``, ``any``, ``argmax``, ``argsort``, ``clip``, ``compress``, ``conj``, ``conjugate``,
+``copy``, ``cumsum``, ``diagonal``, ``dot``, ``dump``, ``dumps``, ``fill``, ``flatten``, ``getfield``,
+``item``, ``itemset``, ``max``, ``mean``, ``min``, ``newbyteorder``, ``nonzero``, ``prod``, ``ptp``,
+``put``, ``ravel``, ``repeat``, ``reshape``, ``round``, ``searchsorted``, ``setasflat``, ``setfield``,
+``setflags``, ``sort``, ``squeeze``, ``std``, ``sum``, ``take``, ``tolist``, ``trace``, ``transpose``,
 ``var``, ``view``
 
 **Notes**
@@ -97,26 +97,26 @@ appropriate arrays. These functions are often called implicitly, for example
 when using operators like ``<`` or ``**``.
 
 *Math operations:*
-	``add``, ``subtract``, ``multiply``, ``divide``, ``logaddexp``, ``logaddexp2``, 
-        ``true_divide``, ``floor_divide``, ``negative``, ``power``, ``remainder``, ``mod``, 
-        ``fmod``, ``absolute``, ``rint``, ``sign``, ``conj``, ``conjugate``, ``exp``, ``exp2``, 
-        ``log``, ``log2``, ``log10``, ``expm1``, ``log1p``, ``sqrt``, ``square``, ``reciprocal``, 
+	``add``, ``subtract``, ``multiply``, ``divide``, ``logaddexp``, ``logaddexp2``,
+        ``true_divide``, ``floor_divide``, ``negative``, ``power``, ``remainder``, ``mod``,
+        ``fmod``, ``absolute``, ``rint``, ``sign``, ``conj``, ``conjugate``, ``exp``, ``exp2``,
+        ``log``, ``log2``, ``log10``, ``expm1``, ``log1p``, ``sqrt``, ``square``, ``reciprocal``,
         ``ones_like``
-	
+
 *Trigonometric functions:*
-	``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, ``arctan``, ``arctan2``, ``hypot``, 
+	``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, ``arctan``, ``arctan2``, ``hypot``,
         ``sinh``, ``cosh``, ``tanh``, ``arcsinh``, ``arccosh``, ``arctanh``, ``deg2rad``, ``rad2deg``
 
 *Bitwise functions:*
 	``bitwise_and``, ``bitwise_or``, ``bitwise_xor``, ``invert``, ``left_shift``, ``right_shift``
 
-*Comparison functions:* 
+*Comparison functions:*
 	``greater``, ``greater_equal``, ``less``, ``less_equal``, ``not_equal``,
-	``equal``, ``logical_and``, ``logical_or``, ``logical_xor``, ``logical_not``, ``maximum``, 
+	``equal``, ``logical_and``, ``logical_or``, ``logical_xor``, ``logical_not``, ``maximum``,
         ``minimum``
-	
+
 *Floating functions:*
-	``isreal``, ``iscomplex``, ``isfinite``, ``isinf``, ``isnan``, ``floor``, ``ceil``, ``trunc``, 
+	``isreal``, ``iscomplex``, ``isfinite``, ``isinf``, ``isnan``, ``floor``, ``ceil``, ``trunc``,
         ``fmod``
 
 Not taken care of yet: ``signbit``, ``copysign``, ``nextafter``, ``modf``, ``ldexp``, ``frexp``
@@ -129,7 +129,7 @@ Not taken care of yet: ``signbit``, ``copysign``, ``nextafter``, ``modf``, ``lde
 * Unit arrays can only be raised to a scalar power, not to an array of
   exponents as this would lead to differing dimensions across entries. For
   simplicity, this is enforced even for dimensionless quantities.
-* Bitwise functions never works on quantities (numpy will by itself throw a 
+* Bitwise functions never works on quantities (numpy will by itself throw a
   ``TypeError`` because they are floats not integers).
 * All comparisons only work for matching dimensions (with the exception of
   always allowing comparisons to 0) and return a pure boolean array.
@@ -154,10 +154,10 @@ which might actually be a bug in numpy): ``trace``, ``diagonal``, ``ravel``,
 These functions are thin wrappers around the numpy functions to correctly check
 for units and return quantities when appropriate:
 
-``log``, ``exp``, ``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, ``arctan``, ``sinh``, 
-``cosh``, ``tanh``, ``arcsinh``, ``arccosh``, ``arctanh``, ``diagonal``, ``ravel``, ``trace``, 
+``log``, ``exp``, ``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, ``arctan``, ``sinh``,
+``cosh``, ``tanh``, ``arcsinh``, ``arccosh``, ``arctanh``, ``diagonal``, ``ravel``, ``trace``,
 ``dot``
-         
+
 **numpy functions that work unchanged**
 
 This includes all functional counterparts of the methods mentioned above (with

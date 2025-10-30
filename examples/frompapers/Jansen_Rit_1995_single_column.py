@@ -3,15 +3,15 @@
 """
 [Jansen and Rit 1995 model](https://link.springer.com/content/pdf/10.1007/BF00199471.pdf) (Figure 3) in Brian2.
 
-Equations are the system of differential equations number (6) in the original paper. 
-The rate parameters $a=100 s^{-1}$ and $b=200 s^{-1}$ were changed to excitatory $\tau_e = 1000ms/a =10ms$  and inhibitory $\tau_i = 1000ms/b =20ms$ time constants as in 
-[Thomas Knosche review](https://link.springer.com/referenceworkentry/10.1007%2F978-1-4614-6675-8_65), 
-[Touboul et al. 2011](https://direct.mit.edu/neco/article-abstract/23/12/3232/7717/Neural-Mass-Activity-Bifurcations-and-Epilepsy?redirectedFrom=fulltext), or 
-[David & Friston 2003](https://www.sciencedirect.com/science/article/pii/S1053811903004579). 
+Equations are the system of differential equations number (6) in the original paper.
+The rate parameters $a=100 s^{-1}$ and $b=200 s^{-1}$ were changed to excitatory $\tau_e = 1000ms/a =10ms$  and inhibitory $\tau_i = 1000ms/b =20ms$ time constants as in
+[Thomas Knosche review](https://link.springer.com/referenceworkentry/10.1007%2F978-1-4614-6675-8_65),
+[Touboul et al. 2011](https://direct.mit.edu/neco/article-abstract/23/12/3232/7717/Neural-Mass-Activity-Bifurcations-and-Epilepsy?redirectedFrom=fulltext), or
+[David & Friston 2003](https://www.sciencedirect.com/science/article/pii/S1053811903004579).
 Units were removerd from parameters $e_0$, $v_0$, $r_0$, $A$, $B$, and $p$ to stop Brian's confusion.
 
 Ruben Tikidji-Hamburyan 2021 (rth@r-a-r.org)
-""" 
+"""
 
 
 
@@ -97,4 +97,3 @@ for p in [0,1,2,3,4,5]:
     o += 3
 
 show()
-

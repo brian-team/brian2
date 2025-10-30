@@ -66,7 +66,7 @@ S = SpikeMonitor(neurons)
 # The algorithm we use here to find the voltage threshold is a simple bisection: we try to find the threshold voltage of
 # a neuron by repeatedly testing values and increasing or decreasing these values depending on whether we observe a
 # spike or not. By continously halving the size of the correction, we quickly converge to a precise estimate.
-# 
+#
 # We start with the same initial estimate for all segments, 25mV above the resting potential, and the same value for
 # the size of the "correction step":
 

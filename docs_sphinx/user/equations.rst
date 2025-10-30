@@ -247,9 +247,9 @@ The model definitions for `NeuronGroup` and `Synapses` can be simple strings or
 
 `Equations` allow for the specification of values in the strings, but does this by simple
 string replacement, e.g. you can do::
-  
+
   eqs = Equations('dx/dt = x/tau : volt', tau=10*ms)
-   
+
 but this is exactly equivalent to::
 
   eqs = Equations('dx/dt = x/(10*ms) : volt')

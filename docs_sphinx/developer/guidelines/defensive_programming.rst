@@ -12,7 +12,7 @@ reference to it, and so won't stop it from being deallocated.
 We should write an automated test that takes a piece of correct code like::
 
     NeuronGroup(N, eqs, reset='V>Vt')
-   
+
 and tries replacing all arguments by nonsense arguments, it should always
 raise an error in this case (forcing us to write code to validate the inputs).
 For example, you could create a new NonsenseObject class, and do this::
@@ -31,14 +31,14 @@ way. For example, instead of doing something like::
 
     if not isinstance(arg, (float, int)):
         raise TypeError(...)
-    
+
 Do something like::
 
         arg = float(arg)
 
 (or use try/except to raise a more specific error). In contrast to the
 ``isinstance`` check it does not make any assumptions about the type except for
-its ability to be converted to a float. 
+its ability to be converted to a float.
 
 This approach is particular useful for numpy arrays::
 
