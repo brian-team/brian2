@@ -30,6 +30,7 @@ classifiers = [
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
 license = 'CECILL-2.1'
+license-files = ["LICENSE", "AUTHORS", "CONTRIBUTORS"]
 
 [project.optional-dependencies]
 test = ['pytest>=8', 'pytest-xdist>=1.22.3', 'pytest-cov>=2.0', 'pytest-timeout']
