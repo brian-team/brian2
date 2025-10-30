@@ -514,7 +514,7 @@ class CPPStandaloneDevice(Device):
                     f"Cannot set variable '{variableview.name}' "
                     "this way in standalone, try using "
                     "string expressions."
-                )
+                ) from None
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer

@@ -341,8 +341,8 @@ def dimensions_and_type_from_string(unit_string):
         evaluated_unit = eval(unit_string, _base_units)
     except Exception as ex:
         raise ValueError(
-            f"Could not interpret '{unit_string}' as a unit specification: {ex}"
-        )
+            f"Could not interpret '{unit_string}' as a unit specification."
+        ) from ex
 
     # Check whether the result is a unit
     if not isinstance(evaluated_unit, Unit):
@@ -405,11 +405,10 @@ def parse_string_equations(eqns):
             dims, var_type = dimensions_and_type_from_string(eq_content["unit"])
         except ValueError as ex:
             raise EquationError(
-                "Error parsing the unit specification for "
-                f"variable '{identifier}': {ex}"
-            )
+                f"Error parsing the unit specification for variable '{identifier}'."
+            ) from ex
 
-        expression = eq_content.get("expression", None)
+        expression = eq_content.get("expression")
         if expression is not None:
             # Replace multiple whitespaces (arising from joining multiline
             # strings) with single space
@@ -714,9 +713,8 @@ class Equations(Hashable, Mapping):
                             Expression(new_code)
                         except ValueError as ex:
                             raise ValueError(
-                                'Replacing "%s" with "%r" failed: %s'
-                                % (to_replace, replacement, ex)
-                            )
+                                f"Replacing '{to_replace}' with '{replacement!r} failed."
+                            ) from ex
                 new_equations[new_varname] = SingleEquation(
                     eq.type,
                     new_varname,
@@ -1045,7 +1043,7 @@ class Equations(Hashable, Mapping):
             raise ValueError(
                 "Cannot resolve dependencies between static "
                 "equations, dependencies contain a cycle."
-            )
+            ) from None
 
         # put the equations objects in the correct order
         for order, static_variable in enumerate(sorted_eqs):
@@ -1102,7 +1100,7 @@ class Equations(Hashable, Mapping):
             raise ValueError(
                 "Cannot resolve dependencies between static "
                 "equations, dependencies contain a cycle."
-            )
+            ) from None
         # Remove the dummy entries for differential equations and rename
         # x' → x
         sorted_eqs = [
@@ -1276,11 +1274,7 @@ class Equations(Hashable, Mapping):
             else:
                 flag_str = ""
             if eq.type == PARAMETER:
-                eq_latex = r"{} &&& \text{{(unit: ${}${})}}".format(
-                    sympy.latex(lhs),
-                    sympy.latex(get_unit(eq.dim)),
-                    flag_str,
-                )
+                eq_latex = rf"{sympy.latex(lhs)} &&& \text{{(unit: ${sympy.latex(get_unit(eq.dim))}${flag_str})}}"
             else:
                 eq_latex = r"{} &= {} && \text{{(unit of ${}$: ${}${})}}".format(
                     lhs,  # already a string

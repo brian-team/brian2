@@ -139,8 +139,8 @@ class RateMonitor(CodeRunner, Group, ABC):
         else:
             try:
                 window = np.asarray(window)
-            except TypeError:
-                raise TypeError(f"Cannot use a window of type {type(window)}")
+            except TypeError as ex:
+                raise TypeError(f"Cannot use a window of type {type(window)}") from ex
             if window.ndim != 1:
                 raise TypeError("The provided window has to be one-dimensional.")
             if len(window) % 2 != 1:

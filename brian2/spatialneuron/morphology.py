@@ -1028,7 +1028,7 @@ class Morphology(metaclass=abc.ABCMeta):
             )
         else:
             sec_x, sec_y, sec_z, sec_diameter = zip(
-                *[(c.x, c.y, c.z, c.diameter) for c in compartments]
+                *[(c.x, c.y, c.z, c.diameter) for c in compartments], strict=True
             )
             # Add a point for the end of the parent_idx compartment
             if parent is not None:

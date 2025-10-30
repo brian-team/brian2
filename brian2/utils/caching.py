@@ -142,5 +142,7 @@ def _hashable(obj):
             # Make sure that the object is hashable
             hash(obj)
             return obj
-        except TypeError:
-            raise TypeError(f"Do not know how to handle object of type {type(obj)}")
+        except TypeError as ex:
+            raise TypeError(
+                f"Do not know how to handle object of type {type(obj)}"
+            ) from ex

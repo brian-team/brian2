@@ -82,7 +82,9 @@ def _str_to_sympy(expr):
     try:
         s_expr = SympyNodeRenderer().render_expr(expr)
     except (TypeError, ValueError, NameError) as ex:
-        raise SyntaxError(f"Error during evaluation of sympy expression '{expr}': {ex}")
+        raise SyntaxError(
+            f"Error during evaluation of sympy expression '{expr}'"
+        ) from ex
 
     return s_expr
 

@@ -217,7 +217,7 @@ class Function:
         if self._return_type is None:
             self._return_type = getattr(pyfunc, "_return_type", "float")
 
-        for argtype, u in zip(self._arg_types, self._arg_units):
+        for argtype, u in zip(self._arg_types, self._arg_units, strict=True):
             if (
                 argtype != "float"
                 and argtype != "any"
@@ -461,7 +461,7 @@ class FunctionImplementationContainer(Mapping):
                         f"expected {len(arg_units)}."
                     )
                 new_args = []
-                for arg, arg_unit in zip(args, arg_units):
+                for arg, arg_unit in zip(args, arg_units, strict=True):
                     if (
                         arg_unit is bool
                         or arg_unit is None

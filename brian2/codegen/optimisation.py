@@ -125,10 +125,16 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
             for bool_vals in itertools.product(*bool_space):
                 # substitute those values into the expr and simplify (including potentially pulling out new
                 # loop invariants)
-                subs = {var: str(val) for var, val in zip(used_boolvars, bool_vals)}
+                subs = {
+                    var: str(val)
+                    for var, val in zip(used_boolvars, bool_vals, strict=True)
+                }
                 curexpr = word_substitute(new_expr, subs)
                 curexpr = simplifier.render_expr(curexpr)
-                key = tuple((var, val) for var, val in zip(used_boolvars, bool_vals))
+                key = tuple(
+                    (var, val)
+                    for var, val in zip(used_boolvars, bool_vals, strict=True)
+                )
                 expanded_expressions[key] = curexpr
                 complexities[key] = expression_complexity(curexpr, simplifier.variables)
             # See Statement for details on these

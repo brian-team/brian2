@@ -100,12 +100,12 @@ class CythonExtensionManager:
             lib_dir = os.path.expanduser(lib_dir)
         try:
             os.makedirs(lib_dir)
-        except OSError:
+        except OSError as ex:
             if not os.path.exists(lib_dir):
                 raise OSError(
                     f"Couldn't create Cython cache directory '{lib_dir}', try setting"
                     " the cache directly with prefs.codegen.runtime.cython.cache_dir."
-                )
+                ) from ex
 
         numpy_version = ".".join(
             numpy.__version__.split(".")[:2]

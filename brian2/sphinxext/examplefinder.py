@@ -33,7 +33,7 @@ def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=None):
         fname.replace("/", ".").replace("\\", ".").replace(pattern, "")
         for fname in shortfnames
     ]
-    for fname, shortfname, exname in zip(fnames, shortfnames, exnames):
+    for fname, shortfname, exname in zip(fnames, shortfnames, exnames, strict=True):
         with open(fname) as f:
             ex = f.read()
         ids = get_identifiers(ex)

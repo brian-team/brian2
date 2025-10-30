@@ -122,6 +122,7 @@ def main(rootpath, destdir):
         examplesafterdoccode,
         relativepaths,
         outnames,
+        strict=True,
     )
     # Get the path relative to the examples director (not relative to the
     # directory where this file is installed

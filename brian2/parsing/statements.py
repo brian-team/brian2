@@ -57,7 +57,7 @@ def parse_statement(code):
             + " " * (p_exc.column - 1)
             + "^\n"
             + str(p_exc)
-        )
+        ) from p_exc
     parsed_statement = (
         parsed["variable"].strip(),
         parsed["operation"],

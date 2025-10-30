@@ -258,11 +258,11 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 description, parseAll=True
             )
         except ParseException as p_exc:
-            ex = SyntaxError(f"Parsing failed: {str(p_exc.msg)}")
+            ex = SyntaxError("Parsing failed.")
             ex.text = str(p_exc.line)
             ex.offset = p_exc.column
             ex.lineno = p_exc.lineno
-            raise ex
+            raise ex from p_exc
 
         self.statements = []
         self.symbols = SYMBOLS.copy()
@@ -279,7 +279,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                     unique_symbols.append(symbol)
                 else:
                     unique_symbols.append(_symbol(f"__{symbol.name}"))
-            for symbol, unique_symbol in zip(symbols, unique_symbols):
+            for symbol, unique_symbol in zip(symbols, unique_symbols, strict=True):
                 expression = expression.subs(symbol, unique_symbol)
 
             self.symbols.update({symbol.name: symbol for symbol in unique_symbols})
@@ -349,7 +349,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         try:
             s_expr = str_to_sympy(str(expr))
         except SympifyError as ex:
-            raise ValueError(f'Error parsing the expression "{expr}": {str(ex)}')
+            raise ValueError(f'Error parsing the expression "{expr}"') from ex
 
         for var in eq_symbols:
             # Generate specific temporary variables for the state variable,
@@ -505,13 +505,13 @@ class ExplicitStateUpdater(StateUpdateMethod):
         else:
             for xi in stochastic_variable:
                 # Replace the g(x, t) part
-                replace_f = lambda x, t: self.replace_func(
+                replace_f = lambda x, t, xi=xi: self.replace_func(
                     x,
                     t,
                     stochastic.get(xi, 0),
                     temp_vars,
                     eq_symbols,
-                    xi,  # noqa: B023
+                    xi,
                 )
                 stochastic_result = stochastic_expr.replace(
                     self.symbols["__g"], replace_f
