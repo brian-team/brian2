@@ -23,19 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy wheels into the image
-COPY dist /tmp/dist
-
-# Install Brian2 and recommended packages
-RUN python -m pip install --no-cache-dir --only-binary=:all: \
-    scipy \
-    matplotlib \
-    jupyterlab \
-    pytest \
-    pytest-xdist \
-    && python -m pip install /tmp/dist/[Bb]rian2*_$(uname -m).whl brian2tools \
-    && rm -rf /tmp/dist
-
 # Create a non-root user (password same as username)
 ARG USER="monty"
 RUN groupadd ${USER} && \
@@ -43,6 +30,22 @@ RUN groupadd ${USER} && \
     echo "${USER}:${USER}" | chpasswd
 ENV HOME="/home/${USER}"
 RUN chown -R ${USER}:${USER} ${HOME}
+
+# Install Recommended packages
+RUN python -m pip install --no-cache-dir --only-binary=:all: \
+    scipy \
+    matplotlib \
+    jupyterlab \
+    pytest \
+    pytest-xdist
+
+    # Copy wheels into the image
+COPY dist /tmp/dist
+
+# Install Brian2
+RUN python -m pip install /tmp/dist/[Bb]rian2*_$(uname -m).whl brian2tools \
+    && rm -rf /tmp/dist
+
 USER ${USER}
 
 # Copy tutorial notebooks and example scripts to home directory
