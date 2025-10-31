@@ -42,14 +42,15 @@ Try out Brian on the [mybinder](https://mybinder.org/) service:
 ## Dependencies
 The following packages need to be installed to use Brian 2 (cf. [`pyproject.toml`](pyproject.toml)):
 
-* Python >= 3.10
-* NumPy >=1.23
+* Python >= 3.12
+* NumPy >= 2.0
 * SymPy >= 1.2
 * Cython >= 0.29.21
 * PyParsing
 * Jinja2 >= 2.7
 * setuptools >= 61
 * py-cpuinfo (only required on Windows)
+* packaging
 
 For full functionality, you might also want to install:
 
@@ -59,11 +60,13 @@ For full functionality, you might also want to install:
 
 To build the documentation:
 
-* Sphinx (>=7)
+* Sphinx >=7
+* ipython >=5
+* sphinx-tabs
 
 To run the test suite:
 
-* pytest
+* pytest >= 8
 * pytest-xdist (optional)
 
 ## Testing status for master branch

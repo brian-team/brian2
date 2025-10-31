@@ -47,8 +47,8 @@ jobs:
           [
             { image: ubuntu-24.04, triplet: x64-linux },
             { image: windows-2022, triplet: x64-windows },
-            { image: macOS-13, triplet: x64-osx },
-            { image: macOS-14, triplet: arm64-osx },
+            { image: macos-15-intel, triplet: x64-osx },
+            { image: macos-latest, triplet: arm64-osx },
           ]
         standalone: [false, true]
         float_dtype_32: [false, true]
@@ -56,11 +56,11 @@ jobs:
         include:
           - os: { image: ubuntu-24.04, triplet: x64-linux }
             standalone: false
-            python-version: "${{ needs.get_python_versions.outputs.min-python }} < 3.11.9 || ${{ needs.get_python_versions.outputs.min-python }} >= 3.12"
+            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
           - os: { image: ubuntu-24.04, triplet: x64-linux }
             standalone: true
-            python-version: "${{ needs.get_python_versions.outputs.min-python }} < 3.11.9 || ${{ needs.get_python_versions.outputs.min-python }} >= 3.12"
+            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
 
     defaults:

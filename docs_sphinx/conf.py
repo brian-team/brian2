@@ -11,7 +11,9 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os, shutil
+import os
+import shutil
+import sys
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -29,8 +31,8 @@ class Mock(object):
 
     @classmethod
     def __getattr__(cls, name):
-        if name in ('__file__', '__path__'):
-            return '/dev/null'
+        if name in ("__file__", "__path__"):
+            return "/dev/null"
         elif name[0] == name[0].upper():
             mockType = type(name, (), {})
             mockType.__module__ = __name__
@@ -38,81 +40,99 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['brian', 'brian.hears',   # mock Brian1 for the bridge
-                # Mock additional packages to reduce installation time on
-                # readthedocs
-                'Cython', 'Cython.Compiler', 'Cython.Build',
-                'scipy']
+
+MOCK_MODULES = [
+    "brian",
+    "brian.hears",  # mock Brian1 for the bridge
+    # Mock additional packages to reduce installation time on
+    # readthedocs
+    "Cython",
+    "Cython.Compiler",
+    "Cython.Build",
+    "scipy",
+]
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
 # Store the examples and tutorials directory in an environment variable,
 # used by the "example finder" that is called as part of the autoclass documentation
-os.environ['BRIAN2_DOCS_EXAMPLE_DIR'] = root_dir = os.path.abspath('../examples')
-os.environ['BRIAN2_DOCS_TUTORIALS_DIR'] = root_dir = os.path.abspath('../tutorials')
+os.environ["BRIAN2_DOCS_EXAMPLE_DIR"] = root_dir = os.path.abspath("../examples")
+os.environ["BRIAN2_DOCS_TUTORIALS_DIR"] = root_dir = os.path.abspath("../tutorials")
 
-if 'BRIAN2_DOCS_QUICK_REBUILD' not in os.environ:
+if "BRIAN2_DOCS_QUICK_REBUILD" not in os.environ:
     # -- Automatically generate the reference documentation ------------------------
     import brian2.sphinxext.generate_reference as generate_reference
+
     # first generate the reference documentation
-    target_dir = './reference'
+    target_dir = "./reference"
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir)
     os.makedirs(target_dir)
-    abs_root = os.path.abspath('../brian2')
-    generate_reference.main(abs_root, exclude_dirs=['tests', 'sphinxext'],
-                            exclude_files=['conftest.py'],
-                            destdir=target_dir)
+    abs_root = os.path.abspath("../brian2")
+    generate_reference.main(
+        abs_root,
+        exclude_dirs=["tests", "sphinxext"],
+        exclude_files=["conftest.py"],
+        destdir=target_dir,
+    )
 
     # -- Automatically generate the examples documentation -------------------------
     import brian2.sphinxext.generate_examples as generate_examples
-    target_dir = './examples'
-    root_dir = os.path.abspath('../examples')
+
+    target_dir = "./examples"
+    root_dir = os.path.abspath("../examples")
     generate_examples.main(root_dir, target_dir)
 
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.8'
+needs_sphinx = "7.0"
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
-              'sphinx.ext.intersphinx', 'sphinx.ext.todo',
-              'sphinx.ext.coverage', 'sphinx.ext.mathjax',
-              'sphinx.ext.viewcode',
-              'brian2.sphinxext.briandoc',
-              'sphinx.ext.autosummary',
-              'sphinx.ext.extlinks',
-              'sphinx_tabs.tabs']
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.viewcode",
+    "brian2.sphinxext.briandoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.extlinks",
+    "sphinx_tabs.tabs",
+]
 
 # Set readthedocs theme if available
 try:
     import sphinx_rtd_theme
-    extensions += ['sphinx_rtd_theme']
-    html_theme = 'sphinx_rtd_theme'
+
+    extensions += ["sphinx_rtd_theme"]
+    html_theme = "sphinx_rtd_theme"
 except ImportError:
     pass
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = 'Brian 2'
-import datetime, time
+project = "Brian 2"
+import datetime
+import time
+
 copyright = "2012–{}, Brian authors".format(
     datetime.datetime.fromtimestamp(
-        int(os.environ.get("SOURCE_DATE_EPOCH", time.time())),
-        tz=datetime.timezone.utc
+        int(os.environ.get("SOURCE_DATE_EPOCH", time.time())), tz=datetime.timezone.utc
     ).year
 )
 
@@ -122,7 +142,7 @@ copyright = "2012–{}, Brian authors".format(
 #
 from importlib.metadata import version
 
-release = version('brian2')
+release = version("brian2")
 # The short X.Y.Z version.
 version = ".".join(release.split(".")[:3])
 
@@ -138,10 +158,10 @@ version = ".".join(release.split(".")[:3])
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ["_build"]
 
 # The reST default role (used for this markup: `text`) to use for all documents.
-default_role = 'brianobj'
+default_role = "brianobj"
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 # add_function_parentheses = True
@@ -155,10 +175,10 @@ default_role = 'brianobj'
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
-modindex_common_prefix = ['brian2.']
+modindex_common_prefix = ["brian2."]
 
 sphinx_tabs_disable_tab_closing = True
 
@@ -179,7 +199,7 @@ sphinx_tabs_disable_tab_closing = True
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '_static/brian-logo.png'
+html_logo = "_static/brian-logo.png"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -189,7 +209,7 @@ html_logo = '_static/brian-logo.png'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -233,30 +253,27 @@ html_static_path = ['_static']
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Brian2doc'
+htmlhelp_basename = "Brian2doc"
 
 # Suppress warnings about the mybinder badges
-suppress_warnings = ['image.nonlocal_uri']
+suppress_warnings = ["image.nonlocal_uri"]
 
 # -- Options for LaTeX output --------------------------------------------------
-latex_engine = 'xelatex'
+latex_engine = "xelatex"
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
-
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
-
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # The paper size ('letterpaper' or 'a4paper').
+    #'papersize': 'letterpaper',
+    # The font size ('10pt', '11pt' or '12pt').
+    #'pointsize': '10pt',
+    # Additional stuff for the LaTeX preamble.
+    #'preamble': '',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Brian2.tex', 'Brian 2 Documentation',
-   'Brian authors', 'manual'),
+    ("index", "Brian2.tex", "Brian 2 Documentation", "Brian authors", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -284,10 +301,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    ('index', 'brian2', 'Brian 2 Documentation',
-     ['Brian authors'], 1)
-]
+man_pages = [("index", "brian2", "Brian 2 Documentation", ["Brian authors"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -299,9 +313,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'Brian2', 'Brian 2 Documentation',
-   'Brian authors', 'Brian2', 'One line description of project.',
-   'Miscellaneous'),
+    (
+        "index",
+        "Brian2",
+        "Brian 2 Documentation",
+        "Brian authors",
+        "Brian2",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
 ]
 
 # Documents to append as an appendix to all manuals.
@@ -315,23 +335,16 @@ texinfo_documents = [
 
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'numpy' : ('https://numpy.org/doc/stable', None),
-    'scipy' : ('https://docs.scipy.org/doc/scipy', None),
-    'sympy' : ('https://docs.sympy.org/dev/', None)
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy", None),
+    "sympy": ("https://docs.sympy.org/dev/", None),
 }
 
-autodoc_default_options = {'show-inheritance': True}
+autodoc_default_options = {"show-inheritance": True}
 
-doctest_global_setup = 'from brian2 import *'
-highlight_language = 'python'  # instead of python3 (default for sphinx>=1.4)
+doctest_global_setup = "from brian2 import *"
+highlight_language = "python"  # instead of python3 (default for sphinx>=1.4)
 
 # Configure linking to github
-import sphinx
-sphinx_version = tuple(int(x) for x in sphinx.__version__.split('.'))
-if sphinx_version >= (4, 0, 0):
-    extlinks = {'issue': ('https://github.com/brian-team/brian2/issues/%s',
-                          '# %s')}
-else:
-    extlinks = {'issue': ('https://github.com/brian-team/brian2/issues/%s',
-                          '# ')}
+extlinks = {"issue": ("https://github.com/brian-team/brian2/issues/%s", "# %s")}

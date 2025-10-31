@@ -33,8 +33,8 @@ jobs:
       matrix:
         os: [{image: ubuntu-latest, triplet: x64-linux},
              {image: windows-latest, triplet: x64-windows},
-             {image: macOS-13, triplet: x64-osx},
-             {image: macOS-latest, triplet: arm64-osx}]
+             {image: macos-15-intel, triplet: x64-osx},
+             {image: macos-latest, triplet: arm64-osx}]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
@@ -82,7 +82,6 @@ jobs:
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
-          cp numpy2.pyproject.toml pyproject.toml
           "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
         shell: bash
