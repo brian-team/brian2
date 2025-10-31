@@ -82,7 +82,6 @@ jobs:
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
-          cp numpy2.pyproject.toml pyproject.toml
           "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
         shell: bash
