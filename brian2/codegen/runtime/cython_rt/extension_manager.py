@@ -12,10 +12,10 @@ import os
 import shutil
 import sys
 import time
-from distutils.command.build_ext import build_ext
-from distutils.core import Distribution, Extension
 
 import numpy
+from distutils.command.build_ext import build_ext
+from distutils.core import Distribution, Extension
 
 try:
     import Cython

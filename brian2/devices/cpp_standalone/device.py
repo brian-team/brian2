@@ -14,10 +14,10 @@ import time
 import zlib
 from collections import Counter, defaultdict
 from collections.abc import Mapping
-from distutils import ccompiler
 from hashlib import md5
 
 import numpy as np
+from distutils import ccompiler
 
 from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env

@@ -7,7 +7,6 @@ Preferences
 
 """
 
-import distutils
 import json
 import os
 import platform
@@ -17,6 +16,8 @@ import struct
 import subprocess
 import sys
 import tempfile
+
+import distutils
 from distutils.ccompiler import get_default_compiler
 
 from brian2.core.preferences import BrianPreference, prefs
@@ -263,6 +264,7 @@ prefs.register_preferences(
 # Adapted from https://github.com/pybind/pybind11/
 def _determine_flag_compatibility(compiler, flagname):
     import tempfile
+
     from distutils.errors import CompileError
 
     with (
