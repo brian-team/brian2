@@ -23,7 +23,7 @@ jobs:
           deprecate-python-after: 36
           min-python-releases: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-  
+
   testing:
     needs: [get_python_versions]
     name: "Python ${{ matrix.python-version }} on ${{ matrix.os.image }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
@@ -143,7 +143,7 @@ jobs:
           "$PYTHON_BINARY" -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
         env:
-          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}      
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Determine Cython cache dir

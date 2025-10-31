@@ -21,7 +21,7 @@ clean:
 
 make.deps: $(SRCS) $(H_SRCS)
 	$(CXX) $(CXXFLAGS) -MM $(SRCS) > make.deps
-	
+
 ifneq ($(wildcard $(DEPS)), )
 include $(DEPS)
 endif

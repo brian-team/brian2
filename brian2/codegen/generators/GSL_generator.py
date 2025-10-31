@@ -789,7 +789,7 @@ class GSLCodeGenerator:
                         "putting its value in the _GSL_dataholder "
                         "based on scalar code, but the variable "
                         "has been processed already." % var
-                    )
+                    ) from None
                 code += [f"_GSL_dataholder.{var} {op} {expr} {comment}"]
         return "\n".join(code)
 
@@ -1167,6 +1167,4 @@ class GSLCPPCodeGenerator(GSLCodeGenerator):
         return """
         // CONSTANTS
         %CONSTANTS%
-        """ + super().make_function_code(
-            lines
-        )
+        """ + super().make_function_code(lines)

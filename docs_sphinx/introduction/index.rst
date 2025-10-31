@@ -12,4 +12,3 @@ Introduction
    support
    compatibility
    code_of_conduct
-

@@ -18,13 +18,13 @@
 
     for _idx in range(_N):
         _vectorisation_idx = _idx
-        
+
         {{vector_code|autoindent}}
-        
+
         if _cond:
             _elements_view[_num_elements] = _variable
             _num_elements += 1
-    
+
     return _elements[:_num_elements]
 
 {% endblock %}

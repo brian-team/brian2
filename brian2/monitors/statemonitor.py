@@ -202,7 +202,7 @@ class StateMonitor(Group, CodeRunner):
             self.record_all = True
             try:
                 record = np.arange(len(source), dtype=np.int32)
-            except NotImplementedError:
+            except NotImplementedError as ex:
                 # In standalone mode, this is not possible for synaptic
                 # variables because the number of synapses is not defined yet
                 raise NotImplementedError(
@@ -214,7 +214,7 @@ class StateMonitor(Group, CodeRunner):
                     "Consider providing an explicit "
                     "array of indices for the record "
                     "argument."
-                )
+                ) from ex
         elif record is False:
             record = np.array([], dtype=np.int32)
         elif isinstance(record, numbers.Number):
@@ -234,7 +234,7 @@ class StateMonitor(Group, CodeRunner):
                     # Check whether the values in record make sense
                     error_message = (
                         "The indices to record from contain values outside of the"
-                        f" range [0, {len(source)-1}] allowed for the group"
+                        f" range [0, {len(source) - 1}] allowed for the group"
                         f" '{source.name}'"
                     )
                     raise IndexError(error_message)

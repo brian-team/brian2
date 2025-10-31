@@ -55,7 +55,7 @@ if __name__ == "__main__":
     weight = 0.1
 
     npoints = 15
-    tau_range = np.linspace(1, 15, npoints) * b2.ms    
+    tau_range = np.linspace(1, 15, npoints) * b2.ms
 
     sim = SimWrapper()
 

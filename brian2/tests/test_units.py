@@ -50,9 +50,9 @@ def assert_quantity(q, values, unit):
         and (values.shape == () or isinstance(q, np.ndarray))
     ), q
     assert_allclose(np.asarray(q), values)
-    assert have_same_dimensions(
-        q, unit
-    ), f"Dimension mismatch: ({get_dimensions(q)}) ({get_dimensions(unit)})"
+    assert have_same_dimensions(q, unit), (
+        f"Dimension mismatch: ({get_dimensions(q)}) ({get_dimensions(unit)})"
+    )
 
 
 @pytest.mark.codegen_independent

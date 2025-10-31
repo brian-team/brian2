@@ -105,7 +105,7 @@ In general,
 you specify the group, variables and indices you want to record from. You
 specify the variables with a string or list of strings, and the indices
 either as an array of indices or ``True`` to record all indices (but beware
-because this may take a lot of memory). 
+because this may take a lot of memory).
 
 After the simulation, you can access these variables as attributes of the
 monitor. They are 2D arrays with shape ``(num_indices, num_times)``. The

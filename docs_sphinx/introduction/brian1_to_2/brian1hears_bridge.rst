@@ -21,23 +21,23 @@ to the fact that the units system in Brian 2 is not 100% compatible with the uni
 
 `FilterbankGroup` now follows the rules for `NeuronGroup` in Brian 2, which means some changes may be
 necessary to match the syntax of Brian 2, for example, the following would work in Brian 1 Hears::
-  
+
 	# Leaky integrate-and-fire model with noise and refractoriness
 	eqs = '''
 	dv/dt = (I-v)/(1*ms)+0.2*xi*(2/(1*ms))**.5 : 1
 	I : 1
 	'''
 	anf = FilterbankGroup(ihc, 'I', eqs, reset=0, threshold=1, refractory=5*ms)
-  
+
 However, in Brian 2 Hears you would need to do::
-  
+
 	# Leaky integrate-and-fire model with noise and refractoriness
 	eqs = '''
 	dv/dt = (I-v)/(1*ms)+0.2*xi*(2/(1*ms))**.5 : 1 (unless refractory)
 	I : 1
 	'''
-	anf = FilterbankGroup(ihc, 'I', eqs, reset='v=0', threshold='v>1', refractory=5*ms)  
-  
+	anf = FilterbankGroup(ihc, 'I', eqs, reset='v=0', threshold='v>1', refractory=5*ms)
+
 Slicing sounds no longer works. Previously you could do, e.g. ``sound[:20*ms]`` but with Brian 2 you would need
 to do ``sound.slice(0*ms, 20*ms)``.
 

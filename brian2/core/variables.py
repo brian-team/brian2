@@ -921,7 +921,7 @@ class VariableView:
                     "context for the expression, no longer exists. "
                     "Consider holding an explicit reference "
                     "to it to keep it alive."
-                )
+                ) from None
             if namespace is None:
                 namespace = get_local_namespace(level=level + 1)
             values = self.get_with_expression(item, run_namespace=namespace)
@@ -1008,7 +1008,7 @@ class VariableView:
                         "When setting a variable based on a string "
                         "index, the value has to be a string or a "
                         "scalar."
-                    )
+                    ) from None
 
             if item == "True":
                 # We do not want to go through code generation for runtime
@@ -1372,7 +1372,7 @@ class VariableView:
                 "is a subexpression referring to external "
                 f"variables, use 'group.{var}[:]' instead of "
                 f"'group.{var}'"
-            )
+            ) from None
 
     def __array__ufunc__(self, ufunc, method, *inputs, **kwargs):
         if method == "__call__":

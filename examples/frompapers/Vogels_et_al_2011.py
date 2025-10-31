@@ -19,7 +19,7 @@ from brian2 import *
 # ###########################################
 
 NE = 8000          # Number of excitatory cells
-NI = NE/4          # Number of inhibitory cells 
+NI = NE/4          # Number of inhibitory cells
 
 tau_ampa = 5.0*ms   # Glutamatergic synaptic time constant
 tau_gaba = 10.0*ms  # GABAergic synaptic time constant
@@ -56,7 +56,7 @@ Pe = neurons[:NE]
 Pi = neurons[NE:]
 
 # ###########################################
-# Connecting the network 
+# Connecting the network
 # ###########################################
 
 con_e = Synapses(Pe, neurons, on_pre='g_ampa += 0.3*nS')

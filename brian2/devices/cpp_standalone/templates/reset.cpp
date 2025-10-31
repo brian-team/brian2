@@ -7,7 +7,7 @@
 	const int32_t *_events = {{_eventspace}};
 	const int32_t _num_events = {{_eventspace}}[N];
 
-	//// MAIN CODE ////////////	
+	//// MAIN CODE ////////////
 	// scalar code
 	const size_t _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}

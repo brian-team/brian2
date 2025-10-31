@@ -373,7 +373,7 @@ def create_runner_codeobj(
     # Determine the identifiers that were used
     identifiers = set()
     user_identifiers = set()
-    for v, u_v in zip(code.values(), user_code.values()):
+    for v, u_v in zip(code.values(), user_code.values(), strict=True):
         _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
         identifiers |= uk | u
         _, uk, u = analyse_identifiers(u_v, all_variables, recursive=True)
@@ -414,7 +414,7 @@ def create_runner_codeobj(
         if cond_write_var is not None:
             if (
                 cond_write_var.name in variables
-                and not variables[cond_write_var.name] is cond_write_var
+                and variables[cond_write_var.name] is not cond_write_var
             ):
                 logger.diagnostic(
                     f"Variable '{cond_write_var.name}' is needed for the "

@@ -81,7 +81,7 @@ class LazyTemplateLoader:
                         self.env.loader.get_source(self.env, name)[0],
                     )
                 except TemplateNotFound:
-                    raise KeyError(f'No template with name "{name}" found.')
+                    raise KeyError(f'No template with name "{name}" found.') from None
             self._templates[name] = template
         return self._templates[name]
 
@@ -121,7 +121,7 @@ class Templater:
         loader = ChoiceLoader(
             [
                 PackageLoader(name, t_dir)
-                for name, t_dir in zip(package_name, templates_dir)
+                for name, t_dir in zip(package_name, templates_dir, strict=True)
             ]
         )
         self.env = Environment(

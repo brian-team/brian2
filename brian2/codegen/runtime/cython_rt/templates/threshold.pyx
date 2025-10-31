@@ -16,7 +16,7 @@
     {% set _eventspace = get_array_name(eventspace_variable) %}
 
     for _idx in range(N):
-        
+
         # vector code
         _vectorisation_idx = _idx
         {{ vector_code | autoindent }}
@@ -28,9 +28,9 @@
             {{not_refractory}}[_idx] = False
             {{lastspike}}[_idx] = {{t}}
             {% endif %}
-            
+
     {{_eventspace}}[N] = _cpp_numevents
-    
+
 {% endblock %}
 
 {% block after_code %}

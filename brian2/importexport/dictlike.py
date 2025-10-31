@@ -53,8 +53,8 @@ class PandasImportExport(ImportExport):
         except ImportError as ex:
             raise ImportError(
                 "Exporting to pandas needs a working installation"
-                " of pandas. Importing pandas failed: " + str(ex)
-            )
+                " of pandas. Importing pandas failed. "
+            ) from ex
         if units:
             raise NotImplementedError(
                 "Units not supported when exporting to pandas data frame"

@@ -77,7 +77,7 @@
     _vectorisation_idx = 1
     {{scalar_code|autoindent}}
 
-    
+
     # STEP 1: compute g_total and I_0
     for _i in range(0, N):
         _idx = _i

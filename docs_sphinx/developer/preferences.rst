@@ -26,7 +26,7 @@ are equivalent::
 
     prefs['codegen.c.compiler'] = 'gcc'
     prefs.codegen.c.compiler = 'gcc'
-    
+
     if prefs['codegen.c.compiler'] == 'gcc':
         ...
     if prefs.codegen.c.compiler == 'gcc':
@@ -64,7 +64,7 @@ Registration of preferences is performed by a call to
             default='gcc'),
          ...
         )
-        
+
 The first argument ``'codegen.c'`` is the base name, and every preference of
 the form ``codegen.c.*`` has to be registered by this function (preferences in subcategories
 such as ``codegen.c.somethingelse.*`` have to be specified separately). In other
@@ -104,9 +104,9 @@ The preference files are of the following form::
 	b.d = 2
 	[a.b]
 	b.e = 3
-	
+
 This would set preferences ``a.b.c=1``, ``a.b.d=2`` and ``a.b.e=3``.
- 
+
 Built-in preferences
 --------------------
 Brian itself defines the following preferences:

@@ -564,9 +564,9 @@ def test_synapses_access_subgroups_problematic():
     for item, value, n_warnings in tests:
         with catch_logs() as l:
             S.w.__setitem__(item, value)
-            assert (
-                len(l) == n_warnings
-            ), f"expected {int(n_warnings)}, got {len(l)} warnings"
+            assert len(l) == n_warnings, (
+                f"expected {int(n_warnings)}, got {len(l)} warnings"
+            )
             assert all(
                 [entry[1].endswith("ambiguous_string_expression") for entry in l]
             )

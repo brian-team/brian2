@@ -49,10 +49,10 @@ P.g  = 0 * mV
 
 
 
-S    = Synapses(P, P, 
-                    model = '''dApre/dt=-Apre/taupre    : 1 (event-driven)    
+S    = Synapses(P, P,
+                    model = '''dApre/dt=-Apre/taupre    : 1 (event-driven)
                                dApost/dt=-Apost/taupost : 1 (event-driven)
-                               w                        : 1''', 
+                               w                        : 1''',
                     pre = '''g     += w*mV
                              Apre  += dApre
                              w      = w + Apost''',
@@ -76,7 +76,7 @@ if standalone == 1:
         std::ofstream myfile ("speed.txt");
         if (myfile.is_open())
         {
-            double value = (double) (std::clock() - start)/(%d * CLOCKS_PER_SEC); 
+            double value = (double) (std::clock() - start)/(%d * CLOCKS_PER_SEC);
             myfile << value << std::endl;
             myfile.close();
         }

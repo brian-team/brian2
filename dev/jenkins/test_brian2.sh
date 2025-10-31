@@ -1,4 +1,4 @@
-source /home/jenkins/.jenkins/virtual_envs/$PythonVersion/$packages/bin/activate 
+source /home/jenkins/.jenkins/virtual_envs/$PythonVersion/$packages/bin/activate
 # get the newest version of nose and coverage, ignoring installed packages
 pip install --upgrade -I nose coverage || :
 
@@ -11,7 +11,7 @@ pip install sphinx
 
 echo "Using newest available package versions"
 
-pip install --upgrade numpy 
+pip install --upgrade numpy
 pip install --upgrade scipy
 pip install --upgrade sympy
 pip install --upgrade matplotlib

@@ -42,7 +42,7 @@ jobs:
         run: |
           from platformdirs import user_cache_path
           import os
-  
+
           with open(os.getenv('GITHUB_OUTPUT'), 'w') as f:
             f.write(f"dir={str(user_cache_path(appname='cibuildwheel', appauthor='pypa'))}")
         shell: python
@@ -74,7 +74,7 @@ jobs:
       fail-fast: false
       matrix:
         config: [{arch: auto64, image: ubuntu-24.04},
-                 {arch: aarch64, image: ubuntu-24.04-arm}] 
+                 {arch: aarch64, image: ubuntu-24.04-arm}]
     steps:
       - uses:  actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -88,7 +88,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip build
           python -m build --sdist --config-setting=--formats=gztar --config-setting=--with-cython --config-setting=--fail-on-error
-        if: matrix.config.arch == 'auto64'  
+        if: matrix.config.arch == 'auto64'
       - name: Install platformdirs
         run: python -m pip install platformdirs
       - name: Display cibuildwheel cache dir
@@ -96,7 +96,7 @@ jobs:
         run: |
           from platformdirs import user_cache_path
           import os
-  
+
           with open(os.getenv('GITHUB_OUTPUT'), 'w') as f:
             f.write(f"dir={str(user_cache_path(appname='cibuildwheel', appauthor='pypa'))}")
         shell: python
@@ -163,7 +163,7 @@ jobs:
           path: dist/
       - name: Publish distribution release 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
-  
+
   build-docker:
     name: Build docker image
     runs-on: ubuntu-latest
@@ -199,7 +199,7 @@ jobs:
         platforms: 'amd64,arm64'
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
-      with: 
+      with:
         cache-binary: false
       # https://github.com/docker/setup-buildx-action
     - name: Login to DockerHub
@@ -241,7 +241,7 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
     - name: Push docker image to dev repository
-      if: ${{ github.repository == 'brian-team/brian2' && github.event_name == 'push' && !startsWith(github.ref, 'refs/tags') && github.actor != 'dependabot[bot]'}} 
+      if: ${{ github.repository == 'brian-team/brian2' && github.event_name == 'push' && !startsWith(github.ref, 'refs/tags') && github.actor != 'dependabot[bot]'}}
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
       with:
         context: .
@@ -252,5 +252,5 @@ jobs:
         push: true
         tags: |
             briansimulator/brian-dev:dev-${{ github.ref_name }}
-            ghcr.io/brian-team/brian-dev:dev-${{ github.ref_name }}        
+            ghcr.io/brian-team/brian-dev:dev-${{ github.ref_name }}
         labels: ${{ steps.meta.outputs.labels }}

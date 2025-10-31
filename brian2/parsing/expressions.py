@@ -140,11 +140,7 @@ def _get_value_from_expression(expr, variables):
             raise ValueError(f"Unknown identifier {name}")
     elif expr.__class__ is ast.Constant:
         return expr.value
-    elif expr.__class__ is ast.BoolOp:
-        raise SyntaxError(
-            "Cannot determine the numerical value for a boolean operation."
-        )
-    elif expr.__class__ is ast.Compare:
+    elif expr.__class__ is ast.BoolOp or expr.__class__ is ast.Compare:
         raise SyntaxError(
             "Cannot determine the numerical value for a boolean operation."
         )
@@ -247,7 +243,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
             subunits.append(
                 parse_expression_dimensions(node, variables, orig_expr=orig_expr)
             )
-        for left_dim, right_dim in zip(subunits[:-1], subunits[1:]):
+        for left_dim, right_dim in zip(subunits[:-1], subunits[1:], strict=True):
             if not have_same_dimensions(left_dim, right_dim):
                 left_expr = NodeRenderer().render_node(expr.left)
                 right_expr = NodeRenderer().render_node(expr.comparators[0])
@@ -293,7 +289,9 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                 ),
             )
 
-        for idx, (arg, expected_unit) in enumerate(zip(expr.args, func._arg_units)):
+        for idx, (arg, expected_unit) in enumerate(
+            zip(expr.args, func._arg_units, strict=True)
+        ):
             arg_unit = parse_expression_dimensions(arg, variables, orig_expr=orig_expr)
             # A "None" in func._arg_units means: No matter what unit
             if expected_unit is None:
@@ -315,7 +313,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                         f"has unit {get_unit_for_display(expected_unit)}"
                     )
                     raise DimensionMismatchError(msg)
-            elif expected_unit == bool:
+            elif expected_unit is bool:
                 if not is_boolean_expression(arg, variables):
                     rendered_arg = NodeRenderer().render_node(arg)
                     raise TypeError(
@@ -329,7 +327,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                     arg_unit_dim = get_dimensions(arg_unit)
                     expected_unit_dim = get_dimensions(expected_unit)
                     msg = (
-                        f"Argument number {idx+1} for function {expr.func.id} does "
+                        f"Argument number {idx + 1} for function {expr.func.id} does "
                         f"not have the correct units. Expression '{rendered_arg}' "
                         f"has units ({arg_unit_dim}), but "
                         "should be "
@@ -337,7 +335,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                     )
                     raise DimensionMismatchError(msg)
 
-        if func._return_unit == bool:
+        if func._return_unit is bool:
             return DIMENSIONLESS
         elif isinstance(func._return_unit, (Unit, int)):
             # Function always returns the same unit

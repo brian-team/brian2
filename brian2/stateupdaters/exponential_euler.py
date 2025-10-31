@@ -92,7 +92,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
         except ValueError:
             raise UnsupportedEquationsException(
                 "Can only solve conditionally linear systems with this state updater."
-            )
+            ) from None
 
         code = []
         for var, (A, B) in system.items():

@@ -9,7 +9,7 @@ Fig. 14 from:
     Journal of Neuroscience, 31(47).
 
 5000 independent E/I Poisson inputs are injected into a leaky integrate-and-fire neuron.
-Synchronous events, following an independent Poisson process at 40 Hz, are considered, 
+Synchronous events, following an independent Poisson process at 40 Hz, are considered,
 where 15 E Poisson spikes are randomly shifted to be synchronous at those events.
 The output firing rate is then significantly higher, showing that the spike timing of
 less than 1% of the excitatory synapses have an important impact on the postsynaptic firing.
@@ -67,10 +67,10 @@ for i in [0, 1]:
     val = SM[i].v
     subplot(2, 1, i+1)
     plot(SM.t/ms, val)
-    plot(tile(spikes, (2, 1)), 
+    plot(tile(spikes, (2, 1)),
          vstack((val[array(spikes, dtype=int)],
                  zeros(len(spikes)))), 'C0')
-    title("%s: %d spikes/second" % (["uncorrelated inputs", "correlated inputs"][i], 
+    title("%s: %d spikes/second" % (["uncorrelated inputs", "correlated inputs"][i],
                                     M.count[i]))
 tight_layout()
 show()

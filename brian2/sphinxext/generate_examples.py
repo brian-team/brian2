@@ -122,6 +122,7 @@ def main(rootpath, destdir):
         examplesafterdoccode,
         relativepaths,
         outnames,
+        strict=True,
     )
     # Get the path relative to the examples director (not relative to the
     # directory where this file is installed
@@ -144,7 +145,7 @@ def main(rootpath, destdir):
         .. only:: html
 
             .. |launchbinder| image:: http://mybinder.org/badge.svg
-            .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=examples/{exname.replace('.', '/')}.ipynb
+            .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=examples/{exname.replace(".", "/")}.ipynb
 
             .. note::
                You can launch an interactive, editable version of this

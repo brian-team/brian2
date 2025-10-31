@@ -576,10 +576,14 @@ class Dimension:
     # on their inputs, although most will throw an exception if you pass the
     # wrong sort of input
     def __mul__(self, value):
-        return get_or_create_dimension([x + y for x, y in zip(self._dims, value._dims)])
+        return get_or_create_dimension(
+            [x + y for x, y in zip(self._dims, value._dims, strict=True)]
+        )
 
     def __div__(self, value):
-        return get_or_create_dimension([x - y for x, y in zip(self._dims, value._dims)])
+        return get_or_create_dimension(
+            [x - y for x, y in zip(self._dims, value._dims, strict=True)]
+        )
 
     def __truediv__(self, value):
         return self.__div__(value)
@@ -682,7 +686,7 @@ def get_or_create_dimension(*args, **kwds):
             if len(dims) != 7:
                 raise TypeError()
         except TypeError:
-            raise TypeError("Need a sequence of exactly 7 items")
+            raise TypeError("Need a sequence of exactly 7 items") from None
     else:
         # initialisation by keywords
         dims = [0, 0, 0, 0, 0, 0, 0]
@@ -811,7 +815,9 @@ def get_dimensions(obj):
         try:
             return Quantity(obj).dim
         except TypeError:
-            raise TypeError(f"Object of type {type(obj)} does not have dimensions")
+            raise TypeError(
+                f"Object of type {type(obj)} does not have dimensions"
+            ) from None
 
 
 def is_dimensionless(obj):
@@ -1113,12 +1119,12 @@ class Quantity(np.ndarray):
                                 "allowed",
                                 d,
                                 one_dim,
-                            )
+                            ) from None
                     subarr.dim = dims[0]
                 elif any(is_quantity):
                     raise TypeError(
                         "Mixing quantities and non-quantities is not allowed."
-                    )
+                    ) from None
 
         return subarr
 
@@ -2575,7 +2581,7 @@ def check_units(**au):
         def new_f(*args, **kwds):
             newkeyset = kwds.copy()
             arg_names = f.__code__.co_varnames[0 : f.__code__.co_argcount]
-            for n, v in zip(arg_names, args[0 : f.__code__.co_argcount]):
+            for n, v in zip(arg_names, args[0 : f.__code__.co_argcount], strict=False):
                 if (
                     not isinstance(v, (Quantity, str, bool, np.bool_))
                     and v is not None
@@ -2584,17 +2590,17 @@ def check_units(**au):
                     try:
                         # allow e.g. to pass a Python list of values
                         v = Quantity(v)
-                    except TypeError:
+                    except TypeError as ex:
                         if have_same_dimensions(au[n], 1):
                             raise TypeError(
                                 f"Argument {n} is not a unitless value/array."
-                            )
+                            ) from ex
                         else:
                             raise TypeError(
                                 f"Argument '{n}' is not a quantity, "
                                 "expected a quantity with dimensions "
                                 f"{au[n]}"
-                            )
+                            ) from ex
                 newkeyset[n] = v
 
             for k in newkeyset:
@@ -2604,8 +2610,8 @@ def check_units(**au):
                 if (
                     k in au
                     and not isinstance(newkeyset[k], str)
-                    and not newkeyset[k] is None
-                    and not au[k] is None
+                    and newkeyset[k] is not None
+                    and au[k] is not None
                 ):
                     if au[k] in (bool, np.bool_):
                         if not isinstance(newkeyset[k], (bool, np.bool_)):
@@ -2618,7 +2624,7 @@ def check_units(**au):
                             )
                             raise TypeError(error_message)
                     elif isinstance(au[k], str):
-                        if not au[k] in newkeyset:
+                        if au[k] not in newkeyset:
                             error_message = (
                                 f"Function '{f.__name__}' "
                                 "expected its argument to have the "
@@ -2691,13 +2697,13 @@ def check_units(**au):
         else:
             arg_names = f.__code__.co_varnames[: f.__code__.co_argcount]
         new_f._arg_names = arg_names
-        new_f._arg_units = [au.get(name, None) for name in arg_names]
-        return_unit = au.get("result", None)
+        new_f._arg_units = [au.get(name) for name in arg_names]
+        return_unit = au.get("result")
         if return_unit is None:
             new_f._return_unit = None
         else:
             new_f._return_unit = return_unit
-        if return_unit == bool:
+        if return_unit is bool:
             new_f._returns_bool = True
         else:
             new_f._returns_bool = False

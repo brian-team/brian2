@@ -40,7 +40,7 @@ def simulate(params, I=1*nA, t_on=50*ms, t_total=350*ms):
     """
     assert t_total > 2*t_on
     t_off = t_total - t_on
-    
+
     params = np.atleast_2d(params)
     # fixed parameters
     gleak = 10*nS
@@ -95,7 +95,7 @@ def calculate_summary_statistics(x):
     """Calculate summary statistics for results in x"""
     I_inj = x["I_inj"]
     v = x["v"]/mV
-    
+
     spike_count = x["spike_count"]
     # Mean and standard deviation during stimulation
     v_active = v[:, I_inj > 0*nA]
@@ -103,7 +103,7 @@ def calculate_summary_statistics(x):
     std_active = np.std(v_active, axis=1)
     # Height of action potential peaks
     max_v = np.max(v_active, axis=1)
-    
+
     # concatenation of summary statistics
     sum_stats = np.vstack((spike_count, mean_active, std_active, max_v))
 

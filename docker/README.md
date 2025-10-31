@@ -6,7 +6,7 @@ To run the docker image, you can use
 `docker run -it --init -p 8888:8888 briansimulator/brian`
 
 This will start a JupyterLab instance inside the container, which you can access from your local browser via the last link
-printed to the terminal (`http://127.0.0.1:8888/lab?token=…`) 
+printed to the terminal (`http://127.0.0.1:8888/lab?token=…`)
 
 Or if you prefer a simple `bash` terminal rather than JupyterLab:
 
@@ -53,7 +53,7 @@ Alternatively, to test multi-architecture builds and push to docker hub, first l
 
 Create a new builder that uses the docker-container driver (only needed once):
 ```
-docker buildx create \                                                                                                                
+docker buildx create \
   --name container \
   --driver=docker-container \
   default

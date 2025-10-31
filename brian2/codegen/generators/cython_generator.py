@@ -576,9 +576,7 @@ cdef double _rand(int _idx):
     if _namespace_rand_buffer_index[0] == _BUFFER_SIZE:
         _namespace_rand_buffer_index[0] = 0
     return val
-""".replace(
-    "_BUFFER_SIZE", str(_BUFFER_SIZE)
-)
+""".replace("_BUFFER_SIZE", str(_BUFFER_SIZE))
 
 randn_code = rand_code.replace("rand", "randn").replace("randnom", "random")
 

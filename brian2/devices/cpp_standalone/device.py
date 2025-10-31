@@ -514,7 +514,7 @@ class CPPStandaloneDevice(Device):
                     f"Cannot set variable '{variableview.name}' "
                     "this way in standalone, try using "
                     "string expressions."
-                )
+                ) from None
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer
@@ -821,7 +821,7 @@ class CPPStandaloneDevice(Device):
                 arrayname, value, is_dynamic = args
                 size_str = f"{arrayname}.size()" if is_dynamic else f"_num_{arrayname}"
                 code = f"""
-                {openmp_pragma('static')}
+                {openmp_pragma("static")}
                 for(int i=0; i<{size_str}; i++)
                 {{
                     {arrayname}[i] = {CPPNodeRenderer().render_expr(repr(value))};
@@ -832,7 +832,7 @@ class CPPStandaloneDevice(Device):
                 arrayname, staticarrayname, is_dynamic = args
                 size_str = f"{arrayname}.size()" if is_dynamic else f"_num_{arrayname}"
                 code = f"""
-                {openmp_pragma('static')}
+                {openmp_pragma("static")}
                 for(int i=0; i<{size_str}; i++)
                 {{
                     {arrayname}[i] = {staticarrayname}[i];
@@ -846,7 +846,7 @@ class CPPStandaloneDevice(Device):
             elif func == "set_array_by_array":
                 arrayname, staticarrayname_index, staticarrayname_value = args
                 code = f"""
-                {openmp_pragma('static')}
+                {openmp_pragma("static")}
                 for(int i=0; i<_num_{staticarrayname_index}; i++)
                 {{
                     {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
@@ -1886,9 +1886,7 @@ class CPPStandaloneDevice(Device):
             {
             %REPORT%
             }
-            """.replace(
-                "%REPORT%", report
-            )
+            """.replace("%REPORT%", report)
         else:
             raise TypeError(
                 "report argument has to be either 'text', "
