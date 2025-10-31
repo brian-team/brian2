@@ -1,7 +1,7 @@
 """
-    Automatically generate Brian's reference documentation.
+Automatically generate Brian's reference documentation.
 
-    Based on sphinx-apidoc, published under a BSD license: http://sphinx-doc.org/
+Based on sphinx-apidoc, published under a BSD license: http://sphinx-doc.org/
 """
 
 import inspect

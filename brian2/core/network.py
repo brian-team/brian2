@@ -78,7 +78,7 @@ def _format_time(time_in_s):
     letters = ["d", "h", "m", "s"]
     remaining = time_in_s
     text = ""
-    for divisor, letter in zip(divisors, letters):
+    for divisor, letter in zip(divisors, letters, strict=True):
         time_to_represent = int(remaining / divisor)
         remaining -= time_to_represent * divisor
         if time_to_represent > 0 or len(text):
@@ -132,22 +132,26 @@ def _format_table(header, values, cell_formats):
     # table = [header] + values
     table_format = len(values) * [cell_formats]
     col_widths = [
-        max(len(format.format(cell, 0)) for format, cell in zip(col_format, col))
+        max(
+            len(format.format(cell, 0))
+            for format, cell in zip(col_format, col, strict=True)
+        )
         for col_format, col in zip(
-            list(zip(*([len(header) * ["{}"]] + table_format))),
-            list(zip(*([header] + values))),
+            list(zip(*([len(header) * ["{}"]] + table_format), strict=True)),
+            list(zip(*([header] + values), strict=True)),
+            strict=True,
         )
     ]
     line = "-+-".join("-" * width for width in col_widths)
     content = [
         " | ".join(
             format.format(cell, width)
-            for format, cell, width in zip(row_format, row, col_widths)
+            for format, cell, width in zip(row_format, row, col_widths, strict=True)
         )
-        for row_format, row in zip(table_format, values)
+        for row_format, row in zip(table_format, values, strict=True)
     ]
     formatted_header = " | ".join(
-        "{:^{}}".format(h, width) for h, width in zip(header, col_widths)
+        "{:^{}}".format(h, width) for h, width in zip(header, col_widths, strict=True)
     )
 
     return "\n".join([formatted_header, line] + content)
@@ -288,9 +292,7 @@ class SchedulingSummary:
 {rows}
         </tbody>
         </table>
-        """.format(
-            rows="\n".join(rows)
-        )
+        """.format(rows="\n".join(rows))
         return html_code
 
 
@@ -563,11 +565,11 @@ class Network(Nameable):
                             if o is obj:
                                 raise TypeError()
                             self.add(o)
-                    except TypeError:
+                    except TypeError as ex:
                         raise TypeError(
                             "Can only add objects of type BrianObject, "
                             "or containers of such objects to Network"
-                        )
+                        ) from ex
 
     def remove(self, *objs):
         """
@@ -588,12 +590,12 @@ class Network(Nameable):
                 try:
                     for o in obj:
                         self.remove(o)
-                except TypeError:
+                except TypeError as ex:
                     raise TypeError(
                         "Can only remove objects of type "
                         "BrianObject, or containers of such "
                         "objects from Network"
-                    )
+                    ) from ex
 
     def _full_state(self):
         all_objects = _get_all_objects(self.objects)
@@ -1288,7 +1290,7 @@ class Network(Nameable):
 
         logger.debug(
             f"Finished simulating network '{self.name}' "
-            f"(took {end_time-start_time:.2f}s)",
+            f"(took {end_time - start_time:.2f}s)",
             "run",
         )
         # Store profiling info (or erase old info to avoid confusion)
@@ -1340,7 +1342,7 @@ class ProfilingSummary:
     def __init__(self, net, show=None):
         prof = net.profiling_info
         if len(prof):
-            names, times = list(zip(*prof))
+            names, times = list(zip(*prof, strict=True))
         else:  # Can happen if a network has been run for 0ms
             # Use a dummy entry to prevent problems with empty lists later
             names = ["no code objects have been run"]
@@ -1373,7 +1375,7 @@ class ProfilingSummary:
 
         s = "Profiling summary"
         s += f"\n{'=' * len(s)}\n"
-        for name, t, percentage in zip(self.names, times, percentages):
+        for name, t, percentage in zip(self.names, times, percentages, strict=True):
             s += f"{name}    {t}    {percentage}\n"
         return s
 
@@ -1382,7 +1384,7 @@ class ProfilingSummary:
         percentages = [f"{percentage:.2f} %" for percentage in self.percentages]
         s = '<h2 class="brian_prof_summary_header">Profiling summary</h2>\n'
         s += '<table class="brian_prof_summary_table">\n'
-        for name, t, percentage in zip(self.names, times, percentages):
+        for name, t, percentage in zip(self.names, times, percentages, strict=True):
             s += "<tr>"
             s += f"<td>{name}</td>"
             s += f'<td style="text-align: right">{t}</td>'

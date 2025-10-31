@@ -67,19 +67,21 @@ class NodeRenderer:
             if nodename == "Subscript":
                 raise SyntaxError(
                     "Brian equations/expressions do not support indexing with '[...]'."
-                )
+                ) from None
             elif nodename == "Attribute":
                 raise SyntaxError(
                     "Brian equations/expressions do not support accessing attributes"
                     " with the '.' syntax."
-                )
+                ) from None
             elif nodename == "Tuple":
-                raise SyntaxError("Brian equations/expressions do not support tuples.")
+                raise SyntaxError(
+                    "Brian equations/expressions do not support tuples."
+                ) from None
             else:
                 raise SyntaxError(
                     f"Brian equations/expressions do not support the '{nodename}'"
                     " syntax."
-                )
+                ) from None
 
     def render_func(self, node):
         return self.render_Name(node)
@@ -113,11 +115,12 @@ class NodeRenderer:
         Render an element with parentheses around it or leave them away for
         numbers, names and function calls.
         """
-        if node.__class__.__name__ == "Name":
-            return self.render_node(node)
-        elif node.__class__.__name__ in ["Num", "Constant"] and node.value >= 0:
-            return self.render_node(node)
-        elif node.__class__.__name__ == "Call":
+        if (
+            node.__class__.__name__ == "Name"
+            or node.__class__.__name__ in ["Num", "Constant"]
+            and node.value >= 0
+            or node.__class__.__name__ == "Call"
+        ):
             return self.render_node(node)
         else:
             return f"({self.render_node(node)})"

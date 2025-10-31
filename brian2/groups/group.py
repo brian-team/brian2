@@ -419,8 +419,8 @@ class VariableOwner(Nameable):
                 use_units = True
             return self.state(name, use_units)
 
-        except KeyError:
-            raise AttributeError(f"No attribute with name {name}")
+        except KeyError as ex:
+            raise AttributeError(f"No attribute with name {name}") from ex
 
     def __setattr__(self, key, value, level=0):
         # attribute access is switched off until this attribute is created by
@@ -598,7 +598,7 @@ class VariableOwner(Nameable):
             except TypeError:
                 raise TypeError(
                     "The index for a linked variable has to be an integer array"
-                )
+                ) from None
             size = len(index_array)
             source_index = linked_var.group.variables.indices[linked_var.name]
             if source_index not in ("_idx", "0"):

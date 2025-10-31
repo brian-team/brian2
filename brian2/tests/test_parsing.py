@@ -474,10 +474,10 @@ def test_extract_abstract_code_functions():
     code = """
     def f(x):
         return x*x
-        
+
     def g(V):
         V += 1
-        
+
     irrelevant_code_here()
     """
     funcs = extract_abstract_code_functions(code)

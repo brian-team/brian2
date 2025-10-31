@@ -19,14 +19,14 @@ Not working examples:
 try:
     import brian as b1
     import brian.hears as b1h
-except ImportError:
+except ImportError as ex:
     raise ImportError(
         "brian2.hears is deprecated and will be removed in a future release, please use"
         " the brian2hears package available at https://brian2hears.readthedocs.io/. If"
         " you really want to keep using it, note: brian2.hears is a bridge between"
         " Brian 2 and the version of Brian Hears from Brian 1, you need to have Brian 1"
         " installed to use it."
-    )
+    ) from ex
 
 from inspect import isclass, ismethod
 

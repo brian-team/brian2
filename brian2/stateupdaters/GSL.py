@@ -130,24 +130,20 @@ class GSLContainer:
             if target_name == "cython":
                 return GSLCythonCodeObject
             raise NotImplementedError(
-                (
-                    "GSL integration has not been implemented for "
-                    "for the '{target_name}' code generation target."
-                    "\nUse the 'cython' code generation target, "
-                    "or switch to the 'cpp_standalone' device."
-                ).format(target_name=target_name)
+                "GSL integration has not been implemented for "
+                f"for the '{target_name}' code generation target."
+                "\nUse the 'cython' code generation target, "
+                "or switch to the 'cpp_standalone' device."
             )
         else:
             device_name = [name for name, dev in all_devices.items() if dev is device]
             assert len(device_name) == 1
             raise NotImplementedError(
-                (
-                    "GSL integration has not been implemented for "
-                    "for the '{device}' device."
-                    "\nUse either the 'cpp_standalone' device, "
-                    "or the runtime device with target language "
-                    "'cython'."
-                ).format(device=device_name[0])
+                "GSL integration has not been implemented for "
+                f"for the '{device_name[0]}' device."
+                "\nUse either the 'cpp_standalone' device, "
+                "or the runtime device with target language "
+                "'cython'."
             )
 
     def __call__(self, obj):

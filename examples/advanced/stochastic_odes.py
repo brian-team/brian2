@@ -8,11 +8,11 @@ from brian2 import *
 prefs.codegen.target = 'numpy'
 
 # setting a random seed makes all variants use exactly the same Wiener process
-seed = 12347  
+seed = 12347
 
 X0 = 1
 mu = 0.5/second # drift
-sigma = 0.1/second #diffusion 
+sigma = 0.1/second #diffusion
 
 runtime = 1*second
 
@@ -41,12 +41,12 @@ def exact_solution(t, dt):
     my_sigma = float(sigma)
     dt = float(dt)
     t = asarray(t)
-    
+
     np.random.seed(seed)
     # We are calculating the values at the *start* of a time step, as when using
     # a StateMonitor. Therefore the Brownian motion starts with zero
     brownian = np.hstack([0, cumsum(sqrt(dt) * np.random.randn(len(t)-1))])
-    
+
     return (X0 * exp((my_mu - 0.5*my_sigma**2)*(t+dt) + my_sigma*brownian))
 
 figure(1, figsize=(16, 7))
@@ -65,21 +65,21 @@ for dt_idx, dt in enumerate(dts):
     for method in methods:
         t, trajectories[method] = simulate(method, dt)
     # Calculate the exact solution
-    exact = exact_solution(t, dt)    
-    
+    exact = exact_solution(t, dt)
+
     for method in methods:
         # plot the trajectories
         figure(1)
         subplot(rows, cols, dt_idx+1)
         plot(t, trajectories[method], label=method, alpha=0.75)
-        
+
         # determine the mean absolute error
         errors[method][dt_idx] = mean(abs(trajectories[method] - exact))
         # plot the difference to the real trajectory
         figure(2)
         subplot(rows, cols, dt_idx+1)
         plot(t, trajectories[method] - exact, label=method, alpha=0.75)
-        
+
     figure(1)
     plot(t, exact, color='gray', lw=2, label='exact', alpha=0.75)
     title('dt = %s' % str(dt))

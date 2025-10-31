@@ -26,7 +26,7 @@ function with a decorator (e.g. `~brian2.units.fundamentalunits.check_units`),
 this attribute has to be set manually::
 
 	foo.__module__ = __name__
- 
+
 Without this manual setting, the function might not be documented at all or in
 the wrong module.
 
@@ -102,7 +102,7 @@ documentation for functions like ``__getitem__`` which would otherwise not be
 documented. When specifying these sections, you only have to state the names of
 documented methods/attributes but you can also provide direct documentation.
 For example::
-    
+
     Attributes
     ----------
     foo
@@ -120,12 +120,12 @@ attributes)::
         #: The docstring for the instance attribute a.
         #: Can also span multiple lines
         self.a = a
-        
+
         self.b = b #: The docstring for self.b (only one line).
-        
+
         self.c = c
         'The docstring for self.c, directly *after* its definition'
-  
+
 Long example of a function docstring
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -213,4 +213,3 @@ time no See Also, Notes or References section is needed::
     """
 
     pass
-    

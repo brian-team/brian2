@@ -155,7 +155,7 @@ class Function:
         self._arg_units = arg_units
         self._arg_names = arg_names
         self._return_unit = return_unit
-        if return_unit == bool:
+        if return_unit is bool:
             self._returns_bool = True
         else:
             self._returns_bool = False
@@ -217,7 +217,7 @@ class Function:
         if self._return_type is None:
             self._return_type = getattr(pyfunc, "_return_type", "float")
 
-        for argtype, u in zip(self._arg_types, self._arg_units):
+        for argtype, u in zip(self._arg_types, self._arg_units, strict=True):
             if (
                 argtype != "float"
                 and argtype != "any"
@@ -461,9 +461,9 @@ class FunctionImplementationContainer(Mapping):
                         f"expected {len(arg_units)}."
                     )
                 new_args = []
-                for arg, arg_unit in zip(args, arg_units):
+                for arg, arg_unit in zip(args, arg_units, strict=True):
                     if (
-                        arg_unit == bool
+                        arg_unit is bool
                         or arg_unit is None
                         or isinstance(arg_unit, str)
                     ):
@@ -479,7 +479,7 @@ class FunctionImplementationContainer(Mapping):
                     )
                 else:
                     return_unit = self._function._return_unit
-                if return_unit == bool:
+                if return_unit is bool:
                     if not (
                         isinstance(result, bool) or np.asarray(result).dtype == bool
                     ):

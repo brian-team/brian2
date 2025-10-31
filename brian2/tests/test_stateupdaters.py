@@ -376,9 +376,9 @@ def test_integrator_code2():
     lines = sorted(euler_integration.split("\n"))
     # Do a very basic check that the right variables are used in every line
     for varname, line in zip(["_ge", "_gi", "_v", "ge", "gi", "v"], lines):
-        assert line.startswith(
-            f"{varname} = "
-        ), f'line "{line}" does not start with {varname}'
+        assert line.startswith(f"{varname} = "), (
+            f'line "{line}" does not start with {varname}'
+        )
     for variables, line in zip(
         [
             ["dt", "ge", "taue"],
@@ -618,9 +618,9 @@ def test_determination():
     ):
         with catch_logs() as logs:
             returned = apply_stateupdater(eqs, variables, method=integrator)
-            assert (
-                len(logs) == 0
-            ), f"Got {len(logs)} unexpected warnings: {str([l[2] for l in logs])}"
+            assert len(logs) == 0, (
+                f"Got {len(logs)} unexpected warnings: {str([l[2] for l in logs])}"
+            )
 
     # Equation with multiplicative noise, only milstein and heun should work
     eqs = Equations("dv/dt = -v / (10*ms) + v*xi*second**-.5: 1")
@@ -631,9 +631,9 @@ def test_determination():
     for integrator in (heun, milstein):
         with catch_logs() as logs:
             returned = apply_stateupdater(eqs, variables, method=integrator)
-            assert (
-                len(logs) == 0
-            ), f"Got {len(logs)} unexpected warnings: {str([l[2] for l in logs])}"
+            assert len(logs) == 0, (
+                f"Got {len(logs)} unexpected warnings: {str([l[2] for l in logs])}"
+            )
 
     # Arbitrary functions (converting equations into abstract code) should
     # always work

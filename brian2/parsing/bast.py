@@ -138,7 +138,7 @@ class BrianASTRenderer:
         try:
             return getattr(self, methname)(node)
         except AttributeError:
-            raise SyntaxError(f"Unknown syntax: {nodename}")
+            raise SyntaxError(f"Unknown syntax: {nodename}") from None
 
     def render_NameConstant(self, node):
         if node.value is not True and node.value is not False:
@@ -204,7 +204,7 @@ class BrianASTRenderer:
                 node.scalar = all(subnode.scalar for subnode in node.args)
             # check that argument types are valid
             node_arg_types = [subnode.dtype for subnode in node.args]
-            for subnode, argtype in zip(node.args, funcvar._arg_types):
+            for subnode, argtype in zip(node.args, funcvar._arg_types, strict=True):
                 if argtype != "any" and argtype != subnode.dtype:
                     raise TypeError(
                         f"Function '{node.func.id}' takes arguments with "

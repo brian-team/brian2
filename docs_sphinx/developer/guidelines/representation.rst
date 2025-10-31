@@ -86,6 +86,4 @@ equations could therefore be represented with a method like this::
         {eq_1}
         <h3> Equation 2 </h3>
         {eq_2}'''.format(eq_1=sympy.latex(self.eq_1, mode='equation'),
-                         eq_2=sympy.latex(self.eq_2, mode='equation')) 
-
-
+                         eq_2=sympy.latex(self.eq_2, mode='equation'))

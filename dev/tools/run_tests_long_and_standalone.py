@@ -17,4 +17,3 @@ if all(success):
 else:
     print('FAILED: Not all tests passed successfully (see above)')
     sys.exit(1)
-

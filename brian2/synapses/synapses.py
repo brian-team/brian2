@@ -347,12 +347,12 @@ class SynapticPathway(CodeRunner, Group):
             event_driven_eqs = self.synapses.event_driven
             try:
                 event_driven_update = linear(event_driven_eqs, self.group.variables)
-            except UnsupportedEquationsException:
+            except UnsupportedEquationsException as ex:
                 err = (
                     "Cannot solve the differential equations as "
                     "event-driven. Use (clock-driven) instead."
                 )
-                raise UnsupportedEquationsException(err)
+                raise UnsupportedEquationsException(err) from ex
 
             # TODO: Any way to do this more elegantly?
             event_driven_update = re.sub(
@@ -509,7 +509,7 @@ class SynapticPathway(CodeRunner, Group):
         max_delay = np.max(delay_slots)
         new_queue = [[] for _ in range(max_delay + 1)]
 
-        for delay, synapse_idx in zip(delay_slots, synapse_indexes):
+        for delay, synapse_idx in zip(delay_slots, synapse_indexes, strict=True):
             new_queue[delay].append(synapse_idx)
 
         # The offset in Cython format represents the current position in the circular buffer
@@ -1056,11 +1056,11 @@ class Synapses(Group):
 
         #: "Events" for all the pathways
         self.events = events_dict
-        for prepost, argument in zip(("pre", "post"), (on_pre, on_post)):
+        for prepost, argument in zip(("pre", "post"), (on_pre, on_post), strict=True):
             if not argument:
                 continue
             if isinstance(argument, str):
-                pathway_delay = delay.get(prepost, None)
+                pathway_delay = delay.get(prepost)
                 self._add_updater(
                     argument,
                     prepost,
@@ -1076,7 +1076,7 @@ class Synapses(Group):
                             f"{type(key)} instead."
                         )
                         raise TypeError(err_msg)
-                    pathway_delay = delay.get(key, None)
+                    pathway_delay = delay.get(key)
                     self._add_updater(
                         value,
                         prepost,
@@ -1709,9 +1709,8 @@ class Synapses(Group):
                 )
         except IndexError as e:
             raise IndexError(
-                "Tried to create synapse indices outside valid "
-                "range. Original error message: " + str(e)
-            )
+                "Tried to create synapse indices outside valid range."
+            ) from e
 
     # Helper functions for Synapses.connect ↑
     def _verify_connect_array_arguments(self, i, j, n):
@@ -2112,20 +2111,20 @@ class Synapses(Group):
         template_kwds["result_index_used"] = result_index_used
 
         abstract_code["setup_iterator"] += setupiter
-        abstract_code[
-            "generator_expr"
-        ] += f"{outer_index_array} = _raw{outer_index_array} \n"
-        abstract_code["generator_expr"] += f'_{result_index} = {parsed["element"]}\n'
+        abstract_code["generator_expr"] += (
+            f"{outer_index_array} = _raw{outer_index_array} \n"
+        )
+        abstract_code["generator_expr"] += f"_{result_index} = {parsed['element']}\n"
 
         if result_index_condition:
-            abstract_code[
-                "create_cond"
-            ] += f"{result_index_array} = _raw{result_index_array} \n"
+            abstract_code["create_cond"] += (
+                f"{result_index_array} = _raw{result_index_array} \n"
+            )
         if parsed["if_expression"] is not None:
             abstract_code["create_cond"] += "_cond = " + parsed["if_expression"] + "\n"
-            abstract_code[
-                "update"
-            ] += f"{result_index_array} = _raw{result_index_array} \n"
+            abstract_code["update"] += (
+                f"{result_index_array} = _raw{result_index_array} \n"
+            )
         abstract_code["update"] += "_n = " + str(n) + "\n"
 
         # This overwrites 'i' and 'j' in the synapses' variables dictionary

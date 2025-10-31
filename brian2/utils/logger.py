@@ -194,7 +194,7 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
     exception.
     """
     # Do not catch Ctrl+C
-    if exc_type == KeyboardInterrupt:
+    if exc_type is KeyboardInterrupt:
         return
     logger = logging.getLogger("brian2")
     BrianLogger.exception_occured = True

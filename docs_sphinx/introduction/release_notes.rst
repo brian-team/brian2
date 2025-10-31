@@ -69,7 +69,7 @@ Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Faster simulation of random numbers (by replacing our outdated random number generator), now up to 5 times faster, speeding up all uses of random numbers
   including noise and Poisson groups/inputs. Note that the random number algorithm behind the scenes is still the same, so simulations will still use the
-  same sequence of random numbers with a given seed, with the limitations given in :ref:`seeding_and_reproducibility` (:issue:`1559`). 
+  same sequence of random numbers with a given seed, with the limitations given in :ref:`seeding_and_reproducibility` (:issue:`1559`).
 - `~CPPStandaloneDevice.delete` has a new option to delete arrays stored on disk for the ``run_args`` feature – this can be useful for training paradigms,
   where the ``run_args`` are used to provide a large array of weights from a previous run.
 - Fixes for compatiblity with recent versions of ``setuptools`` and ``sympy``. Thanks to Étienne Mollier for noticing and fixing a related test failure (:issue:`1553`).
@@ -136,7 +136,7 @@ anyone we forgot...):
 
 Brian 2.7.0
 -----------
-This release contains a number of bug fixes and improvements. Notably, it is fully compatible with the upcoming numpy 2.0 release and can be installed 
+This release contains a number of bug fixes and improvements. Notably, it is fully compatible with the upcoming numpy 2.0 release and can be installed
 alongside either numpy versions 1.23–1.26, or numpy 2.0.
 
 Selected improvements and bug fixes
@@ -188,7 +188,7 @@ New features
 - The new ``run_args`` argument makes it possible to run standalone simulations repeatedly (or in parallel) with different parameters without
   recompiling the code. See :ref:`standalone_multiple_full_runs` for details (:issue:`1429`).
 - We now provide regularly updated Docker images with a full installation of Brian and related tools. You can find the latest release images
-  on https://hub.docker.com/repository/docker/briansimulator/brian/general, and temporary images for development versions on 
+  on https://hub.docker.com/repository/docker/briansimulator/brian/general, and temporary images for development versions on
   https://hub.docker.com/repository/docker/briansimulator/brian-dev/general
   (:issue:`1503`).
 
@@ -198,7 +198,7 @@ Selected improvements and bug fixes
 - Do not assume that the test directory is writeable (:issue:`1507``)
 - Fix the power operator for integer values in Cython (:issue:`1502`). Thanks to Hong Zhu for reporting this issue.
 - Fix floor division on C++ (:issue:`1496`). Thanks to Brian forum user ``ansuz`` for reporting this issue.
-  
+
 Infrastructure and documentation improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - We now build wheels and test against for Python 3.12 (:issue:`1481`).
@@ -270,7 +270,7 @@ Selected bug fixes
 
 Infrastructure improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- Brian's packaging infrastructure now switches to modern tools such as ``pyproject.toml`` for metadata declaration, ``build`` for source package creation, and ``setuptools_scm`` for versioning (:issue:`1475`). 
+- Brian's packaging infrastructure now switches to modern tools such as ``pyproject.toml`` for metadata declaration, ``build`` for source package creation, and ``setuptools_scm`` for versioning (:issue:`1475`).
 
 
 Contributions

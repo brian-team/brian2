@@ -197,7 +197,7 @@ class Clock(VariableOwner):
         if self._i_end > 2**40:
             logger.warn(
                 "The end time of the simulation has been set to "
-                f"{str(end*second)}, which based on the dt value of "
+                f"{str(end * second)}, which based on the dt value of "
                 f"{str(self.dt)} means that {self._i_end} "
                 "time steps will be simulated. This can lead to "
                 "numerical problems, e.g. the times t will not "

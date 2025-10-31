@@ -316,13 +316,13 @@ def test_apply_loop_invariant_optimisation_no_optimisation():
     ]
     scalar, vector = optimise_statements([], statements, variables)
     for vs in vector[:3]:
-        assert (
-            vs.expr.count("rand()") == 2
-        ), f"Expression should still contain two rand() calls, but got {str(vs)}"
+        assert vs.expr.count("rand()") == 2, (
+            f"Expression should still contain two rand() calls, but got {str(vs)}"
+        )
     for vs in vector[3:]:
-        assert (
-            vs.expr.count("rand()") == 1
-        ), f"Expression should still contain a rand() call, but got {str(vs)}"
+        assert vs.expr.count("rand()") == 1, (
+            f"Expression should still contain a rand() call, but got {str(vs)}"
+        )
 
 
 @pytest.mark.codegen_independent
@@ -463,20 +463,20 @@ def test_automatic_augmented_assignments():
     for orig, rewritten in statements:
         scalar, vector = make_statements(orig, variables, np.float32)
         try:  # we augment the assertion error with the original statement
-            assert (
-                len(scalar) == 0
-            ), f"Did not expect any scalar statements but got {str(scalar)}"
-            assert (
-                len(vector) == 1
-            ), f"Did expect a single statement but got {str(vector)}"
+            assert len(scalar) == 0, (
+                f"Did not expect any scalar statements but got {str(scalar)}"
+            )
+            assert len(vector) == 1, (
+                f"Did expect a single statement but got {str(vector)}"
+            )
             statement = vector[0]
             expected_var, expected_op, expected_expr, _ = parse_statement(rewritten)
-            assert (
-                expected_var == statement.var
-            ), f"expected write to variable {expected_var}, not to {statement.var}"
-            assert (
-                expected_op == statement.op
-            ), f"expected operation {expected_op}, not {statement.op}"
+            assert expected_var == statement.var, (
+                f"expected write to variable {expected_var}, not to {statement.var}"
+            )
+            assert expected_op == statement.op, (
+                f"expected operation {expected_op}, not {statement.op}"
+            )
             # Compare the two expressions using sympy to allow for different order etc.
             sympy_expected = str_to_sympy(expected_expr)
             sympy_actual = str_to_sympy(statement.expr)

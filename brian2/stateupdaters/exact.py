@@ -220,7 +220,7 @@ class LinearStateUpdater(StateUpdateMethod):
         except NotImplementedError:
             raise UnsupportedEquationsException(
                 "Cannot solve the given equations with this stateupdater."
-            )
+            ) from None
         if method_options["simplify"]:
             A = A.applyfunc(lambda x: sp.factor_terms(sp.cancel(sp.signsimp(x))))
         C = sp.ImmutableMatrix(A * b) - b
@@ -231,7 +231,7 @@ class LinearStateUpdater(StateUpdateMethod):
         # The solution contains _S[0, 0], _S[1, 0] etc. for the state variables,
         # replace them with the state variable names
         abstract_code = []
-        for variable, update in zip(varnames, updates):
+        for variable, update in zip(varnames, updates, strict=True):
             rhs = update
             if rhs.has(I, re, im):
                 raise UnsupportedEquationsException(

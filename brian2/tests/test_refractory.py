@@ -71,15 +71,13 @@ def test_refractoriness_basic():
     assert_allclose(
         mon[0].w[: timestep(5 * ms, defaultclock.dt)],
         mon[0].w[
-            timestep(10 * ms, defaultclock.dt)
-            + 1 : timestep(15 * ms, defaultclock.dt)
+            timestep(10 * ms, defaultclock.dt) + 1 : timestep(15 * ms, defaultclock.dt)
             + 1
         ],
     )
     assert np.all(
         mon[0].w[
-            timestep(10 * ms, defaultclock.dt)
-            + 1 : timestep(15 * ms, defaultclock.dt)
+            timestep(10 * ms, defaultclock.dt) + 1 : timestep(15 * ms, defaultclock.dt)
             + 1
         ]
         > 0
@@ -150,15 +148,17 @@ def test_refractoriness_variables(ref_time):
         assert_allclose(
             mon[0].w[: timestep(5 * ms, defaultclock.dt)],
             mon[0].w[
-                timestep(10 * ms, defaultclock.dt)
-                + 1 : timestep(15 * ms, defaultclock.dt)
+                timestep(10 * ms, defaultclock.dt) + 1 : timestep(
+                    15 * ms, defaultclock.dt
+                )
                 + 1
             ],
         )
         assert np.all(
             mon[0].w[
-                timestep(10 * ms, defaultclock.dt)
-                + 1 : timestep(15 * ms, defaultclock.dt)
+                timestep(10 * ms, defaultclock.dt) + 1 : timestep(
+                    15 * ms, defaultclock.dt
+                )
                 + 1
             ]
             > 0

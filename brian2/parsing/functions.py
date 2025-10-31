@@ -188,7 +188,7 @@ class FunctionRewriter(ast.NodeTransformer):
         # The basename is used for function-local variables
         basename = f"_inline_{self.func.name}_{str(self.numcalls)}"
         # Assign all the function-local variables
-        for argname, arg in zip(self.func.args, args):
+        for argname, arg in zip(self.func.args, args, strict=True):
             newpre = ast.Assign(
                 targets=[ast.Name(id=f"{basename}_{argname}", ctx=ast.Store())],
                 value=arg,

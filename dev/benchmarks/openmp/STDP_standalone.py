@@ -43,7 +43,7 @@ poisson_input   = PoissonGroup(N, rates=F)
 neurons = NeuronGroup(500, eqs_neurons, threshold='v>vt', reset='v=vr')
 S = Synapses(poisson_input, neurons,
              '''w:1
-                dApre/dt=-Apre/taupre : 1 (event-driven)    
+                dApre/dt=-Apre/taupre : 1 (event-driven)
                 dApost/dt=-Apost/taupost : 1 (event-driven)''',
              on_pre='''ge+=w
                     Apre+=dApre
@@ -69,7 +69,7 @@ if standalone == 1:
         std::ofstream myfile ("speed.txt");
         if (myfile.is_open())
         {
-            double value = (double) (std::clock() - start)/(%d * CLOCKS_PER_SEC); 
+            double value = (double) (std::clock() - start)/(%d * CLOCKS_PER_SEC);
             myfile << value << std::endl;
             myfile.close();
         }
@@ -82,4 +82,3 @@ except Exception:
 
 if standalone == 1:
     device.build(project_dir=path, compile_project=True, run_project=True, debug=False)
-
