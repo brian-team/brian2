@@ -153,6 +153,8 @@ jobs:
           CACHE_DIR=$("$PYTHON_BINARY" -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
           echo "Cython cache dir: $CACHE_DIR"
           echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
       - name: restore Cython cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         if: ${{ ! matrix.standalone }}
