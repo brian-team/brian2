@@ -384,7 +384,7 @@ def parse_string_equations(eqns):
     equations = {}
 
     try:
-        parsed = EQUATIONS.parseString(eqns, parseAll=True)
+        parsed = EQUATIONS.parse_string(eqns, parseAll=True)
     except ParseException as p_exc:
         raise EquationError(
             "Parsing failed: \n"

@@ -254,7 +254,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         self.custom_check = custom_check
 
         try:
-            parsed = ExplicitStateUpdater.DESCRIPTION.parseString(
+            parsed = ExplicitStateUpdater.DESCRIPTION.parse_string(
                 description, parseAll=True
             )
         except ParseException as p_exc:
