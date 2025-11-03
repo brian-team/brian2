@@ -46,7 +46,7 @@ The following packages need to be installed to use Brian 2 (cf. [`pyproject.toml
 * NumPy >= 2.0
 * SymPy >= 1.2
 * Cython >= 0.29.21
-* PyParsing
+* PyParsing >= 3
 * Jinja2 >= 2.7
 * setuptools >= 61
 * py-cpuinfo (only required on Windows)
