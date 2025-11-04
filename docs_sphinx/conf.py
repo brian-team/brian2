@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Brian 2 documentation build configuration file, created by
 # sphinx-quickstart on Tue Aug 14 14:57:16 2012.
@@ -22,7 +21,7 @@ import sys
 
 
 # Mock the scipy module
-class Mock(object):
+class Mock:
     def __init__(self, *args, **kwargs):
         pass
 
@@ -132,7 +131,7 @@ import time
 
 copyright = "2012–{}, Brian authors".format(
     datetime.datetime.fromtimestamp(
-        int(os.environ.get("SOURCE_DATE_EPOCH", time.time())), tz=datetime.timezone.utc
+        int(os.environ.get("SOURCE_DATE_EPOCH", time.time())), tz=datetime.UTC
     ).year
 )
 
@@ -187,7 +186,7 @@ sphinx_tabs_disable_tab_closing = True
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
+html_theme_options = {"style_external_links": True}
 
 
 # The name for this set of Sphinx documents.  If None, it defaults to

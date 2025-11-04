@@ -45,14 +45,12 @@ Finally, if you're having problems, please do let us know at our
 Please note that all interactions (e.g. via the mailing list or on github) should adhere
 to our :doc:`Code of Conduct <introduction/code_of_conduct>`.
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
+   :caption: Documentation
    :titlesonly:
 
    introduction/index
-   resources/tutorials/index
    user/index
    advanced/index
 
@@ -60,9 +58,25 @@ Contents:
    :maxdepth: 1
    :titlesonly:
 
-   examples/index
    Reference documentation <reference/brian2>
    developer/index
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Examples and tutorials
+   :titlesonly:
+
+   examples/index
+   resources/tutorials/index
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: External links
+   :titlesonly:
+
+   Source code repository <https://www.github.com/brian-team/brian2>
+   PyPI package <https://pypi.org/project/Brian2>
 
 Indices and tables
 ==================
