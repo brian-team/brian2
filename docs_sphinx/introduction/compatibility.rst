@@ -7,11 +7,11 @@ Compatibility and reproducibility
 Supported Python and numpy versions
 -----------------------------------
 
-We follow the approach outlined in numpy's
-`deprecation policy <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_. This means that Brian supports:
+We follow the approach outlined in the
+`SPEC-0 policy <https://scientific-python.org/specs/spec-0000/>`_. This means that Brian supports:
 
-* All minor versions of Python released 42 months prior to Brian, and at minimum the two latest minor versions.
-* All minor versions of numpy released in the 24 months prior to Brian, and at minimum the last three minor versions.
+* All minor versions of Python released in the last three years.
+* All minor versions of numpy released in the two years prior to Brian.
 
 Note that we do not have control about the versions that are supported by the `conda-forge <https://conda-forge.org/>`_
 infrastructure. Therefore, ``brian2`` conda packages might not be provided for all of the supported versions. In this
