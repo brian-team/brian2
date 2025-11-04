@@ -115,7 +115,7 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_LINUX: ${{ matrix.config.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_SKIP: 'pp* *-musllinux_aarch64'
+          CIBW_SKIP: '*-musllinux_aarch64'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
         with:
