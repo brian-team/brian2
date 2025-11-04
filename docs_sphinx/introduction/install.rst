@@ -12,7 +12,7 @@ via the `Anaconda distribution <https://www.anaconda.com/distribution/#download-
 Brian with the ``conda`` package manager as detailed below.
 
 .. note::
-    You need to have access to Python >=3.7 (see Brian's :ref:`support policy <supported_python>`). In particular,
+    You need to have access to Python >=3.12 (see Brian's :ref:`support policy <supported_python>`). In particular,
     Brian no longer supports Python 2 (the last version to support Python 2 was :ref:`brian2.3`). All provided
     Python packages also require a 64 bit system, but every desktop or laptop machine built in the last 10 years (and
     even most older machines) is 64 bit compatible.
