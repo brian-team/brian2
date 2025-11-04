@@ -172,6 +172,8 @@ jobs:
     name: Build docker image
     runs-on: ubuntu-latest
     needs: build-linux
+    permissions:
+      packages: write
     # Skip everything for PR authors that do not have permission to access secrets
     if: ${{ github.event_name == 'push' || (github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'OWNER') }}
     steps:
@@ -232,8 +234,6 @@ jobs:
         cp packages/[Bb]rian2*cp312-manylinux*_aarch64.whl dist
     - name: Build (and potentially push) the Docker image
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-      permissions:
-        packages: write
       # https://github.com/docker/build-push-action
       with:
         context: .
@@ -249,8 +249,6 @@ jobs:
     - name: Push docker image to dev repository
       if: ${{ github.repository == 'brian-team/brian2' && github.event_name == 'push' && !startsWith(github.ref, 'refs/tags') && github.actor != 'dependabot[bot]'}}
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-      permissions:
-        packages: write
       with:
         context: .
         file: docker/Dockerfile
