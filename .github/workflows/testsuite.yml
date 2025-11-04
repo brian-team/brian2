@@ -2,10 +2,14 @@ name: TestSuite
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   get_python_versions:
     name: "Determine Python versions"
     runs-on: ubuntu-latest
+    permissions: {}
     outputs:
       min-python: ${{ steps.nep29.outputs.min-python }}
       max-python: ${{ steps.nep29.outputs.max-python }}

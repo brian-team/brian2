@@ -1,10 +1,14 @@
 name: Build and publish
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   get_python_versions:
     name: "Determine Python versions"
     runs-on: ubuntu-latest
+    permissions: {}
     outputs:
       min-python: ${{ steps.nep29.outputs.min-python }}
       max-python: ${{ steps.nep29.outputs.max-python }}
@@ -111,7 +115,7 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=${{ needs.get_python_versions.outputs.min-python }}"
           CIBW_ARCHS_LINUX: ${{ matrix.config.arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_SKIP: 'pp* *-musllinux_aarch64'
+          CIBW_SKIP: '*-musllinux_aarch64'
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
         with:
@@ -168,6 +172,8 @@ jobs:
     name: Build docker image
     runs-on: ubuntu-latest
     needs: build-linux
+    permissions:
+      packages: write
     # Skip everything for PR authors that do not have permission to access secrets
     if: ${{ github.event_name == 'push' || (github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'OWNER') }}
     steps:

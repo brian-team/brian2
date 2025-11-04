@@ -23,3 +23,8 @@ repos:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
+
+  - repo: https://github.com/mpalmer/action-validator
+    rev: v0.7.0
+    hooks:
+      - id: action-validator

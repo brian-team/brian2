@@ -5,12 +5,16 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       time: "01:00"
+    cooldown:
+      default-days: 7
 
   # Maintain dependencies for the dev container
   - package-ecosystem: "devcontainers"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       time: "01:30"
+    cooldown:
+      default-days: 7
