@@ -22,9 +22,9 @@ try:
     from setuptools.msvc import msvc14_get_vc_env as _get_vc_env
 except ImportError:  # Setuptools 0.74.0 removed this function
     try:
-        from distutils._msvccompiler import _get_vc_env
-    except ImportError:  # Things keep moving around in distutils/setuptools
         from distutils.compilers.C.msvc import _get_vc_env
+    except ImportError:  # Things keep moving around in distutils/setuptools
+        from distutils._msvccompiler import _get_vc_env
 
 from distutils.ccompiler import get_default_compiler
 
