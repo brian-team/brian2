@@ -177,8 +177,13 @@ SynapticPathway {{path.name}}(
 {% endfor %}
 
 //////////////// clocks ///////////////////
+// attributes will be set in run.cpp
 {% for clock in clocks | sort(attribute='name') %}
-Clock {{clock.name}};  // attributes will be set in run.cpp
+{% if clock.__class__.__name__ == "EventClock" %}
+EventClock {{clock.name}};
+{% else %}
+Clock {{clock.name}};
+{% endif %}
 {% endfor %}
 
 {% if profiled_codeobjects is defined %}
@@ -438,7 +443,11 @@ extern std::vector< RandomGenerator > _random_generators;
 
 //////////////// clocks ///////////////////
 {% for clock in clocks | sort(attribute='name') %}
+{% if clock.__class__.__name__ == "EventClock" %}
+extern EventClock {{clock.name}};
+{% else %}
 extern Clock {{clock.name}};
+{% endif %}
 {% endfor %}
 
 //////////////// networks /////////////////

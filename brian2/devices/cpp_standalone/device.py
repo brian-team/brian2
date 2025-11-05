@@ -22,6 +22,7 @@ import numpy as np
 from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
 from brian2.codegen.generators.cpp_generator import c_data_type
+from brian2.core.clocks import EventClock
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
 from brian2.core.preferences import BrianPreference, prefs
@@ -820,7 +821,7 @@ class CPPStandaloneDevice(Device):
                 arrayname, value, is_dynamic = args
                 size_str = f"{arrayname}.size()" if is_dynamic else f"_num_{arrayname}"
                 code = f"""
-                {openmp_pragma('static')}
+                {openmp_pragma("static")}
                 for(int i=0; i<{size_str}; i++)
                 {{
                     {arrayname}[i] = {CPPNodeRenderer().render_expr(repr(value))};
@@ -831,7 +832,7 @@ class CPPStandaloneDevice(Device):
                 arrayname, staticarrayname, is_dynamic = args
                 size_str = f"{arrayname}.size()" if is_dynamic else f"_num_{arrayname}"
                 code = f"""
-                {openmp_pragma('static')}
+                {openmp_pragma("static")}
                 for(int i=0; i<{size_str}; i++)
                 {{
                     {arrayname}[i] = {staticarrayname}[i];
@@ -845,7 +846,7 @@ class CPPStandaloneDevice(Device):
             elif func == "set_array_by_array":
                 arrayname, staticarrayname_index, staticarrayname_value = args
                 code = f"""
-                {openmp_pragma('static')}
+                {openmp_pragma("static")}
                 for(int i=0; i<_num_{staticarrayname_index}; i++)
                 {{
                     {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
@@ -1939,9 +1940,15 @@ class CPPStandaloneDevice(Device):
         # run)
         for clock in net._clocks:
             self.array_cache[clock.variables["timestep"]] = np.array([clock._i_end])
-            self.array_cache[clock.variables["t"]] = np.array(
-                [clock._i_end * clock.dt_]
-            )
+            # FIXME: Not ideal to condition this on the type of clock
+            if isinstance(clock, EventClock):
+                self.array_cache[clock.variables["t"]] = np.array(
+                    [clock._times[clock._i_end]]
+                )
+            else:
+                self.array_cache[clock.variables["t"]] = np.array(
+                    [clock._i_end * clock.dt_]
+                )
 
         if self.build_on_run:
             if self.has_been_run:
