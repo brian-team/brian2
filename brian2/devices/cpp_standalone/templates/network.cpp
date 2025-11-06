@@ -12,6 +12,8 @@
 
 double Network::_last_run_time = 0.0;
 double Network::_last_run_completed_fraction = 0.0;
+bool Network::_globally_stopped = false;
+bool Network::_globally_running = false;
 
 Network::Network()
 {
@@ -63,7 +65,9 @@ void Network::run(const double duration, void (*report_func)(const double, const
     double elapsed_realtime;
     bool did_break_early = false;
 
-    while(clock && clock->running())
+    Network::_globally_running = true;
+    Network::_globally_stopped = false;
+    while(clock && clock->running() && !Network::_globally_stopped)
     {
         t = clock->t[0];
 
@@ -112,8 +116,12 @@ void Network::run(const double duration, void (*report_func)(const double, const
         {% endif %}
 
     }
+    Network::_globally_running = false;
 
-    if(!did_break_early) t = t_end;
+    if(!did_break_early && !Network::_globally_stopped)
+        t = t_end;
+    else
+        t = clock->t[0];
 
     _last_run_time = elapsed_realtime;
     if(duration>0)
@@ -124,7 +132,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
     }
     if (report_func)
     {
-        report_func(elapsed_realtime, 1.0, t_start, duration);
+        report_func(elapsed_realtime, _last_run_completed_fraction, t_start, duration);
     }
 }
 
@@ -189,6 +197,8 @@ public:
     double t;
     static double _last_run_time;
     static double _last_run_completed_fraction;
+    static bool _globally_stopped;
+    static bool _globally_running;
 
     Network();
     void clear();

@@ -21,20 +21,20 @@ authors:
     orcid: https://orcid.org/0000-0003-0110-1623
   - name: Brian contributors
 
-version: 2.8.0.4
+version: 2.9.0
 
-date-released: '2025-01-24'
+date-released: '2025-05-14'
 
 identifiers:
   - description: This is the collection of archived snapshots of all versions of Brian 2
     type: doi
     value: 10.5281/zenodo.654861
-  - description: This is the archived snapshot of version 2.8.0.4 of Brian 2
+  - description: This is the archived snapshot of version 2.9.0 of Brian 2
     type: doi
-    value: 10.5281/zenodo.14736290
-  - description: Software Heritage identifier for version 2.8.0.4 of Brian 2
+    value: 10.5281/zenodo.15423251
+  - description: Software Heritage identifier for version 2.9.0 of Brian 2
     type: swh
-    value: swh:1:rel:fcbc6ab6be25a548a0f04923e6e02573826b2723
+    value: swh:1:rel:bfa0c5c9b838a4d42e98b2e0d7cb7a648df6f333
 
 license: CECILL-2.1
 

@@ -25,7 +25,7 @@
     "j" is called the "result index" (and "_post_idx" the "result index array", etc.)
     "i" is called the "outer index" (and "_pre_idx" the "outer index array", etc.)
     "k" is called the inner variable #}
-    
+
     // scalar code
     const size_t _vectorisation_idx = -1;
     {{scalar_code['setup_iterator']|autoindent}}

@@ -1,6 +1,4 @@
-"""Extract reference documentation from the NumPy source tree.
-
-"""
+"""Extract reference documentation from the NumPy source tree."""
 
 import inspect
 import pydoc

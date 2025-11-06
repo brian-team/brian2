@@ -3,27 +3,28 @@ repos:
     hooks:
       - id: check-hooks-apply
       - id: check-useless-excludes
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.1
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+    rev: v0.14.2
     hooks:
-      - id: pyupgrade
-        args: [--py310-plus]
-        files: '^brian2/.*\.pyi?$'
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
+      - id: ruff-check
         # We exclude all __init__.py files, since we use wildcard imports, etc.
         exclude: '^brian2/tests/.*$|^brian2/.*__init__[.]py$'
         files: '^brian2/.*\.pyi?$'
-        additional_dependencies: ['flake8-bugbear==24.2.6']
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
+        args: ['--fix']
+      - id: ruff-format
         files: '^brian2/.*\.pyi?$'
-  - repo: https://github.com/psf/black
-    rev: '24.2.0'
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-      - id: black
-        files: '^brian2/.*\.pyi?$'
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/mpalmer/action-validator
+    rev: v0.7.0
+    hooks:
+      - id: action-validator

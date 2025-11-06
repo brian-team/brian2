@@ -550,7 +550,7 @@ class NeuronGroup(Group, SpikeSource):
             if isinstance(N, str):
                 raise TypeError(
                     "First NeuronGroup argument should be size, not equations."
-                )
+                ) from None
             raise
         if N < 1:
             raise ValueError(f"NeuronGroup size should be at least 1, was {str(N)}")
@@ -710,7 +710,9 @@ class NeuronGroup(Group, SpikeSource):
             return Group.state(self, name, use_units=use_units, level=level + 1)
         except KeyError as ex:
             if name in self._linked_variables:
-                raise TypeError(f"Link target for variable {name} has not been set.")
+                raise TypeError(
+                    f"Link target for variable {name} has not been set."
+                ) from ex
             else:
                 raise ex
 

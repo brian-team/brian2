@@ -5,6 +5,7 @@ GNU Scientific Library (GSL)
 
 import os
 import sys
+
 from distutils.errors import CompileError
 
 from brian2.core.preferences import prefs

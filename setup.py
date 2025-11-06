@@ -5,98 +5,49 @@ Brian2 setup script
 
 # isort:skip_file
 
-import io
-import sys
 import os
-import platform
+import numpy
 from setuptools import setup, Extension
-from setuptools.command.build_ext import build_ext
-from setuptools.errors import CompileError, PlatformError as DistutilsPlatformError
+from typing import List
 
-try:
-    from Cython.Build import cythonize
-    cython_available = True
-except ImportError:
-    cython_available = False
+# A Helper function to require cython extension
+def require_cython_extension(module_path, module_name,extra_include_dirs=None):
+    """
+    Create a cythonized Extension object from a .pyx source.
+    """
+    # File paths
+    base_path = os.path.join(*module_path)
+    pyx_file = os.path.join(base_path, f"{module_name}.pyx")
 
+    # Module name for setuptools
+    full_module_name = ".".join(module_path + [module_name])
 
-def has_option(name):
-    try:
-        sys.argv.remove('--%s' % name)
-        return True
-    except ValueError:
-        pass
-    # allow passing all cmd line options also as environment variables
-    env_val = os.getenv(name.upper().replace('-', '_'), 'false').lower()
-    if env_val == "true":
-        return True
-    return False
+    include_dirs = [numpy.get_include()]
+    if extra_include_dirs:
+        include_dirs.extend(extra_include_dirs)
 
-
-WITH_CYTHON = has_option('with-cython')
-FAIL_ON_ERROR = has_option('fail-on-error')
-
-pyx_fname = os.path.join('brian2', 'synapses', 'cythonspikequeue.pyx')
-cpp_fname = os.path.join('brian2', 'synapses', 'cythonspikequeue.cpp')
-
-if WITH_CYTHON or not os.path.exists(cpp_fname):
-    fname = pyx_fname
-    if not cython_available:
-        if FAIL_ON_ERROR and WITH_CYTHON:
-            raise RuntimeError('Compilation with Cython requested/necessary but '
-                               'Cython is not available.')
-        else:
-            sys.stderr.write('Compilation with Cython requested/necessary but '
-                             'Cython is not available.\n')
-            fname = None
-    if not os.path.exists(pyx_fname):
-        if FAIL_ON_ERROR and WITH_CYTHON:
-            raise RuntimeError(('Compilation with Cython requested/necessary but '
-                                'Cython source file %s does not exist') % pyx_fname)
-        else:
-            sys.stderr.write(('Compilation with Cython requested/necessary but '
-                              'Cython source file %s does not exist\n') % pyx_fname)
-            fname = None
-else:
-    fname = cpp_fname
-
-if fname is not None:
-    extensions = [Extension("brian2.synapses.cythonspikequeue",
-                            [fname],
-                            include_dirs=[])]  # numpy include dir will be added later
-    if fname == pyx_fname:
-        extensions = cythonize(extensions)
-else:
-    extensions = []
+    ext = Extension(full_module_name, [pyx_file],include_dirs=include_dirs)
+    return ext
 
 
-class optional_build_ext(build_ext):
-    '''
-    This class allows the building of C extensions to fail and still continue
-    with the building process. This ensures that installation never fails, even
-    on systems without a C compiler, for example.
-    If brian is installed in an environment where building C extensions
-    *should* work, use the "--fail-on-error" option or set the environment
-    variable FAIL_ON_ERROR to true.
-    '''
-    def build_extension(self, ext):
-        import numpy
-        numpy_incl = numpy.get_include()
-        if hasattr(ext, 'include_dirs') and not numpy_incl in ext.include_dirs:
-                ext.include_dirs.append(numpy_incl)
-        try:
-            build_ext.build_extension(self, ext)
-        except (CompileError, DistutilsPlatformError) as ex:
-            if FAIL_ON_ERROR:
-                raise ex
-            else:
-                error_msg = ('Building %s failed (see error message(s) '
-                             'above) -- pure Python version will be used '
-                             'instead.') % ext.name
-                sys.stderr.write('*' * len(error_msg) + '\n' +
-                                 error_msg + '\n' +
-                                 '*' * len(error_msg) + '\n')
+# Collect Extensions
+extensions : List[Extension]=[]
+
+# Now Cython is required and no python fallback is possible
+spike_queue_ext = require_cython_extension(
+    module_path=["brian2", "synapses"],
+    module_name="cythonspikequeue",
+)
+
+extensions.append(spike_queue_ext)
+
+dynamic_array_ext = require_cython_extension(
+    module_path=["brian2", "memory"],
+    module_name="cythondynamicarray",
+    extra_include_dirs=["brian2/devices/cpp_standalone/brianlib"]
+)
+
+extensions.append(dynamic_array_ext)
 
 
-setup(ext_modules=extensions,
-      cmdclass={'build_ext': optional_build_ext})
+setup(ext_modules=extensions)

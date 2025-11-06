@@ -192,7 +192,7 @@ class StateUpdateMethod(metaclass=ABCMeta):
                         "Each element in the list of methods has "
                         "to be a string or a callable, got "
                         f"{type(one_method)}."
-                    )
+                    ) from None
             total_time = time.time() - start_time
             if the_method is None:
                 raise ValueError(

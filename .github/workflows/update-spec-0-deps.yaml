@@ -1,0 +1,22 @@
+name: Update SPEC 0 dependencies
+
+on:
+  schedule:
+    # At 00:00 on day-of-month 3 in every 3rd month. (i.e. every quarter)
+    # Releases should happen on the second day of the quarter in savente93/SPEC0-schedule to
+    # avoid fence post errors, so allow one day as a buffer to avoid timing issues here as well.
+    - cron: "0 0 3 */3 *"
+  # On demand:
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: mstimberg/update-spec0-dependencies@97a927bde768c536b9d6631eb4d7263c050a233b  # patched version for now
+        with:
+          token: ${{ secrets.GH_PAT_SPEC0 }}
+          target_branch: master

@@ -129,7 +129,7 @@
     const int _children_rowlength = _num_morph_children/_num_morph_children_num;
     #define _IDX_C(idx_row,idx_col) _children_rowlength * idx_row + idx_col
 
-    // STEP 3a: construct the coupling system with matrix _P in sparse form. s.t. 
+    // STEP 3a: construct the coupling system with matrix _P in sparse form. s.t.
     // _P_diag contains the diagonal elements
     // _P_children contains the super diagonal entries
     // _P_parent contains the single sub diagonal entry for each row
@@ -180,21 +180,21 @@
     // part 1: lower triangularization
     for (int _i=_num_B-1; _i>=0; _i--) {
         const int _num_children = {{_morph_children_num}}[_i];
-        
+
         // for every child eliminate the corresponding matrix element of row i
         for (size_t _k=0; _k<_num_children; _k++) {
             int _j = {{_morph_children}}[_IDX_C(_i,_k)]; // child index
-            
+
             // subtracting _subfac times the j-th from the i-th row
             double _subfac = {{_P_children}}[_IDX_C(_i,_k)] / {{_P_diag}}[_j]; // element i,j appears only here
 
-            // the following commented (superdiagonal) element is not used in the following anymore since 
+            // the following commented (superdiagonal) element is not used in the following anymore since
             // it is 0 by definition of (lower) triangularization; we keep it here for algorithmic clarity
             //{{_P_children}}[_IDX_C(_i,_k)] = {{_P_children}}[_IDX_C(_i,_k)]  - _subfac * {{_P_diag}}[_j]; // = 0;
 
             {{_P_diag}}[_i] = {{_P_diag}}[_i]  - _subfac * {{_P_parent}}[_j-1]; // note: element j,i is only used here
             {{_B}}[_i] = {{_B}}[_i] - _subfac * {{_B}}[_j];
-        
+
         }
     }
 
@@ -204,7 +204,7 @@
         const int _j = {{_morph_parent_i}}[_i-1]; // parent index
         {{_B}}[_i] = {{_B}}[_i] - {{_P_parent}}[_i-1] * {{_B}}[_j];
         {{_B}}[_i] = {{_B}}[_i] / {{_P_diag}}[_i];
-        
+
     }
 
     // STEP 4: for each section compute the final solution by linear

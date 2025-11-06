@@ -274,7 +274,7 @@ class SpatialNeuron(NeuronGroup):
             except TypeError:
                 raise AttributeError(
                     "Threshold can only be applied on a single location"
-                )
+                ) from None
             threshold = f"({threshold}) and (i == {str(threshold_location)})"
 
         # Check flags (we have point currents)

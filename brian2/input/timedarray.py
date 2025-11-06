@@ -54,9 +54,7 @@ def _generate_cpp_code_1d(values, dt, name):
                 i = %NUM_VALUES%-1;
             return _namespace%NAME%_values[i];
         }
-        """.replace(
-                "%NAME%", name
-            )
+        """.replace("%NAME%", name)
             .replace("%DT%", f"{dt:.18f}")
             .replace("%K%", str(K))
             .replace("%NUM_VALUES%", str(len(values)))
@@ -113,9 +111,7 @@ def _generate_cython_code_1d(values, dt, name):
             if i >= %NUM_VALUES%:
                 i = %NUM_VALUES% - 1
             return _namespace%NAME%_values[i]
-        """.replace(
-                "%NAME%", name
-            )
+        """.replace("%NAME%", name)
             .replace("%DT%", f"{dt:.18f}")
             .replace("%K%", str(K))
             .replace("%NUM_VALUES%", str(len(values)))

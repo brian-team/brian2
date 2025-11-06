@@ -5,22 +5,29 @@ on:
     - cron:  '25 5 * * SUN'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   get_python_versions:
     name: "Determine Python versions"
     runs-on: ubuntu-latest
+    permissions: {}
     outputs:
       min-python: ${{ steps.nep29.outputs.min-python }}
       max-python: ${{ steps.nep29.outputs.max-python }}
     steps:
-      - name: "calculate versions according to NEP29"
+      - name: "calculate versions according to SPEC-0"
         id: nep29
         uses: mstimberg/github-calc-nep29@a73481e4e8488a5fa0b3be70a385cc5206a261ba # v0.7
         with:
           include-release-candidates: true
           include-beta-releases: true
+          # Match SPEC-0
+          deprecate-python-after: 36
+          min-python-releases: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-  
+
   testing:
     needs: [get_python_versions]
     name: "Python ${{ matrix.python-version }} on ${{ matrix.os.image }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
@@ -30,20 +37,20 @@ jobs:
       matrix:
         os: [{image: ubuntu-latest, triplet: x64-linux},
              {image: windows-latest, triplet: x64-windows},
-             {image: macOS-13, triplet: x64-osx},
-             {image: macOS-latest, triplet: arm64-osx}]
+             {image: macos-15-intel, triplet: x64-osx},
+             {image: macos-latest, triplet: arm64-osx}]
         standalone: [false, true]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: Install GSL
-        uses: johnwason/vcpkg-action@7c4b562bb35ef5a01d9d728acc90100b107dee4d # v6
+        uses: johnwason/vcpkg-action@ff71808de10afc0e3160fd079353c69ba0d7dd60 # v7.0.0
         id: vcpkg
         with:
           pkgs: gsl
@@ -60,7 +67,7 @@ jobs:
           cat ~/.brian/user_preferences
       - name: Install Python
         id: python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
@@ -79,7 +86,6 @@ jobs:
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
-          cp numpy2.pyproject.toml pyproject.toml
           "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Run Tests
         shell: bash
@@ -105,12 +111,12 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses:  actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses:  actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: Install GSL
-        uses: johnwason/vcpkg-action@7c4b562bb35ef5a01d9d728acc90100b107dee4d # v6
+        uses: johnwason/vcpkg-action@ff71808de10afc0e3160fd079353c69ba0d7dd60 # v7.0.0
         id: vcpkg
         with:
           pkgs: gsl
@@ -127,7 +133,7 @@ jobs:
           cat ~/.brian/user_preferences
       - name: Install Python
         id: python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           cache: 'pip'
           python-version: ${{ matrix.python-version }}
@@ -141,17 +147,20 @@ jobs:
           "$PYTHON_BINARY" -m pip install --pre pytest cython sympy pyparsing jinja2 sphinx
       - name: Install Brian2
         env:
-          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}      
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           "$PYTHON_BINARY" -m pip install --pre -i https://pypi.anaconda.org/scientific-python-nightly-wheels/simple --extra-index-url https://pypi.org/simple .
       - name: Determine Cython cache dir
         id: cython-cache
         run: |
-          CACHE_DIR=$(python -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
+          cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
+          CACHE_DIR=$("$PYTHON_BINARY" -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
           echo "Cython cache dir: $CACHE_DIR"
           echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
       - name: restore Cython cache
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         if: ${{ ! matrix.standalone }}
         with:
           key: cython-extensions-latest-${{ matrix.os }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}

@@ -328,6 +328,12 @@ class SynapticPathway(CodeRunner, Group):
         self.queue = get_device().spike_queue(self.source.start, self.source.stop)
         self.variables.add_object("_queue", self.queue)
 
+        if self.queue:  # when using RuntimeDevice
+            self.variables.add_object(
+                "_queue_capsule",
+                self.queue.get_capsule(),  # Wrapped C++ pointer in a PyCapsule
+            )
+
         self._enable_group_attributes()
 
     def check_variable_write(self, variable):
@@ -341,12 +347,12 @@ class SynapticPathway(CodeRunner, Group):
             event_driven_eqs = self.synapses.event_driven
             try:
                 event_driven_update = linear(event_driven_eqs, self.group.variables)
-            except UnsupportedEquationsException:
+            except UnsupportedEquationsException as ex:
                 err = (
                     "Cannot solve the differential equations as "
                     "event-driven. Use (clock-driven) instead."
                 )
-                raise UnsupportedEquationsException(err)
+                raise UnsupportedEquationsException(err) from ex
 
             # TODO: Any way to do this more elegantly?
             event_driven_update = re.sub(
@@ -375,9 +381,12 @@ class SynapticPathway(CodeRunner, Group):
             # SynapticPathway.push_spike
             eventspace_name = f"_{self.event}space"
             template_kwds = {
-                "eventspace_variable": self.source.variables[eventspace_name]
+                # Standard Brian2 variable for spike event data
+                # This provides access to the spike array in the generated Cython code
+                "eventspace_variable": self.source.variables[eventspace_name],
             }
             needed_variables = [eventspace_name]
+
             self._pushspikes_codeobj = create_runner_codeobj(
                 self,
                 "",  # no code
@@ -396,6 +405,7 @@ class SynapticPathway(CodeRunner, Group):
 
     def initialise_queue(self):
         self.eventspace = self.source.variables[self.eventspace_name].get_value()
+
         n_synapses = len(self.synapses)
         if n_synapses == 0 and not self.synapses._connect_called:
             raise TypeError(
@@ -449,9 +459,63 @@ class SynapticPathway(CodeRunner, Group):
         super()._restore_from_full_state(state)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
-        self.queue._restore_from_full_state(queue_state)
+
+        converted_queue_state = self._convert_queue_state_if_needed(queue_state)
+        self.queue._restore_from_full_state(converted_queue_state)
+
         # Put the spike queue state back for future restore calls
         state["_spikequeue"] = queue_state
+
+    def _convert_queue_state_if_needed(self, queue_state):
+        """
+        Convert spike queue state from Python format to Cython format if needed.
+
+        Python format: (time, spike_indices_array, queue_capacities)
+        Cython format: (offset, list_of_spike_lists)
+
+        Returns the queue_state in Cython format.
+        """
+        # Check if this is the old Python format (3-tuple vs 2-tuple) , also note this is sort of a hack
+        # As it's completely based on Python format being a 3 tuple ...
+        if isinstance(queue_state, tuple) and len(queue_state) == 3:
+            # This is Python spike queue format, need to convert
+            return self._python_to_cython_format(queue_state)
+        else:
+            return queue_state
+
+    def _python_to_cython_format(self, python_state):
+        """
+        Convert Python spike queue format to Cython format.
+
+        Python format: (current_time, spike_array, queue_sizes)
+        - current_time: float representing current simulation time
+        - spike_array: 2D array where spike_array[delay_slot][spike_index] = neuron_id
+        - queue_sizes: tuple of queue capacities
+
+        Cython format: (offset, spike_lists)
+        - offset: int representing current position in circular buffer
+        - spike_lists: list of lists, where spike_lists[i] contains spikes for time slot i
+        """
+        _, spike_array, __ = python_state
+
+        if not spike_array.any():
+            return (0, [])
+
+        # The first column contains the delay slots, the second the snyapse indexes that would be triggered
+        delay_slots = spike_array[:, 0]
+        synapse_indexes = spike_array[:, 1]
+
+        # Now we'll determine the size of the new queue by the maximum delay
+        max_delay = np.max(delay_slots)
+        new_queue = [[] for _ in range(max_delay + 1)]
+
+        for delay, synapse_idx in zip(delay_slots, synapse_indexes, strict=True):
+            new_queue[delay].append(synapse_idx)
+
+        # The offset in Cython format represents the current position in the circular buffer
+        # For a newly converted queue, we typically start at offset 0
+        offset = 0
+        return (offset, new_queue)
 
     def push_spikes(self):
         # Push new events (e.g. spikes) into the queue
@@ -881,6 +945,7 @@ class Synapses(Group):
         # Separate subexpressions depending whether they are considered to be
         # constant over a time step or not
         model, constant_over_dt = extract_constant_subexpressions(model)
+
         # Separate the equations into event-driven equations,
         # continuously updated equations and summed variable updates
         event_driven = []
@@ -918,6 +983,7 @@ class Synapses(Group):
                     event_driven.append(single_equation)
         # Get the dependencies of all equations
         dependencies = model.dependencies
+
         # Check whether there are dependencies between summed
         # variables/clocked-driven equations and event-driven variables
         for eq_name, deps in dependencies.items():
@@ -990,11 +1056,11 @@ class Synapses(Group):
 
         #: "Events" for all the pathways
         self.events = events_dict
-        for prepost, argument in zip(("pre", "post"), (on_pre, on_post)):
+        for prepost, argument in zip(("pre", "post"), (on_pre, on_post), strict=True):
             if not argument:
                 continue
             if isinstance(argument, str):
-                pathway_delay = delay.get(prepost, None)
+                pathway_delay = delay.get(prepost)
                 self._add_updater(
                     argument,
                     prepost,
@@ -1010,7 +1076,7 @@ class Synapses(Group):
                             f"{type(key)} instead."
                         )
                         raise TypeError(err_msg)
-                    pathway_delay = delay.get(key, None)
+                    pathway_delay = delay.get(key)
                     self._add_updater(
                         value,
                         prepost,
@@ -1643,9 +1709,8 @@ class Synapses(Group):
                 )
         except IndexError as e:
             raise IndexError(
-                "Tried to create synapse indices outside valid "
-                "range. Original error message: " + str(e)
-            )
+                "Tried to create synapse indices outside valid range."
+            ) from e
 
     # Helper functions for Synapses.connect ↑
     def _verify_connect_array_arguments(self, i, j, n):
@@ -2046,20 +2111,20 @@ class Synapses(Group):
         template_kwds["result_index_used"] = result_index_used
 
         abstract_code["setup_iterator"] += setupiter
-        abstract_code[
-            "generator_expr"
-        ] += f"{outer_index_array} = _raw{outer_index_array} \n"
-        abstract_code["generator_expr"] += f'_{result_index} = {parsed["element"]}\n'
+        abstract_code["generator_expr"] += (
+            f"{outer_index_array} = _raw{outer_index_array} \n"
+        )
+        abstract_code["generator_expr"] += f"_{result_index} = {parsed['element']}\n"
 
         if result_index_condition:
-            abstract_code[
-                "create_cond"
-            ] += f"{result_index_array} = _raw{result_index_array} \n"
+            abstract_code["create_cond"] += (
+                f"{result_index_array} = _raw{result_index_array} \n"
+            )
         if parsed["if_expression"] is not None:
             abstract_code["create_cond"] += "_cond = " + parsed["if_expression"] + "\n"
-            abstract_code[
-                "update"
-            ] += f"{result_index_array} = _raw{result_index_array} \n"
+            abstract_code["update"] += (
+                f"{result_index_array} = _raw{result_index_array} \n"
+            )
         abstract_code["update"] += "_n = " + str(n) + "\n"
 
         # This overwrites 'i' and 'j' in the synapses' variables dictionary

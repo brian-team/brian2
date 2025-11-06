@@ -3,6 +3,7 @@ Module containg the StateUpdateMethod for integration using the ODE solver
 provided in the GNU Scientific Library (GSL)
 """
 
+import os
 import sys
 
 from brian2.utils.logger import get_logger
@@ -105,6 +106,19 @@ class GSLContainer:
                     device.define_macros += [("WIN32", "1"), ("GSL_DLL", "1")]
                 if prefs.GSL.directory is not None:
                     device.include_dirs += [prefs.GSL.directory]
+                    device.library_dirs += [
+                        os.path.abspath(os.path.join(prefs.GSL.directory, "..", "lib"))
+                    ]
+                    if os.name == "nt":
+                        # Add DLL directory to path
+                        old_path = os.environ.get("PATH", "")
+                        device.run_environment_variables["PATH"] = (
+                            os.path.abspath(
+                                os.path.join(prefs.GSL.directory, "..", "bin")
+                            )
+                            + ";"
+                            + old_path
+                        )
             return GSLCPPStandaloneCodeObject
 
         elif isinstance(device, RuntimeDevice):
@@ -116,24 +130,20 @@ class GSLContainer:
             if target_name == "cython":
                 return GSLCythonCodeObject
             raise NotImplementedError(
-                (
-                    "GSL integration has not been implemented for "
-                    "for the '{target_name}' code generation target."
-                    "\nUse the 'cython' code generation target, "
-                    "or switch to the 'cpp_standalone' device."
-                ).format(target_name=target_name)
+                "GSL integration has not been implemented for "
+                f"for the '{target_name}' code generation target."
+                "\nUse the 'cython' code generation target, "
+                "or switch to the 'cpp_standalone' device."
             )
         else:
             device_name = [name for name, dev in all_devices.items() if dev is device]
             assert len(device_name) == 1
             raise NotImplementedError(
-                (
-                    "GSL integration has not been implemented for "
-                    "for the '{device}' device."
-                    "\nUse either the 'cpp_standalone' device, "
-                    "or the runtime device with target language "
-                    "'cython'."
-                ).format(device=device_name[0])
+                "GSL integration has not been implemented for "
+                f"for the '{device_name[0]}' device."
+                "\nUse either the 'cpp_standalone' device, "
+                "or the runtime device with target language "
+                "'cython'."
             )
 
     def __call__(self, obj):

@@ -37,7 +37,7 @@ Code generation
 
 To implement a new language, or variant of an existing language, derive a class
 from `CodeGenerator`. Good examples to look at are the `NumpyCodeGenerator`,
-`CPPCodeGenerator` and `CythonCodeGenerator` classes in the 
+`CPPCodeGenerator` and `CythonCodeGenerator` classes in the
 ``brian2.codegen.generators`` package. Each `CodeGenerator` has a ``class_name``
 attribute which is a string used by the user to refer to this code generator
 (for example, when defining function implementations).
@@ -127,7 +127,7 @@ trigonometric, exponential and ``rand`` functions. We usually put these
 implementations either in the same module as the `CodeGenerator` class or
 the `CodeObject` class depending on whether they are language-specific or
 runtime target specific. See those modules for examples of implementing
-these functions. 
+these functions.
 
 Code guide
 ----------

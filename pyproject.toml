@@ -6,12 +6,12 @@ authors = [
     {name = 'Benjamin Evans'},
     {name = 'Romain Brette'}
 ]
-requires-python = '>=3.10'
+requires-python = ">=3.12"
 dependencies = [
-    'numpy>=1.23.5',
-    'cython>=0.29.21',
+    "numpy>=2.0.0",
+    'cython>=0.29.21,<3.1.4',
     'sympy>=1.2',
-    'pyparsing',
+    'pyparsing>=3,!=3.2.4',
     'jinja2>=2.7',
     'py-cpuinfo;platform_system=="Windows"',
     'setuptools>=61',
@@ -23,13 +23,14 @@ keywords = ['computational neuroscience', 'simulation', 'neural networks', 'spik
 classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: CEA CNRS Inria Logiciel Libre License, version 2.1 (CeCILL-2.1)',
     'Natural Language :: English',
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Topic :: Scientific/Engineering :: Bio-Informatics'
 ]
+license = 'CECILL-2.1'
+license-files = ["LICENSE", "AUTHORS", "CONTRIBUTORS"]
 
 [project.optional-dependencies]
 test = ['pytest>=8', 'pytest-xdist>=1.22.3', 'pytest-cov>=2.0', 'pytest-timeout']
@@ -70,14 +71,25 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.black]
-target-version = ['py310']
-include = '^/brian2/.*\.pyi?$'
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # isort
+    "I",
+]
+# Lambda functions are ok (E731),
+# long lines are already handled by the formatter (E501)
+# For LaTeX code, percent format or `.format` is often the most readable (UP031, UP032)
+# TODO: Would be good practice to set stacklevel for warnings (B028)
+# False positives when using a name to test for its existence (B018)
+extend-ignore = ["E731", "E501", "UP031", "UP032", "B028", "B018"]
 
-[tool.isort]
-atomic = true
-profile = "black"
-py_version = "310"
-skip_gitignore = true
-# NOTE: isort has no "include" option, only "skip".
-skip_glob = ["dev/*", "docs_sphinx/*", "examples/*", "tutorials/*"]
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

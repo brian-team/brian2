@@ -23,7 +23,7 @@ be used, e.g.::
 
 See `More on Poisson inputs`_ below for further information.
 
-For simulations where the individually generated spikes are just used as a 
+For simulations where the individually generated spikes are just used as a
 source of input to a neuron, the `PoissonInput` class provides a more efficient
 alternative: see :ref:`poisson_input_class` below for details.
 
@@ -32,7 +32,7 @@ Spike generation
 You can also generate an explicit list of spikes given via arrays using
 `SpikeGeneratorGroup`. This object behaves just like a `NeuronGroup` in that
 you can connect it to other groups via a `Synapses` object, but you specify
-three bits of information: ``N`` the number of neurons in the group; 
+three bits of information: ``N`` the number of neurons in the group;
 ``indices`` an array of the indices of the neurons that will fire; and
 ``times`` an array of the same length as ``indices`` with the times that the
 neurons will fire a spike. The ``indices`` and ``times`` arrays are matching,
@@ -170,7 +170,7 @@ If ``rates`` is a string, then this is equivalent to::
 with the respective expression for the rates. This expression will be evaluated
 at every time step and therefore allows the use of time-dependent rates, i.e.
 inhomogeneous Poisson processes. For example, the following code
-(see also `Timed arrays`_) uses a `TimedArray` to define the rates of a 
+(see also `Timed arrays`_) uses a `TimedArray` to define the rates of a
 `PoissonGroup` as a function of time, resulting in five 100ms blocks of 100 Hz
 stimulation, followed by 100ms of silence::
 
@@ -180,7 +180,7 @@ stimulation, followed by 100ms of silence::
 Note that, as can be seen in its equivalent `NeuronGroup` formulation, a
 `PoissonGroup` does not work for high rates where more than one spike might
 fall into a single timestep. Use several units with lower rates in this case
-(e.g. use ``PoissonGroup(10, 1000*Hz)`` instead of 
+(e.g. use ``PoissonGroup(10, 1000*Hz)`` instead of
 ``PoissonGroup(1, 10000*Hz)``).
 
 .. _poisson_input_class:
@@ -191,7 +191,7 @@ Efficient Poisson inputs via PoissonInput
 For simulations where the `PoissonGroup` is just used as a source of input to a
 neuron (i.e., the individually generated spikes are not important, just their
 impact on the target cell), the `PoissonInput` class provides a more efficient
-alternative: instead of generating spikes, `PoissonInput` directly updates 
+alternative: instead of generating spikes, `PoissonInput` directly updates
 a target variable based on the sum of independent Poisson processes::
 
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
@@ -201,7 +201,7 @@ Each input of the `PoissonInput` is connected to all the neurons of the target
 `NeuronGroup` but each neuron receives independent realizations of the Poisson
 spike trains. Note that the `PoissonInput` class is however more restrictive than
 `PoissonGroup`, it only allows for a constant rate across all neurons (but
-you can create several `PoissonInput` objects, targeting different subgroups). 
+you can create several `PoissonInput` objects, targeting different subgroups).
 It internally uses `BinomialFunction` which will draw a random number each time
 step, either from a binomial distribution or from a normal distribution as an
 approximation to the binomial distribution if :math:`n p > 5 \wedge n (1 - p) > 5`
@@ -264,4 +264,3 @@ cannot be used::
 
         def run(self, runtime):
             self.network.run(runtime)
-

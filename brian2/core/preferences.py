@@ -208,7 +208,7 @@ class BrianGlobalPreferences(MutableMapping):
 
     def __getattr__(self, name):
         if name in self.__dict__ or name.startswith("__"):
-            return MutableMapping.__getattr__(self, name)
+            return super().__getattribute__(name)
 
         # This function might get called from BrianGlobalPreferencesView with
         # a prefixed name -- therefore the name can contain dots!
@@ -223,7 +223,14 @@ class BrianGlobalPreferences(MutableMapping):
                 "unregistered. This should never happen!"
             )
 
-        return self[name]
+        try:
+            return self[name]
+        except KeyError as ex:
+            raise AttributeError(
+                f"Object of type {type(self).__name__} does not have an attribute '{ex.args[0]}'",
+                name=ex.args[0],
+                obj=self,
+            ) from ex
 
     def __setattr__(self, name, value):
         # Do not allow to set a category name to something else

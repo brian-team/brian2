@@ -31,7 +31,7 @@ branch should ideally be created in the main repository. This way, one can
 easily get an overview over what the "core team" is currently working on.
 Developers who are not members of the team should fork the repository and work
 in their own repository (if working on multiple issues/features, also using
-branches).      
+branches).
 
 Implementing a feature/fixing a bug
 -----------------------------------
@@ -51,7 +51,7 @@ this test (it can take up to 30 minutes or so until it appears) before doing
 the merge and never merge when a test fails. As soon as the reviewer (someone
 from the core team and not the author of the feature/fix) decides that the
 branch is ready to merge, he/she can merge the pull request and optionally
-delete the corresponding branch (but it will be hidden by default, anyway). 
+delete the corresponding branch (but it will be hidden by default, anyway).
 
 Useful links
 ------------

@@ -121,15 +121,21 @@ def test_state_variables_group_as_index_problematic():
     G = NeuronGroup(10, "v : 1")
     SG = G[4:9]
     G.v = 1
-    tests = [("i", 1), ("N", 1), ("N + i", 2), ("v", 0)]
-    for value, n_warnings in tests:
+    tests = [
+        ("i", 1),
+        ("N", 1),
+        ("N + i", 2),
+        ("v", 0),
+    ]
+    for value, n_ambiguous in tests:
         with catch_logs() as l:
             G.v.__setitem__(SG, value)
-            assert (
-                len(l) == n_warnings
-            ), f"expected {int(n_warnings)}, got {len(l)} warnings"
-            assert all(
-                [entry[1].endswith("ambiguous_string_expression") for entry in l]
+            ambiguous_found = sum(
+                [1 for entry in l if entry[1].endswith("ambiguous_string_expression")]
+            )
+            assert ambiguous_found == n_ambiguous, (
+                f"Expected {n_ambiguous} ambiguous warnings for value '{value}', "
+                f"but got {ambiguous_found}"
             )
 
 
@@ -558,9 +564,9 @@ def test_synapses_access_subgroups_problematic():
     for item, value, n_warnings in tests:
         with catch_logs() as l:
             S.w.__setitem__(item, value)
-            assert (
-                len(l) == n_warnings
-            ), f"expected {int(n_warnings)}, got {len(l)} warnings"
+            assert len(l) == n_warnings, (
+                f"expected {int(n_warnings)}, got {len(l)} warnings"
+            )
             assert all(
                 [entry[1].endswith("ambiguous_string_expression") for entry in l]
             )

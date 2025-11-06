@@ -18,6 +18,20 @@ def default_float_dtype_validator(dtype):
     return dtype in [float32, float64]
 
 
+def outdated_dependency_error_validator(value):
+    if value is not None:
+        import warnings
+
+        warnings.warn(
+            "The 'core.outdated_dependency_error' preference is no longer "
+            "used and will be removed in a future version. Brian2 now "
+            "relies on package managers for dependency management.",
+            UserWarning,
+            stacklevel=2,
+        )
+    return True  # We always accept the value user provides, but warn them
+
+
 prefs.register_preferences(
     "core",
     "Core Brian preferences",
@@ -37,10 +51,24 @@ prefs.register_preferences(
         representor=dtype_repr,
     ),
     outdated_dependency_error=BrianPreference(
+        default=None,
+        docs="""
+        **DEPRECATED**: This preference is no longer used. Brian2 now relies on
+        package managers (pip, conda) for dependency management instead of runtime
+        version checking. Setting this preference has no effect and it will be
+        removed in a future version.
+
+        Previously controlled whether to raise an error for outdated dependencies
+        (``True``) or just a warning (``False``).
+        """,
+        validator=outdated_dependency_error_validator,
+    ),
+    stop_on_keyboard_interrupt=BrianPreference(
         default=True,
         docs="""
-        Whether to raise an error for outdated dependencies (``True``) or just
-        a warning (``False``).
+        Whether to "gracefully" stop a simulation after pressing Ctrl+C (defaults to
+        ``True``). Note that pressing Ctrl+C a second time will force the usual
+        interruption mechanism.
         """,
     ),
 )

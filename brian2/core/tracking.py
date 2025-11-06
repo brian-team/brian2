@@ -47,11 +47,7 @@ class InstanceFollower:
     instance_sets = defaultdict(InstanceTrackerSet)
 
     def add(self, value):
-        for (
-            cls
-        ) in (
-            value.__class__.__mro__
-        ):  # MRO is the Method Resolution Order which contains all the superclasses of a class
+        for cls in value.__class__.__mro__:  # MRO is the Method Resolution Order which contains all the superclasses of a class
             self.instance_sets[cls].add(value)
 
     def get(self, cls):

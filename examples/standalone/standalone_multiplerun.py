@@ -35,7 +35,7 @@ if __name__ == "__main__":
     b2.device.build(run=False)  # compile the code, but don't run it yet
 
     npoints = 15
-    tau_range = np.linspace(1, 15, npoints) * b2.ms    
+    tau_range = np.linspace(1, 15, npoints) * b2.ms
 
     output_rates = np.zeros(npoints)
     for ii in range(npoints):

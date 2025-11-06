@@ -6,7 +6,7 @@ import numpy as np
 GENERAL_SETUP =  ['import numpy as np',
                   'from brian2.tests.test_spikequeue import create_all_to_all, create_one_to_one',
                   'from brian2.units.stdunits import ms',
-                  'from brian2.synapses.spikequeue import SpikeQueue']
+                  'from brian2.synapses.cythonspikequeue import SpikeQueue']
 
 def get_setup_code(N, create_func):
     return GENERAL_SETUP + [

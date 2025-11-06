@@ -6,12 +6,7 @@
 		"dockerfile": "Dockerfile",
 		"context": "..",
 		"args": {
-			// Update 'VARIANT' to pick a Python version: 3, 3.10, 3.9, 3.8, 3.7, 3.6
-			// Append -bullseye or -buster to pin to an OS version.
-			// Use -bullseye variants on local on arm64/Apple Silicon.
-			"VARIANT": "3.11-bullseye",
-			// Options
-			"NODE_VERSION": "none"
+			"VARIANT": "3.14-bookworm"
 		}
 	},
 
@@ -22,9 +17,8 @@
 				"python.defaultInterpreterPath": "/usr/local/bin/python",
 				"python.linting.enabled": true,
 				"python.linting.flake8Enabled": true,
-				"python.formatting.provider": "black",
+				"python.formatting.provider": "ruff",
 				"python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
-				"python.formatting.blackPath": "black",
 				"python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
 				"python.linting.banditPath": "/usr/local/py-utils/bin/bandit",
 				"python.linting.flake8Path": "flake8",
@@ -37,9 +31,13 @@
 					"unpkg.com"
 				],
 				"[python]": {
-					"editor.codeActionsOnSave": {
-						"source.organizeImports": true
-					}
+					    "editor.codeActionsOnSave": {
+						"source.fixAll": "explicit",
+						"source.organizeImports": "explicit"
+					},
+					"editor.defaultFormatter": "charliermarsh.ruff",
+					"editor.formatOnSave": true,
+					"editor.tabSize": 4
 				}
 			},
 
@@ -47,11 +45,9 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-python.vscode-pylance",
-				"ms-python.vscode-isort",
-				"ms-azuretools.vscode-docker",
-				"ms-python.flake8"
+				"charliermarsh.ruff",
+				"ms-azuretools.vscode-docker"
 			]
-
 		}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

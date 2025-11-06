@@ -5,6 +5,7 @@ import pytest
 from brian2 import *
 from brian2.codegen.runtime.GSLcython_rt import IntegrationError
 from brian2.core.preferences import PreferenceError
+from brian2.devices.device import auto_target
 from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.tests.utils import exc_isinstance
 
@@ -16,15 +17,12 @@ pytestmark = pytest.mark.gsl
 def skip_if_not_implemented(func):
     @functools.wraps(func)
     def wrapped():
-        try:
-            func()
-        except (BrianObjectException, NotImplementedError) as exc:
-            if not (
-                isinstance(exc, NotImplementedError)
-                or isinstance(exc.__cause__, NotImplementedError)
-            ):
-                raise
+        if prefs.codegen.target == "numpy" or (
+            prefs.codegen.target == "auto" and auto_target().class_name == "numpy"
+        ):
             pytest.skip("GSL support for numpy has not been implemented yet")
+        else:
+            return func()
 
     return wrapped
 
@@ -66,9 +64,9 @@ def test_GSL_stateupdater_basic():
         SM_GSL,
     )
     net.run(100 * ms)
-    assert (
-        SM_conventional.num_spikes > 0
-    ), "simulation should produce spiking, but no spikes monitored"
+    assert SM_conventional.num_spikes > 0, (
+        "simulation should produce spiking, but no spikes monitored"
+    )
     assert SM_conventional.num_spikes == SM_GSL.num_spikes, (
         "GSL_statupdater produced different number of spikes than integration with ",
         "exponential euler",
@@ -114,9 +112,9 @@ def test_GSL_default_function():
     net = Network(neurons_conventional, neurons_GSL, trace_conventional, trace_GSL)
     net.run(10 * ms)
 
-    assert (
-        max(trace_conventional.v[0] - trace_GSL.v[0]) < max_difference / mV
-    ), "difference between conventional and GSL output is larger than max_difference"
+    assert max(trace_conventional.v[0] - trace_GSL.v[0]) < max_difference / mV, (
+        "difference between conventional and GSL output is larger than max_difference"
+    )
 
 
 @pytest.mark.standalone_compatible
@@ -173,9 +171,9 @@ def test_GSL_user_defined_function():
     net = Network(neurons_conventional, neurons_GSL, trace_conventional, trace_GSL)
     net.run(10 * ms)
 
-    assert (
-        max(trace_conventional.v[0] - trace_GSL.v[0]) < max_difference / mV
-    ), "difference between conventional and GSL output is larger than max_difference"
+    assert max(trace_conventional.v[0] - trace_GSL.v[0]) < max_difference / mV, (
+        "difference between conventional and GSL output is larger than max_difference"
+    )
     # assert not all(trace_conventional.v[0]==trace_GSL.v[0]), \
     #         ('output of GSL stateupdater is exactly the same as Brians stateupdater (unlikely to be right)')
 
@@ -407,17 +405,17 @@ def test_GSL_error_bounds():
     err1 = abs(mon1.v[0] - mon_control.v[0])
     err2 = abs(mon2.v[0] - mon_control.v[0])
     err3 = abs(mon3.v[0] - mon_control.v[0])
-    assert (
-        max(err1) < error1
-    ), f"Error bound exceeded, error bound: {error1:e}, obtained error: {max(err1):e}"
+    assert max(err1) < error1, (
+        f"Error bound exceeded, error bound: {error1:e}, obtained error: {max(err1):e}"
+    )
     assert max(err2) < error2, "Error bound exceeded"
     assert max(err3) < error3, "Error bound exceeded"
-    assert max(err1) > max(
-        err2
-    ), "The simulation with smaller error bound produced a bigger maximum error"
-    assert max(err2) > max(
-        err3
-    ), "The simulation with smaller error bound produced a bigger maximum error"
+    assert max(err1) > max(err2), (
+        "The simulation with smaller error bound produced a bigger maximum error"
+    )
+    assert max(err2) > max(err3), (
+        "The simulation with smaller error bound produced a bigger maximum error"
+    )
 
 
 @pytest.mark.standalone_compatible

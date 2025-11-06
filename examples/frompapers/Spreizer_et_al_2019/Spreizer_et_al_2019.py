@@ -2,7 +2,7 @@
 # coding: utf-8
 
 """
-Reproduction of Fig. 2 (b and c) of Spreizer et al. 2019 in Brian: 
+Reproduction of Fig. 2 (b and c) of Spreizer et al. 2019 in Brian:
 
 Spreizer S, Aertsen A, Kumar A. From space to time: Spatial inhomogeneities lead to the emergence of spatiotemporal sequences in spiking neuronal networks. PLOS Computational Biology. 2019;15(10):e1007432. doi:10.1371/journal.pcbi.1007432
 
@@ -61,7 +61,7 @@ EQ_NRN = """
     dv/dt = (E-v)/tau_m + (noise + I_syn)/C : volt (unless refractory)
     I_syn :  amp
     noise  = mu + sigma*sqrt(noise_dt)*xi_pop: amp
-    
+
     mu               : amp (shared)
     sigma            : amp (shared)
     noise_dt = 1*ms  : second (shared)
@@ -303,7 +303,7 @@ def plot_animations(all_idxs, all_ts, duration, fig, axs, cax, ss_dur=25):
         field_imgs.append(field_img)
         field_vals.append(field_val)
         ax.set(xticks=[], yticks=[])
-    
+
     plt.colorbar(field_img, cax=cax)
 
     anim = animator(fig, field_imgs, field_vals)
@@ -325,7 +325,7 @@ for idx, lscp in enumerate(["symmetric", "random", "perlin", "homog"]):
 
     phis = landscape(lscp)
     net, mon = simulate(phis)
-    
+
     ## Static plots
     # In-degrees
     syn = net["syn_II"]

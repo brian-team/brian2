@@ -12,10 +12,10 @@ import os
 import shutil
 import sys
 import time
-from distutils.command.build_ext import build_ext
-from distutils.core import Distribution, Extension
 
 import numpy
+from distutils.command.build_ext import build_ext
+from distutils.core import Distribution, Extension
 
 try:
     import Cython
@@ -100,12 +100,12 @@ class CythonExtensionManager:
             lib_dir = os.path.expanduser(lib_dir)
         try:
             os.makedirs(lib_dir)
-        except OSError:
+        except OSError as ex:
             if not os.path.exists(lib_dir):
                 raise OSError(
                     f"Couldn't create Cython cache directory '{lib_dir}', try setting"
                     " the cache directly with prefs.codegen.runtime.cython.cache_dir."
-                )
+                ) from ex
 
         numpy_version = ".".join(
             numpy.__version__.split(".")[:2]
@@ -264,6 +264,13 @@ class CythonExtensionManager:
             synapses_dir = os.path.dirname(synapses.__file__)
             c_include_dirs.append(synapses_dir)
 
+            import brian2
+
+            brian2_base_dir = os.path.dirname(brian2.__file__)
+            brianlib_dir = os.path.join(
+                brian2_base_dir, "devices", "cpp_standalone", "brianlib"
+            )
+            c_include_dirs.append(brianlib_dir)
             pyx_file = os.path.join(lib_dir, f"{module_name}.pyx")
             # ignore Python 3 unicode stuff for the moment
             # pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())

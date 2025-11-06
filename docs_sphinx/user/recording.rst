@@ -44,6 +44,10 @@ you can set the ``record`` argument to ``False``. You will then not have access
 to ``i`` and ``t`` but you can still get the ``count`` and the total number of
 spikes (``num_spikes``).
 
+To get a matrix of spike rates in time bins for each neuron you can use a monitor's
+`~.EventMonitor.binned_rate` method. To get smoothed rates use
+`~.RateMonitor.smooth_rate`
+
 .. _recording_variables_spike_time:
 
 Recording variables at spike time
@@ -101,7 +105,7 @@ In general,
 you specify the group, variables and indices you want to record from. You
 specify the variables with a string or list of strings, and the indices
 either as an array of indices or ``True`` to record all indices (but beware
-because this may take a lot of memory). 
+because this may take a lot of memory).
 
 After the simulation, you can access these variables as attributes of the
 monitor. They are 2D arrays with shape ``(num_indices, num_times)``. The
@@ -156,7 +160,9 @@ time step corresponding to the time in ``t``. For example::
     run(...)
     plot(M.t/ms, M.rate/Hz)
 
-To get a smoother version of the rate, use `PopulationRateMonitor.smooth_rate`.
+To get a smoother version of the rate, use the monitor's
+`~.RateMonitor.smooth_rate` method. To get rates in non-overlapping bins use
+`~.PopulationRateMonitor.binned_rate`.
 
 .. admonition:: The following topics are not essential for beginners.
 

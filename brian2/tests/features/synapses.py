@@ -119,7 +119,7 @@ class SynapsesSTDP(FeatureTest):
         S = Synapses(
             P,
             P,
-            model="""dApre/dt=-Apre/taupre    : 1 (event-driven)    
+            model="""dApre/dt=-Apre/taupre    : 1 (event-driven)
                      dApost/dt=-Apost/taupost : 1 (event-driven)
                      w                        : 1""",
             pre="""g     += w*mV

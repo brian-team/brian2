@@ -83,7 +83,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     cdef double _GSL_y[{{n_diff_vars}}]
     {{define_GSL_scale_array|autoindent}}
-    
+
     cdef gsl_odeiv2_system _sys
     _sys.function = _GSL_func
     set_dimension(&_sys.dimension)

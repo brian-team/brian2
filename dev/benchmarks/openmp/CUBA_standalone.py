@@ -67,7 +67,7 @@ if standalone == 1:
         std::ofstream myfile ("speed.txt");
         if (myfile.is_open())
         {
-            double value = (double) (std::clock() - start)/(%d * CLOCKS_PER_SEC); 
+            double value = (double) (std::clock() - start)/(%d * CLOCKS_PER_SEC);
             myfile << value << std::endl;
             myfile.close();
         }

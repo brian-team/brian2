@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "objects.h"
+#include <csignal>
 #include <ctime>
 #include <time.h>
 {{ openmp_pragma('include') }}
@@ -33,8 +34,21 @@ void set_from_command_line(const std::vector<std::string> args)
 		brian::set_variable_by_name(name, value);
 	}
 }
+
+void _int_handler(int signal_num) {
+	if (Network::_globally_running && !Network::_globally_stopped) {
+		Network::_globally_stopped = true;
+	} else {
+		std::signal(signal_num, SIG_DFL);
+		std::raise(signal_num);
+	}
+}
+
 int main(int argc, char **argv)
 {
+	{% if prefs.core.stop_on_keyboard_interrupt %}
+	std::signal(SIGINT, _int_handler);
+	{% endif %}
 	std::random_device _rd;
 	std::vector<std::string> args(argv + 1, argv + argc);
 	if (args.size() >=2 && args[0] == "--results_dir")

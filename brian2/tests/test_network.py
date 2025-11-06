@@ -1161,6 +1161,99 @@ def test_store_restore():
 
 
 @pytest.mark.codegen_independent
+def test_restore_from_python_spikequeue():
+    """
+    Now we do a regression test for backwards compatibility to test restore from Python spike queue format
+    using the old Python spike queue implementation (before pythonSpikeQueue was completely removed).
+
+    The challenge: The two implementations store spike queues differently:
+    - Python format: (time, spike_array, dimensions) where spike_array is
+      a 2D numpy array of [delay_slot, synapse_index] pairs
+    - Cython format: (offset, spike_lists) where spike_lists is a list of
+      lists, one per delay time slot
+
+    Our conversion code in `Synapses._convert_queue_state_if_needed` handles
+    the translation from Python to Cython format during restore.
+    """
+    import os
+
+    test_file = os.path.join(
+        os.path.dirname(__file__),
+        "data",
+        "python_spikequeue_test_network_test_store_restore_named.pkl",
+    )
+
+    if not os.path.exists(test_file):
+        pytest.skip(
+            "Cannot test restore from a pickle file with old SpikeQueue state - "
+            "file does not exist."
+        )
+
+    # First we run a reference simulation to get expected behavior
+    source_ref = NeuronGroup(
+        10,
+        """dv/dt = rates : 1
+            rates : Hz""",
+        threshold="v>1",
+        reset="v=0",
+    )
+    source_ref.rates = "i*100*Hz"
+    target_ref = NeuronGroup(10, "v:1")
+    synapses_ref = Synapses(source_ref, target_ref, model="w:1", on_pre="v+=w")
+    synapses_ref.connect(j="i")
+    synapses_ref.w = "i*1.0"
+    synapses_ref.delay = "i*ms"
+    net_ref = Network(source_ref, target_ref, synapses_ref)
+
+    # Run reference to 20ms and capture final state
+    net_ref.run(20 * ms)
+    ref_target_v = target_ref.v[:].copy()
+    ref_source_v = source_ref.v[:].copy()
+
+    # Now we test restoration from Python spike queue using our pickle file we created using older pythonSpikeQueue
+    # Create network with explicit names matching the ones in pickle ( note we did this to avoid auto naming brian does )
+    source2 = NeuronGroup(
+        10,
+        """dv/dt = rates : 1
+            rates : Hz""",
+        threshold="v>1",
+        reset="v=0",
+        name="source_for_restore",
+    )
+    source2.rates = "i*100*Hz"
+    target2 = NeuronGroup(10, "v:1", name="target_for_restore")
+    synapses2 = Synapses(
+        source2, target2, model="w:1", on_pre="v+=w", name="synapses_for_restore"
+    )
+    synapses2.connect(j="i")
+    synapses2.w = "i*1.0"
+    synapses2.delay = "i*ms"
+    net2 = Network(source2, target2, synapses2)
+
+    # Restore from Python spike queue format (at t=10ms)
+    net2.restore(filename=test_file)
+    assert net2.t == 10 * ms
+    assert defaultclock.t == 10 * ms
+
+    # Continue to 20ms
+    net2.run(10 * ms)
+
+    # After running to 20ms, the final states should match the reference
+    # If spike queue conversion failed, spikes wouldn't be delivered
+    # correctly and final states would differ
+    assert_allclose(
+        ref_target_v,
+        target2.v[:],
+        err_msg="Python spike queue restoration: target final state doesn't match",
+    )
+    assert_allclose(
+        ref_source_v,
+        source2.v[:],
+        err_msg="Python spike queue restoration: source final state doesn't match",
+    )
+
+
+@pytest.mark.codegen_independent
 def test_store_restore_to_file():
     filename = tempfile.mktemp(suffix="state", prefix="brian_test")
     source = NeuronGroup(
@@ -1851,6 +1944,7 @@ if __name__ == "__main__":
         test_multiple_runs_report_standalone_3,
         test_multiple_runs_report_standalone_incorrect,
         test_store_restore,
+        test_restore_from_python_spikequeue,
         test_store_restore_to_file,
         test_store_restore_to_file_new_objects,
         test_store_restore_to_file_differing_nets,

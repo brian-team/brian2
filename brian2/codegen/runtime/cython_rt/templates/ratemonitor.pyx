@@ -5,7 +5,7 @@
 {% block maincode %}
 
     cdef size_t _num_spikes = {{_spikespace}}[_num{{_spikespace}}-1]
-    
+
     # For subgroups, we do not want to record all spikes
     # We assume that spikes are ordered
     cdef int _start_idx = -1
@@ -26,16 +26,25 @@
     if _end_idx == -1:
         _end_idx =_num_spikes
     _num_spikes = _end_idx - _start_idx
-    
-    # Calculate the new length for the arrays
-    cdef size_t _new_len = {{_dynamic_t}}.shape[0] + 1
 
-    # Resize the arrays
-    _owner.resize(_new_len)
+    # First we get the current size of array from the C++ Object itself
+    {% set t_array = get_array_name(variables['t'],access_data=False) %}
+    {% set rate_array = get_array_name(variables['rate'],access_data=False) %}
+    cdef size_t _current_len = {{t_array}}_ptr.size()
+    cdef size_t _new_len = _current_len + 1
+
+    # Now we resize the arrays directly , avoiding python indirection
+    {{t_array}}_ptr.resize(_new_len)
+    {{rate_array}}_ptr.resize(_new_len)
+
+    # Update N after resizing
     {{N}} = _new_len
 
-    # Set the new values
-    {{_dynamic_t}}.data[_new_len-1] = {{_clock_t}}
-    {{_dynamic_rate}}.data[_new_len-1] = _num_spikes/{{_clock_dt}}/_num_source_neurons
+    cdef double* _t_data = {{t_array}}_ptr.get_data_ptr()
+    cdef double* _rate_data = {{rate_array}}_ptr.get_data_ptr()
+
+    # At last we set the new values using the new pointers
+    _t_data[_new_len-1] = {{_clock_t}}
+    _rate_data[_new_len-1] = _num_spikes/{{_clock_dt}}/_num_source_neurons
 
 {% endblock %}

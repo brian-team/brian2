@@ -122,7 +122,7 @@ def parse_synapse_generator(expr):
     try:
         node = ast.parse(f"[{expr}]", mode="eval").body
     except Exception as e:
-        raise SyntaxError(f"{parse_error} Error encountered was {e}")
+        raise SyntaxError(f"{parse_error}") from e
     if _cname(node) != "ListComp":
         raise SyntaxError(f"{parse_error} Expression is not a generator expression.")
     element = node.elt
@@ -167,7 +167,7 @@ def parse_synapse_generator(expr):
         iterator_handler = iterator_function_handlers[iterator_funcname]
         iterator_kwds = iterator_handler(*args, **keywords)
     except SyntaxError as exc:
-        raise SyntaxError(f"{parse_error} {exc.msg}")
+        raise SyntaxError(f"{parse_error} {exc.msg}") from exc
     if len(generator.ifs) == 0:
         condition = ast.parse("True", mode="eval").body
     elif len(generator.ifs) > 1:

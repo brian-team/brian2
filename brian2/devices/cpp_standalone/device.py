@@ -14,10 +14,10 @@ import time
 import zlib
 from collections import Counter, defaultdict
 from collections.abc import Mapping
-from distutils import ccompiler
 from hashlib import md5
 
 import numpy as np
+from distutils import ccompiler
 
 from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
@@ -25,6 +25,7 @@ from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.core.clocks import EventClock
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
+from brian2.core.network import Network
 from brian2.core.preferences import BrianPreference, prefs
 from brian2.core.variables import (
     ArrayVariable,
@@ -514,7 +515,7 @@ class CPPStandaloneDevice(Device):
                     f"Cannot set variable '{variableview.name}' "
                     "this way in standalone, try using "
                     "string expressions."
-                )
+                ) from None
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer
@@ -1258,11 +1259,14 @@ class CPPStandaloneDevice(Device):
             s = arg.split("=")
             if len(s) == 2:
                 for var in self.array_cache:
-                    if (
-                        hasattr(var.owner, "name")
-                        and var.owner.name + "." + var.name == s[0]
-                    ):
-                        self.array_cache[var] = None
+                    try:
+                        if (
+                            hasattr(var.owner, "name")
+                            and var.owner.name + "." + var.name == s[0]
+                        ):
+                            self.array_cache[var] = None
+                    except ReferenceError:
+                        pass  # Happens when ephemeral subgroups have been used to set a variable
         run_args = ["--results_dir", self.results_dir] + run_args
         # Invalidate the cached end time of the clock and network, to deal with stopped simulations
         for clock in self.clocks:
@@ -1288,15 +1292,19 @@ class CPPStandaloneDevice(Device):
                 stdout = None
             if os.name == "nt":
                 start_time = time.time()
+                Network._globally_running = True
                 x = subprocess.call(["main"] + run_args, stdout=stdout)
                 self.timers["run_binary"] = time.time() - start_time
+                Network._globally_running = False
             else:
                 run_cmd = prefs.devices.cpp_standalone.run_cmd_unix
                 if isinstance(run_cmd, str):
                     run_cmd = [run_cmd]
                 start_time = time.time()
+                Network._globally_running = True
                 x = subprocess.call(run_cmd + run_args, stdout=stdout)
                 self.timers["run_binary"] = time.time() - start_time
+                Network._globally_running = False
             if stdout is not None:
                 stdout.close()
             if x:
@@ -1879,9 +1887,7 @@ class CPPStandaloneDevice(Device):
             {
             %REPORT%
             }
-            """.replace(
-                "%REPORT%", report
-            )
+            """.replace("%REPORT%", report)
         else:
             raise TypeError(
                 "report argument has to be either 'text', "

@@ -34,18 +34,20 @@ def _compare(synapses, expected):
     # also compare the correct numbers of incoming and outgoing synapses
     incoming = conn_matrix.sum(axis=0)
     outgoing = conn_matrix.sum(axis=1)
-    assert all(
-        synapses.N_outgoing[:] == outgoing[synapses.i[:]]
-    ), "N_outgoing returned an incorrect value"
-    assert_array_equal(
-        synapses.N_outgoing_pre, outgoing
-    ), "N_outgoing_pre returned an incorrect value"
-    assert all(
-        synapses.N_incoming[:] == incoming[synapses.j[:]]
-    ), "N_incoming returned an incorrect value"
-    assert_array_equal(
-        synapses.N_incoming_post, incoming
-    ), "N_incoming_post returned an incorrect value"
+    assert all(synapses.N_outgoing[:] == outgoing[synapses.i[:]]), (
+        "N_outgoing returned an incorrect value"
+    )
+    (
+        assert_array_equal(synapses.N_outgoing_pre, outgoing),
+        "N_outgoing_pre returned an incorrect value",
+    )
+    assert all(synapses.N_incoming[:] == incoming[synapses.j[:]]), (
+        "N_incoming returned an incorrect value"
+    )
+    (
+        assert_array_equal(synapses.N_incoming_post, incoming),
+        "N_incoming_post returned an incorrect value",
+    )
 
     # Compare the "synapse number" if it exists
     if synapses.multisynaptic_index is not None:
@@ -2224,7 +2226,7 @@ for _idx in shuffled_indices:
     ns = vals.copy()
     ns["shuffled_indices"] = arange(9)
     ns["presyn"] = arange(9) % 3
-    ns["postsyn"] = arange(9) / 3
+    ns["postsyn"] = arange(9) // 3
     for _ in range(10):
         origvals = {}
         for k, v in vals.items():
@@ -3830,4 +3832,5 @@ if __name__ == "__main__":
     test_synaptic_subgroups()
     test_incorrect_connect_N_incoming_outgoing()
     test_setting_from_weight_matrix()
+
     print("Tests took", time.time() - start)

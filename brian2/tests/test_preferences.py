@@ -277,9 +277,13 @@ def test_preference_name_access():
         gp["main.doesnotexist"]
     with pytest.raises(KeyError):
         gp["nonexisting.name"]
-    with pytest.raises(KeyError):
+    # Note that it is important to raise AttributeError here, since some tools like
+    # Google Collab check for a `.shape` attribute to display debugging information
+    # for numpy arrays. More generally, a call like `hasattr(gp, "main.doesnotexist")`
+    # would fail with an error instead of returning `False`
+    with pytest.raises(AttributeError):
         gp.main.doesnotexist
-    with pytest.raises(KeyError):
+    with pytest.raises(AttributeError):
         gp.nonexisting.name
 
     # Check dictionary functionality
@@ -314,6 +318,9 @@ def test_preference_name_access():
     # access to standard attributes
     assert len(gp.prefs)
     assert gp.main._basename == "main"
+
+    # Check that acessing internal attributes work
+    assert len(gp.prefs.__doc__)
 
 
 @pytest.mark.codegen_independent

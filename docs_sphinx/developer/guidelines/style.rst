@@ -6,9 +6,9 @@ Syntax is chosen as much as possible from the user point of view,
 to reflect the concepts as directly as possible. Ideally, a Brian script
 should be readable by someone who doesn't know Python or Brian, although this
 isn't always possible. Function, class and keyword argument names should be
-explicit rather than abbreviated and consistent across Brian. See Romain's paper 
+explicit rather than abbreviated and consistent across Brian. See Romain's paper
 `On the design of script languages for neural simulators
-<http://briansimulator.org/WordPress/wp-content/uploads/2012/05/On-the-design-of-script-languages-for-neural-simulation.pdf>`__ 
+<http://briansimulator.org/WordPress/wp-content/uploads/2012/05/On-the-design-of-script-languages-for-neural-simulation.pdf>`__
 for a discussion.
 
 .. _code_style:
@@ -17,31 +17,30 @@ Code style
 ~~~~~~~~~~
 
 We use the `PEP-8 coding conventions <https://www.python.org/dev/peps/pep-0008/>`__
-for our code, and use the `black formatting tool <https://black.readthedocs.io>`__ to
+for our code, and use the `ruff formatting tool <https://docs.astral.sh/ruff>`__ to
 enforce a consistent code style. To make sure your code is formatted in the same way,
-you can either `integrate black with your editor/IDE <https://black.readthedocs.io/en/stable/integrations/editors.html>`__,
+you can either `integrate ruff with your editor/IDE <https://docs.astral.sh/ruff/editors/setup/>`__,
 or install the ``pre-commit`` tool
 (`pre-commit documentation <https://pre-commit.com/>`__), and install it as a "git hook"
-with ``pre-commit install``. This will automatically run ``black`` (and in the future,
-additional linting tools) before each commit. In case that run changes the code
-formatting, it will reformat the relevant files, and you will have to ``git add`` these
-changes before doing the commit. For pull requests, this check will also be run
+with ``pre-commit install``. This will automatically run ``ruff`` before each commit.
+In case that run changes the code formatting, it will reformat the relevant files, and you will have
+to ``git add`` these changes before doing the commit. For pull requests, this check will also be run
 automatically on the GitHub CI infrastructure.
 
 .. note::
 
     In rare cases like manually aligned tables of related values, you can use
     ``fmt: skip`` (for single lines), or ``fmt: off`` and ``fmt: on`` (for code blocks),
-    to exclude code from black's formatting. Also note that the code formatting is only
+    to exclude code from ruff's formatting. Also note that the code formatting is only
     enforced for files in the ``brian2`` package itself, code examples in the
-    documentation or examples and tutorials do not have to follow black's style.
+    documentation or examples and tutorials do not have to follow ruff's style.
 
 The code style includes the following conventions in particular:
 
 * Use 4 spaces instead of tabs per indentation level
 * Use spaces after commas and around the following binary operators:
   assignment (=), augmented assignment (+=, -= etc.),
-  comparisons (==, <, >, !=, <>, <=, >=, in, not in, is, is not), 
+  comparisons (==, <, >, !=, <>, <=, >=, in, not in, is, is not),
   Booleans (and, or, not).
 * Do *not* use spaces around the equals sign in keyword arguments or when
   specifying default values. Neither put spaces immediately inside parentheses,
@@ -55,13 +54,12 @@ Imports
 ~~~~~~~
 Imports should be on different lines (e.g. do not use ``import sys, os``) and should be
 grouped in the following order, using blank lines between each group:
-  
+
   	1. standard library imports
   	2. third-party library imports (e.g. numpy, scipy, sympy, ...)
   	3. brian imports
 
-This rule is enforced by using the `isort <https://pycqa.github.io/isort/>`__ tool,
-which is integrated with ``pre-commit`` in the same way as ``black``, described above.
+This rule is enforced by ruff as well.
 
 .. note::
 
@@ -77,10 +75,10 @@ Additional rules for imports:
   when importing, e.g. do ``from brian2.units.fundamentalunits import seconds``
   instead of ``from brian2 import seconds``.
 * Use "new-style" relative imports for everything in "your" package, e.g. in
-  ``brian2.codegen.functions.py`` import the `Function` class as 
-  ``from .specifiers import Function``.  
+  ``brian2.codegen.functions.py`` import the `Function` class as
+  ``from .specifiers import Function``.
 * Do not use wildcard imports (``from brian2 import *``), instead import only the
-  identifiers you need, e.g. ``from brian2 import NeuronGroup, Synapses``. For 
+  identifiers you need, e.g. ``from brian2 import NeuronGroup, Synapses``. For
   packages like numpy that are used a lot, use ``import numpy as np``. But
   note that the user should still be able to do something like
   ``from brian2 import *`` (and this style can also be freely used in examples
@@ -115,7 +113,7 @@ become difficult to read as an f-string::
     latex_code = r'\begin{equation}' + equation + r'\end{equation}' # OK
 
 Python does not make a difference between single quotation marks and double quotation marks. For consistency,
-we use black's style that double quotes (i.e. `"..."`) are used everywhere, except when
+we use ruff's style that double quotes (i.e. `"..."`) are used everywhere, except when
 this would lead to escaping of double quotation marks within the string itself
 (e.g. for ``include = f'#include "{header_file}"'``). When you need to display text to
 the user (e.g. in exception messages), use single quotation marks to highlight words to
@@ -128,4 +126,3 @@ difficult, since many lines are affected by such commits. We add the references 
 ``.git-blame-ignore-revs`` in the main directory, and you can tell ``git blame`` to ignore these commits with::
 
     git config blame.ignoreRevsFile .git-blame-ignore-revs
-

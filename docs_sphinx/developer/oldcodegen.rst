@@ -198,7 +198,7 @@ involved in the code generation process.
 
 ``codegen``
     Stores the majority of all code generation related code.
-    
+
     ``codegen.functions``
         Code related to including functions - built-in and user-defined - in generated code.
     ``codegen.generators``
@@ -209,7 +209,7 @@ involved in the code generation process.
     ``core.variables``
         The `Variable` types are defined here.
 ``equations``
-    Everything related to `Equations`. 
+    Everything related to `Equations`.
 ``groups``
     All `Group` related stuff is in here. The `Group.resolve` methods are
     responsible for determining the abstract namespace.

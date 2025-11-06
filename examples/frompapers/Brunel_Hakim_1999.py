@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
-Dynamics of a network of sparsely connected inhibitory current-based 
-integrate-and-fire neurons. Individual neurons fire irregularly at 
-low rate but the network is in an oscillatory global activity regime 
+Dynamics of a network of sparsely connected inhibitory current-based
+integrate-and-fire neurons. Individual neurons fire irregularly at
+low rate but the network is in an oscillatory global activity regime
 where neurons are weakly synchronized.
 
 Reference:

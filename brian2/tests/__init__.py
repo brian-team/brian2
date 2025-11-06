@@ -367,9 +367,10 @@ def run(
 
         for target in codegen_targets:
             print(f"Running tests for target {target}:")
+            prefs["codegen.target"] = target
             # Also set the target for string-expressions -- otherwise we'd only
             # ever test numpy for those
-            prefs["codegen.target"] = target
+            prefs["codegen.string_expression_target"] = target
 
             markers = "not standalone_only and not codegen_independent"
             if not long_tests:

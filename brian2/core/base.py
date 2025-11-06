@@ -382,9 +382,7 @@ class BrianObjectException(Exception):
         )
         full_stack = "Object was created here:\n" + brianobj._full_creation_stack
         logger.diagnostic(
-            "Error was encountered with object "
-            f"'{self._brian_objname}':\n"
-            f"{full_stack}"
+            f"Error was encountered with object '{self._brian_objname}':\n{full_stack}"
         )
 
     def __str__(self):

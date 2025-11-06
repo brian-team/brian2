@@ -3,6 +3,7 @@ Brian 2
 """
 
 import logging
+import signal
 
 
 def _check_dependencies():
@@ -90,39 +91,6 @@ __docformat__ = "restructuredtext en"
 
 from brian2.only import *
 from brian2.only import test
-
-
-# Check for outdated dependency versions
-def _check_dependency_version(name, version):
-    import sys
-
-    from packaging.version import Version
-
-    from .core.preferences import prefs
-    from .utils.logger import get_logger
-
-    logger = get_logger(__name__)
-
-    module = sys.modules[name]
-    if not isinstance(module.__version__, str):  # mocked module
-        return
-    if not Version(module.__version__) >= Version(version):
-        message = (
-            f"{name} is outdated (got version {module.__version__}, need version"
-            f" {version})"
-        )
-        if prefs.core.outdated_dependency_error:
-            raise ImportError(message)
-        else:
-            logger.warn(message, "outdated_dependency")
-
-
-def _check_dependency_versions():
-    for name, version in [("numpy", "1.10"), ("sympy", "1.2"), ("jinja2", "2.7")]:
-        _check_dependency_version(name, version)
-
-
-_check_dependency_versions()
 
 # Initialize the logging system
 BrianLogger.initialize()
@@ -225,3 +193,37 @@ def _check_caches():
 
 
 _check_caches()
+
+
+class _InterruptHandler:
+    """
+    Class to turn a Ctrl+C interruption (SIGINT signal) into a `stop` signal for
+    a running simulation (i.e., finish simulating the current time step and then
+    stop). This handler is activated by default, but can be switched off by
+    setting the `core.stop_on_keyboard_interrupt` preference to ``False``.
+    Note that this will only handle interruptions during a `Network.run`,
+    interrupting at any other time will raise a `KeyboardInterrupt` in the
+    usual way. In case that finishing the current time step takes a long time
+    (or hangs for some reason), interrupting with Ctrl+C a second time will
+    force the usual interrupt, regardless of the preference setting.
+    """
+
+    def __init__(self, previous_handler):
+        self.previous_handler = previous_handler
+
+    def __call__(self, signalnum, stack_frame):
+        if (
+            not prefs.core.stop_on_keyboard_interrupt
+            or not Network._globally_running
+            or Network._globally_stopped
+        ):
+            self.previous_handler(signalnum, stack_frame)
+        else:
+            logging.getLogger("brian2").warning(
+                "Simulation stop requested. Press Ctrl+C again to interrupt."
+            )
+            Network._globally_stopped = True
+
+
+_int_handler = _InterruptHandler(signal.getsignal(signal.SIGINT))
+signal.signal(signal.SIGINT, _int_handler)

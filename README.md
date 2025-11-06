@@ -23,14 +23,16 @@ If you use Brian for your published research, we kindly ask you to cite our arti
 [![AUR version](https://img.shields.io/aur/version/python-brian2)](https://aur.archlinux.org/packages/python-brian2)
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/briansimulator/brian)](https://hub.docker.com/r/briansimulator/brian)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14736290.svg)](https://zenodo.org/doi/10.5281/zenodo.14736290)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15423251.svg)](https://zenodo.org/doi/10.5281/zenodo.15423251)
 [![Software Heritage (repository)](https://archive.softwareheritage.org/badge/origin/https://github.com/brian-team/brian2/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/brian-team/brian2)
-[![Software Heritage (release)](https://archive.softwareheritage.org/badge/swh:1:rel:fcbc6ab6be25a548a0f04923e6e02573826b2723/)](https://archive.softwareheritage.org/swh:1:rel:fcbc6ab6be25a548a0f04923e6e02573826b2723;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:2b089b3871f9a248db80d55a45bff37fb3fb4c23)
+[![Software Heritage (release)](https://archive.softwareheritage.org/badge/swh:1:rel:bfa0c5c9b838a4d42e98b2e0d7cb7a648df6f333/)](https://archive.softwareheritage.org/swh:1:rel:bfa0c5c9b838a4d42e98b2e0d7cb7a648df6f333;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:8b95eae922f0131c9c46a41fb48ac9a15a00d795)
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 [![Discourse topics](https://img.shields.io/discourse/topics?server=https%3A%2F%2Fbrian.discourse.group)](https://brian.discourse.group)
 [![Discourse chat](https://img.shields.io/badge/discourse-chat-4EC820?logo=discourse&link=https%3A%2F%2Fbrian.discourse.group%2Fchat)](https://brian.discourse.group/chat)
-[![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Neuromorphic Computing](https://img.shields.io/badge/Collaboration_Network-Open_Neuromorphic-blue)](https://open-neuromorphic.org/neuromorphic-computing/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![SPEC 0 — Minimum Supported Dependencies](https://img.shields.io/badge/SPEC-0-green?labelColor=%23004811&color=%235CA038)](https://scientific-python.org/specs/spec-0000/)
 
 ## Quickstart
 Try out Brian on the [mybinder](https://mybinder.org/) service:
@@ -40,14 +42,15 @@ Try out Brian on the [mybinder](https://mybinder.org/) service:
 ## Dependencies
 The following packages need to be installed to use Brian 2 (cf. [`pyproject.toml`](pyproject.toml)):
 
-* Python >= 3.10
-* NumPy >=1.23
+* Python >= 3.12
+* NumPy >= 2.0
 * SymPy >= 1.2
 * Cython >= 0.29.21
-* PyParsing
+* PyParsing >= 3
 * Jinja2 >= 2.7
 * setuptools >= 61
 * py-cpuinfo (only required on Windows)
+* packaging
 
 For full functionality, you might also want to install:
 
@@ -57,11 +60,13 @@ For full functionality, you might also want to install:
 
 To build the documentation:
 
-* Sphinx (>=7)
+* Sphinx >=7
+* ipython >=5
+* sphinx-tabs
 
 To run the test suite:
 
-* pytest
+* pytest >= 8
 * pytest-xdist (optional)
 
 ## Testing status for master branch

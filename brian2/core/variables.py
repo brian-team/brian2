@@ -661,6 +661,21 @@ class DynamicArrayVariable(ArrayVariable):
 
         self.size = new_size
 
+    def get_capsule(self):
+        """
+        Get a PyCapsule object for direct C++ pointer access.
+
+        This provides safe access to the underlying C++ dynamic array object
+        for high-performance operations in Cython code.
+
+        Returns
+        -------
+        capsule : PyCapsule
+            A PyCapsule containing the C++ pointer to the dynamic array.
+
+        """
+        return self.device.get_capsule(self)
+
 
 class Subexpression(Variable):
     """
@@ -906,7 +921,7 @@ class VariableView:
                     "context for the expression, no longer exists. "
                     "Consider holding an explicit reference "
                     "to it to keep it alive."
-                )
+                ) from None
             if namespace is None:
                 namespace = get_local_namespace(level=level + 1)
             values = self.get_with_expression(item, run_namespace=namespace)
@@ -993,7 +1008,7 @@ class VariableView:
                         "When setting a variable based on a string "
                         "index, the value has to be a string or a "
                         "scalar."
-                    )
+                    ) from None
 
             if item == "True":
                 # We do not want to go through code generation for runtime
@@ -1357,7 +1372,7 @@ class VariableView:
                 "is a subexpression referring to external "
                 f"variables, use 'group.{var}[:]' instead of "
                 f"'group.{var}'"
-            )
+            ) from None
 
     def __array__ufunc__(self, ufunc, method, *inputs, **kwargs):
         if method == "__call__":
@@ -1579,8 +1594,16 @@ class VariableView:
     # Get access to some basic properties of the underlying array
     @property
     def shape(self):
+        if isinstance(self.variable, DynamicArrayVariable):
+            # For dynamic variables, we need to make sure that their size is up-to-date in standalone mode
+            # We can trigger the update by asking for the values, even though we don't need them here
+            self.variable.get_value()
         if self.ndim == 1:
-            if not self.variable.scalar:
+            if (
+                hasattr(self, "group")
+                and hasattr(self.group, "start")
+                and hasattr(self.group, "stop")
+            ):
                 # This is safer than using the variable size, since it also works for subgroups
                 # see GitHub issue #1555
                 size = self.group.stop - self.group.start

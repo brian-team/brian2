@@ -117,7 +117,7 @@ compile and run the project after creating it and whether or not to compile it w
 Multiple full simulation runs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To run multiple full, independent, simulations (i.e. not just multiple `run` calls as discussed above), you can 
+To run multiple full, independent, simulations (i.e. not just multiple `run` calls as discussed above), you can
 use the device's `~brian2.devices.cpp_standalone.device.CPPStandaloneDevice.run` function after an initial build. This will use the previously
 generated and compiled code, and will therefore run immediately. Note that you cannot change the model or its
 parameters in the usual way between the `~brian2.devices.cpp_standalone.device.CPPStandaloneDevice.build` and
@@ -263,7 +263,7 @@ simulation with random initialization repeatedly, this time running everything i
             self.device.run(results_directory=result_dir)
             # Return the results
             return self.network['monitor'].v[0]
-    
+
     if __name__ == '__main__':  # Important for running on Windows and OS X
         set_device('cpp_standalone', build_on_run=False)
         sim = SimWrapper()
@@ -285,7 +285,7 @@ with different (deterministic) initial values for ``v``::
                             results_directory=result_dir)
             # Return the results
             return self.network['monitor'].v[0]
-    
+
     if __name__ == '__main__':  # Important for running on Windows and OS X
         set_device('cpp_standalone', build_on_run=False)
         sim = SimWrapper()
@@ -374,7 +374,7 @@ execution of code. If instead they are initialized with concrete values, they ca
 in standalone mode::
 
     neurons = NeuronGroup(10, 'v : volt')
-    neurons.v = -70*mV 
+    neurons.v = -70*mV
     print(np.mean(neurons.v))  # works in standalone
     synapses = Synapses(neurons, neurons, 'w : 1')
     synapses.connect(i=[0, 2, 4, 6, 8], j=[1, 3, 5, 7, 9])

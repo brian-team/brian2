@@ -1,25 +1,49 @@
 Release notes
 =============
 
-Next release
-------------
+Brian 2.9.0
+-----------
+
+New features
+~~~~~~~~~~~~
+- Simulations now stop "gracefully" if you interrupt them with Ctrl+C (or e.g. the interrupt button in a Jupyter notebook). This means that the simulation finishes the current time step and stops, making it possible to access the results for inspection (:issue:`1621`).
+- The :ref:`linked_variables` mechanism is now more powerful and supports linked variables that use another variable for indexing, and linked variables in `Synapses` (:issue:`1584`).
 
 Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- A more powerful :ref:`linked_variables` mechanism, now also supporting linked variables that use another variable for indexing, and linked variables in
-  `Synapses` (:issue:`1584`).
+- Improve C99 check on UNIX to avoid spurious errors when a non-standard compiler is used (e.g. via Anaconda) (:issue:`1618`).
+- Raise an error when `~Network.run` is called with a negative duration (:issue:`1608`). Thanks to Palash Chitnavis for contributing this fix.
+- Fix compatibility with recent setuptools versions (:issue:`1590`, :issue:`1622`)
+- Raise an AttributeError instead of a KeyError, when accessing non-existing attributes of the preferences object (:issue:`1629`). This prevents an error on Google Collab when the Debugger is active. Thanks to forum user ``@SaeedF36`` for making us aware of this issue.
 
 Infrastructure and documentation improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - A new example :doc:`../examples/synapses.homeostatic_stdp_at_inhibitory_synapes`, demonstrating a homoestatic modulation of STDP, based on a population firing rate.
   Thanks to Paul Brodersen for contributing this example (:issue:`1581`).
+- A new example :doc:`../examples/network_operation_stop`, demonstrating the use of `NetworkOperation` to stop a simulation when a certain condition is met. Thanks to Sagar Shahari for
+  contributing this example (:issue:`1604`).
+- GitHub Actions are now pinned by hash to avoid security issues (:issue:`1607`).
+- A new GitHub Action to update ``CITATION.cff`` and ``README.md`` with the latest Zenodo and Software Heritage links, so that they are always up-to-date with the latest release (:issue:`1574`).
 
 Contributions
 ~~~~~~~~~~~~~
 GitHub code, documentation, and issue contributions (ordered by the number of
 contributions):
 
-TODO
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Samuele De Cristofaro (`@De-Cri <https://github.com/De-Cri>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Sagar Shahari (`@maverick4code <https://github.com/maverick4code>`_)
+* `@mahipalimkar <https://github.com/mahipalimkar>`_
+* Mrigesh Thakur (`@Legend101Zz <https://github.com/Legend101Zz>`_)
+* Md Khurshid (`@alikhere <https://github.com/alikhere>`_)
+* Palash Chitnavis (`@PalashChitnavis <https://github.com/PalashChitnavis>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* `@clinssen <https://github.com/clinssen>`_
+* shriyaise725 (`@shriya7ise <https://github.com/shriya7ise>`_)
+* Ankur Sinha (`@sanjayankur31 <https://github.com/sanjayankur31>`_)
+* Hong Zhu (`@Jasmine969 <https://github.com/Jasmine969>`_)
+* 火焰青年 (`@zhengrenjie <https://github.com/zhengrenjie>`_)
 
 
 Brian 2.8.0.1-2.8.0.4
@@ -45,7 +69,7 @@ Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Faster simulation of random numbers (by replacing our outdated random number generator), now up to 5 times faster, speeding up all uses of random numbers
   including noise and Poisson groups/inputs. Note that the random number algorithm behind the scenes is still the same, so simulations will still use the
-  same sequence of random numbers with a given seed, with the limitations given in :ref:`seeding_and_reproducibility` (:issue:`1559`). 
+  same sequence of random numbers with a given seed, with the limitations given in :ref:`seeding_and_reproducibility` (:issue:`1559`).
 - `~CPPStandaloneDevice.delete` has a new option to delete arrays stored on disk for the ``run_args`` feature – this can be useful for training paradigms,
   where the ``run_args`` are used to provide a large array of weights from a previous run.
 - Fixes for compatiblity with recent versions of ``setuptools`` and ``sympy``. Thanks to Étienne Mollier for noticing and fixing a related test failure (:issue:`1553`).
@@ -112,7 +136,7 @@ anyone we forgot...):
 
 Brian 2.7.0
 -----------
-This release contains a number of bug fixes and improvements. Notably, it is fully compatible with the upcoming numpy 2.0 release and can be installed 
+This release contains a number of bug fixes and improvements. Notably, it is fully compatible with the upcoming numpy 2.0 release and can be installed
 alongside either numpy versions 1.23–1.26, or numpy 2.0.
 
 Selected improvements and bug fixes
@@ -164,7 +188,7 @@ New features
 - The new ``run_args`` argument makes it possible to run standalone simulations repeatedly (or in parallel) with different parameters without
   recompiling the code. See :ref:`standalone_multiple_full_runs` for details (:issue:`1429`).
 - We now provide regularly updated Docker images with a full installation of Brian and related tools. You can find the latest release images
-  on https://hub.docker.com/repository/docker/briansimulator/brian/general, and temporary images for development versions on 
+  on https://hub.docker.com/repository/docker/briansimulator/brian/general, and temporary images for development versions on
   https://hub.docker.com/repository/docker/briansimulator/brian-dev/general
   (:issue:`1503`).
 
@@ -174,7 +198,7 @@ Selected improvements and bug fixes
 - Do not assume that the test directory is writeable (:issue:`1507``)
 - Fix the power operator for integer values in Cython (:issue:`1502`). Thanks to Hong Zhu for reporting this issue.
 - Fix floor division on C++ (:issue:`1496`). Thanks to Brian forum user ``ansuz`` for reporting this issue.
-  
+
 Infrastructure and documentation improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - We now build wheels and test against for Python 3.12 (:issue:`1481`).
@@ -246,7 +270,7 @@ Selected bug fixes
 
 Infrastructure improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- Brian's packaging infrastructure now switches to modern tools such as ``pyproject.toml`` for metadata declaration, ``build`` for source package creation, and ``setuptools_scm`` for versioning (:issue:`1475`). 
+- Brian's packaging infrastructure now switches to modern tools such as ``pyproject.toml`` for metadata declaration, ``build`` for source package creation, and ``setuptools_scm`` for versioning (:issue:`1475`).
 
 
 Contributions
