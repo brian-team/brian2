@@ -5,6 +5,7 @@
 #include<iostream>
 #include <ctime>
 #include<utility>
+#include<chrono>
 
 {{ openmp_pragma('include') }}
 
@@ -36,11 +37,7 @@ void Network::add(Clock* clock, codeobj_func func)
 
 void Network::run(const double duration, void (*report_func)(const double, const double, const double, const double), const double report_period)
 {
-    {% if openmp_pragma('with_openmp') %}
-    double start;
-    {% else %}
-    std::clock_t start, current;
-    {% endif %}
+    std::chrono::time_point<std::chrono::high_resolution_clock> start, current;
     const double t_start = t;
     const double t_end = t + duration;
     double next_report_time = report_period;
@@ -51,11 +48,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
     for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
         (*i)->set_interval(t, t_end);
 
-    {% if openmp_pragma('with_openmp') %}
-    start = omp_get_wtime();
-    {% else %}
-    start = std::clock();
-    {% endif %}
+    start = std::chrono::high_resolution_clock::now();
     if (report_func)
     {
         report_func(0.0, 0.0, t_start, duration);
@@ -75,12 +68,8 @@ void Network::run(const double duration, void (*report_func)(const double, const
         {
             if (report_func)
             {
-                {% if openmp_pragma('with_openmp') %}
-                const double elapsed = omp_get_wtime() - start;
-                {% else %}
-                current = std::clock();
-                const double elapsed = ((double)(current - start) / CLOCKS_PER_SEC);
-                {% endif %}
+                current = std::chrono::high_resolution_clock::now();
+                const double elapsed = std::chrono::duration<double>(current - start).count();
                 if (elapsed > next_report_time)
                 {
                     report_func(elapsed, (clock->t[0]-t_start)/duration, t_start, duration);
@@ -100,12 +89,8 @@ void Network::run(const double duration, void (*report_func)(const double, const
             (*i)->tick();
         clock = next_clocks();
 
-        {% if openmp_pragma('with_openmp') %}
-        elapsed_realtime = omp_get_wtime() - start;
-        {% else %}
-        current = std::clock();
-        elapsed_realtime = (double)(current - start)/({{ openmp_pragma('get_num_threads') }} * CLOCKS_PER_SEC);
-        {% endif %}
+        current = std::chrono::high_resolution_clock::now();
+        elapsed_realtime = std::chrono::duration<double>(current - start).count();
 
         {% if maximum_run_time is not none %}
         if(elapsed_realtime>{{maximum_run_time}})

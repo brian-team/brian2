@@ -20,6 +20,7 @@ set_variable_from_value(name, {{array_name}}, var_size, (char)atoi(s_value.c_str
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
 #include "network.h"
+#include<chrono>
 #include<random>
 #include<vector>
 #include<iostream>
@@ -184,7 +185,7 @@ Clock {{clock.name}};  // attributes will be set in run.cpp
 {% if profiled_codeobjects is defined %}
 // Profiling information for each code object
 {% for codeobj in profiled_codeobjects | sort %}
-double {{codeobj}}_profiling_info = 0.0;
+std::chrono::nanoseconds {{codeobj}}_profiling_info(0);
 {% endfor %}
 {% endif %}
 }
@@ -313,7 +314,7 @@ void _write_arrays()
     if(outfile_profiling_info.is_open())
     {
     {% for codeobj in profiled_codeobjects | sort %}
-    outfile_profiling_info << "{{codeobj}}\t" << {{codeobj}}_profiling_info << std::endl;
+    outfile_profiling_info << "{{codeobj}}\t" << std::chrono::duration<double>({{codeobj}}_profiling_info).count() << std::endl;
     {% endfor %}
     outfile_profiling_info.close();
     } else
@@ -374,6 +375,7 @@ void _dealloc_arrays()
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
 #include "network.h"
+#include<chrono>
 #include<random>
 #include<vector>
 {{ openmp_pragma('include') }}
@@ -488,7 +490,7 @@ extern SynapticPathway {{path.name}};
 {% if profiled_codeobjects is defined %}
 // Profiling information for each code object
 {% for codeobj in profiled_codeobjects | sort %}
-extern double {{codeobj}}_profiling_info;
+extern std::chrono::nanoseconds {{codeobj}}_profiling_info;
 {% endfor %}
 {% endif %}
 }
