@@ -89,10 +89,9 @@ void Network::run(const double duration, void (*report_func)(const double, const
             (*i)->tick();
         clock = next_clocks();
 
+        {% if maximum_run_time is not none %}
         current = std::chrono::high_resolution_clock::now();
         elapsed_realtime = std::chrono::duration<double>(current - start).count();
-
-        {% if maximum_run_time is not none %}
         if(elapsed_realtime>{{maximum_run_time}})
         {
             did_break_early = true;
@@ -102,6 +101,8 @@ void Network::run(const double duration, void (*report_func)(const double, const
 
     }
     Network::_globally_running = false;
+    current = std::chrono::high_resolution_clock::now();
+    elapsed_realtime = std::chrono::duration<double>(current - start).count();
 
     if(!did_break_early && !Network::_globally_stopped)
         t = t_end;
