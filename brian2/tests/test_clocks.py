@@ -88,7 +88,6 @@ def test_event_clock():
 
 @pytest.mark.codegen_independent
 def test_combined_clocks_with_run_at():
-
     # Reset updates
     NameLister.updates[:] = []
 
@@ -114,12 +113,12 @@ def test_combined_clocks_with_run_at():
     x_count = updates.count("x")
     y_count = updates.count("y")
 
-    assert (
-        x_count == expected_x_count
-    ), f"Expected {expected_x_count} x's, got {x_count}"
-    assert (
-        y_count == expected_y_count
-    ), f"Expected {expected_y_count} y's, got {y_count}"
+    assert x_count == expected_x_count, (
+        f"Expected {expected_x_count} x's, got {x_count}"
+    )
+    assert y_count == expected_y_count, (
+        f"Expected {expected_y_count} y's, got {y_count}"
+    )
 
     expected_output = "xyxxyxxy"
     assert updates == expected_output, f"Expected {expected_output}, got {updates}"

@@ -18,7 +18,7 @@ void brian_start()
 	_load_arrays();
 	// Initialize clocks (link timestep and dt to the respective arrays)
     {% for clock in clocks | sort(attribute='name') %}
-    brian::{{clock.name}}.timestep = brian::{{array_specs[clock.variables['timestep']]}};    
+    brian::{{clock.name}}.timestep = brian::{{array_specs[clock.variables['timestep']]}};
     brian::{{clock.name}}.t = brian::{{array_specs[clock.variables['t']]}};
     {% if clock.__class__.__name__ == "EventClock" %}  {# FIXME: A bit ugly... #}
     brian::{{clock.name}}.times = brian::{{array_specs[clock.variables['times']]}};
