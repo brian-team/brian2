@@ -1913,11 +1913,12 @@ class Synapses(Group):
     def _add_synapses_from_arrays(self, sources, targets, n, p, namespace=None):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
+        template_kwds["_registered_variables"] = self._registered_variables
         variables = Variables(self)
 
         sources = np.atleast_1d(sources).astype(np.int32)
         targets = np.atleast_1d(targets).astype(np.int32)
-
+        print("here", sources, targets)
         # Check whether the values in sources/targets make sense
         error_message = (
             "The given {source_or_target} indices contain "
@@ -1981,6 +1982,18 @@ class Synapses(Group):
         logger.debug(
             f"Creating synapses from group '{self.source.name}' to group "
             f"'{self.target.name}', using pre-defined arrays)"
+        )
+
+        needed_variables.extend(
+            [
+                "N_incoming",
+                "N_outgoing",
+                "N",
+                "N_pre",
+                "N_post",
+                "_source_offset",
+                "_target_offset",
+            ]
         )
 
         codeobj = create_runner_codeobj(
