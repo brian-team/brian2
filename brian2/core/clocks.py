@@ -122,24 +122,6 @@ class BaseClock(VariableOwner, ABC):
         """
         pass
 
-    def __lt__(self, other):
-        return (
-            self.variables["t"].get_value().item()
-            < other.variables["t"].get_value().item()
-        )
-
-    def __gt__(self, other):
-        return (
-            self.variables["t"].get_value().item()
-            > other.variables["t"].get_value().item()
-        )
-
-    def __le__(self, other):
-        return self.__lt__(other) or self.same_time(other)
-
-    def __ge__(self, other):
-        return self.__gt__(other) or self.same_time(other)
-
     @abstractmethod
     def same_time(self, other):
         """
@@ -281,12 +263,6 @@ class EventClock(BaseClock):
         else:
             # Both are pure EventClocks without dt.
             return abs(t1 - t2) < self.epsilon
-
-    def __le__(self, other):
-        return self.__lt__(other) or self.same_time(other)
-
-    def __ge__(self, other):
-        return self.__gt__(other) or self.same_time(other)
 
 
 class Clock(BaseClock):
