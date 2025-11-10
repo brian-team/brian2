@@ -1,5 +1,4 @@
 import logging
-import tempfile
 import uuid
 
 import pytest
@@ -389,6 +388,21 @@ def test_state_monitor():
     assert_allclose(
         synapse_mon.w[:], np.tile(S.j[:] * nS, (synapse_mon.w[:].shape[1], 1)).T
     )
+
+
+@pytest.mark.standalone_compatible
+def test_state_monitor_event_clock():
+    # Test recording at certain time points
+    G = NeuronGroup(10, "dv/dt = -v / (10*ms) : 1")
+    G.v = "rand()"
+    mon_continuous = StateMonitor(G, "v", record=True, dt=1 * ms)
+    mon_events = StateMonitor(
+        G, "v", record=True, clock=EventClock(times=np.arange(10) * ms)
+    )
+    run(10 * ms)
+    assert len(mon_continuous) == len(mon_events)
+    assert_allclose(mon_continuous.t[:], mon_events.t[:])
+    assert_allclose(mon_continuous.v[:], mon_events.v[:])
 
 
 @pytest.mark.standalone_compatible

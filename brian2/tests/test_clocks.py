@@ -17,6 +17,43 @@ def test_clock_attributes():
 
 
 @pytest.mark.codegen_independent
+def test_clock_comparisons():
+    clock1 = Clock(dt=1 * ms)
+    clock2 = Clock(dt=2 * ms)
+    event_clock1 = EventClock(times=[0 * ms, 1 * ms])
+    event_clock2 = EventClock(times=[0 * ms, 2 * ms])
+
+    clocks = [clock1, clock2, event_clock1, event_clock2]
+    assert clock1.same_time(clock2) and clock2.same_time(clock1)
+    assert clock1.same_time(event_clock1) and event_clock1.same_time(clock1)
+    assert event_clock1.same_time(event_clock2) and event_clock2.same_time(event_clock1)
+
+    for clock in clocks:
+        clock.advance()
+    assert clock1.same_time(event_clock1) and event_clock1.same_time(clock1)
+    assert clock2.same_time(event_clock2) and event_clock2.same_time(clock2)
+    assert not (clock1.same_time(clock2) or clock2.same_time(clock1))
+    assert not (clock1.same_time(event_clock2) or event_clock2.same_time(clock1))
+    assert not (
+        event_clock1.same_time(event_clock2) or event_clock2.same_time(event_clock1)
+    )
+
+
+@pytest.mark.codegen_independent
+def test_clock_set_interval():
+    clock = Clock(dt=1 * ms)
+    clock.set_interval(0 * ms, 2 * ms)
+    assert clock.t == 0 * ms
+    clock.advance()
+    assert clock.t == 1 * ms
+    clock.advance()
+    assert clock.t == 2 * ms
+    with pytest.raises(StopIteration):
+        clock.advance()
+    assert clock.t == 2 * ms
+
+
+@pytest.mark.codegen_independent
 def test_clock_dt_change():
     clock = Clock(dt=1 * ms)
     # at time 0s, all dt changes should be allowed
