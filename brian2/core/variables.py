@@ -2185,18 +2185,23 @@ class Variables(Mapping):
 
     def create_clock_variables(self, clock, prefix=""):
         """
-        Convenience function to add the ``t`` and ``dt`` attributes of a
-        `clock`.
+        Convenience function to add the ``t`` and ``dt`` (or ``times``, for
+        an `EventClock`) attributes of a `clock`.
 
         Parameters
         ----------
-        clock : `Clock`
-            The clock that should be used for ``t`` and ``dt``.
+        clock : `BaseClock`
+            The clock that should be used for ``t`` and ``dt`` or ``times``.
         prefix : str, optional
             A prefix for the variable names. Used for example in monitors to
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         """
+        from brian2.core.clocks import Clock  # avoid circular import
+
         self.add_reference(f"{prefix}t", clock, "t")
-        self.add_reference(f"{prefix}dt", clock, "dt")
-        self.add_reference(f"{prefix}t_in_timesteps", clock, "timestep")
+        if isinstance(clock, Clock):
+            self.add_reference(f"{prefix}dt", clock, "dt")
+            self.add_reference(f"{prefix}t_in_timesteps", clock, "timestep")
+        else:
+            self.add_reference(f"{prefix}times", clock, "times")

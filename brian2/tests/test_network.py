@@ -1769,12 +1769,14 @@ def test_small_runs():
     # One long run and multiple small runs should give the same results
     group_1 = NeuronGroup(10, "dv/dt = -v / (10*ms) : 1")
     group_1.v = "(i + 1) / N"
+    group_1.run_at("v += 0.1", times=[100 * ms, 300 * ms])
     mon_1 = StateMonitor(group_1, "v", record=True)
     net_1 = Network(group_1, mon_1)
     net_1.run(1 * second)
 
     group_2 = NeuronGroup(10, "dv/dt = -v / (10*ms) : 1")
     group_2.v = "(i + 1) / N"
+    group_2.run_at("v += 0.1", times=[100 * ms, 300 * ms])
     mon_2 = StateMonitor(group_2, "v", record=True)
     net_2 = Network(group_2, mon_2)
     runtime = 1 * ms

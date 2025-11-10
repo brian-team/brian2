@@ -97,6 +97,7 @@ __all__ = [
     "prefs",
     "brian_prefs",
     "Clock",
+    "EventClock",
     "defaultclock",
     "Equations",
     "Expression",

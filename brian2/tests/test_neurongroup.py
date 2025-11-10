@@ -3,7 +3,7 @@ import uuid
 import numpy as np
 import pytest
 import sympy
-from numpy.testing import assert_equal, assert_raises
+from numpy.testing import assert_equal
 
 from brian2.core.base import BrianObjectException
 from brian2.core.clocks import defaultclock
@@ -88,7 +88,7 @@ def test_variables():
     assert "not_refractory" not in G.variables and "lastspike" not in G.variables
 
     G = NeuronGroup(1, "dv/dt = -v/tau + xi*tau**-0.5: 1")
-    assert not "tau" in G.variables and "xi" in G.variables
+    assert "tau" not in G.variables and "xi" in G.variables
 
     # NeuronGroup with refractoriness
     G = NeuronGroup(1, "dv/dt = -v/(10*ms) : 1", refractory=5 * ms)
@@ -2183,6 +2183,16 @@ def test_run_regularly_dt():
     run(10 * defaultclock.dt)
     assert_allclose(G.v[:], 5)
     assert_allclose(np.diff(M.v[0]), np.tile([0, 1], 5)[:-1])
+
+
+@pytest.mark.standalone_compatible
+def test_run_at():
+    G = NeuronGroup(1, "v : 1")
+    G.run_at("v += 1", times=[0, 1, 3] * defaultclock.dt)
+    M = StateMonitor(G, "v", record=0, when="end")
+    run(4 * defaultclock.dt)
+    assert_allclose(G.v[:], 3)
+    assert_allclose(M.v[0], [1, 2, 2, 3])
 
 
 @pytest.mark.standalone_compatible
