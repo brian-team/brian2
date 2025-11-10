@@ -147,6 +147,16 @@ variable values::
     when creating a `StateMonitor`, details about scheduling can be
     found here: :doc:`../advanced/scheduling`).
 
+Recording variables at pre-defined times
+----------------------------------------
+A `StateMonitor` can also be used to record variable values at arbitrary times, by
+making it run on an `~brian2.core.clocks.EventClock` instead of with the usual regular clock::
+
+     M = StateMonitor(G, 'v', record=True, clock=EventClock(times=[1, 10, 100]*ms))
+
+The recorded values can be accessed in the same way as for a monitor running on a
+regular clock.
+
 Recording population rates
 --------------------------
 

@@ -142,6 +142,20 @@ expressions to have the values only updated for the chosen subset of neurons
                      I = change*(rand()*2) + (1-change)*I''',
                   dt=50*ms)
 
+Operations run at pre-defined times
+-----------------------------------
+Instead of using regular intervals, you can also execute code at pre-defined
+time points. The following code has the same effect as the code above, but uses
+:meth:`~brian2.groups.group.Group.run_at` to only switch to new values at time
+points 50ms, 100ms, and 500ms::
+
+  G = NeuronGroup(100, '''dv/dt = (-v + I)/(10*ms) : 1
+                          I : 1  # one stimulus per neuron''')
+  G.run_at('''change = int(rand() < 0.5)
+              I = change*(rand()*2) + (1-change)*I''',
+           times=[50, 100, 500]*ms)
+
+
 .. admonition:: The following topics are not essential for beginners.
 
     |
