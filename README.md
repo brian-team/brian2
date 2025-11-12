@@ -18,9 +18,10 @@ If you use Brian for your published research, we kindly ask you to cite our arti
 [![PyPI version](https://img.shields.io/pypi/v/Brian2.svg)](https://pypi.python.org/pypi/Brian2)
 [![Conda version](https://img.shields.io/conda/vn/conda-forge/brian2.svg)](https://anaconda.org/conda-forge/brian2)
 [![Debian package](https://img.shields.io/debian/v/python3-brian/testing)](https://packages.debian.org/testing/python3-brian)
-[![Fedora package](https://img.shields.io/fedora/v/python3-brian2)](https://packages.fedoraproject.org/pkgs/python-brian2/python3-brian2/)
+[![Fedora package](https://img.shields.io/fedora/v/python3-brian2/f43)](https://packages.fedoraproject.org/pkgs/python-brian2/python3-brian2/)
 [![Spack](https://img.shields.io/spack/v/py-brian2)](https://packages.spack.io/package.html?name=py-brian2)
 [![AUR version](https://img.shields.io/aur/version/python-brian2)](https://aur.archlinux.org/packages/python-brian2)
+![Docker Image Version](https://img.shields.io/docker/v/briansimulator/brian?label=docker%20image)
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/briansimulator/brian)](https://hub.docker.com/r/briansimulator/brian)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15423251.svg)](https://zenodo.org/doi/10.5281/zenodo.15423251)
@@ -31,6 +32,8 @@ If you use Brian for your published research, we kindly ask you to cite our arti
 [![Discourse topics](https://img.shields.io/discourse/topics?server=https%3A%2F%2Fbrian.discourse.group)](https://brian.discourse.group)
 [![Discourse chat](https://img.shields.io/badge/discourse-chat-4EC820?logo=discourse&link=https%3A%2F%2Fbrian.discourse.group%2Fchat)](https://brian.discourse.group/chat)
 [![Neuromorphic Computing](https://img.shields.io/badge/Collaboration_Network-Open_Neuromorphic-blue)](https://open-neuromorphic.org/neuromorphic-computing/)
+
+
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![SPEC 0 — Minimum Supported Dependencies](https://img.shields.io/badge/SPEC-0-green?labelColor=%23004811&color=%235CA038)](https://scientific-python.org/specs/spec-0000/)
 
