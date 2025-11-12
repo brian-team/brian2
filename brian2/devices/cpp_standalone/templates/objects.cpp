@@ -34,10 +34,18 @@ namespace brian {
 
 std::string results_dir = "results/";  // can be overwritten by --results_dir command line arg
 
-// For multhreading, we need one generator for each thread. We also create a distribution for
-// each thread, even though this is not strictly necessary for the uniform distribution, as
-// the distribution is stateless.
+// For multhreading, we need one generator for each thread.
 std::vector< RandomGenerator > _random_generators;
+
+std::ostream& operator<<(std::ostream& out, const RandomGenerator& rng)
+{
+    return out << rng.gen;
+}
+
+std::istream& operator>>(std::istream& in, RandomGenerator& rng)
+{
+    return in >> rng.gen;
+}
 
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
@@ -407,6 +415,10 @@ class RandomGenerator {
             gen.seed(seed);
             has_stored_gauss = false;
         }
+        // Allow exporting/setting the internal state of the random generator
+        friend std::ostream& operator<<(std::ostream& out, const RandomGenerator& rng);
+        friend std::istream& operator>>(std::istream& in, RandomGenerator& rng);
+
         double rand() {
             /* shifts : 67108864 = 0x4000000, 9007199254740992 = 0x20000000000000 */
             const long a = gen() >> 5;
@@ -439,6 +451,9 @@ class RandomGenerator {
             }
         }
 };
+
+extern std::ostream& operator<<(std::ostream& out, const RandomGenerator& rng);
+extern std::istream& operator>>(std::istream& in, RandomGenerator& rng);
 
 // In OpenMP we need one state per thread
 extern std::vector< RandomGenerator > _random_generators;
