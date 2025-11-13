@@ -55,8 +55,8 @@ except ImportError:
 
 # Make sure that Brian's unit-aware functions are used, even when directly
 # using names prefixed with numpy or np
-import brian2.numpy_ as numpy
 import brian2.numpy_ as np
+import brian2.numpy_ as numpy
 
 try:
     from ._version import __version__, __version_tuple__
@@ -173,9 +173,13 @@ def clear_cache(target):
                     "will therefore not be removed. Delete files in "
                     f"'{cache_dir}' manually"
                 )
-
-    logger.debug(f"Clearing cache for target '{target}' (directory '{cache_dir}').")
-    shutil.rmtree(cache_dir)
+    if os.path.exists(cache_dir):
+        logger.debug(f"Clearing cache for target '{target}' (directory '{cache_dir}').")
+        shutil.rmtree(cache_dir)
+    else:
+        logger.debug(
+            f"Cache for target '{target}' (directory '{cache_dir}') does not exist, nothing to clear."
+        )
 
 
 def _check_caches():
