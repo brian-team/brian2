@@ -9,8 +9,12 @@ ostream& operator<<(ostream& os, const CSpikeQueue& queue)
     for (const auto& inner_vec : state.second)
     {
         os << inner_vec.size() << "\n";
-        for (const auto& val : inner_vec)
-            os << val << " ";
+        if (inner_vec.size() > 0) {
+            for (const auto& val : inner_vec)
+                os << val << " ";
+
+            os << "\n";
+        }
     }
     return os;
 }
@@ -23,7 +27,6 @@ istream& operator>>(istream& is, CSpikeQueue& queue)
 
     is >> stored_offset;
     is >> outer_size;
-
     vector<vector<int32_t>> stored_queue(outer_size);
 
     for (size_t i = 0; i < outer_size; i++)

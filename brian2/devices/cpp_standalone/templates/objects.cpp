@@ -320,6 +320,32 @@ void _write_arrays()
         std::cout << "Error writing output file for {{varname}}." << endl;
     }
     {% endfor %}
+
+    // Write spike queue states to disk
+    {% for S in synapses | sort(attribute='name') %}
+    {% for path in S._pathways | sort(attribute='name') %}
+    ofstream outfile_{{path.name}};
+    outfile_{{path.name}}.open(results_dir + "{{path.name}}_queue", ios::out);
+    if (outfile_{{path.name}}.is_open()) {
+        for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++) {
+            outfile_{{path.name}} << *{{path.name}}.queue[i] << "\n";
+        }
+    } else {
+        std::cout << "Error writing spike queue state for '{{path.name}}' for file" << std::endl;
+    }
+    {% endfor %}
+    {% endfor %}
+
+    // Write random generator state to disk
+    ofstream random_generator_state;
+    random_generator_state.open(results_dir + "random_generator_state", ios::out);
+    if (random_generator_state.is_open()) {
+        for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
+            random_generator_state << _random_generators[i] << "\n";
+    } else {
+        std::cout << "Error writing random generator state to file." << std::endl;
+    }
+
     {% if profiled_codeobjects is defined and profiled_codeobjects %}
     // Write profiling info to disk
     ofstream outfile_profiling_info;
