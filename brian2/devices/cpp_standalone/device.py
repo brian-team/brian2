@@ -1080,6 +1080,12 @@ class CPPStandaloneDevice(Device):
         )
         shutil.copy2(
             os.path.join(
+                os.path.split(inspect.getsourcefile(Synapses))[0], "spikequeue.cpp"
+            ),
+            os.path.join(directory, "brianlib", "spikequeue.cpp"),
+        )
+        shutil.copy2(
+            os.path.join(
                 os.path.split(inspect.getsourcefile(Synapses))[0], "stdint_compat.h"
             ),
             os.path.join(directory, "brianlib", "stdint_compat.h"),
@@ -1577,7 +1583,9 @@ class CPPStandaloneDevice(Device):
             ensure_directory(os.path.join(directory, d))
 
         self.writer = CPPWriter(directory)
-
+        # Compile the spike queue together with the other source files
+        self.writer.source_files.add("brianlib/spikequeue.cpp")
+        self.writer.header_files.add("brianlib/spikequeue.h")
         # Get the number of threads if specified in an openmp context
         nb_threads = prefs.devices.cpp_standalone.openmp_threads
         # If the number is negative, we need to throw an error
