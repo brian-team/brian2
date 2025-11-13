@@ -1074,7 +1074,7 @@ class CPPStandaloneDevice(Device):
         # Copy the CSpikeQueue implementation
         shutil.copy2(
             os.path.join(
-                os.path.split(inspect.getsourcefile(Synapses))[0], "cspikequeue.h"
+                os.path.split(inspect.getsourcefile(Synapses))[0], "spikequeue.h"
             ),
             os.path.join(directory, "brianlib", "spikequeue.h"),
         )

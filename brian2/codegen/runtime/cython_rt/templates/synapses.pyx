@@ -7,7 +7,7 @@ from libcpp.vector cimport vector
 from cython.operator cimport dereference
 # We declare minimal C++ interface here - only methods we actually want to use
 # This avoids importing the full SpikeQueue wrapper and its dependencies
-cdef extern from "cspikequeue.h":
+cdef extern from "spikequeue.h":
     cdef cppclass CSpikeQueue:
         vector[int32_t]* peek();
         void advance();
