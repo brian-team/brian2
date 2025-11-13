@@ -1,6 +1,5 @@
 # cython: language_level = 3
 # distutils: language = c++
-# distutils: sources = brian2/synapses/spikequeue.h
 
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
