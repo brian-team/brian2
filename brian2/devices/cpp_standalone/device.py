@@ -1671,11 +1671,15 @@ class CPPStandaloneDevice(Device):
         if data:
             results_dir = self.results_dir
             logger.debug(f"Deleting data files in '{results_dir}'")
+            fnames.append(os.path.join(results_dir, "random_generator_state"))
             fnames.append(os.path.join(results_dir, "last_run_info.txt"))
             if self.profiled_codeobjects:
                 fnames.append(os.path.join(results_dir, "profiling_info.txt"))
             for var in self.arrays:
                 fnames.append(os.path.join(results_dir, self.get_array_filename(var)))
+            for syn in self.synapses:
+                for pathway in syn._pathways:
+                    fnames.append(os.path.join(results_dir, f"{pathway.name}_queue"))
 
         # Delete code
         if code:
@@ -1696,7 +1700,6 @@ class CPPStandaloneDevice(Device):
 
             fnames.extend(
                 [
-                    os.path.join("brianlib", "spikequeue.h"),
                     os.path.join("brianlib", "stdint_compat.h"),
                 ]
             )
