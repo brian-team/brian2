@@ -5,7 +5,7 @@
 from cpython.pycapsule cimport PyCapsule_GetPointer
 # We declare minimal C++ interface here - only methods we actually want to use
 # This avoids importing the full SpikeQueue wrapper and its dependencies
-cdef extern from "cspikequeue.cpp":
+cdef extern from "cspikequeue.h":
     cdef cppclass CSpikeQueue:
         void push(int32_t *, int)
 {% endblock %}

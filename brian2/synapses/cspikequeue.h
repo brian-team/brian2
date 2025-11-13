@@ -1,3 +1,5 @@
+#ifndef C_SPIKEQUEUE_H
+#define C_SPIKEQUEUE_H
 #include<iostream>
 #include<vector>
 #include<map>
@@ -202,3 +204,4 @@ public:
         offset = (offset+1)%queue.size();
     };
 };
+#endif
