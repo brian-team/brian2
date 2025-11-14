@@ -1074,9 +1074,15 @@ class CPPStandaloneDevice(Device):
         # Copy the CSpikeQueue implementation
         shutil.copy2(
             os.path.join(
-                os.path.split(inspect.getsourcefile(Synapses))[0], "cspikequeue.cpp"
+                os.path.split(inspect.getsourcefile(Synapses))[0], "spikequeue.h"
             ),
             os.path.join(directory, "brianlib", "spikequeue.h"),
+        )
+        shutil.copy2(
+            os.path.join(
+                os.path.split(inspect.getsourcefile(Synapses))[0], "spikequeue.cpp"
+            ),
+            os.path.join(directory, "brianlib", "spikequeue.cpp"),
         )
         shutil.copy2(
             os.path.join(
@@ -1577,7 +1583,9 @@ class CPPStandaloneDevice(Device):
             ensure_directory(os.path.join(directory, d))
 
         self.writer = CPPWriter(directory)
-
+        # Compile the spike queue together with the other source files
+        self.writer.source_files.add("brianlib/spikequeue.cpp")
+        self.writer.header_files.add("brianlib/spikequeue.h")
         # Get the number of threads if specified in an openmp context
         nb_threads = prefs.devices.cpp_standalone.openmp_threads
         # If the number is negative, we need to throw an error
@@ -1663,11 +1671,15 @@ class CPPStandaloneDevice(Device):
         if data:
             results_dir = self.results_dir
             logger.debug(f"Deleting data files in '{results_dir}'")
+            fnames.append(os.path.join(results_dir, "random_generator_state"))
             fnames.append(os.path.join(results_dir, "last_run_info.txt"))
             if self.profiled_codeobjects:
                 fnames.append(os.path.join(results_dir, "profiling_info.txt"))
             for var in self.arrays:
                 fnames.append(os.path.join(results_dir, self.get_array_filename(var)))
+            for syn in self.synapses:
+                for pathway in syn._pathways:
+                    fnames.append(os.path.join(results_dir, f"{pathway.name}_queue"))
 
         # Delete code
         if code:
@@ -1688,7 +1700,6 @@ class CPPStandaloneDevice(Device):
 
             fnames.extend(
                 [
-                    os.path.join("brianlib", "spikequeue.h"),
                     os.path.join("brianlib", "stdint_compat.h"),
                 ]
             )

@@ -1,3 +1,5 @@
+#ifndef C_SPIKEQUEUE_H
+#define C_SPIKEQUEUE_H
 #include<iostream>
 #include<vector>
 #include<map>
@@ -102,7 +104,7 @@ public:
         scalar_delay = (min_delay == max_delay);
     }
 
-    pair <int, vector< vector<int32_t> > > _full_state()
+    pair <int, vector< vector<int32_t> > > _full_state() const
     {
         pair <int, vector< vector<int32_t> > > state(offset, queue);
         return state;
@@ -202,3 +204,7 @@ public:
         offset = (offset+1)%queue.size();
     };
 };
+
+extern ostream& operator<<(ostream& os, const CSpikeQueue& queue);
+extern istream& operator>>(istream& is, CSpikeQueue& queue);
+#endif

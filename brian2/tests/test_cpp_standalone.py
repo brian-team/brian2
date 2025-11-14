@@ -382,7 +382,7 @@ def test_array_cache():
     # Make sure that the array cache does not allow to use incorrectly sized
     # values to pass
     with pytest.raises(ValueError):
-        setattr(G, "w", [0, 2])
+        G.w = [0, 2]
     with pytest.raises(ValueError):
         G.w.__setitem__(slice(0, 4), [0, 2])
 
@@ -577,8 +577,8 @@ def test_delete_code_data():
     results_dir = os.path.join(device.project_dir, "results")
     assert os.path.exists(results_dir) and os.path.isdir(results_dir)
     # There should be 3 files for the clock, 2 for the neurongroup (index + v),
-    # and the "last_run_info.txt" file
-    assert len(os.listdir(results_dir)) == 6
+    # as well as the default "last_run_info.txt" and "random_generator_state" files
+    assert len(os.listdir(results_dir)) == 7
     device.delete(data=True, run_args=False, code=False, directory=False)
     assert os.path.exists(results_dir) and os.path.isdir(results_dir)
     assert len(os.listdir(results_dir)) == 0
@@ -941,7 +941,7 @@ def test_change_parameter_without_recompile_dependencies():
 
     ar = np.arange(10) * 2.0
     ar.astype(G.v.dtype).tofile(os.path.join(device.project_dir, "init_values_v2.dat"))
-    device.run(run_args=[f"neurons.v=init_values_v2.dat"])
+    device.run(run_args=["neurons.v=init_values_v2.dat"])
     assert array_equal(G.v, ar * volt)
     assert array_equal(G.w, ar * 2)
 

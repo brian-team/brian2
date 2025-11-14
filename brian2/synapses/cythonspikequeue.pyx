@@ -1,6 +1,5 @@
 # cython: language_level = 3
 # distutils: language = c++
-# distutils: sources = brian2/synapses/cspikequeue.cpp
 
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
@@ -27,7 +26,7 @@ ctypedef fused float_array:
     np.ndarray[double, ndim=1, mode='c']
     np.ndarray[float, ndim=1, mode='c']
 
-cdef extern from "cspikequeue.cpp":
+cdef extern from "spikequeue.h":
     cdef cppclass CSpikeQueue:
         CSpikeQueue(int, int) except +
         void prepare[scalar](scalar*, int, int32_t*, int, double)

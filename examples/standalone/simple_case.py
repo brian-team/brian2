@@ -13,7 +13,7 @@ dv/dt = (1-v)/tau : 1
 """
 G = NeuronGroup(10, eqs, method="exact")
 G.v = "rand()"
-G.run_at("v += 5", times=[5, 50]*ms)
+
 mon = StateMonitor(G, "v", record=True)
 run(100 * ms)
 
