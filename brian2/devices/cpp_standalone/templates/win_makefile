@@ -3,7 +3,6 @@ all: main.exe
 clean:
     del *.obj /s
     del *.exe /s
-    del sourcefiles.txt
 
 {% for fname, base in zip(source_files, source_bases) | sort(attribute='0')%}
 {{base}}.obj: win_makefile

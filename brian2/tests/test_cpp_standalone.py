@@ -426,6 +426,21 @@ def test_run_with_debug():
 
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
+def test_run_with_clean():
+    # We just want to make sure that it works for now (there was a bug on Windows where
+    # using clean=True deleted sourcefiles.txt)
+    set_device(
+        "cpp_standalone", build_on_run=True, debug=True, clean=True, directory=None
+    )
+    group = NeuronGroup(1, "v: 1", threshold="False")
+    syn = Synapses(group, group, on_pre="v += 1")
+    syn.connect()
+    mon = SpikeMonitor(group)
+    run(defaultclock.dt)
+
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_run_with_synapses_and_profile():
     set_device("cpp_standalone", build_on_run=True, directory=None)
     group = NeuronGroup(1, "v: 1", threshold="False", reset="")
