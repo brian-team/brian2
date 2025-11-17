@@ -77,7 +77,8 @@ differential equations for the target `NeuronGroup`, and ``on_pre`` is the argum
 
 :math:`V(t)` reaches a maximum value of :math:`w/e` at time :math:`t=\tau`.
 
-**Biexponential synapse** :math:`V(t)=\frac{\tau_2}{\tau_2-\tau_1}\left(e^{-t/\tau_1}-e^{-t/\tau_2}\right)`::
+**Biexponential synapse** :math:`V(t)=p^{-1} \left(e^{-t/\tau_1}-e^{-t/\tau_2}\right)`,
+where :math:`p = \frac{\tau_1}{\tau_2}^{\frac{\tau_2}{\tau_2 - \tau_2}} - \frac{\tau_1}{\tau_2}^{\frac{\tau_1}{\tau_2 - \tau_2}}` is a normalization factor::
 
     eqs = '''
     dV/dt = ((tau_2 / tau_1) ** (tau_1 / (tau_2 - tau_1))*x-V)/tau_1 : 1
