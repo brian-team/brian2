@@ -11,7 +11,7 @@ import weakref
 from brian2.core.names import Nameable
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units
-from brian2.utils.logger import get_logger
+from brian2.utils.logger import BrianLogger, get_logger
 
 __all__ = [
     "BrianObject",
@@ -186,6 +186,7 @@ class BrianObject(Nameable):
         if (
             getattr(self, "_network", "uninitialized") is None
             and getattr(self, "group", None) is None
+            and not BrianLogger.exception_occured  # No need to add a warning if something went wrong
         ):
             logger.warn(
                 f"The object '{self.name}' is getting deleted, but was never included in a network. "
