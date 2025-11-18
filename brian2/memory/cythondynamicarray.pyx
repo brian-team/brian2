@@ -111,19 +111,19 @@ cdef class DynamicArray1DClass:
         cdef DynamicArray1DCpp[int64_t]* ptr_long
         cdef DynamicArray1DCpp[char]* ptr_bool
         if self.thisptr != NULL:
-            if self.dtype == np.float64:
+            if self.numpy_type == cnp.NPY_DOUBLE:
                 ptr_double = <DynamicArray1DCpp[double]*>self.thisptr
                 del ptr_double
-            elif self.dtype == np.float32:
+            elif self.numpy_type == cnp.NPY_FLOAT:
                 ptr_float = <DynamicArray1DCpp[float]*>self.thisptr
                 del ptr_float
-            elif self.dtype == np.int32:
+            elif self.numpy_type == cnp.NPY_INT32:
                 ptr_int = <DynamicArray1DCpp[int32_t]*>self.thisptr
                 del ptr_int
-            elif self.dtype == np.int64:
+            elif self.numpy_type == cnp.NPY_INT64:
                 ptr_long = <DynamicArray1DCpp[int64_t]*>self.thisptr
                 del ptr_long
-            elif self.dtype == np.bool_:
+            elif self.numpy_type == cnp.NPY_BOOL:
                 ptr_bool = <DynamicArray1DCpp[char]*>self.thisptr
                 del ptr_bool
 
@@ -255,19 +255,19 @@ cdef class DynamicArray2DClass:
         cdef DynamicArray2DCpp[int64_t]* ptr_long
         cdef DynamicArray2DCpp[char]* ptr_bool
         if self.thisptr != NULL:
-            if self.dtype == np.float64:
+            if self.numpy_type == cnp.NPY_DOUBLE:
                 ptr_double = <DynamicArray2DCpp[double]*>self.thisptr
                 del ptr_double
-            elif self.dtype == np.float32:
+            elif self.numpy_type == cnp.NPY_FLOAT:
                 ptr_float = <DynamicArray2DCpp[float]*>self.thisptr
                 del ptr_float
-            elif self.dtype == np.int32:
+            elif self.numpy_type == cnp.NPY_INT32:
                 ptr_int = <DynamicArray2DCpp[int32_t]*>self.thisptr
                 del ptr_int
-            elif self.dtype == np.int64:
+            elif self.numpy_type == cnp.NPY_INT64:
                 ptr_long = <DynamicArray2DCpp[int64_t]*>self.thisptr
                 del ptr_long
-            elif self.dtype == np.bool_:
+            elif self.numpy_type == cnp.NPY_BOOL:
                 ptr_bool = <DynamicArray2DCpp[char]*>self.thisptr
                 del ptr_bool
 
