@@ -1873,17 +1873,23 @@ def test_multiple_runs_function_change():
 
 @pytest.mark.codegen_independent
 def test_unused_object_warning():
-    with catch_logs() as logs:
-        # Create a NeuronGroup that is not used in the network
-        NeuronGroup(1, "v:1", name="never_used")
-        # Make sure that it gets garbage collected
-        import gc
+    # Make sure that the warnings are activated for this test
+    _old_pref = prefs.logging.warn_for_unused_objects
+    prefs.logging.warn_for_unused_objects = True
+    try:
+        with catch_logs() as logs:
+            # Create a NeuronGroup that is not used in the network
+            NeuronGroup(1, "v:1", name="never_used")
+            # Make sure that it gets garbage collected
+            import gc
 
-        gc.collect()
-    assert len(logs) == 1
-    assert logs[0][0] == "WARNING"
-    assert logs[0][1].endswith("unused_brian_object")
-    assert "never_used" in logs[0][2]
+            gc.collect()
+        assert len(logs) == 1
+        assert logs[0][0] == "WARNING"
+        assert logs[0][1].endswith("unused_brian_object")
+        assert "never_used" in logs[0][2]
+    finally:
+        prefs.logging.warn_for_unused_objects = _old_pref
 
 
 @pytest.mark.codegen_independent
