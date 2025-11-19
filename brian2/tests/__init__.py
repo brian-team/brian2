@@ -315,6 +315,9 @@ def run(
     prefs["codegen.cpp.extra_compile_args_gcc"].extend(["-w", "-O0"])
     prefs["codegen.cpp.extra_compile_args_msvc"].extend(["/Od"])
 
+    # Switch off unused object warning
+    prefs["logging.warn_for_unused_objects"] = False
+
     pref_plugin = PreferencePlugin(prefs, fail_for_not_implemented)
     try:
         success = []
