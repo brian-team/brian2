@@ -1914,11 +1914,14 @@ class Synapses(Group):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
         template_kwds["_registered_variables"] = self._registered_variables
+        for var in self._registered_variables:
+            if var.name not in needed_variables:
+                needed_variables.append(var.name)
+
         variables = Variables(self)
 
         sources = np.atleast_1d(sources).astype(np.int32)
         targets = np.atleast_1d(targets).astype(np.int32)
-        print("here", sources, targets)
         # Check whether the values in sources/targets make sense
         error_message = (
             "The given {source_or_target} indices contain "
