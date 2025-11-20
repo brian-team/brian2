@@ -1914,7 +1914,7 @@ class Synapses(Group):
         ].get_value()
 
         for var in self._registered_variables:
-            if var.name not in needed_variables:
+            if var.name not in needed_variables and var.name in self.variables:
                 needed_variables.append(var.name)
 
         variables = Variables(self)
@@ -2078,7 +2078,7 @@ class Synapses(Group):
         ].get_value()
 
         for var in self._registered_variables:
-            if var.name not in needed_variables:
+            if var.name not in needed_variables and var.name in self.variables:
                 needed_variables.append(var.name)
 
         template_kwds.update(parsed)
