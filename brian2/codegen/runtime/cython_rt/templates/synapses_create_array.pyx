@@ -50,6 +50,7 @@
     # Update the total number of synapses
     {{N}} = _new_num_synapses
 
+    # And update N_incoming, N_outgoing and synapse_number
     {% if multisynaptic_index %}
     # Handle multisynaptic index - this requires iteration over all synapses
     # to count how many times each (source, target) pair appears
