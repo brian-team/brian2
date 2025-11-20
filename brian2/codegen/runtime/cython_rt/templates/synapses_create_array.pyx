@@ -58,7 +58,7 @@
     cdef int32_t _pre_idx , _post_idx
     cdef tuple _pair
     cdef int32_t _count
-    cdef int32_t* _synapse_number_data = {{get_array_name(variables[multisynapatic_index], access_data=False)}}.get_data_ptr()
+    cdef int32_t* _synapse_number_data = {{get_array_name(variables[multisynaptic_index], access_data=False)}}_ptr.get_data_ptr()
 
     for _idx in range(_new_num_synapses):
         _pre_idx = _synaptic_pre_data[_idx]
