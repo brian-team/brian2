@@ -1903,7 +1903,11 @@ class Synapses(Group):
     def _add_synapses_from_arrays(self, sources, targets, n, p, namespace=None):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
-        template_kwds["_registered_variables"] = self._registered_variables
+        # Filter _registered_variables to only include those owned by self (not pathways)
+        synapses_owned_variables = [
+            var for var in self._registered_variables if var.name in self.variables
+        ]
+        template_kwds["_registered_variables"] = synapses_owned_variables
         template_kwds["N_pre_val"] = self.variables["N_pre"].get_value()
         template_kwds["N_post_val"] = self.variables["N_post"].get_value()
         template_kwds["source_offset_val"] = self.variables[
@@ -2067,7 +2071,11 @@ class Synapses(Group):
 
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
-        template_kwds["_registered_variables"] = self._registered_variables
+        # Filter _registered_variables to only include those owned by self (not pathways)
+        synapses_owned_variables = [
+            var for var in self._registered_variables if var.name in self.variables
+        ]
+        template_kwds["_registered_variables"] = synapses_owned_variables
         template_kwds["N_pre_val"] = self.variables["N_pre"].get_value()
         template_kwds["N_post_val"] = self.variables["N_post"].get_value()
         template_kwds["source_offset_val"] = self.variables[
