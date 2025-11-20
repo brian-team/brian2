@@ -1904,6 +1904,15 @@ class Synapses(Group):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
         template_kwds["_registered_variables"] = self._registered_variables
+        template_kwds["N_pre_val"] = self.variables["N_pre"].get_value()
+        template_kwds["N_post_val"] = self.variables["N_post"].get_value()
+        template_kwds["source_offset_val"] = self.variables[
+            "_source_offset"
+        ].get_value()
+        template_kwds["target_offset_val"] = self.variables[
+            "_target_offset"
+        ].get_value()
+
         for var in self._registered_variables:
             if var.name not in needed_variables:
                 needed_variables.append(var.name)
