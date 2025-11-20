@@ -2066,6 +2066,21 @@ class Synapses(Group):
                 raise ValueError(f"The connect statement cannot refer to '{var}'.")
 
         template_kwds, needed_variables = self._get_multisynaptic_indices()
+
+        template_kwds["_registered_variables"] = self._registered_variables
+        template_kwds["N_pre_val"] = self.variables["N_pre"].get_value()
+        template_kwds["N_post_val"] = self.variables["N_post"].get_value()
+        template_kwds["source_offset_val"] = self.variables[
+            "_source_offset"
+        ].get_value()
+        template_kwds["target_offset_val"] = self.variables[
+            "_target_offset"
+        ].get_value()
+
+        for var in self._registered_variables:
+            if var.name not in needed_variables:
+                needed_variables.append(var.name)
+
         template_kwds.update(parsed)
         template_kwds["skip_if_invalid"] = skip_if_invalid
         # To support both i='...' and j='...' syntax, we provide additional keywords
@@ -2201,6 +2216,18 @@ class Synapses(Group):
             f"Creating synapses from group '{self.source.name}' to group "
             f"'{self.target.name}', using generator "
             f"'{parsed['original_expression']}'"
+        )
+
+        needed_variables.extend(
+            [
+                "N_incoming",
+                "N_outgoing",
+                "N",
+                "N_pre",
+                "N_post",
+                "_source_offset",
+                "_target_offset",
+            ]
         )
 
         codeobj = create_runner_codeobj(
