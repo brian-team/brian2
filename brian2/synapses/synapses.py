@@ -2025,6 +2025,16 @@ class Synapses(Group):
         )
         codeobj()
 
+        # Update the DynamicArrayVariable.size attribute of resized variables
+        for var in self._registered_variables:
+            var.size = len(var.get_value())
+        self.variables["N_incoming"].size = len(
+            self.variables["N_incoming"].get_value()
+        )
+        self.variables["N_outgoing"].size = len(
+            self.variables["N_outgoing"].get_value()
+        )
+
     def _expression_index_dependence(self, expr, namespace, additional_indices=None):
         """
         Returns the set of synaptic indices that expr depends on
@@ -2264,6 +2274,16 @@ class Synapses(Group):
             ),
         )
         codeobj()
+
+        # Update the DynamicArrayVariable.size attribute of resized variables
+        for var in self._registered_variables:
+            var.size = len(var.get_value())
+        self.variables["N_incoming"].size = len(
+            self.variables["N_incoming"].get_value()
+        )
+        self.variables["N_outgoing"].size = len(
+            self.variables["N_outgoing"].get_value()
+        )
 
     def _check_parsed_synapses_generator(self, parsed, namespace):
         """
