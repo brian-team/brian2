@@ -1903,11 +1903,28 @@ class Synapses(Group):
     def _add_synapses_from_arrays(self, sources, targets, n, p, namespace=None):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
+        # Filter _registered_variables to only include those owned by self (not pathways)
+        synapses_owned_variables = [
+            var for var in self._registered_variables if var.name in self.variables
+        ]
+        template_kwds["_registered_variables"] = synapses_owned_variables
+        template_kwds["N_pre_val"] = self.variables["N_pre"].get_value()
+        template_kwds["N_post_val"] = self.variables["N_post"].get_value()
+        template_kwds["source_offset_val"] = self.variables[
+            "_source_offset"
+        ].get_value()
+        template_kwds["target_offset_val"] = self.variables[
+            "_target_offset"
+        ].get_value()
+
+        for var in self._registered_variables:
+            if var.name not in needed_variables and var.name in self.variables:
+                needed_variables.append(var.name)
+
         variables = Variables(self)
 
         sources = np.atleast_1d(sources).astype(np.int32)
         targets = np.atleast_1d(targets).astype(np.int32)
-
         # Check whether the values in sources/targets make sense
         error_message = (
             "The given {source_or_target} indices contain "
@@ -1973,6 +1990,18 @@ class Synapses(Group):
             f"'{self.target.name}', using pre-defined arrays)"
         )
 
+        needed_variables.extend(
+            [
+                "N_incoming",
+                "N_outgoing",
+                "N",
+                "N_pre",
+                "N_post",
+                "_source_offset",
+                "_target_offset",
+            ]
+        )
+
         codeobj = create_runner_codeobj(
             self,
             abstract_code,
@@ -1984,6 +2013,16 @@ class Synapses(Group):
             run_namespace={},
         )
         codeobj()
+
+        # Update the DynamicArrayVariable.size attribute of resized variables
+        for var in self._registered_variables:
+            var.size = len(var.get_value())
+        self.variables["N_incoming"].size = len(
+            self.variables["N_incoming"].get_value()
+        )
+        self.variables["N_outgoing"].size = len(
+            self.variables["N_outgoing"].get_value()
+        )
 
     def _expression_index_dependence(self, expr, namespace, additional_indices=None):
         """
@@ -2041,6 +2080,25 @@ class Synapses(Group):
                 raise ValueError(f"The connect statement cannot refer to '{var}'.")
 
         template_kwds, needed_variables = self._get_multisynaptic_indices()
+
+        # Filter _registered_variables to only include those owned by self (not pathways)
+        synapses_owned_variables = [
+            var for var in self._registered_variables if var.name in self.variables
+        ]
+        template_kwds["_registered_variables"] = synapses_owned_variables
+        template_kwds["N_pre_val"] = self.variables["N_pre"].get_value()
+        template_kwds["N_post_val"] = self.variables["N_post"].get_value()
+        template_kwds["source_offset_val"] = self.variables[
+            "_source_offset"
+        ].get_value()
+        template_kwds["target_offset_val"] = self.variables[
+            "_target_offset"
+        ].get_value()
+
+        for var in self._registered_variables:
+            if var.name not in needed_variables and var.name in self.variables:
+                needed_variables.append(var.name)
+
         template_kwds.update(parsed)
         template_kwds["skip_if_invalid"] = skip_if_invalid
         # To support both i='...' and j='...' syntax, we provide additional keywords
@@ -2178,6 +2236,18 @@ class Synapses(Group):
             f"'{parsed['original_expression']}'"
         )
 
+        needed_variables.extend(
+            [
+                "N_incoming",
+                "N_outgoing",
+                "N",
+                "N_pre",
+                "N_post",
+                "_source_offset",
+                "_target_offset",
+            ]
+        )
+
         codeobj = create_runner_codeobj(
             self,
             abstract_code,
@@ -2190,6 +2260,16 @@ class Synapses(Group):
             run_namespace=namespace,
         )
         codeobj()
+
+        # Update the DynamicArrayVariable.size attribute of resized variables
+        for var in self._registered_variables:
+            var.size = len(var.get_value())
+        self.variables["N_incoming"].size = len(
+            self.variables["N_incoming"].get_value()
+        )
+        self.variables["N_outgoing"].size = len(
+            self.variables["N_outgoing"].get_value()
+        )
 
     def _check_parsed_synapses_generator(self, parsed, namespace):
         """
