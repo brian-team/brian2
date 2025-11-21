@@ -269,22 +269,22 @@ def test_network_incorrect_schedule():
     net = Network()
     # net.schedule = object()
     with pytest.raises(TypeError):
-        setattr(net, "schedule", object())
+        net.schedule = object()
     # net.schedule = 1
     with pytest.raises(TypeError):
-        setattr(net, "schedule", 1)
+        net.schedule = 1
     # net.schedule = {'slot1', 'slot2'}
     with pytest.raises(TypeError):
-        setattr(net, "schedule", {"slot1", "slot2"})
+        net.schedule = {"slot1", "slot2"}
     # net.schedule = ['slot', 1]
     with pytest.raises(TypeError):
-        setattr(net, "schedule", ["slot", 1])
+        net.schedule = ["slot", 1]
     # net.schedule = ['start', 'after_start']
     with pytest.raises(ValueError):
-        setattr(net, "schedule", ["start", "after_start"])
+        net.schedule = ["start", "after_start"]
     # net.schedule = ['before_start', 'start']
     with pytest.raises(ValueError):
-        setattr(net, "schedule", ["before_start", "start"])
+        net.schedule = ["before_start", "start"]
 
 
 @pytest.mark.codegen_independent
@@ -986,12 +986,12 @@ def test_magic_collect():
 
     objects = collect()
 
-    assert len(objects) == 6, f"expected {int(6)} objects, got {len(objects)}"
+    assert len(objects) == 6, f"expected {6} objects, got {len(objects)}"
 
 
 import sys
 from contextlib import contextmanager
-from io import BytesIO, StringIO
+from io import StringIO
 
 
 @contextmanager
@@ -1496,6 +1496,18 @@ def test_store_restore_spikequeue():
     restore()
     run(2 * defaultclock.dt)
     assert target.v[0] == 1
+
+
+@pytest.mark.codegen_independent
+def test_store_restore_delays():
+    group = NeuronGroup(5, "v:1", threshold="False")
+    syn = Synapses(group, group, on_pre="v+=1")
+    syn.connect()
+    syn.delay = np.arange(25) * 0.1 * ms
+    store()
+    syn.delay = 0 * ms
+    restore()
+    assert_array_equal(syn.delay[:], np.arange(25) * 0.1 * ms)
 
 
 @pytest.mark.skipif(
