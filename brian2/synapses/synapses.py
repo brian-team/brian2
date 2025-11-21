@@ -458,7 +458,10 @@ class SynapticPathway(CodeRunner, Group):
         # get treated as a state variable by the standard mechanism in
         # `VariableOwner`
         queue_state = state.pop("_spikequeue")
-        delay_state = state.pop("delay")
+        if "delay" in state:
+            delay_state = state.pop("delay")
+        else:  # for backwards compatibility with old stored pickle files
+            delay_state = None
         super()._restore_from_full_state(state)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
@@ -466,12 +469,12 @@ class SynapticPathway(CodeRunner, Group):
         converted_queue_state = self._convert_queue_state_if_needed(queue_state)
         self.queue._restore_from_full_state(converted_queue_state)
 
-        self.variables["delay"].resize(delay_state[1])
-        self.variables["delay"].set_value(delay_state[0])
+        if delay_state:
+            self.variables["delay"].resize(delay_state[1])
+            self.variables["delay"].set_value(delay_state[0])
+            state["delay"] = delay_state
 
-        # Put the spike queue and delay state back for future restore calls
         state["_spikequeue"] = queue_state
-        state["delay"] = delay_state
 
     def _convert_queue_state_if_needed(self, queue_state):
         """
