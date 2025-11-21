@@ -448,14 +448,17 @@ class SynapticPathway(CodeRunner, Group):
             state["_spikequeue"] = self.queue._full_state()
         else:
             state["_spikequeue"] = None
+        delay_var = self.variables["delay"]
+        state["delay"] = (np.array(delay_var.get_value(), copy=True), delay_var.size)
         return state
 
     def _restore_from_full_state(self, state):
-        # We have to handle the SpikeQueue separately from the other state
+        # We have to handle the SpikeQueue and delays separately from the other state
         # variables, so remove it from the state dictionary so that it does not
         # get treated as a state variable by the standard mechanism in
         # `VariableOwner`
         queue_state = state.pop("_spikequeue")
+        delay_state = state.pop("delay")
         super()._restore_from_full_state(state)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
@@ -463,8 +466,12 @@ class SynapticPathway(CodeRunner, Group):
         converted_queue_state = self._convert_queue_state_if_needed(queue_state)
         self.queue._restore_from_full_state(converted_queue_state)
 
-        # Put the spike queue state back for future restore calls
+        self.variables["delay"].resize(delay_state[1])
+        self.variables["delay"].set_value(delay_state[0])
+
+        # Put the spike queue and delay state back for future restore calls
         state["_spikequeue"] = queue_state
+        state["delay"] = delay_state
 
     def _convert_queue_state_if_needed(self, queue_state):
         """
