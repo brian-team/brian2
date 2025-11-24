@@ -47,7 +47,7 @@ logger = get_logger(__name__)
 
 IDENTIFIER = Word(
     f"{string.ascii_letters}_", f"{string.ascii_letters + string.digits}_"
-).setResultsName("identifier")
+).set_results_name("identifier")
 
 
 def _valid_event_name(event_name):

@@ -232,18 +232,20 @@ class ExplicitStateUpdater(StateUpdateMethod):
     #: Legal names for temporary variables
     TEMP_VAR = ~Literal("x_new") + Word(
         f"{string.ascii_letters}_", f"{string.ascii_letters + string.digits}_"
-    ).setResultsName("identifier")
+    ).set_results_name("identifier")
 
     #: A single expression
-    EXPRESSION = restOfLine.setResultsName("expression")
+    EXPRESSION = restOfLine.set_results_name("expression")
 
     #: An assignment statement
-    STATEMENT = Group(TEMP_VAR + Suppress("=") + EXPRESSION).setResultsName("statement")
+    STATEMENT = Group(TEMP_VAR + Suppress("=") + EXPRESSION).set_results_name(
+        "statement"
+    )
 
     #: The last line of a state updater description
     OUTPUT = Group(
         Suppress(Literal("x_new")) + Suppress("=") + EXPRESSION
-    ).setResultsName("output")
+    ).set_results_name("output")
 
     #: A complete state updater description
     DESCRIPTION = ZeroOrMore(STATEMENT) + OUTPUT
@@ -255,7 +257,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
         try:
             parsed = ExplicitStateUpdater.DESCRIPTION.parse_string(
-                description, parseAll=True
+                description, parse_all=True
             )
         except ParseException as p_exc:
             ex = SyntaxError("Parsing failed.")

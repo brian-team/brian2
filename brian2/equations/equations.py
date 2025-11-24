@@ -74,7 +74,7 @@ BOOLEAN = "boolean"
 # names starting with underscore should only be used internally
 IDENTIFIER = Word(
     string.ascii_letters + "_", string.ascii_letters + string.digits + "_"
-).setResultsName("identifier")
+).set_results_name("identifier")
 
 # very broad definition here, expression will be analysed by sympy anyway
 # allows for multi-line expressions, where each line can have comments
@@ -83,12 +83,12 @@ EXPRESSION = Combine(
         (CharsNotIn(":#\n") + Suppress(Optional(LineEnd()))).ignore("#" + restOfLine)
     ),
     joinString=" ",
-).setResultsName("expression")
+).set_results_name("expression")
 
 # a unit
 # very broad definition here, again. Whether this corresponds to a valid unit
 # string will be checked later
-UNIT = Word(string.ascii_letters + string.digits + "*/.- ").setResultsName("unit")
+UNIT = Word(string.ascii_letters + string.digits + "*/.- ").set_results_name("unit")
 
 # a single Flag (e.g. "const" or "event-driven")
 FLAG = Word(string.ascii_letters, string.ascii_letters + "_- " + string.digits)
@@ -96,7 +96,7 @@ FLAG = Word(string.ascii_letters, string.ascii_letters + "_- " + string.digits)
 # Flags are comma-separated and enclosed in parantheses: "(flag1, flag2)"
 FLAGS = (
     Suppress("(") + FLAG + ZeroOrMore(Suppress(",") + FLAG) + Suppress(")")
-).setResultsName("flags")
+).set_results_name("flags")
 
 ###############################################################################
 # Equations
@@ -106,20 +106,20 @@ FLAGS = (
 # x : volt (flags)
 PARAMETER_EQ = Group(
     IDENTIFIER + Suppress(":") + UNIT + Optional(FLAGS)
-).setResultsName(PARAMETER)
+).set_results_name(PARAMETER)
 
 # Static equation:
 # x = 2 * y : volt (flags)
 STATIC_EQ = Group(
     IDENTIFIER + Suppress("=") + EXPRESSION + Suppress(":") + UNIT + Optional(FLAGS)
-).setResultsName(SUBEXPRESSION)
+).set_results_name(SUBEXPRESSION)
 
 # Differential equation
 # dx/dt = -x / tau : volt
 DIFF_OP = Suppress("d") + IDENTIFIER + Suppress("/") + Suppress("dt")
 DIFF_EQ = Group(
     DIFF_OP + Suppress("=") + EXPRESSION + Suppress(":") + UNIT + Optional(FLAGS)
-).setResultsName(DIFFERENTIAL_EQUATION)
+).set_results_name(DIFFERENTIAL_EQUATION)
 
 # ignore comments
 EQUATION = (PARAMETER_EQ | STATIC_EQ | DIFF_EQ).ignore("#" + restOfLine)
@@ -384,7 +384,7 @@ def parse_string_equations(eqns):
     equations = {}
 
     try:
-        parsed = EQUATIONS.parse_string(eqns, parseAll=True)
+        parsed = EQUATIONS.parse_string(eqns, parse_all=True)
     except ParseException as p_exc:
         raise EquationError(
             "Parsing failed: \n"
