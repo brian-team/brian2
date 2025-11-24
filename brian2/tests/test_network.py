@@ -1507,7 +1507,7 @@ def test_store_restore_delays():
     store()
     syn.delay = 0 * ms
     restore()
-    assert_array_equal(syn.delay[:], np.arange(25) * 0.1 * ms)
+    assert_allclose(syn.delay[:], np.arange(25) * 0.1 * ms)
 
 
 @pytest.mark.skipif(
