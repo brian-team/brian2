@@ -158,7 +158,7 @@ def check_identifier_basic(identifier):
     # Check whether the identifier is parsed correctly -- this is always the
     # case, if the identifier results from the parsing of an equation but there
     # might be situations where the identifier is specified directly
-    parse_result = list(IDENTIFIER.scanString(identifier))
+    parse_result = list(IDENTIFIER.scan_string(identifier))
 
     # parse_result[0][0][0] refers to the matched string -- this should be the
     # full identifier, if not it is an illegal identifier like "3foo" which only
