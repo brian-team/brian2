@@ -260,12 +260,19 @@ class SynapticPathway(CodeRunner, Group):
                 n_synapses = synapses.N
             else:
                 n_synapses = 0
+            # We give the delay a unique name so that we can refer to them in synaptic
+            # contexts without ambiguity. We also add a reference with the simple
+            # "delay" name, since this is what users will use to refer to it.
             self.variables.add_dynamic_array(
-                "delay", dimensions=second.dim, size=n_synapses, constant=True
+                f"_{objname}_delay",
+                dimensions=second.dim,
+                size=n_synapses,
+                constant=True,
             )
+            self.variables.add_reference("delay", self, f"_{objname}_delay")
             # Register the object with the `SynapticIndex` object so it gets
             # automatically resized
-            synapses.register_variable(self.variables["delay"])
+            synapses.register_variable(self.variables[f"_{objname}_delay"])
         else:
             if not isinstance(delay, Quantity):
                 raise TypeError(
@@ -284,18 +291,26 @@ class SynapticPathway(CodeRunner, Group):
                 "Delay has to be specified in units of seconds but got {value}",
                 value=delay,
             )
+            # We give the delay a unique name so that we can refer to them in synaptic
+            # contexts without ambiguity. We also add a reference with the simple
+            # "delay" name, since this is what users will use to refer to it.
             # We use a "dynamic" array of constant size here because it makes
             # the generated code easier, we don't need to deal with a different
             # type for scalar and variable delays
             self.variables.add_dynamic_array(
-                "delay", dimensions=second.dim, size=1, constant=True, scalar=True
+                f"_{objname}_delay",
+                dimensions=second.dim,
+                size=1,
+                constant=True,
+                scalar=True,
             )
+            self.variables.add_reference("delay", self, f"_{objname}_delay")
             # Since this array does not grow with the number of synapses, we
             # have to resize it ourselves
-            self.variables["delay"].resize(1)
-            self.variables["delay"].set_value(delay)
+            self.variables[f"_{objname}_delay"].resize(1)
+            self.variables[f"_{objname}_delay"].set_value(delay)
 
-        self._delays = self.variables["delay"]
+        self._delays = self.variables[f"_{objname}_delay"]
 
         # Re-extract the last part of the name from the full name
         self.objname = self.name[len(synapses.name) + 1 :]
@@ -1091,6 +1106,10 @@ class Synapses(Group):
                 raise ValueError(
                     f"Cannot set the delay for pathway '{pathway}': unknown pathway."
                 )
+
+        # Add references to the delay variables with qualified names
+        for pathway in self._pathways:
+            self.variables.add_reference(f"_{pathway.objname}_delay", pathway)
 
         #: Performs numerical integration step
         self.state_updater = None
@@ -1903,11 +1922,7 @@ class Synapses(Group):
     def _add_synapses_from_arrays(self, sources, targets, n, p, namespace=None):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
-        # Filter _registered_variables to only include those owned by self (not pathways)
-        synapses_owned_variables = [
-            var for var in self._registered_variables if var.name in self.variables
-        ]
-        template_kwds["_registered_variables"] = synapses_owned_variables
+        template_kwds["_registered_variables"] = self._registered_variables
         template_kwds["N_pre_val"] = self.variables["N_pre"].get_value()
         template_kwds["N_post_val"] = self.variables["N_post"].get_value()
         template_kwds["source_offset_val"] = self.variables[
@@ -1918,7 +1933,7 @@ class Synapses(Group):
         ].get_value()
 
         for var in self._registered_variables:
-            if var.name not in needed_variables and var.name in self.variables:
+            if var.name not in needed_variables:
                 needed_variables.append(var.name)
 
         variables = Variables(self)
@@ -2084,11 +2099,7 @@ class Synapses(Group):
 
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
-        # Filter _registered_variables to only include those owned by self (not pathways)
-        synapses_owned_variables = [
-            var for var in self._registered_variables if var.name in self.variables
-        ]
-        template_kwds["_registered_variables"] = synapses_owned_variables
+        template_kwds["_registered_variables"] = self._registered_variables
         template_kwds["N_pre_val"] = self.variables["N_pre"].get_value()
         template_kwds["N_post_val"] = self.variables["N_post"].get_value()
         template_kwds["source_offset_val"] = self.variables[
@@ -2099,7 +2110,7 @@ class Synapses(Group):
         ].get_value()
 
         for var in self._registered_variables:
-            if var.name not in needed_variables and var.name in self.variables:
+            if var.name not in needed_variables:
                 needed_variables.append(var.name)
 
         template_kwds.update(parsed)
