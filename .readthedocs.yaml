@@ -11,6 +11,9 @@ build:
   tools:
     python: "3"  # latest stable CPython
   jobs:
+    post_checkout:
+      - git fetch --unshallow || true
+      - git fetch --all --tags || true
     post_install:
         - python -m pip install .
         - python -m pip install -r rtd-requirements.txt
