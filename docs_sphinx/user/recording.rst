@@ -145,7 +145,7 @@ variable values::
     In contrast to Brian 1, the values are recorded at the
     beginning of a time step and not at the end (you can set the ``when`` argument
     when creating a `StateMonitor`, details about scheduling can be
-    found here: :doc:`../advanced/scheduling`).
+    found here: :ref:`scheduling`).
 
 Recording variables at pre-defined times
 ----------------------------------------
