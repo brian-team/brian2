@@ -90,10 +90,10 @@ prefs.register_preferences(
         """,
     ),
     extra_make_args_unix=BrianPreference(
-        default=["-j"],
+        default=[f"-j{os.cpu_count()}"],
         docs="""
         Additional flags to pass to the GNU make command on Linux/OS-X.
-        Defaults to "-j" for parallel compilation.""",
+        Defaults to "-j $(CPU_COUNT)" for parallel compilation.""",
     ),
     extra_make_args_windows=BrianPreference(
         default=[],
