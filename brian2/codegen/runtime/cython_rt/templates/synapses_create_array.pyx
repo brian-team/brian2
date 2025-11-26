@@ -11,14 +11,12 @@
     cdef size_t _new_num_synapses = _old_num_synapses + _num{{sources}}
 
     # Calculate array sizes
-    cdef size_t _N_pre = {{N_pre_val}}
-    cdef size_t _N_post = {{N_post_val}}
     cdef int32_t _source_offset_val = {{source_offset_val}}
     cdef int32_t _target_offset_val = {{target_offset_val}}
 
     # Resize N_incoming/N_outgoing ( they track per-neuron counts)
-    {{_dynamic_N_incoming_ptr}}.resize(_N_post + _target_offset_val)
-    {{_dynamic_N_outgoing_ptr}}.resize(_N_pre + _source_offset_val)
+    {{_dynamic_N_incoming_ptr}}.resize({{constant_or_scalar("N_post", variables["N_post"])}} + _target_offset_val)
+    {{_dynamic_N_outgoing_ptr}}.resize({{constant_or_scalar("N_pre", variables["N_pre"])}} + _source_offset_val)
 
     # Resize the main synaptic connection arrays
     {{_dynamic__synaptic_pre_ptr}}.resize(_new_num_synapses)
