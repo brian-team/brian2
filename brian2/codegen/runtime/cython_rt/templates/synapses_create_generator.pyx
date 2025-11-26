@@ -43,14 +43,12 @@ cdef void _flush_buffer(int[:] buf,DynamicArray1DCpp[int32_t]* dynarr, int buf_l
     cdef size_t newsize
 
     # Calculate array sizes
-    cdef size_t _N_pre = {{N_pre_val}}
-    cdef size_t _N_post = {{N_post_val}}
     cdef int32_t _source_offset_val = {{source_offset_val}}
     cdef int32_t _target_offset_val = {{target_offset_val}}
 
     # Resize N_incoming/N_outgoing ( they track per-neuron counts)
-    {{_dynamic_N_incoming_ptr}}.resize(_N_post + _target_offset_val)
-    {{_dynamic_N_outgoing_ptr}}.resize(_N_pre + _source_offset_val)
+    {{_dynamic_N_incoming_ptr}}.resize({{constant_or_scalar("N_post", variables["N_post"])}} + _target_offset_val)
+    {{_dynamic_N_outgoing_ptr}}.resize({{constant_or_scalar("N_pre", variables["N_pre"])}} + _source_offset_val)
 
     # Get the potentially newly created underlying data arrays
     cdef int32_t* _N_incoming_data = {{_dynamic_N_incoming_ptr}}.get_data_ptr()
