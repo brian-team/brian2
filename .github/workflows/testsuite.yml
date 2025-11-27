@@ -79,17 +79,17 @@ jobs:
       - name: Run Benchmarks
         run: |
           cd  $GITHUB_WORKSPACE/dev && \
-          "$PYTHON_BINARY" benchmark_connect.py true && \
-          "$PYTHON_BINARY" benchmark_connect.py false && \
-          "$PYTHON_BINARY" benchmark_connect.py true && \
-          "$PYTHON_BINARY" benchmark_connect.py false && \
-          "$PYTHON_BINARY" benchmark_connect.py true && \
-          "$PYTHON_BINARY" benchmark_connect.py false && \
-          "$PYTHON_BINARY" benchmark_connect.py true && \
-          "$PYTHON_BINARY" benchmark_connect.py false && \
-          "$PYTHON_BINARY" benchmark_connect.py true && \
-          "$PYTHON_BINARY" benchmark_connect.py false && \
-          "$PYTHON_BINARY" benchmark_connect.py true && \
-          "$PYTHON_BINARY" benchmark_connect.py false
+          "$PYTHON_BINARY" benchmark_connect.py debug && \
+          "$PYTHON_BINARY" benchmark_connect.py optimize && \
+          "$PYTHON_BINARY" benchmark_connect.py debug && \
+          "$PYTHON_BINARY" benchmark_connect.py optimize && \
+          "$PYTHON_BINARY" benchmark_connect.py debug && \
+          "$PYTHON_BINARY" benchmark_connect.py optimize && \
+          "$PYTHON_BINARY" benchmark_connect.py debug && \
+          "$PYTHON_BINARY" benchmark_connect.py optimize && \
+          "$PYTHON_BINARY" benchmark_connect.py debug && \
+          "$PYTHON_BINARY" benchmark_connect.py optimize && \
+          "$PYTHON_BINARY" benchmark_connect.py debug && \
+          "$PYTHON_BINARY" benchmark_connect.py optimize
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
