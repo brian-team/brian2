@@ -81,8 +81,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Fetch tags
-        run: git fetch --tags --force origin
+      - name: Fetch tags from main respository
+        run: |
+          git remote add upstream https://github.com/brian-team/brian2 && \
+          git fetch --tags --force upstream
       - name: Install GSL
         uses: johnwason/vcpkg-action@ff71808de10afc0e3160fd079353c69ba0d7dd60 # v7.0.0
         id: vcpkg
@@ -172,8 +174,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           submodules: true
-      - name: Fetch tags
-        run: git fetch --tags --force origin
+      - name: Fetch tags from main respository
+        run: |
+          git remote add upstream https://github.com/brian-team/brian2 && \
+          git fetch --tags --force upstream
       - name: Setup Conda and Python
         uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
         with:
