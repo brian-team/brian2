@@ -3,7 +3,8 @@ import sys
 from brian2 import *
 
 prefs.codegen.target = "cython"  # just to be sure
-prefs.codegen.cpp.extra_compile_args_msvc = ["/" + sys.argv[1]]
+if sys.argv[1] == "debug":
+    prefs.codegen.cpp.msvc_debug = True
 
 clear_cache("cython")
 
