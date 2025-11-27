@@ -18,7 +18,6 @@ import sys
 import tempfile
 
 import distutils
-from distutils.ccompiler import get_default_compiler
 
 from brian2.core.preferences import BrianPreference, prefs
 from brian2.utils.filetools import ensure_directory
@@ -314,19 +313,19 @@ def get_compiler_and_args():
     """
     Returns the compiler and the extra compile args (as a list).
     """
-    if sys.platform == 'win32':
-        compiler = 'msvc'
+    if sys.platform == "win32":
+        compiler = "msvc"
         # --- NEW GSoC FEATURE ---
-        if prefs['codegen.cpp.msvc_debug']:
+        if prefs["codegen.cpp.msvc_debug"]:
             # Force /Od (No Optimization) for fast compilation
-            extra_compile_args = ['/Od', '/EHsc', '/bigobj', '/MP']
+            extra_compile_args = ["/Od", "/EHsc", "/bigobj", "/MP"]
         else:
-            extra_compile_args = prefs['codegen.cpp.extra_compile_args_msvc']
+            extra_compile_args = prefs["codegen.cpp.extra_compile_args_msvc"]
         # ------------------------
     else:
-        compiler = 'unix'
-        extra_compile_args = prefs['codegen.cpp.extra_compile_args_gcc']
-    
+        compiler = "unix"
+        extra_compile_args = prefs["codegen.cpp.extra_compile_args_gcc"]
+
     return compiler, extra_compile_args
 
 
