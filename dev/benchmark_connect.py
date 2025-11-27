@@ -2,8 +2,7 @@ import sys
 
 from brian2 import *
 
-print(sys.argv)
-
+prefs.codegen.target = "cython"  # just to be sure
 prefs.codegen.cpp.extra_compile_args_msvc = ["/" + sys.argv[1]]
 
 clear_cache("cython")
