@@ -2,7 +2,9 @@ import sys
 
 from brian2 import *
 
-prefs.codegen.cpp.extra_compile_args_msvc = [sys.argv[1]]
+print(sys.argv)
+
+prefs.codegen.cpp.extra_compile_args_msvc = ["/" + sys.argv[1]]
 
 clear_cache("cython")
 
