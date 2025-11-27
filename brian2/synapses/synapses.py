@@ -463,14 +463,20 @@ class SynapticPathway(CodeRunner, Group):
             state["_spikequeue"] = self.queue._full_state()
         else:
             state["_spikequeue"] = None
+        delay_var = self.variables["delay"]
+        state["delay"] = (np.array(delay_var.get_value(), copy=True), delay_var.size)
         return state
 
     def _restore_from_full_state(self, state):
-        # We have to handle the SpikeQueue separately from the other state
+        # We have to handle the SpikeQueue and delays separately from the other state
         # variables, so remove it from the state dictionary so that it does not
         # get treated as a state variable by the standard mechanism in
         # `VariableOwner`
         queue_state = state.pop("_spikequeue")
+        if "delay" in state:
+            delay_state = state.pop("delay")
+        else:  # for backwards compatibility with old stored pickle files
+            delay_state = None
         super()._restore_from_full_state(state)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
@@ -478,7 +484,11 @@ class SynapticPathway(CodeRunner, Group):
         converted_queue_state = self._convert_queue_state_if_needed(queue_state)
         self.queue._restore_from_full_state(converted_queue_state)
 
-        # Put the spike queue state back for future restore calls
+        if delay_state:
+            self.variables["delay"].resize(delay_state[1])
+            self.variables["delay"].set_value(delay_state[0])
+            state["delay"] = delay_state
+
         state["_spikequeue"] = queue_state
 
     def _convert_queue_state_if_needed(self, queue_state):

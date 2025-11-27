@@ -12,13 +12,13 @@ from pyparsing import (
 
 from brian2.utils.caching import cached
 
-VARIABLE = Word(f"{alphas}_", f"{alphas + nums}_").setResultsName("variable")
+VARIABLE = Word(f"{alphas}_", f"{alphas + nums}_").set_results_name("variable")
 
-OP = Regex(r"(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=").setResultsName("operation")
+OP = Regex(r"(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=").set_results_name("operation")
 EXPR = Combine(
     CharsNotIn("=", min=1, max=1) + Optional(CharsNotIn("#"))
-).setResultsName("expression")
-COMMENT = Optional(CharsNotIn("#")).setResultsName("comment")
+).set_results_name("expression")
+COMMENT = Optional(CharsNotIn("#")).set_results_name("comment")
 STATEMENT = VARIABLE + OP + EXPR + Optional(Suppress("#") + COMMENT)
 
 

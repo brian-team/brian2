@@ -9,6 +9,7 @@ import traceback
 import weakref
 
 from brian2.core.names import Nameable
+from brian2.core.preferences import prefs
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units
 from brian2.utils.logger import BrianLogger, get_logger
@@ -181,8 +182,6 @@ class BrianObject(Nameable):
     add_to_magic_network = False
 
     def __del__(self):
-        from brian2.core.preferences import prefs  # avoid circular import
-
         # For objects that get garbage collected, raise a warning if they have
         # never been part of a network
         if (
