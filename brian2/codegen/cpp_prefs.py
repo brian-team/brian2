@@ -182,6 +182,14 @@ prefs.register_preferences(
         ``/arch:`` flag is determined based on the processor architecture)
         """,
     ),
+    msvc_debug=BrianPreference(
+        default=False,
+        docs="""
+        If True, overrides MSVC compilation flags to use ``/Od`` (optimization disabled).
+        This significantly speeds up compilation times on Windows for large networks,
+        useful for debugging and development cycles.
+        """,
+    ),
     extra_link_args=BrianPreference(
         default=[],
         docs="""
@@ -304,30 +312,21 @@ def has_flag(compiler, flagname):
 
 def get_compiler_and_args():
     """
-    Returns the computed compiler and compilation flags
+    Returns the compiler and the extra compile args (as a list).
     """
-    compiler = prefs["codegen.cpp.compiler"]
-    if compiler == "":
-        compiler = get_default_compiler()
-    extra_compile_args = prefs["codegen.cpp.extra_compile_args"]
-    if extra_compile_args is None:
-        if compiler in ("gcc", "unix"):
-            extra_compile_args = prefs["codegen.cpp.extra_compile_args_gcc"]
-        elif compiler == "msvc":
-            extra_compile_args = prefs["codegen.cpp.extra_compile_args_msvc"]
+    if sys.platform == 'win32':
+        compiler = 'msvc'
+        # --- NEW GSoC FEATURE ---
+        if prefs['codegen.cpp.msvc_debug']:
+            # Force /Od (No Optimization) for fast compilation
+            extra_compile_args = ['/Od', '/EHsc', '/bigobj', '/MP']
         else:
-            extra_compile_args = []
-            logger.warn(f"Unsupported compiler '{compiler}'.")
-
-    from distutils.ccompiler import new_compiler
-    from distutils.sysconfig import customize_compiler
-
-    compiler_obj = new_compiler(compiler=compiler, verbose=0)
-    customize_compiler(compiler_obj)
-    extra_compile_args = [
-        flag for flag in extra_compile_args if has_flag(compiler_obj, flag)
-    ]
-
+            extra_compile_args = prefs['codegen.cpp.extra_compile_args_msvc']
+        # ------------------------
+    else:
+        compiler = 'unix'
+        extra_compile_args = prefs['codegen.cpp.extra_compile_args_gcc']
+    
     return compiler, extra_compile_args
 
 
