@@ -74,13 +74,13 @@
       "name": "numpy",
       "@type": "SoftwareApplication",
       "runtimePlatform": "Python 3",
-      "version": ">=1.23.5"
+      "version": ">=2.0.0"
     },
     {
       "name": "cython",
       "@type": "SoftwareApplication",
       "runtimePlatform": "Python 3",
-      "version": ">=0.29.21"
+      "version": "<3.1.4,>=0.29.21"
     },
     {
       "name": "sympy",
@@ -91,7 +91,8 @@
     {
       "name": "pyparsing",
       "@type": "SoftwareApplication",
-      "runtimePlatform": "Python 3"
+      "runtimePlatform": "Python 3",
+      "version": "!=3.2.4,>=3"
     },
     {
       "name": "jinja2",
@@ -416,8 +417,44 @@
       "givenName": "Palash",
       "familyName": "Chitnavis",
       "identifier": "https://github.com/PalashChitnavis"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Mrigesh",
+      "familyName": "Thakur",
+      "identifier": "https://github.com/Legend101Zz"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Liam",
+      "familyName": "Keegan",
+      "identifier": "https://github.com/lkeegan"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Adrian",
+      "familyName": "Bunk",
+      "identifier": "https://github.com/AdrianBunk"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Michael R.",
+      "familyName": "Crusoe",
+      "identifier": "https://github.com/mr-c"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Alina",
+      "familyName": "Rojas",
+      "identifier": "https://github.com/alinarojas"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Samuele De",
+      "familyName": "Cristofaro",
+      "identifier": "https://github.com/De-Cri"
     }
   ],
-  "version": "2.9.0",
-  "softwareVersion": "2.9.0"
+  "version": "2.10.0",
+  "softwareVersion": "2.10.0"
 }
