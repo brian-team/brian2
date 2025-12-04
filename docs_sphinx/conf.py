@@ -339,6 +339,7 @@ intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy", None),
     "sympy": ("https://docs.sympy.org/dev/", None),
 }
+intersphinx_timeout = 10
 
 autodoc_default_options = {"show-inheritance": True}
 
