@@ -1,6 +1,103 @@
 Release notes
 =============
 
+Brian 2.10.0
+------------
+New features
+~~~~~~~~~~~~
+- `PopulationRateMonitor` and `SpikeMonitor` now have a unified interface where both can provide
+  smoothed and binned firing rates with `~.RateMonitor.smooth_rate` and
+  `~.RateMonitor.binned_rate` (:issue:`1657`). Thanks to Mrigesh Thakur for implementing this
+  feature.
+- Supplementing `Group.run_regularly` (which runs code at regular intervals), there is now a
+  `Group.run_at` method to run code at specific time points. Under the hood, it uses a new
+  `EventClock`, which can also be used directly, e.g. in a `StateMonitor` to record values
+  at specific times (:issue:`1602`). Thanks to Samuele De Cristofaro for implementing this
+  feature.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- The ``run_args`` feature could lead to a `ReferenceError` in some situations (:issue:`1673`).
+  Thanks to Lucas Binder for making us aware of this issue.
+- The support for the GNU Scientific Library (GSL) was broken in C++ standalone mode
+  (:issue:`1687`), and another bug in our test suite meant that this problem stayed undetected.
+  Thanks to Maurizio De Pitta for making us aware of this issue.
+- Time measurements (for profiling and for the progress report) were adding significant overhead
+  in C++ standalone mode, and measured processor instead of wall time (:issue:`1718`).
+  Thanks to Mathias Cauwet for contributing to the understanding of this issue.
+- The ``.device.build(...clean=True)`` functionality was broken on Windows (:issue:`1721`).
+  Thanks to Daniel Müller-Komorowska for making us aware of the issue.
+- The `~.Network.store`/`~.Network.restore` mechanism did not take into account synaptic delays
+  (:issue:`1726`).
+- In C++ standalone mode, the default argument for ``make`` on Linux/macOS is no longer ``make -j``,
+  but instead uses the number of CPUs. This avoids using all system resources for big simulations,
+  trying to compile too many files in parallel (:issue:`1727`).
+- Fewer spurious "unused object" warnings (:issue:`1724`).
+- Restoring from disk now works regardless of whether the simulation used the Python or Cython
+  version of the spike queue (:issue:`1688`). Thanks to Mrigesh Thakur for contributing this fix.
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- We've switched our code-formatting and liniting used for pre-commit hooks to
+  `ruff <https://docs.astral.sh/ruff/>`_, which reduces the number of dependencies and makes
+  the pre-commit checks faster (:issue:`1712`).
+- To be in line with the major packages in the scientific Python ecosystem, we now also follow the
+  `SPEC-0 <https://scientific-python.org/specs/spec-0000/>`_ policy for minimum dependencies
+  (:issue:`1700`).
+- Various updates to out GitHub actions for testing and package building, making them more secure,
+  robust and faster due to better use of caches.
+- The Python fallback for the spike queue has been removed, the Cython version is now mandatory.
+  The underlying C++ implementation is now used directly from within the Cython code
+  (:issue:`1649`, :issue:`1643`). Thanks to Mrigesh Thakur for his work on this, as
+  part of this year's Google Summer of Code.
+- Dynamic arrays are now always using a C++ implementation, instead of having separate
+  implementations in runtime and standalone mode (:issue:`1650`). Thanks to Mrigesh Thakur for this
+  contribution.
+- Random number and SpikeQueue state are now written to disk at the end of a standalone simulation,
+  preparing a feature to continue previous simulations (:issue:`1720`).
+
+Backwards-incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Due to the removal of the Python fallback for the spike queue, and the use of a compiled
+dynamic array in runtime mode, Brian can no longer run directly from its source directory without
+installation. If you downloaded the source code (or cloned the git repository), you will therefore
+have to install the package before using it; having the ``PYTHONPATH`` point to the source directory
+is no longer sufficient. During development, you can use an
+`editable install <https://setuptools.pypa.io/en/latest/userguide/development_mode.html>`_ to avoid
+having to repeat the installation after each change. Note that this does not affect users that
+install Brian in the usual way (e.g. with ``pip`` or ``conda``). This change only concerns
+developers working on the source code directly.
+
+Contributions
+~~~~~~~~~~~~~
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Mrigesh Thakur (`@Legend101Zz <https://github.com/Legend101Zz>`_)
+* Ayush  (`@ayush4874 <https://github.com/ayush4874>`_)
+* Samuele De Cristofaro (`@De-Cri <https://github.com/De-Cri>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* `@itu-itis21-nguyen21 <https://github.com/itu-itis21-nguyen21>`_
+* Mohamed Abidalrekab (`@abidalrekab <https://github.com/abidalrekab>`_)
+* Silviya (`@silviyahasana <https://github.com/silviyahasana>`_)
+* Guy Singer (`@guy-singer <https://github.com/guy-singer>`_)
+* Liam Keegan (`@lkeegan <https://github.com/lkeegan>`_)
+* `@Peace-png <https://github.com/Peace-png>`_
+* Maurizio DE PITTA (`@mdepitta <https://github.com/mdepitta>`_)
+* Sagar Shahari (`@maverick4code <https://github.com/maverick4code>`_)
+* Simo Vanni (`@sivanni <https://github.com/sivanni>`_)
+* hillsberg (`@hillsberg3008 <https://github.com/hillsberg3008>`_)
+* Hong Zhu (`@Jasmine969 <https://github.com/Jasmine969>`_)
+* `@mahipalimkar <https://github.com/mahipalimkar>`_
+* `@wcx12306 <https://github.com/wcx12306>`_
+
+Other contributions outside of GitHub (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Mathias Cauwet (`@macauwet <https://github.com/macauwet>`_)
+* Chaitanya Chintaluri
+
 Brian 2.9.0
 -----------
 
