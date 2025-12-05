@@ -92,7 +92,7 @@
       "name": "pyparsing",
       "@type": "SoftwareApplication",
       "runtimePlatform": "Python 3",
-      "version": "!=3.2.4,>=3"
+      "version": ">=3,!=3.2.4"
     },
     {
       "name": "jinja2",
@@ -455,6 +455,6 @@
       "identifier": "https://github.com/De-Cri"
     }
   ],
-  "version": "2.10.0",
-  "softwareVersion": "2.10.0"
+  "version": "2.10.1",
+  "softwareVersion": "2.10.1"
 }
