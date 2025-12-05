@@ -1,6 +1,20 @@
 Release notes
 =============
 
+Brian 2.10.1
+------------
+This release fixes a bug, where the names of clocks in `~.Group.run_regularly` and
+`~.Group.run_at` where not necessarily unique, leading to build failures in C++ standalone mode
+(:issue:`1742`).
+
+Contributions
+~~~~~~~~~~~~~
+GitHub code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+
+
 Brian 2.10.0
 ------------
 New features
