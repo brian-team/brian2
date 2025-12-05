@@ -1,6 +1,6 @@
 {# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand, N,
-                 N_pre, N_post, _source_offset, _target_offset } #}
-{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N} #}
+                 N_incoming, N_outgoing, N_pre, N_post, _source_offset, _target_offset } #}
+{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N,  N_incoming, N_outgoing } #}
 {# ITERATE_ALL { _idx } #}
 {% extends 'common_group.pyx' %}
 
@@ -41,6 +41,18 @@ cdef void _flush_buffer(int[:] buf,DynamicArray1DCpp[int32_t]* dynarr, int buf_l
 
     cdef size_t oldsize = {{_dynamic__synaptic_pre_ptr}}.size()
     cdef size_t newsize
+
+    # Calculate array sizes
+    cdef int32_t _source_offset_val = {{source_offset_val}}
+    cdef int32_t _target_offset_val = {{target_offset_val}}
+
+    # Resize N_incoming/N_outgoing ( they track per-neuron counts)
+    {{_dynamic_N_incoming_ptr}}.resize({{constant_or_scalar("N_post", variables["N_post"])}} + _target_offset_val)
+    {{_dynamic_N_outgoing_ptr}}.resize({{constant_or_scalar("N_pre", variables["N_pre"])}} + _source_offset_val)
+
+    # Get the potentially newly created underlying data arrays
+    cdef int32_t* _N_incoming_data = {{_dynamic_N_incoming_ptr}}.get_data_ptr()
+    cdef int32_t* _N_outgoing_data = {{_dynamic_N_outgoing_ptr}}.get_data_ptr()
 
     # The following variables are only used for probabilistic connections
     {% if iterator_func=='sample' %}
@@ -214,11 +226,42 @@ cdef void _flush_buffer(int[:] buf,DynamicArray1DCpp[int32_t]* dynarr, int buf_l
     _curbuf = 0  # reset the buffer for the next run
 
     newsize = {{_dynamic__synaptic_pre_ptr}}.size()
+
+    # We need to iterate through the newly added synapses and update counts
+    cdef int32_t* _synaptic_pre_data = {{_dynamic__synaptic_pre_ptr}}.get_data_ptr()
+    cdef int32_t* _synaptic_post_data = {{_dynamic__synaptic_post_ptr}}.get_data_ptr()
+
+    for _idx in range(oldsize, newsize):
+        _N_outgoing_data[_synaptic_pre_data[_idx]] += 1
+        _N_incoming_data[_synaptic_post_data[_idx]] += 1
+
     # now we need to resize all registered variables and set the total number
-    # of synapse (via Python)
-    _owner._resize(newsize)
+    # of synapses without python indirection
+    {% for varname in _registered_variables | variables_to_array_names(access_data=False) | sort %}
+    {{varname}}_ptr.resize(newsize)
+    {% endfor %}
+    # Update the total number of synapses
+    {{N}} = newsize
 
     # And update N_incoming, N_outgoing and synapse_number
-    _owner._update_synapse_numbers(oldsize)
+    {% if multisynaptic_index %}
+    # Handle multisynaptic index - this requires iteration over all synapses
+    # to count how many times each (source, target) pair appears
 
+    cdef dict _source_target_count = {} # Dictionary to track (source, target) pairs
+    cdef int32_t _pre_idx_2 , _post_idx_2
+    cdef tuple _pair
+    cdef int32_t _count
+    cdef int32_t* _synapse_number_data = {{get_array_name(variables[multisynaptic_index], access_data=False)}}_ptr.get_data_ptr()
+
+    for _idx in range(newsize):
+        _pre_idx_2 = _synaptic_pre_data[_idx]
+        _post_idx_2 = _synaptic_post_data[_idx]
+        _pair = (_pre_idx_2, _post_idx_2)
+
+        _count = _source_target_count.get(_pair,0)
+        _synapse_number_data[_idx] = _count
+        _source_target_count[_pair] = _count + 1
+
+    {% endif %}
 {% endblock %}
