@@ -1803,7 +1803,8 @@ def test_small_runs():
     assert_allclose(mon_1.v_[:], mon_2.v_[:])
 
 
-@pytest.mark.codegen_independent
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_both_equal():
     # check all objects added by Network.add() also have their contained_objects added to 'Network'
     tau = 10 * ms
@@ -1821,6 +1822,8 @@ def test_both_equal():
     M2 = StateMonitor(Ng, "v", record=True)
     Ng.run_regularly(chg_code, dt=20 * ms)
     run(100 * ms)
+
+    device.build(direct_call=False, **device.build_options)
 
     assert (M1.v == M2.v).all()
 

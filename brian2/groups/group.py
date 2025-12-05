@@ -1178,7 +1178,7 @@ class Group(VariableOwner, BrianObject):
         if dt is None and clock is None:
             clock = self._clock
         elif clock is None:
-            clock = Clock(dt=dt)
+            clock = Clock(dt=dt, name=f"{name}_clock*")
 
         return self.run_on_clock(code, clock, when, order, name, codeobj_class)
 
@@ -1295,7 +1295,7 @@ class Group(VariableOwner, BrianObject):
             name = find_name(f"{self.name}_run_at*", names)
         from brian2.core.clocks import EventClock
 
-        clock = EventClock(times)
+        clock = EventClock(times, name=f"{name}_eventclock*")
         return self.run_on_clock(code, clock, when, order, name, codeobj_class)
 
     def _check_for_invalid_states(self):
