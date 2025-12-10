@@ -17,7 +17,7 @@ from brian2.core.base import device_override, weakproxy_with_fallback
 from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import DynamicArrayVariable, Variables
-from brian2.devices.device import get_device
+from brian2.devices.device import device, get_device
 from brian2.equations.equations import (
     DIFFERENTIAL_EQUATION,
     PARAMETER,
@@ -2018,10 +2018,11 @@ class Synapses(Group):
             abstract_code,
             "synapses_create_array",
             additional_variables=variables,
-            template_kwds=template_kwds,
-            needed_variables=needed_variables,
             check_units=False,
-            run_namespace={},
+            run_namespace=namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.synapse_connect_target"
+            ),
         )
         codeobj()
 
@@ -2254,6 +2255,9 @@ class Synapses(Group):
             needed_variables=needed_variables,
             check_units=False,
             run_namespace=namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.synapse_connect_target"
+            ),
         )
         codeobj()
 
