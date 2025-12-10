@@ -11,6 +11,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 
 import numpy as np
 
+from brian2.devices.device import device
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.codegen.translation import get_identifiers_recursively
 from brian2.core.base import device_override, weakproxy_with_fallback
@@ -1988,10 +1989,11 @@ class Synapses(Group):
             abstract_code,
             "synapses_create_array",
             additional_variables=variables,
-            template_kwds=template_kwds,
-            needed_variables=needed_variables,
             check_units=False,
-            run_namespace={},
+            run_namespace=namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.synapse_connect_target"
+            ),
         )
         codeobj()
 
@@ -2198,6 +2200,9 @@ class Synapses(Group):
             needed_variables=needed_variables,
             check_units=False,
             run_namespace=namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.synapse_connect_target"
+            ),
         )
         codeobj()
 
