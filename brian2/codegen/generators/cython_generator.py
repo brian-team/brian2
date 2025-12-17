@@ -555,30 +555,40 @@ DEFAULT_FUNCTIONS["exprel"].implementations.add_implementation(
     name="_exprel",
     availability_check=C99Check("exprel"),
 )
-_BUFFER_SIZE = 20000
+
+# ==============================================================================
+# Random Number Generation
+# ==============================================================================
+# We use the C++ RandomGenerator class (from randomgenerator.h) to ensure
+# identical random sequences between Cython runtime and C++ standalone modes.
+# The RandomGenerator is instantiated once per code object and seeded via
+# the namespace mechanism.
 
 rand_code = """
-cdef double _rand(int _idx):
-    cdef double **buffer_pointer = <double**>_namespace_rand_buffer
-    cdef double *buffer = buffer_pointer[0]
-    cdef _numpy.ndarray _new_rand
+# Module-level RandomGenerator instance
+# This will be created once when the module is first imported
+cdef RandomGenerator* _brian_random_generator = new RandomGenerator()
 
-    if(_namespace_rand_buffer_index[0] == 0):
-        if buffer != NULL:
-            free(buffer)
-        _new_rand = _numpy.random.rand(_BUFFER_SIZE)
-        buffer = <double *>_numpy.PyArray_DATA(_new_rand)
-        PyArray_CLEARFLAGS(<_numpy.PyArrayObject*>_new_rand, _numpy.NPY_ARRAY_OWNDATA)
-        buffer_pointer[0] = buffer
+cdef double _rand(int _idx) nogil:
+    return _brian_random_generator.rand()
 
-    cdef double val = buffer[_namespace_rand_buffer_index[0]]
-    _namespace_rand_buffer_index[0] += 1
-    if _namespace_rand_buffer_index[0] == _BUFFER_SIZE:
-        _namespace_rand_buffer_index[0] = 0
-    return val
-""".replace("_BUFFER_SIZE", str(_BUFFER_SIZE))
+def _seed_random_generator(seed=None):
+    '''Seed the random generator. Called from Python.'''
+    global _brian_random_generator
+    if seed is None:
+        _brian_random_generator.seed()
+    else:
+        _brian_random_generator.seed(<unsigned long>seed)
 
-randn_code = rand_code.replace("rand", "randn").replace("randnom", "random")
+def _get_random_generator_ptr():
+    '''Return the address of the random generator for state management.'''
+    return <uintptr_t>_brian_random_generator
+"""
+
+randn_code = """
+cdef double _randn(int _idx) nogil:
+    return _brian_random_generator.randn()
+"""
 
 poisson_code = """
 cdef double _loggam(double x):
@@ -665,20 +675,14 @@ DEFAULT_FUNCTIONS["rand"].implementations.add_implementation(
     CythonCodeGenerator,
     code=rand_code,
     name="_rand",
-    namespace={
-        "_rand_buffer": device.rand_buffer,
-        "_rand_buffer_index": device.rand_buffer_index,
-    },
+    namespace={},
 )
 
 DEFAULT_FUNCTIONS["randn"].implementations.add_implementation(
     CythonCodeGenerator,
     code=randn_code,
     name="_randn",
-    namespace={
-        "_randn_buffer": device.randn_buffer,
-        "_randn_buffer_index": device.randn_buffer_index,
-    },
+    namespace={},
 )
 DEFAULT_FUNCTIONS["poisson"].implementations.add_implementation(
     CythonCodeGenerator,
