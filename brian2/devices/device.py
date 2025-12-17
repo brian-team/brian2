@@ -479,23 +479,24 @@ class RuntimeDevice(Device):
         #: objects). Arrays in this dictionary will disappear as soon as the
         #: last reference to the `Variable` object used as a key is gone
         self.arrays = WeakKeyDictionary()
-        # Note that the buffers only store a pointer to the actual random
-        # numbers -- the buffer will be filled in Cython code
-        self.randn_buffer = np.zeros(1, dtype=np.intp)
-        self.rand_buffer = np.zeros(1, dtype=np.intp)
-        self.randn_buffer_index = np.zeros(1, dtype=np.int32)
-        self.rand_buffer_index = np.zeros(1, dtype=np.int32)
+        # Store the seed value for seeding newly compiled code object
+        self._seed_value = None
+        # Track compiled modules that have been seeded
+        self._seeded_modules = WeakKeyDictionary()
 
     def __getstate__(self):
         state = dict(self.__dict__)
         # Python's pickle module cannot pickle a WeakKeyDictionary, we therefore
         # convert it to a standard dictionary
         state["arrays"] = dict(self.arrays)
+        # Don't try to pickle the seeded modules
+        state["_seeded_modules"] = {}
         return state
 
     def __setstate__(self, state):
         self.__dict__ = state
         self.__dict__["arrays"] = WeakKeyDictionary(self.__dict__["arrays"])
+        self.__dict__["_seeded_modules"] = WeakKeyDictionary()
 
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
@@ -594,25 +595,37 @@ class RuntimeDevice(Device):
             The seed value for the random number generator, or ``None`` (the
             default) to set a random seed.
         """
+        # Store the seed value - it will be used to seed any RandomGenerator
+        # instances in compiled Cython code
+        self._seed_value = seed
+        # Also seed numpy for any code that might still use it directly
         np.random.seed(seed)
-        self.rand_buffer_index[:] = 0
-        self.randn_buffer_index[:] = 0
+        # Clear the seeded modules so they get re-seeded on next use
+        self._seeded_modules = WeakKeyDictionary()
 
     def get_random_state(self):
+        """
+        Return a representation of the current random number generator state.
+
+        Note: With the RandomGenerator, full state restoration requires
+        access to the compiled modules. This method returns what can be saved,
+        but full restoration may not be possible if modules have been recompiled.
+        """
         return {
             "numpy_state": np.random.get_state(),
-            "rand_buffer_index": np.array(self.rand_buffer_index),
-            "rand_buffer": np.array(self.rand_buffer),
-            "randn_buffer_index": np.array(self.randn_buffer_index),
-            "randn_buffer": np.array(self.randn_buffer),
+            "seed_value": self._seed_value,
         }
 
     def set_random_state(self, state):
+        """
+        Reset the random number generator state to a previously stored state.
+
+        Note: This restores the seed value and numpy state. The actual
+        RandomGenerator states in compiled modules may not be fully restorable.
+        """
         np.random.set_state(state["numpy_state"])
-        self.rand_buffer_index[:] = state["rand_buffer_index"]
-        self.rand_buffer[:] = state["rand_buffer"]
-        self.randn_buffer_index[:] = state["randn_buffer_index"]
-        self.randn_buffer[:] = state["randn_buffer"]
+        self._seed_value = state.get("seed_value")
+        self._seeded_modules = WeakKeyDictionary()
 
 
 class Dummy:
