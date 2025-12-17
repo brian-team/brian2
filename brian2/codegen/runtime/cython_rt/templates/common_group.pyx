@@ -69,6 +69,15 @@ cdef extern from "dynamic_array.h":
         size_t rows()
         size_t cols()
         size_t stride()
+
+# RandomGenerator C++ interface declaration for random number generation
+cdef extern from "randomgenerator.h":
+    cdef cppclass RandomGenerator:
+        RandomGenerator() except +
+        void seed() except +
+        void seed(unsigned long) except +
+        double rand() nogil
+        double randn() nogil
 {% endmacro %}
 
 {% macro before_run() %}
