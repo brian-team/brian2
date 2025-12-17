@@ -17,6 +17,7 @@ cdef extern from "math.h":
 from libc.stdlib cimport abs  # For integers
 from libc.math cimport abs  # For floating point values
 from libc.limits cimport INT_MIN, INT_MAX
+from libc.stdint cimport uintptr_t
 from libcpp cimport bool
 from libcpp.set cimport set
 from cython.operator cimport dereference as _deref, preincrement as _preinc
@@ -78,6 +79,7 @@ cdef extern from "randomgenerator.h":
         void seed(unsigned long) except +
         double rand() nogil
         double randn() nogil
+
 {% endmacro %}
 
 {% macro before_run() %}
