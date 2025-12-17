@@ -482,7 +482,7 @@ class RuntimeDevice(Device):
         # Store the seed value for seeding newly compiled code object
         self._seed_value = None
         # Track compiled modules that have been seeded
-        self._seeded_modules = WeakKeyDictionary()
+        self._seeded_modules = {}
 
     def __getstate__(self):
         state = dict(self.__dict__)
@@ -496,7 +496,7 @@ class RuntimeDevice(Device):
     def __setstate__(self, state):
         self.__dict__ = state
         self.__dict__["arrays"] = WeakKeyDictionary(self.__dict__["arrays"])
-        self.__dict__["_seeded_modules"] = WeakKeyDictionary()
+        self.__dict__["_seeded_modules"] = {}
 
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
@@ -601,7 +601,7 @@ class RuntimeDevice(Device):
         # Also seed numpy for any code that might still use it directly
         np.random.seed(seed)
         # Clear the seeded modules so they get re-seeded on next use
-        self._seeded_modules = WeakKeyDictionary()
+        self._seeded_modules = {}
 
     def get_random_state(self):
         """
@@ -625,7 +625,7 @@ class RuntimeDevice(Device):
         """
         np.random.set_state(state["numpy_state"])
         self._seed_value = state.get("seed_value")
-        self._seeded_modules = WeakKeyDictionary()
+        self._seeded_modules = {}
 
 
 class Dummy:
