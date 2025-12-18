@@ -2013,18 +2013,6 @@ class Synapses(Group):
             f"'{self.target.name}', using pre-defined arrays)"
         )
 
-        needed_variables.extend(
-            [
-                "N_incoming",
-                "N_outgoing",
-                "N",
-                "N_pre",
-                "N_post",
-                "_source_offset",
-                "_target_offset",
-            ]
-        )
-
         codeobj = create_runner_codeobj(
             self,
             abstract_code,
@@ -2254,18 +2242,6 @@ class Synapses(Group):
             f"Creating synapses from group '{self.source.name}' to group "
             f"'{self.target.name}', using generator "
             f"'{parsed['original_expression']}'"
-        )
-
-        needed_variables.extend(
-            [
-                "N_incoming",
-                "N_outgoing",
-                "N",
-                "N_pre",
-                "N_post",
-                "_source_offset",
-                "_target_offset",
-            ]
         )
 
         codeobj = create_runner_codeobj(
