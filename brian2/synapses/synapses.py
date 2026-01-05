@@ -11,14 +11,13 @@ from collections.abc import Mapping, MutableMapping, Sequence
 
 import numpy as np
 
-from brian2.devices.device import device
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.codegen.translation import get_identifiers_recursively
 from brian2.core.base import device_override, weakproxy_with_fallback
 from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import DynamicArrayVariable, Variables
-from brian2.devices.device import get_device
+from brian2.devices.device import device, get_device
 from brian2.equations.equations import (
     DIFFERENTIAL_EQUATION,
     PARAMETER,
