@@ -2018,6 +2018,8 @@ class Synapses(Group):
             abstract_code,
             "synapses_create_array",
             additional_variables=variables,
+            template_kwds=template_kwds,
+            needed_variables=needed_variables,
             check_units=False,
             run_namespace=namespace,
             codeobj_class=device.code_object_class(
