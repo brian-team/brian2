@@ -46,6 +46,21 @@ prefs.register_preferences(
         validator=lambda target: isinstance(target, str)
         or issubclass(target, CodeObject),
     ),
+    synapse_connect_target=BrianPreference(
+        default=None,
+        docs="""
+        Default target for the code generation of synaptic connections.
+
+        Should normally be left as ``None`` (using the default code generation
+        target), but can be set to ``'numpy'`` to avoid the overhead of C++
+        compilation for synaptic connections.
+
+        Accepts the same arguments as `codegen.target`, except for ``'auto'``.
+        """,
+        validator=lambda target: target is None
+        or isinstance(target, str)
+        or issubclass(target, CodeObject),
+    ),
     loop_invariant_optimisations=BrianPreference(
         default=True,
         docs="""
