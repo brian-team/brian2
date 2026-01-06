@@ -107,7 +107,7 @@ code generation mechanism provides (in addition to not being able to use
 +    def single_threshold(v):                                             |    @check_units(v=volt, result=bool)                            |
 +        # Only let a single neuron spike                                 |    def single_threshold(v):                                     |
 +        crossed_threshold = np.nonzero(v > -50*mV)[0]                    |        pass # ... (identical to Brian 1)                        |
-+        should_spike = np.zeros(len(P), dtype=np.bool)                   |                                                                 |
++        should_spike = np.zeros(len(P), dtype=bool)                   |                                                                 |
 +        if len(crossed_threshold):                                       |    @check_units(spikes=1, result=1)                             |
 +            choose = np.random.randint(len(crossed_threshold))           |    def global_reset(spikes):                                    |
 +            should_spike[crossed_threshold[choose]] = True               |        # Reset everything                                       |
