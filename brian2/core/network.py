@@ -1191,24 +1191,30 @@ class Network(Nameable):
         active_objects = [obj for obj in all_objects if obj.active]
 
         Network._globally_running = True
-        while running and not self._stopped and not Network._globally_stopped:
-            if not single_clock:
-                timestep, t = self._clock_variables[clock]
-            # update the network time to this clock's time
-            self.t_ = t[0]
-            if report is not None:
-                current = time.time()
-                if current > next_report_time:
-                    report_callback(
-                        (current - start_time) * second,
-                        (self.t_ - float(t_start)) / float(t_end - t_start),
-                        t_start,
-                        duration,
-                    )
-                    next_report_time = current + report_period
+        
+        if single_clock:
+            advance = clock.advance
+            max_cpu_time = None
+            if device._maximum_run_time is not None:
+                max_cpu_time = float(device._maximum_run_time)
 
-            # update the objects and tick forward the clock(s)
-            if single_clock:
+            step = int(timestep[0])
+            end_step = int(clock._i_end)
+
+            while step < end_step and not self._stopped and not Network._globally_stopped:
+                self.t_ = t[0]
+
+                if report is not None:
+                    current = time.time()
+                    if current > next_report_time:
+                        report_callback(
+                            (current - start_time) * second,
+                            (self.t_ - float(t_start)) / float(t_end - t_start),
+                            t_start,
+                            duration,
+                        )
+                        next_report_time = current + report_period
+
                 if profile:
                     for obj in active_objects:
                         obj_time = time.time()
@@ -1218,9 +1224,30 @@ class Network(Nameable):
                     for obj in active_objects:
                         obj.run()
 
-                clock.advance()
+                advance()
+                step += 1
 
-            else:
+                if max_cpu_time is not None and (time.time() - start_time > max_cpu_time):
+                    self._stopped = True
+
+            running = step < end_step
+
+        else:
+            while running and not self._stopped and not Network._globally_stopped:
+                timestep, t = self._clock_variables[clock]
+                self.t_ = t[0]
+
+                if report is not None:
+                    current = time.time()
+                    if current > next_report_time:
+                        report_callback(
+                            (current - start_time) * second,
+                            (self.t_ - float(t_start)) / float(t_end - t_start),
+                            t_start,
+                            duration,
+                        )
+                        next_report_time = current + report_period
+
                 if profile:
                     for obj in active_objects:
                         if obj._clock in curclocks:
@@ -1234,20 +1261,17 @@ class Network(Nameable):
 
                 for c in curclocks:
                     c.advance()
-                # find the next clocks to be updated. The < operator for Clock
-                # determines that the first clock to be updated should be the one
-                # with the smallest t value, unless there are several with the
-                # same t value in which case we update all of them
+
                 clock, curclocks = self._nextclocks()
                 timestep, t = self._clock_variables[clock]
 
-            if (
-                device._maximum_run_time is not None
-                and time.time() - start_time > float(device._maximum_run_time)
-            ):
-                self._stopped = True
-            else:
-                running = timestep[0] < clock._i_end
+                if (
+                    device._maximum_run_time is not None
+                    and time.time() - start_time > float(device._maximum_run_time)
+                ):
+                    self._stopped = True
+                else:
+                    running = timestep[0] < clock._i_end
 
         end_time = time.time()
         Network._globally_running = False
