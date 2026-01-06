@@ -1191,7 +1191,6 @@ class Network(Nameable):
         active_objects = [obj for obj in all_objects if obj.active]
 
         Network._globally_running = True
-        
         if single_clock:
             advance = clock.advance
             max_cpu_time = None
