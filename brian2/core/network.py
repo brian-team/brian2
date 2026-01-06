@@ -1201,7 +1201,9 @@ class Network(Nameable):
             step = int(timestep[0])
             end_step = int(clock._i_end)
 
-            while step < end_step and not self._stopped and not Network._globally_stopped:
+            while (
+                step < end_step and not self._stopped and not Network._globally_stopped
+            ):
                 self.t_ = t[0]
 
                 if report is not None:
@@ -1227,7 +1229,9 @@ class Network(Nameable):
                 advance()
                 step += 1
 
-                if max_cpu_time is not None and (time.time() - start_time > max_cpu_time):
+                if max_cpu_time is not None and (
+                    time.time() - start_time > max_cpu_time
+                ):
                     self._stopped = True
 
             running = step < end_step
