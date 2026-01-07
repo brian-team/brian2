@@ -195,6 +195,8 @@ class CythonCodeObject(NumpyCodeObject):
     def run_block(self, block):
         compiled_code = self.compiled_code[block]
         if compiled_code:
+            # Seed the random generator if this module uses it
+            self._seed_if_needed(compiled_code)
             try:
                 return compiled_code.main(self.namespace)
             except Exception as exc:
@@ -212,6 +214,28 @@ class CythonCodeObject(NumpyCodeObject):
         if impl.dependencies is not None:
             for dep in impl.dependencies.values():
                 self._insert_func_namespace(dep)
+
+    def _seed_if_needed(self, compiled_code):
+        """Seed the random generator in the compiled module if needed."""
+        from brian2.devices.device import get_device
+
+        device = get_device()
+
+        # Check if this module has the seeding function and hasn't been seeded yet
+        if hasattr(compiled_code, "_seed_random_generator"):
+            # Use id()  to track which modules have been seeded
+            # with the current seed value
+            module_id = id(compiled_code)
+            seed_value = device._seed_value
+
+            # Check if we need to seed (new module or seed changed)
+            if not hasattr(device, "_seeded_modules"):
+                device._seeded_modules = {}
+
+            current_seed_marker = (seed_value, id(device))
+            if device._seeded_modules.get(module_id) != current_seed_marker:
+                compiled_code._seed_random_generator(seed_value)
+                device._seeded_modules[module_id] = current_seed_marker
 
     def variables_to_namespace(self):
         # Variables can refer to values that are either constant (e.g. dt)
