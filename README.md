@@ -64,7 +64,7 @@ For full functionality, you might also want to install:
 
 To build the documentation:
 
-* Sphinx >=7
+* Sphinx >=7,<9
 * ipython >=5
 * sphinx-tabs
 

@@ -34,7 +34,7 @@ license-files = ["LICENSE", "AUTHORS", "CONTRIBUTORS"]
 
 [project.optional-dependencies]
 test = ['pytest>=8', 'pytest-xdist>=1.22.3', 'pytest-cov>=2.0', 'pytest-timeout']
-docs = ['sphinx>=7', 'ipython>=5', 'sphinx-tabs']
+docs = ['sphinx>=7,<9', 'ipython>=5', 'sphinx-tabs']
 
 [project.urls]
 Homepage = 'https://briansimulator.org'
