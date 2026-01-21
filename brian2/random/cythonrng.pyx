@@ -14,7 +14,7 @@ by all generated Cython code. This ensures:
 
 from libcpp.string cimport string
 
-cdef extern from "randomgenerator.h"
+cdef extern from "randomgenerator.h":
     cdef cppclass RandomGenerator:
         Randomgenerator() except +
         void seed() except +
