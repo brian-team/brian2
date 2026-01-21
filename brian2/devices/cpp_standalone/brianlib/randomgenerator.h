@@ -1,9 +1,12 @@
 #ifndef _BRIAN_RANDOMGENERATOR_H
 #define _BRIAN_RANDOMGENERATOR_H
 
+#include <ostream>
 #include <random>
 #include <cmath>
 #include <iostream>
+#include <sstream>
+#include <string>
 
 /**
  * @brief Random number generator class that provides reproducible
@@ -108,6 +111,28 @@ public:
         }
     }
 
+    /**
+     * @brief Get the complete internal state as a string
+     *
+     * This captures the MT19937 state plus the Box-Muller cache,
+     * allowing exact restoration of the generator state.
+     */
+     std::string get_state() const {
+         std::ostringstream oss;
+         oss << gen << " " << stored_gauss << " " << has_stored_gauss;
+         return oss.str();
+     }
+
+     /**
+      * @brief Set the complete internal state from a string.
+      *
+      * Restores the exact state previously captured by get_state().
+      */
+      void set_state(const std::string& state){
+          std::istringstream iss(state);
+          iss >> gen >> stored_gauss >> has_stored_gauss;
+      }
+
     // Allow exporting/setting the internal state of the random generator
     friend std::ostream &operator<<(std::ostream &out, const RandomGenerator &rng);
     friend std::istream &operator>>(std::istream &in, RandomGenerator &rng);
@@ -118,7 +143,7 @@ public:
  */
 inline std::ostream &operator<<(std::ostream &out, const RandomGenerator &rng)
 {
-    return out << rng.gen;
+    return out << rng.gen << " " << rng.stored_gauss << " " << rng.has_stored_gauss;
 }
 
 /**
@@ -126,7 +151,7 @@ inline std::ostream &operator<<(std::ostream &out, const RandomGenerator &rng)
  */
 inline std::istream &operator>>(std::istream &in, RandomGenerator &rng)
 {
-    return in >> rng.gen;
+    return in >> rng.gen >> rng.stored_gauss >> rng.has_stored_gauss;
 }
 
 #endif // _BRIAN_RANDOMGENERATOR_H
