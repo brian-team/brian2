@@ -479,24 +479,17 @@ class RuntimeDevice(Device):
         #: objects). Arrays in this dictionary will disappear as soon as the
         #: last reference to the `Variable` object used as a key is gone
         self.arrays = WeakKeyDictionary()
-        # Store the seed value for seeding newly compiled code object
-        self._seed_value = None
-        # Track compiled modules that have been seeded
-        self._seeded_modules = {}
 
     def __getstate__(self):
         state = dict(self.__dict__)
         # Python's pickle module cannot pickle a WeakKeyDictionary, we therefore
         # convert it to a standard dictionary
         state["arrays"] = dict(self.arrays)
-        # Don't try to pickle the seeded modules
-        state["_seeded_modules"] = {}
         return state
 
     def __setstate__(self, state):
         self.__dict__ = state
         self.__dict__["arrays"] = WeakKeyDictionary(self.__dict__["arrays"])
-        self.__dict__["_seeded_modules"] = {}
 
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
@@ -595,37 +588,52 @@ class RuntimeDevice(Device):
             The seed value for the random number generator, or ``None`` (the
             default) to set a random seed.
         """
-        # Store the seed value - it will be used to seed any RandomGenerator
-        # instances in compiled Cython code
-        self._seed_value = seed
-        # Also seed numpy for any code that might still use it directly
+        # Seed the global Cython RandomGenerator
+        from brian2.codegen.runtime.cython_rt.cythonrng import seed as rng_seed
+
+        rng_seed(seed)
+
+        # Also seed numpy for any code that might use it directly
         np.random.seed(seed)
-        # Clear the seeded modules so they get re-seeded on next use
-        self._seeded_modules = {}
 
     def get_random_state(self):
         """
         Return a representation of the current random number generator state.
 
-        Note: With the RandomGenerator, full state restoration requires
-        access to the compiled modules. This method returns what can be saved,
-        but full restoration may not be possible if modules have been recompiled.
+        This captures the exact internal state of the RandomGenerator,
+        allowing precise restoration to this point in the random sequence.
+
+        Returns
+        -------
+        dict
+            A dictionary containing:
+            - 'rng_state': The internal state of the RandomGenerator
+            - 'numpy_state': The state of NumPy's random generator
         """
+        from brian2.codegen.runtime.cython_rt.cythonrng import (
+            get_state as rng_get_state,
+        )
+
         return {
+            "rng_state": rng_get_state(),
             "numpy_state": np.random.get_state(),
-            "seed_value": self._seed_value,
         }
 
     def set_random_state(self, state):
         """
-        Reset the random number generator state to a previously stored state.
+        Restore the random number generator to a previously saved state.
 
-        Note: This restores the seed value and numpy state. The actual
-        RandomGenerator states in compiled modules may not be fully restorable.
+        Parameters
+        ----------
+        state : dict
+            A state dictionary previously returned by get_random_state().
         """
+        from brian2.codegen.runtime.cython_rt.cythonrng import (
+            set_state as rng_set_state,
+        )
+
+        rng_set_state(state["rng_state"])
         np.random.set_state(state["numpy_state"])
-        self._seed_value = state.get("seed_value")
-        self._seeded_modules = {}
 
 
 class Dummy:

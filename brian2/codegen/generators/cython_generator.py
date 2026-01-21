@@ -559,36 +559,20 @@ DEFAULT_FUNCTIONS["exprel"].implementations.add_implementation(
 # ==============================================================================
 # Random Number Generation
 # ==============================================================================
-# We use the C++ RandomGenerator class (from randomgenerator.h) to ensure
-# identical random sequences between Cython runtime and C++ standalone modes.
-# The RandomGenerator is instantiated once per code object and seeded via
-# the namespace mechanism.
+# We use a pre-compiled global RandomGenerator via cythonrng module.
+# This ensures:
+# 1. All code objects share the same RNG (like C++ standalone)
+# 2. Proper state save/restore is possible
+# 3. Identical sequences between Cython and C++ standalone backends
 
 rand_code = """
-# Module-level RandomGenerator instance
-# This will be created once when the module is first imported
-cdef RandomGenerator* _brian_random_generator = new RandomGenerator()
-
-cdef double _rand(int _idx) nogil:
-    return _brian_random_generator.rand()
-
-def _seed_random_generator(seed=None):
-    '''Seed the random generator. Called from Python.'''
-    global _brian_random_generator
-    if seed is None:
-        _brian_random_generator.seed()
-    else:
-        _brian_random_generator.seed(<unsigned long>seed)
-
-def _get_random_generator_ptr():
-    '''Return the address of the random generator for state management.'''
-    return <uintptr_t>_brian_random_generator
+# Import the global random number generator functions
+from brian2.codegen.runtime.cython_rt.cythonrng cimport _rand, _randn
 """
 
-randn_code = """
-cdef double _randn(int _idx) nogil:
-    return _brian_random_generator.randn()
-"""
+# randn is included in the same import, but we keep a separate code string
+# for the dependency system
+randn_code = ""  # Already imported via rand_code
 
 poisson_code = """
 cdef double _loggam(double x):

@@ -195,8 +195,6 @@ class CythonCodeObject(NumpyCodeObject):
     def run_block(self, block):
         compiled_code = self.compiled_code[block]
         if compiled_code:
-            # Seed the random generator if this module uses it
-            self._seed_if_needed(compiled_code)
             try:
                 return compiled_code.main(self.namespace)
             except Exception as exc:
