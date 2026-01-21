@@ -567,7 +567,7 @@ DEFAULT_FUNCTIONS["exprel"].implementations.add_implementation(
 
 rand_code = """
 # Import the global random number generator functions
-from brian2.codegen.runtime.cython_rt.cythonrng cimport _rand, _randn
+from brian2.random.cythonrng cimport _rand, _randn
 """
 
 # randn is included in the same import, but we keep a separate code string

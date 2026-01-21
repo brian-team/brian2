@@ -59,4 +59,12 @@ rng_ext = require_cython_extension(
 extensions.append(rng_ext)
 
 
-setup(ext_modules=extensions)
+setup(
+    ext_modules=extensions,
+    #  Include .pxd files so they get installed
+    package_data={
+        'brian2.random': ['*.pxd'],
+    },
+    # Make sure package data is included
+    include_package_data=True,
+)

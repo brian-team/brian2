@@ -589,7 +589,7 @@ class RuntimeDevice(Device):
             default) to set a random seed.
         """
         # Seed the global Cython RandomGenerator
-        from brian2.codegen.runtime.cython_rt.cythonrng import seed as rng_seed
+        from brian2.random.cythonrng import seed as rng_seed
 
         rng_seed(seed)
 
@@ -610,7 +610,7 @@ class RuntimeDevice(Device):
             - 'rng_state': The internal state of the RandomGenerator
             - 'numpy_state': The state of NumPy's random generator
         """
-        from brian2.codegen.runtime.cython_rt.cythonrng import (
+        from brian2.random.cythonrng import (
             get_state as rng_get_state,
         )
 
@@ -628,7 +628,7 @@ class RuntimeDevice(Device):
         state : dict
             A state dictionary previously returned by get_random_state().
         """
-        from brian2.codegen.runtime.cython_rt.cythonrng import (
+        from brian2.random.cythonrng import (
             set_state as rng_set_state,
         )
 
