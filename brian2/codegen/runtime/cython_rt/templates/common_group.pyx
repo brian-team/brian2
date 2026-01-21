@@ -17,7 +17,6 @@ cdef extern from "math.h":
 from libc.stdlib cimport abs  # For integers
 from libc.math cimport abs  # For floating point values
 from libc.limits cimport INT_MIN, INT_MAX
-from libc.stdint cimport uintptr_t
 from libcpp cimport bool
 from libcpp.set cimport set
 from cython.operator cimport dereference as _deref, preincrement as _preinc
@@ -70,15 +69,6 @@ cdef extern from "dynamic_array.h":
         size_t rows()
         size_t cols()
         size_t stride()
-
-# RandomGenerator C++ interface declaration for random number generation
-cdef extern from "randomgenerator.h":
-    cdef cppclass RandomGenerator:
-        RandomGenerator() except +
-        void seed() except +
-        void seed(unsigned long) except +
-        double rand() nogil
-        double randn() nogil
 
 {% endmacro %}
 
