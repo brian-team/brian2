@@ -30,11 +30,11 @@ cdef RandomGenerator _global_rng
 
 
 #####  C-level functions (for use by generated Cython code via cimport) #####
-cdef double _rand() noexcept nogil:
-    return _global_rng.rand()
+cdef double _rand(int _idx) noexcept nogil:
+    return _global_rng.rand() # Note we accept (and ignore) the _idx parameter for backwards compatibility
 
-cdef double _randn() noexcept nogil:
-    return _global_rng.randn()
+cdef double _randn(int _idx) noexcept nogil:
+    return _global_rng.randn()  # Note we accept (and ignore) the _idx parameter for backwards compatibility
 
 
 

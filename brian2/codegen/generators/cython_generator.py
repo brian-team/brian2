@@ -570,9 +570,8 @@ rand_code = """
 from brian2.random.cythonrng cimport _rand, _randn
 """
 
-# randn is included in the same import, but we keep a separate code string
-# for the dependency system
-randn_code = ""  # Already imported via rand_code
+# randn is included in the same import
+randn_code = rand_code
 
 poisson_code = """
 cdef double _loggam(double x):
