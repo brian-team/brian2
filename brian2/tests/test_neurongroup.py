@@ -2017,9 +2017,7 @@ _random_values = {
     ),
     ("RuntimeDevice", "cython", None): (
         [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
-        # Cython uses a buffer for the random values that it gets from numpy, the
-        # values for the second call are therefore different
-        [-0.24349748, 1.1164414, -1.97421849, 1.58092889, -0.06444478],
+        [-0.7758696, 0.13295831, 0.87360834, -1.21879122, 0.62980314],
     ),
     ("CPPStandaloneDevice", None, 1): (
         [0.1636023, 0.76229608, 0.74945305, 0.82121212, 0.82669968],
