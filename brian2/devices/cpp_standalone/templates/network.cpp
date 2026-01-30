@@ -50,13 +50,17 @@ void Network::run(const double duration, void (*report_func)(const double, const
 
     start = std::chrono::high_resolution_clock::now();
     if (report_func)
-    {
         report_func(0.0, 0.0, t_start, duration);
-    }
 
     BaseClock* clock = next_clocks();
-    double elapsed_realtime;
+    double elapsed_realtime = 0.0;
     bool did_break_early = false;
+
+    {% if maximum_run_time is not none %}
+    const bool should_check_time = true;
+    {% else %}
+    const bool should_check_time = (report_func != NULL);
+    {% endif %}
 
     Network::_globally_running = true;
     Network::_globally_stopped = false;
@@ -64,20 +68,29 @@ void Network::run(const double duration, void (*report_func)(const double, const
     {
         t = clock->t[0];
 
+        if (should_check_time)
+        {
+            current = std::chrono::high_resolution_clock::now();
+            elapsed_realtime = std::chrono::duration<double>(current - start).count();
+
+            {% if maximum_run_time is not none %}
+            if (elapsed_realtime > {{maximum_run_time}})
+            {
+                did_break_early = true;
+                break;
+            }
+            {% endif %}
+
+            if (report_func && elapsed_realtime > next_report_time)
+            {
+                report_func(elapsed_realtime, (t - t_start)/duration, t_start, duration);
+                next_report_time += report_period;
+            }
+        }
+
         for(size_t i=0; i<objects.size(); i++)
         {
-            if (report_func)
-            {
-                current = std::chrono::high_resolution_clock::now();
-                const double elapsed = std::chrono::duration<double>(current - start).count();
-                if (elapsed > next_report_time)
-                {
-                    report_func(elapsed, (clock->t[0]-t_start)/duration, t_start, duration);
-                    next_report_time += report_period;
-                }
-            }
             BaseClock *obj_clock = objects[i].first;
-            // Only execute the object if it uses the right clock for this step
             if (curclocks.find(obj_clock) != curclocks.end())
             {
                 codeobj_func func = objects[i].second;
@@ -88,17 +101,6 @@ void Network::run(const double duration, void (*report_func)(const double, const
         for(std::set<BaseClock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
             (*i)->tick();
         clock = next_clocks();
-
-        {% if maximum_run_time is not none %}
-        current = std::chrono::high_resolution_clock::now();
-        elapsed_realtime = std::chrono::duration<double>(current - start).count();
-        if(elapsed_realtime>{{maximum_run_time}})
-        {
-            did_break_early = true;
-            break;
-        }
-        {% endif %}
-
     }
     Network::_globally_running = false;
     current = std::chrono::high_resolution_clock::now();
@@ -110,16 +112,13 @@ void Network::run(const double duration, void (*report_func)(const double, const
         t = clock->t[0];
 
     _last_run_time = elapsed_realtime;
-    if(duration>0)
-    {
-        _last_run_completed_fraction = (t-t_start)/duration;
-    } else {
+    if(duration > 0)
+        _last_run_completed_fraction = (t - t_start) / duration;
+    else
         _last_run_completed_fraction = 1.0;
-    }
+
     if (report_func)
-    {
         report_func(elapsed_realtime, _last_run_completed_fraction, t_start, duration);
-    }
 }
 
 void Network::compute_clocks()
