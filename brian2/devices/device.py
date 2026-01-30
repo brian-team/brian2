@@ -479,12 +479,6 @@ class RuntimeDevice(Device):
         #: objects). Arrays in this dictionary will disappear as soon as the
         #: last reference to the `Variable` object used as a key is gone
         self.arrays = WeakKeyDictionary()
-        # Note that the buffers only store a pointer to the actual random
-        # numbers -- the buffer will be filled in Cython code
-        self.randn_buffer = np.zeros(1, dtype=np.intp)
-        self.rand_buffer = np.zeros(1, dtype=np.intp)
-        self.randn_buffer_index = np.zeros(1, dtype=np.int32)
-        self.rand_buffer_index = np.zeros(1, dtype=np.int32)
 
     def __getstate__(self):
         state = dict(self.__dict__)
@@ -594,25 +588,52 @@ class RuntimeDevice(Device):
             The seed value for the random number generator, or ``None`` (the
             default) to set a random seed.
         """
+        # Seed the global Cython RandomGenerator
+        from brian2.random.cythonrng import seed as rng_seed
+
+        rng_seed(seed)
+
+        # Also seed numpy for any code that might use it directly
         np.random.seed(seed)
-        self.rand_buffer_index[:] = 0
-        self.randn_buffer_index[:] = 0
 
     def get_random_state(self):
+        """
+        Return a representation of the current random number generator state.
+
+        This captures the exact internal state of the RandomGenerator,
+        allowing precise restoration to this point in the random sequence.
+
+        Returns
+        -------
+        dict
+            A dictionary containing:
+            - 'rng_state': The internal state of the RandomGenerator
+            - 'numpy_state': The state of NumPy's random generator
+        """
+        from brian2.random.cythonrng import (
+            get_state as rng_get_state,
+        )
+
         return {
+            "rng_state": rng_get_state(),
             "numpy_state": np.random.get_state(),
-            "rand_buffer_index": np.array(self.rand_buffer_index),
-            "rand_buffer": np.array(self.rand_buffer),
-            "randn_buffer_index": np.array(self.randn_buffer_index),
-            "randn_buffer": np.array(self.randn_buffer),
         }
 
     def set_random_state(self, state):
+        """
+        Restore the random number generator to a previously saved state.
+
+        Parameters
+        ----------
+        state : dict
+            A state dictionary previously returned by get_random_state().
+        """
+        from brian2.random.cythonrng import (
+            set_state as rng_set_state,
+        )
+
+        rng_set_state(state["rng_state"])
         np.random.set_state(state["numpy_state"])
-        self.rand_buffer_index[:] = state["rand_buffer_index"]
-        self.rand_buffer[:] = state["rand_buffer"]
-        self.randn_buffer_index[:] = state["randn_buffer_index"]
-        self.randn_buffer[:] = state["randn_buffer"]
 
 
 class Dummy:
