@@ -42,3 +42,7 @@ You can select the experiment type in `main.py` by changing the `experiment_to_r
 *   `'figure4_multi'` (Reproduces Figure 4 from the reference paper)
 
 Output figures are saved in the `fig_out/` directory.
+
+## Contributors
+
+*   AtakanDogan21 (https://github.com/AtakanDogan21)
