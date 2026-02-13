@@ -7,9 +7,7 @@
 {% endmacro %}
 
 
-{# ══════════════════════════════════════════════════════════════════════ #}
 {# BLOCK: before_run — runs once before simulation starts               #}
-{# ══════════════════════════════════════════════════════════════════════ #}
 {% macro before_run() %}
 {% set _func_name = "_brian_cppyy_before_run_" + _safe_name %}
 
@@ -26,9 +24,7 @@ extern "C" void {{ _func_name }}({{ param_list() }}) {
 {% endmacro %}
 
 
-{# ══════════════════════════════════════════════════════════════════════ #}
 {# BLOCK: run — the main simulation step, runs every timestep           #}
-{# ══════════════════════════════════════════════════════════════════════ #}
 {% macro run() %}
 {% set _func_name = "_brian_cppyy_run_" + _safe_name %}
 
@@ -48,9 +44,7 @@ extern "C" void {{ _func_name }}({{ param_list() }}) {
 {% endmacro %}
 
 
-{# ══════════════════════════════════════════════════════════════════════ #}
 {# BLOCK: after_run — runs once after simulation completes               #}
-{# ══════════════════════════════════════════════════════════════════════ #}
 {% macro after_run() %}
 {% set _func_name = "_brian_cppyy_after_run_" + _safe_name %}
 
