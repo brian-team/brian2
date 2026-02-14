@@ -11,34 +11,34 @@ from brian2.units import mV, ms, nS
 # Core functionality tests - separate for clarity
 def test_statements_basic():
     """Test basic Statements creation without substitution"""
-    stmt = Statements('g += w')
-    assert str(stmt) == 'g += w'
+    stmt = Statements("g += w")
+    assert str(stmt) == "g += w"
 
 
 def test_statements_value_substitution():
     """Test substituting an identifier with a numeric value"""
-    stmt = Statements('g += k*w', k=0.3)
-    assert str(stmt) == 'g += (0.3)*w'
+    stmt = Statements("g += k*w", k=0.3)
+    assert str(stmt) == "g += (0.3)*w"
 
 
 def test_statements_name_substitution():
     """Test substituting an identifier with another name"""
-    stmt = Statements('g += k*w', g='g_ampa')
-    assert str(stmt) == 'g_ampa += k*w'
+    stmt = Statements("g += k*w", g="g_ampa")
+    assert str(stmt) == "g_ampa += k*w"
 
 
 def test_statements_multiple_substitutions():
     """Test multiple substitutions simultaneously"""
-    stmt = Statements('g += k*w', g='g_ampa', k=0.3)
-    assert str(stmt) == 'g_ampa += (0.3)*w'
+    stmt = Statements("g += k*w", g="g_ampa", k=0.3)
+    assert str(stmt) == "g_ampa += (0.3)*w"
 
 
 def test_statements_with_units():
     """Test substitution with Brian2 units"""
-    stmt = Statements('v += dv', dv=1*mV)
+    stmt = Statements("v += dv", dv=1*mV)
     result = str(stmt)
     # Brian2 units are represented with their unit name
-    assert 'mvolt' in result or 'mV' in result
+    assert "mvolt" in result or "mV" in result
 
 
 def test_statements_multiline():
@@ -84,8 +84,8 @@ def test_statements_identifiers_after_substitution():
 
 def test_statements_repr():
     """Test the repr output"""
-    stmt = Statements('g += w')
-    assert repr(stmt) == "Statements('g += w')"
+    stmt = Statements("g += w")
+    assert repr(stmt) == "Statements(\"g += w\")"
 
 
 # Parametrized tests for variations
