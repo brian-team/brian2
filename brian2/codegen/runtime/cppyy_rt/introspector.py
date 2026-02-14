@@ -86,8 +86,6 @@ class CppyyIntrospector:
     def reset(cls) -> None:
         cls._instance = None
 
-    # === Registration ===
-
     def register(self, codeobj: Any, block: str, source: str) -> None:
         name: str = codeobj.name
         self._objects[name] = codeobj
@@ -97,8 +95,6 @@ class CppyyIntrospector:
         if name not in self._registration_order:
             self._registration_order.append(name)
         logger.diagnostic(f"introspector: registered {name}.{block}")
-
-    # === Name resolution ===
 
     def _resolve_name(self, pattern: str) -> str:
         """
@@ -146,8 +142,6 @@ class CppyyIntrospector:
         if pattern == "*":
             return sorted(self._objects.keys())
         return sorted(name for name in self._objects if fnmatch(name, pattern))
-
-    # === Inspection ===
 
     def list_objects(self, pattern: str = "*") -> ObjectListDisplay:
         """List all registered code objects, their blocks, and template types."""
@@ -252,8 +246,6 @@ class CppyyIntrospector:
 
         cppyy = _get_cppyy()
         return sorted(x for x in dir(cppyy.gbl) if "_brian_" in x)
-
-    # === Modification ===
 
     def get_body(self, pattern: str, block: str = "run") -> str:
         """Extract just the function body, ready for editing."""
@@ -391,8 +383,6 @@ class CppyyIntrospector:
             "arrays": array_snapshot,
         }
 
-    # === Rich CLI display ===
-
     def print_objects(self, pattern: str = "*") -> None:
         """Pretty-print all code objects to the terminal."""
         display = self.list_objects(pattern)
@@ -433,8 +423,6 @@ class CppyyIntrospector:
         else:
             print(repr(display))
 
-    # === Internal ===
-
     def _get_func_name(self, name: str, block: str) -> str:
         safe: str = name.replace(".", "_").replace("*", "").replace("-", "_")
         return f"_brian_cppyy_{block}_{safe}"
@@ -443,9 +431,7 @@ class CppyyIntrospector:
         return self.list_objects()._repr_html_()
 
 
-# =========================================================================
 # Rich CLI renderers (only used when `rich` is installed)
-# =========================================================================
 
 
 def _rich_print_objects(display: ObjectListDisplay) -> None:
@@ -545,9 +531,7 @@ def _rich_print_inspect(display: InspectDisplay) -> None:
     _rich_print_namespace(display.namespace)
 
 
-# =========================================================================
 # Value description helper
-# =========================================================================
 
 
 def _describe_value(val: Any) -> str:
@@ -598,9 +582,9 @@ def _extract_function_parts(source: str, func_name: str) -> tuple[str, str, str]
     raise ValueError(f"Unmatched braces in function '{func_name}'")
 
 
-# =========================================================================
+# ========================================================================
 # Jupyter HTML display classes
-# =========================================================================
+# ========================================================================
 
 _DISPLAY_CSS: str = """
 <style>
