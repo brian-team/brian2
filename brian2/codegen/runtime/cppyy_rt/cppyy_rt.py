@@ -15,6 +15,7 @@ Three naming worlds need to stay in sync:
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import os
 from collections.abc import Callable
@@ -83,6 +84,53 @@ prefs.register_preferences(
 
 # --- Lazy cppyy import ---
 _cppyy: Any = None
+
+
+def _guard_support_code(code: str) -> str:
+    """
+    Wrap per-codeobject support code in #ifndef guards to prevent
+    Cling redefinition errors.
+
+    When Brian2 calls run() multiple times, it recreates code objects that
+    generate identical support code (inline functions like _timestep, _rand).
+    Cling can't redefine symbols, but it dores preserve preprocessor state
+    across cppyy.cppdef() calls. So we wrap the support code in #ifndef
+    guards keyed by a content hash — if Cling already compiled this exact
+    block, the preprocessor skips it.
+
+    The generated code has a predictable structure:
+        // Per-codeobject support code
+        [hash defines]
+        [inline function definitions]    # this part gets guarded
+        // Template-specific support code
+        extern "C" void _brian_cppyy_...(...) { ... }
+
+    We split at 'extern "C"', guard everything before it, and leave the
+    function definition (which has a unique name) unguarded.
+    """
+    marker: str = 'extern "C"'
+    pos: int = code.find(marker)
+    if pos == -1:
+        # No function definition found — nothing to guard
+        return code
+
+    support: str = code[:pos]
+    func_def: str = code[pos:]
+
+    # Check if there's actual compilable code (not just comments/whitespace)
+    real_lines: list[str] = [
+        line.strip()
+        for line in support.split("\n")
+        if line.strip() and not line.strip().startswith("//")
+    ]
+    if not real_lines:
+        # Only comments before extern "C" — no risk of redefinition
+        return code
+
+    content_hash: str = hashlib.md5("\n".join(real_lines).encode()).hexdigest()[:16]
+    guard: str = f"_BRIAN_CPPYY_SC_{content_hash}"
+
+    return f"#ifndef {guard}\n#define {guard}\n{support}#endif // {guard}\n\n{func_def}"
 
 
 def _get_cppyy() -> Any:
@@ -450,6 +498,11 @@ class CppyyCodeObject(NumpyCodeObject):
 
         cppyy = _get_cppyy()
         _ensure_support_code()
+
+        # Guard support code against redefinition (happens when run() is
+        # called multiple times — Brian2 recreates code objects with the
+        # same inline function definitions)
+        code = _guard_support_code(code)
 
         logger.diagnostic(f"cppyy: compiling '{block}' for {self.name}")
         try:
