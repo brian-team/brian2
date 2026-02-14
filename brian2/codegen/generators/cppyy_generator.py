@@ -86,9 +86,6 @@ class CppyyCodeGenerator(CPPCodeGenerator):
         _build_param_mapping does the same, so parameter order is guaranteed
         to match between the signature and the call site.
         """
-        from brian2.devices.device import get_device
-
-        device: Any = get_device()
 
         support_code_parts: list[str] = []
         hash_define_parts: list[str] = []
@@ -130,22 +127,33 @@ class CppyyCodeGenerator(CPPCodeGenerator):
 
             # --- Array variables: pointer + size parameters ---
             if isinstance(var, ArrayVariable):
-                pointer_name: str = self.get_array_name(var)
+                pointer_name = self.get_array_name(var)
                 if pointer_name in handled_pointers:
                     continue
                 handled_pointers.add(pointer_name)
 
-                # Skip multidimensional dynamic arrays (need special handling)
                 if getattr(var, "ndim", 1) > 1:
+                    # 2D dynamic arrays: pass the capsule instead of a data pointer,
+                    # because monitors need to resize them. The C++ code extracts
+                    # the DynamicArray2D<T>* from the capsule and calls methods on it.
+                    if isinstance(var, DynamicArrayVariable):
+                        dyn_name = self.get_array_name(var, access_data=False)
+                        capsule_key = f"{dyn_name}_capsule"
+                        function_params.append(("PyObject*", capsule_key, capsule_key))
                     continue
 
                 c_type = _cppyy_c_data_type(var.dtype)
-                namespace_key: str = device.get_array_name(var)
-
+                namespace_key = self.get_array_name(var)
                 function_params.append((f"{c_type}*", pointer_name, namespace_key))
 
                 if not var.scalar:
                     function_params.append(("int", f"_num{varname}", f"_num{varname}"))
+
+                # For 1D dynamic arrays, ALSO pass the capsule so monitors can resize
+                if isinstance(var, DynamicArrayVariable):
+                    dyn_name = self.get_array_name(var, access_data=False)
+                    capsule_key = f"{dyn_name}_capsule"
+                    function_params.append(("PyObject*", capsule_key, capsule_key))
 
         # Optional denormals flushing (gcc/clang x86)
         denormals_code: str = ""

@@ -16,6 +16,7 @@ Three naming worlds need to stay in sync:
 from __future__ import annotations
 
 import importlib.util
+import os
 from collections.abc import Callable
 from typing import Any
 
@@ -60,6 +61,24 @@ prefs.register_preferences(
         default=[],
         docs="Extra flags passed to cppyy/Cling, e.g. ['-O2', '-ffast-math'].",
     ),
+    enable_introspection=BrianPreference(
+        default=False,
+        docs="""
+        Enable runtime introspection of compiled C++ code.
+
+        When True, all compiled code objects register with a global introspector
+        that allows viewing generated C++ source, parameter mappings, namespace
+        contents, and even replacing functions at runtime.
+
+        Adds minor overhead (stores source strings, maintains registry), so
+        leave disabled for production runs.
+
+        Usage:
+            prefs.codegen.runtime.cppyy.enable_introspection = True
+            from brian2.codegen.runtime.cppyy_rt.introspector import get_introspector
+            intro = get_introspector()
+        """,
+    ),
 )
 
 # --- Lazy cppyy import ---
@@ -103,7 +122,7 @@ def _ensure_support_code() -> None:
     """
     Define universal C++ helpers exactly once in cppyy's interpreter.
 
-    Covers: standard headers, Brian2's _brian_mod/_brian_pow/etc., int_(),
+    Covers: The DynamicArray header from brianlib, standard headers, Brian2's _brian_mod/_brian_pow/etc., int_(),
     and the shared MT19937 RNG engine. Guarded so repeated calls are no-ops.
     """
     global _support_code_initialized
@@ -111,6 +130,22 @@ def _ensure_support_code() -> None:
         return
 
     cppyy = _get_cppyy()
+
+    # Add brianlib include path and load dynamic_array.h ──
+    # This makes DynamicArray1D<T> and DynamicArray2D<T> available to
+    # all subsequently compiled cppyy code. These are the SAME classes
+    # that the Cython DynamicArray wrappers use, so pointers are
+    # compatible across the two FFI boundaries.
+    import brian2
+
+    brianlib_path = os.path.join(
+        os.path.dirname(brian2.__file__), "devices", "cpp_standalone", "brianlib"
+    )
+    cppyy.add_include_path(brianlib_path)
+
+    # Include the header — Cling compiles it and knows the class layout.
+    # After this, cppyy C++ code can use DynamicArray1D<double>*, etc.
+    cppyy.include("dynamic_array.h")
     from brian2.codegen.generators.cpp_generator import _universal_support_code
 
     guarded_code: str = f"""
@@ -142,6 +177,24 @@ def _ensure_support_code() -> None:
     // Shared RNG for rand/randn/poisson
     // TODO: hook into Brian's seed() system for reproducibility
     static std::mt19937 _brian_cppyy_rng;
+
+    // ── Helper to extract a C++ pointer from a PyCapsule ──
+    // This is how we bridge Cython's DynamicArray objects to cppyy:
+    // Cython wraps the C++ pointer in a PyCapsule, Python passes the
+    // capsule to our function, and we unwrap it back to a C++ pointer.
+    #include <Python.h>
+
+    template<typename T>
+    DynamicArray1D<T>* _extract_dynamic_array_1d(PyObject* capsule) {{
+        void* ptr = PyCapsule_GetPointer(capsule, "DynamicArray1D");
+        return static_cast<DynamicArray1D<T>*>(ptr);
+    }}
+
+    template<typename T>
+    DynamicArray2D<T>* _extract_dynamic_array_2d(PyObject* capsule) {{
+        void* ptr = PyCapsule_GetPointer(capsule, "DynamicArray2D");
+        return static_cast<DynamicArray2D<T>*>(ptr);
+    }}
 
     #endif // _BRIAN2_CPPYY_SUPPORT_CODE
     """
@@ -236,6 +289,10 @@ class CppyyCodeObject(NumpyCodeObject):
         """
         self.nonconstant_values: list[NonconstantEntry] = []
 
+        # Ensure _owner is available (needed for monitors in fallback path)
+        if "_owner" not in self.namespace:
+            self.namespace["_owner"] = self.owner
+
         for name, var in self.variables.items():
             if isinstance(var, Function):
                 self._insert_func_namespace(var)
@@ -264,16 +321,29 @@ class CppyyCodeObject(NumpyCodeObject):
             else:
                 self.namespace[name] = value
 
-            # Dynamic arrays: store the container object too
+            # ── Dynamic arrays: store BOTH the data view AND the capsule ──
+            # The data view (_ptr_array_*) gives C++ direct pointer access
+            # to the current data buffer, used in computation functions.
+            # The capsule (_capsule_*) gives C++ access to the DynamicArray
+            # C++ object itself, used in monitor functions that need resize.
             if isinstance(var, DynamicArrayVariable):
-                dyn_name: str = self.generator_class.get_array_name(
+                dyn_array_name = self.generator_class.get_array_name(
                     var, access_data=False
                 )
-                self.namespace[dyn_name] = self.device.get_value(var, access_data=False)
+                self.namespace[dyn_array_name] = self.device.get_value(
+                    var, access_data=False
+                )
+
+                capsule_name = f"{dyn_array_name}_capsule"
+                try:
+                    capsule = self.device.get_capsule(var)
+                    self.namespace[capsule_name] = capsule
+                except (TypeError, AttributeError):
+                    # Not all variables support capsules (e.g. plain arrays)
+                    pass
 
             self.namespace[f"_var_{name}"] = var
 
-            # Track dynamic arrays that get resized externally (e.g. spike monitors)
             if isinstance(var, DynamicArrayVariable) and var.needs_reference_update:
                 gen_name = self.generator_class.get_array_name(var)
                 self.nonconstant_values.append((gen_name, var.get_value))
@@ -311,6 +381,10 @@ class CppyyCodeObject(NumpyCodeObject):
         """
         Build the (cpp_param_name, namespace_key, c_type) list matching the
         C++ function signature order.
+
+        This MUST mirror the iteration logic in CppyyCodeGenerator.determine_keywords()
+        exactly — same sorted order, same filtering, same parameter additions —
+        otherwise the call-site args won't line up with the compiled signature.
         """
         params: list[ParamTuple] = []
         handled_pointers: set[str] = set()
@@ -333,6 +407,14 @@ class CppyyCodeObject(NumpyCodeObject):
                 handled_pointers.add(pointer_name)
 
                 if getattr(var, "ndim", 1) > 1:
+                    # 2D dynamic arrays: pass capsule only (no data pointer).
+                    # Mirrors determine_keywords() which does the same.
+                    if isinstance(var, DynamicArrayVariable):
+                        dyn_name = self.generator_class.get_array_name(
+                            var, access_data=False
+                        )
+                        capsule_key = f"{dyn_name}_capsule"
+                        params.append((capsule_key, capsule_key, "PyObject*"))
                     continue
 
                 c_type = _cppyy_c_data_type(var.dtype)
@@ -342,6 +424,16 @@ class CppyyCodeObject(NumpyCodeObject):
 
                 if not var.scalar:
                     params.append((f"_num{varname}", f"_num{varname}", "int"))
+
+                # 1D dynamic arrays: ALSO pass the capsule so C++ can resize.
+                # This mirrors determine_keywords() which appends the capsule
+                # param right after the pointer + size params.
+                if isinstance(var, DynamicArrayVariable):
+                    dyn_name = self.generator_class.get_array_name(
+                        var, access_data=False
+                    )
+                    capsule_key = f"{dyn_name}_capsule"
+                    params.append((capsule_key, capsule_key, "PyObject*"))
 
         return params
 
@@ -361,14 +453,7 @@ class CppyyCodeObject(NumpyCodeObject):
 
         logger.diagnostic(f"cppyy: compiling '{block}' for {self.name}")
         try:
-            print(f"\n{'=' * 60}")
-            print(f"CPPYY COMPILE: {self.name} / block={block}")
-            print(f"{'=' * 60}")
-            print(code)
-            print(f"{'=' * 60}\n")
             cppyy.cppdef(code)
-            print("\nCPPYY GLOBAL NAMESPACE:")
-            print([x for x in dir(cppyy.gbl) if "_brian_" in x])
         except Exception as exc:
             raise BrianObjectException(
                 f"cppyy compilation failed for '{block}' of '{self.name}'.\n"
@@ -389,16 +474,10 @@ class CppyyCodeObject(NumpyCodeObject):
         self._set_user_func_globals(cppyy)
 
         self._param_mappings[block] = self._build_param_mapping()
-        print(f"\nPARAM MAPPING for {self.name}.{block}:")
-        for i, (cpp_name, ns_key, ctype) in enumerate(self._param_mappings[block]):
-            val = self.namespace.get(ns_key, "MISSING")
-            if hasattr(val, "shape"):
-                val_desc = f"ndarray shape={val.shape} dtype={val.dtype}"
-            elif hasattr(val, "get_size"):
-                val_desc = f"DynamicArray size={val.get_size()}"
-            else:
-                val_desc = f"{type(val).__name__} = {val}"
-            print(f"  [{i}] {ctype:20s} {cpp_name:40s} <- ns[{ns_key}] = {val_desc}")
+
+        # register with introspector if enabled
+        self._register_with_introspector(block, code)
+
         return compiled_func
 
     def _set_user_func_globals(self, cppyy: Any) -> None:
@@ -433,6 +512,14 @@ class CppyyCodeObject(NumpyCodeObject):
                             f"Could not set C++ global '{cpp_global_name}' for "
                             f"'{ns_key}'. May segfault if the function is called."
                         )
+
+    def _register_with_introspector(self, block: str, source: str) -> None:
+        """Register this code object with the global introspector, if enabled."""
+        from .introspector import CppyyIntrospector
+
+        introspector: CppyyIntrospector | None = CppyyIntrospector.get_instance()
+        if introspector is not None:
+            introspector.register(self, block, source)
 
     # --- Execution ---
 
@@ -472,17 +559,13 @@ class CppyyCodeObject(NumpyCodeObject):
                         # bool arrays need int8 view so cppyy's buffer protocol matches
                         if val.dtype == np.bool_:
                             val = val.view(np.int8)
+                        # cppyy can't extract a buffer pointer from empty arrays —
+                        # pass a 1-element dummy instead. The C++ code won't read
+                        # past _num* elements anyway, and for dynamic arrays the
+                        # real access goes through the capsule/DynamicArray object.
+                        if val.size == 0 and c_type.endswith("*"):
+                            val = np.zeros(1, dtype=val.dtype)
                     args.append(val)
-            # print(f"\nCALLING {self.name}.{block} with {len(args)} args:")
-            # for i, (cpp_name, _, ctype) in enumerate(param_mapping):
-            #     arg = args[i]
-            #     if isinstance(arg, np.ndarray):
-            #         print(
-            #             f"  [{i}] {cpp_name}: ndarray({arg.shape}, {arg.dtype}) "
-            #             f"first={arg.flat[0] if arg.size > 0 else 'empty'}"
-            #         )
-            #     else:
-            #         print(f"  [{i}] {cpp_name}: {type(arg).__name__} = {arg}")
             compiled_func(*args)
 
         except Exception as exc:
