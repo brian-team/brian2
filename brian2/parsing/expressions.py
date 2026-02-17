@@ -274,9 +274,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
         if not hasattr(func, "_arg_units") or not hasattr(func, "_return_unit"):
             if hasattr(func, "dim"):
                 raise SyntaxError(
-                    f"'{expr.func.id}' is a variable, but it was used like a function. "
-                    f"Check if you have an internal variable (e.g. '{expr.func.id}') "
-                    "shadowing an external function.",
+                    f"'{expr.func.id}' is a variable, but it was used like a function. ",
                     ("<string>", expr.lineno, expr.col_offset + 1, orig_expr),
                 )
             raise ValueError(
