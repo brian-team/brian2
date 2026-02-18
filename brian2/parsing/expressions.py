@@ -272,6 +272,11 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                 ("<string>", expr.lineno, expr.col_offset + 1, orig_expr),
             )
         if not hasattr(func, "_arg_units") or not hasattr(func, "_return_unit"):
+            if hasattr(func, "dim"):
+                raise SyntaxError(
+                    f"'{expr.func.id}' is a variable, but it was used like a function. ",
+                    ("<string>", expr.lineno, expr.col_offset + 1, orig_expr),
+                )
             raise ValueError(
                 f"Function {expr.func.id} does not specify how it deals with units."
             )

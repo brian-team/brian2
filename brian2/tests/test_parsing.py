@@ -8,11 +8,13 @@ import numpy as np
 import pytest
 
 from brian2 import Function
-from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
+from brian2.core.base import BrianObjectException
 from brian2.core.functions import DEFAULT_FUNCTIONS
-from brian2.core.preferences import prefs
+from brian2.core.magic import run
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
+from brian2.groups.neurongroup import NeuronGroup
+from brian2.input.timedarray import TimedArray
 from brian2.parsing.dependencies import abstract_code_dependencies
 from brian2.parsing.expressions import (
     _get_value_from_expression,
@@ -24,19 +26,19 @@ from brian2.parsing.functions import (
     extract_abstract_code_functions,
     substitute_abstract_code_functions,
 )
-from brian2.parsing.rendering import CPPNodeRenderer, NodeRenderer, NumpyNodeRenderer
+from brian2.parsing.rendering import NodeRenderer, NumpyNodeRenderer
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.tests.utils import assert_allclose
 from brian2.units import (
     DimensionMismatchError,
-    Unit,
     amp,
-    get_unit,
     have_same_dimensions,
+    ms,
+    second,
     volt,
 )
 from brian2.units.fundamentalunits import DIMENSIONLESS, Dimension
-from brian2.utils.logger import std_silent
+from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import deindent, get_identifiers
 
 
@@ -558,6 +560,41 @@ def test_error_messages():
 
 
 @pytest.mark.codegen_independent
+def test_shadowed_internal_variable_function_call_error():
+    """
+    Regression test for issue #1341: calling an internal variable (like 'xi')
+    as a function should raise a helpful SyntaxError, not a ValueError.
+    """
+    # Define an external variable named 'xi' (TimedArray)
+    xi = TimedArray([1] * second**-0.5, dt=1 * ms)
+
+    # We use 'xi(t)' in the equation.
+    eqs = """dV/dt = (-V + sqrt(ms) * xi(t))/ms : 1"""
+
+    group = NeuronGroup(1, eqs, method="euler")
+
+    # Brian2 wraps the SyntaxError in a BrianObjectException during run()
+    with catch_logs() as l:
+        with pytest.raises(BrianObjectException) as excinfo:
+            run(0 * ms)
+    # Check that the warning was raised
+    assert len(l) == 1
+    assert l[0][1] == "brian2.groups.group.Group.resolve.resolution_conflict"
+    assert "xi" in l[0][2]
+
+    # Dig out the original SyntaxError from the wrapper
+    original_error = excinfo.value.__cause__
+
+    # Verify it is indeed a SyntaxError
+    assert isinstance(original_error, SyntaxError)
+
+    # Verify the message contains our helpful hint
+    msg = str(original_error)
+    assert "variable" in msg
+    assert "used like a function" in msg
+
+
+@pytest.mark.codegen_independent
 def test_sympy_infinity():
     # See github issue #1061
     assert sympy_to_str(str_to_sympy("inf")) == "inf"
@@ -565,22 +602,16 @@ def test_sympy_infinity():
 
 
 if __name__ == "__main__":
-    from _pytest.outcomes import Skipped
-
     test_parse_expressions_python()
     test_parse_expressions_numpy()
-    try:
-        test_parse_expressions_cpp()
-    except Skipped:
-        pass
     test_parse_expressions_sympy()
     test_abstract_code_dependencies()
     test_is_boolean_expression()
-    test_parse_expression_unit()
     test_value_from_expression()
     test_abstract_code_from_function()
     test_extract_abstract_code_functions()
     test_substitute_abstract_code_functions()
     test_sympytools()
     test_error_messages()
+    test_shadowed_internal_variable_function_call_error()
     test_sympy_infinity()
