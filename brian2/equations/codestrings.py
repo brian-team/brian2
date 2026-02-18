@@ -109,13 +109,11 @@ class Statements(CodeString):
         for identifier, replacement in substitutions.items():
             if isinstance(replacement, str):
                 # Replace identifier with another identifier
-                new_code = re.sub(r'\b' + identifier + r'\b', replacement, new_code)
+                new_code = re.sub(r"\b" + identifier + r"\b", replacement, new_code)
             else:
                 # Replace identifier with a value
                 new_code = re.sub(
-                    r'\b' + identifier + r'\b',
-                    '(' + repr(replacement) + ')',
-                    new_code
+                    r"\b" + identifier + r"\b", "(" + repr(replacement) + ")", new_code
                 )
 
         return new_code
