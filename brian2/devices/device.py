@@ -44,9 +44,11 @@ _auto_target = None
 
 def auto_target():
     """
-    Automatically chose a code generation target (invoked when the
-    `codegen.target` preference is set to `'auto'`. Caches its result so it
-    only does the check once. Prefers cython > numpy.
+    Automatically choose a code generation target (invoked when the
+    `codegen.target` preference is set to `'auto'`). Caches its result so it
+    only does the check once.
+
+    Priority order: cython > cppyy > numpy
 
     Returns
     -------
@@ -58,9 +60,20 @@ def auto_target():
         target_dict = {
             target.class_name: target for target in codegen_targets if target.class_name
         }
+
         using_fallback = False
+
+        # Priority: cython > cppyy > numpy
         if "cython" in target_dict and target_dict["cython"].is_available():
             _auto_target = target_dict["cython"]
+        elif "cppyy" in target_dict and target_dict["cppyy"].is_available():
+            _auto_target = target_dict["cppyy"]
+            logger.info(
+                "Using cppyy for code generation. cppyy provides JIT "
+                "compilation without requiring an external C++ compiler.",
+                "codegen_cppyy",
+                once=True,
+            )
         else:
             _auto_target = target_dict["numpy"]
             using_fallback = True
@@ -77,10 +90,18 @@ def auto_target():
             )
         else:
             logger.debug(
-                "Chosing %r as the code generation target." % _auto_target.class_name
+                "Choosing %r as the code generation target." % _auto_target.class_name
             )
 
     return _auto_target
+
+
+def reset_auto_target():
+    """
+    Reset the cached auto target. Used for testing.
+    """
+    global _auto_target
+    _auto_target = None
 
 
 class Device:
@@ -268,16 +289,29 @@ class Device:
             if isinstance(codeobj_class, str):
                 if codeobj_class == "auto":
                     return auto_target()
+
+                # Look up the target by name
                 for target in codegen_targets:
                     if target.class_name == codeobj_class:
+                        # Check if the target is available
+                        if (
+                            hasattr(target, "is_available")
+                            and not target.is_available()
+                        ):
+                            raise ValueError(
+                                f"Code generation target '{codeobj_class}' is not "
+                                f"available. Please ensure the required dependencies "
+                                f"are installed."
+                            )
                         return target
-                # No target found
-                targets = ["auto"] + [
+
+                # No target found - provide helpful error message
+                available_targets = ["auto"] + [
                     target.class_name for target in codegen_targets if target.class_name
                 ]
                 raise ValueError(
-                    f"Unknown code generation target: {codeobj_class}, should be  one"
-                    f" of {targets}"
+                    f"Unknown code generation target: '{codeobj_class}'. "
+                    f"Should be one of {available_targets}"
                 )
         else:
             return codeobj_class
