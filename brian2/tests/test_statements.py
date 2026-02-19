@@ -89,7 +89,7 @@ def test_statements_identifiers_after_substitution():
 def test_statements_repr():
     """Test the repr output"""
     stmt = Statements("g += w")
-    assert repr(stmt) == 'Statements("g += w")'
+    assert repr(stmt) == "Statements('g += w')"
 
 
 # Parametrized tests for variations
