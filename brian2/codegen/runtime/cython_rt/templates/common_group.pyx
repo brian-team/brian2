@@ -69,6 +69,7 @@ cdef extern from "dynamic_array.h":
         size_t rows()
         size_t cols()
         size_t stride()
+
 {% endmacro %}
 
 {% macro before_run() %}
