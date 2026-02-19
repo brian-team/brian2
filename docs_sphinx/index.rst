@@ -14,11 +14,14 @@ at :doc:`a simple example </examples/CUBA>`, or run our
 .. only:: html
 
     You can actually edit and run the examples in the browser without having to
-    install Brian, using the Binder service (note: sometimes this service is down
-    or running slowly):
+    install Brian, using Binder or Google Colab (note: sometimes these services
+    may be down or running slowly):
 
     .. image:: http://mybinder.org/badge.svg
         :target: http://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=demo.ipynb
+
+    .. image:: https://colab.research.google.com/assets/colab-badge.svg
+        :target: https://colab.research.google.com/github/brian-team/brian2/blob/master/tutorials/1-intro-to-brian-neurons.ipynb
 
 Once you have a feel for what is involved in using Brian, we recommend you
 start by following the
