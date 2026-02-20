@@ -74,11 +74,11 @@ class Statements(CodeString):
     >>> Statements('g += w')
     Statements('g += w')
     >>> Statements('g += k*w', k=0.3)
-    Statements('g += 0.3*w')
+    Statements('g += (0.3)*w')
     >>> Statements('g += k*w', g='g_ampa')
     Statements('g_ampa += k*w')
     >>> Statements('g += k*w', g='g_ampa', k=0.3)
-    Statements('g_ampa += 0.3*w')
+    Statements('g_ampa += (0.3)*w')
     """
 
     def __init__(self, code, **substitutions):
