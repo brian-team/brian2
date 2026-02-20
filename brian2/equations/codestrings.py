@@ -58,23 +58,65 @@ class CodeString(Hashable):
 
 class Statements(CodeString):
     """
-    Class for representing statements.
+    Class for representing statements with support for substitution.
 
     Parameters
     ----------
     code : str
         The statement or statements. Several statements can be given as a
         multi-line string or separated by semicolons.
+    **substitutions
+        Substitutions to apply to the code. Can be either strings (to replace
+        a name with another name) or values (to replace a name with a value).
 
-    Notes
-    -----
-    Currently, the implementation of this class does not add anything to
-    `~brian2.equations.codestrings.CodeString`, but it should be used instead
-    of that class for clarity and to allow for future functionality that is
-    only relevant to statements and not to expressions.
+    Examples
+    --------
+    >>> Statements('g += w')
+    Statements('g += w')
+    >>> Statements('g += k*w', k=0.3)
+    Statements('g += (0.3)*w')
+    >>> Statements('g += k*w', g='g_ampa')
+    Statements('g_ampa += k*w')
+    >>> Statements('g += k*w', g='g_ampa', k=0.3)
+    Statements('g_ampa += (0.3)*w')
     """
 
-    pass
+    def __init__(self, code, **substitutions):
+        if len(substitutions) > 0:
+            code = self._substitute(code, substitutions)
+        super().__init__(code)
+
+    @staticmethod
+    def _substitute(code, substitutions):
+        """
+        Perform substitutions in the code.
+
+        Parameters
+        ----------
+        code : str
+            The original code string
+        substitutions : dict
+            Dictionary mapping identifiers to replacements (strings or values)
+
+        Returns
+        -------
+        new_code : str
+            Code with substitutions applied
+        """
+        import re
+
+        new_code = code
+        for identifier, replacement in substitutions.items():
+            if isinstance(replacement, str):
+                # Replace identifier with another identifier
+                new_code = re.sub(r"\b" + identifier + r"\b", replacement, new_code)
+            else:
+                # Replace identifier with a value
+                new_code = re.sub(
+                    r"\b" + identifier + r"\b", "(" + repr(replacement) + ")", new_code
+                )
+
+        return new_code
 
 
 class Expression(CodeString):
