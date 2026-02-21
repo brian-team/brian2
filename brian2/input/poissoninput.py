@@ -55,6 +55,10 @@ class PoissonInput(CodeRunner):
 
     @check_units(N=1, rate=Hz)
     def __init__(self, target, target_var, N, rate, weight, when="synapses", order=0):
+        if N < 1 or int(N) != N:
+            raise ValueError(f"N has to be an integer >= 1, got {N!r}.")
+        if rate < 0 * Hz:
+            raise ValueError(f"The rate cannot be negative, got {rate!s}.")
         if target_var not in target.variables:
             raise KeyError(f"{target_var} is not a variable of {target.name}")
 

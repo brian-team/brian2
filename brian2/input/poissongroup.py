@@ -73,6 +73,8 @@ class PoissonGroup(Group, SpikeSource):
 
         self.codeobj_class = codeobj_class
 
+        if N < 1 or int(N) != N:
+            raise TypeError(f"N has to be an integer >= 1, got {N!r}.")
         self._N = N = int(N)
 
         # TODO: In principle, it would be nice to support Poisson groups with
