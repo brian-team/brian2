@@ -101,6 +101,8 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.extlinks",
     "sphinx_tabs.tabs",
+    "sphinx_gallery.gen_gallery",
+    "sphinx.ext.napoleon",
 ]
 
 # Set readthedocs theme if available
@@ -348,3 +350,8 @@ highlight_language = "python"  # instead of python3 (default for sphinx>=1.4)
 
 # Configure linking to github
 extlinks = {"issue": ("https://github.com/brian-team/brian2/issues/%s", "# %s")}
+
+sphinx_gallery_conf = {
+     'examples_dirs': '../examples',   #path to example scripts
+     'gallery_dirs': 'examples',  # path to where to save gallery generated output
+}
