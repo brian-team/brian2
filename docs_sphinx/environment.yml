@@ -1,0 +1,20 @@
+name: brian2-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - numpy
+  - sympy>=1.1.1
+  - pyparsing
+  - jinja2
+  - ipython
+  - cython
+  - py-cpuinfo>=3
+  - gsl>1.15
+  - future
+  - sphinx
+  - matplotlib
+  - pytest
+  - pip:
+      - -e .
