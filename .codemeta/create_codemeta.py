@@ -31,16 +31,28 @@ if __name__ == "__main__":
     # Add contributors from AUTHORS
     codemeta["contributor"] = []
     for contributor in contributors:
-        matches = re.match(r"^(\w[\w-]*?) ([\w]+[.]? )??(\w+) \(@(.*)\)$", contributor)
+        matches = re.match(r"^(.*?) \(@([^)]*)\)$", contributor)
         if not matches:
-            raise ValueError("author not matched:", contributor)
-        given_name, middle_name, family_name, github = matches.groups()
+            raise ValueError(f"author not matched: '{contributor}'")
+        full_name, github = matches.groups()
+        
+        name_parts = full_name.split()
+        if len(name_parts) == 1:
+            given_name = name_parts[0]
+            family_name = None
+        else:
+            given_name = " ".join(name_parts[:-1])
+            family_name = name_parts[-1]
 
-        contributor = {"@type": "Person", "givenName": given_name, "familyName": family_name, "identifier": f"https://github.com/{github}"}
-        # FIXME: additionalName does not seem to be recognized by codemeta (validation fails)
-        if middle_name:
-            contributor["givenName"] += " " + middle_name.strip()
-        codemeta["contributor"].append(contributor)
+        contributor_dict = {
+            "@type": "Person",
+            "givenName": given_name,
+            "identifier": f"https://github.com/{github}"
+        }
+        if family_name is not None:
+            contributor_dict["familyName"] = family_name
+            
+        codemeta["contributor"].append(contributor_dict)
 
     # Add version from setuptools_scm
     version = sys.argv[1]
