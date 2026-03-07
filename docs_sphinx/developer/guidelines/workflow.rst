@@ -10,6 +10,17 @@ integration testing is provided by `GitHub Actions`_, code coverage is measured 
 .. _`GitHub Actions`: https://github.com/features/actions
 .. _`coveralls.io`: https://coveralls.io/
 
+Setting up the environment
+--------------------------
+For local development, it is recommended to set up an isolated environment using conda. We provide an ``environment.yml`` file that will install all necessary dependencies and install Brian 2 in editable mode.
+
+Run the following commands in your terminal:
+
+.. code-block:: bash
+
+    conda env create -f environment.yml
+    conda activate brian2-dev
+
 The repository structure
 ------------------------
 Brian's repository structure is very simple, as we are normally not supporting
