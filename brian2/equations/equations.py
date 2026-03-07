@@ -386,14 +386,17 @@ def parse_string_equations(eqns):
     try:
         parsed = EQUATIONS.parse_string(eqns, parse_all=True)
     except ParseException as p_exc:
-        raise EquationError(
-            "Parsing failed: \n"
-            + str(p_exc.line)
-            + "\n"
-            + " " * (p_exc.column - 1)
-            + "^\n"
-            + str(p_exc)
-        ) from p_exc
+        error_msg = ("Parsing failed: \n" +
+                     str(p_exc.line) + "\n" +
+                     " " * (p_exc.column - 1) + "^\n" +
+                     str(p_exc))
+        if p_exc.msg == "Expected end of text":
+            error_msg += "\n(Check if you omitted the unit for a parameter or equation, or if there is a syntax error. "
+            if ':' not in p_exc.line:
+                error_msg += "Possibly missing a colon (':') to specify the unit.)"
+            else:
+                error_msg += ")"
+        raise EquationError(error_msg) from p_exc
     for eq in parsed:
         eq_type = eq.getName()
         eq_content = dict(eq.items())
