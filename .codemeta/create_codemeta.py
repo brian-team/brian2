@@ -35,7 +35,7 @@ if __name__ == "__main__":
         if not matches:
             raise ValueError(f"author not matched: '{contributor}'")
         full_name, github = matches.groups()
-        
+
         name_parts = full_name.split()
         if len(name_parts) == 1:
             given_name = name_parts[0]
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         }
         if family_name is not None:
             contributor_dict["familyName"] = family_name
-            
+
         codemeta["contributor"].append(contributor_dict)
 
     # Add version from setuptools_scm
