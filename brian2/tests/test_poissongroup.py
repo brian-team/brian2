@@ -38,11 +38,11 @@ def test_rate_arrays():
 @pytest.mark.codegen_independent
 def test_poissongroup_N_validation():
     # N must be an integer >= 1
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         PoissonGroup(0, 100 * Hz)
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         PoissonGroup(-1, 100 * Hz)
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         PoissonGroup(1.5, 100 * Hz)
 
 
