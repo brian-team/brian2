@@ -348,8 +348,6 @@ highlight_language = "python"  # instead of python3 (default for sphinx>=1.4)
 
 # Configure linking to github
 extlinks = {"issue": ("https://github.com/brian-team/brian2/issues/%s", "# %s")}
-import sys
-
 # Dictionary to cache module members for O(1) lookups
 _module_member_cache = {}
 
