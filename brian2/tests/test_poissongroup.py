@@ -36,6 +36,17 @@ def test_rate_arrays():
 
 
 @pytest.mark.codegen_independent
+def test_poissongroup_N_validation():
+    # N must be an integer >= 1
+    with pytest.raises(ValueError):
+        PoissonGroup(0, 100 * Hz)
+    with pytest.raises(ValueError):
+        PoissonGroup(-1, 100 * Hz)
+    with pytest.raises(ValueError):
+        PoissonGroup(1.5, 100 * Hz)
+
+
+@pytest.mark.codegen_independent
 def test_rate_unit_check():
     with pytest.raises(DimensionMismatchError):
         PoissonGroup(1, np.array([1, 2]))
@@ -124,6 +135,7 @@ def test_poissongroup_namespace():
 if __name__ == "__main__":
     test_single_rates()
     test_rate_arrays()
+    test_poissongroup_N_validation()
     test_rate_unit_check()
     test_time_dependent_rate()
     test_propagation()
