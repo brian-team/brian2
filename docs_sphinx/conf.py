@@ -357,6 +357,9 @@ def skip_case_collisions(app, what, name, obj, skip, options):
     Uses a cache to check if a lowercase member (e.g., 'device') shares a name 
     with any other case variation (e.g., 'Device', 'DEVICE','DeVice') in the same module
     """
+    # Skip this check on non-Windows platforms where case sensitivity is not an issue
+    if sys.platform != "win32":
+        return skip 
     if skip:
         return True
         
