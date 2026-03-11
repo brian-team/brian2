@@ -348,3 +348,42 @@ highlight_language = "python"  # instead of python3 (default for sphinx>=1.4)
 
 # Configure linking to github
 extlinks = {"issue": ("https://github.com/brian-team/brian2/issues/%s", "# %s")}
+import sys
+
+# Dictionary to cache module members for O(1) lookups
+_module_member_cache = {}
+
+def skip_case_collisions(app, what, name, obj, skip, options):
+    """
+    Optimized O(1) hook to prevent Windows case-insensitive file collisions 
+    Uses a cache to check if a lowercase member (e.g., 'device') shares a name 
+    with any other case variation (e.g., 'Device', 'DEVICE','DeVice') in the same module
+    """
+    if skip:
+        return True
+        
+    if name.islower():
+        mod_name = getattr(obj, '__module__', None)
+        if mod_name and mod_name in sys.modules:
+            # If we haven't scanned this module yet, scan it ONCE and cache it so it takes O(1) time for future lookups.
+            if mod_name not in _module_member_cache:
+                parent_mod = sys.modules[mod_name]
+                lower_map = {}
+                for member in dir(parent_mod):
+                    lower_name = member.lower()
+                    if lower_name not in lower_map:
+                        lower_map[lower_name] = set()
+                    lower_map[lower_name].add(member)
+                
+                # Save the map to our global cache
+                _module_member_cache[mod_name] = lower_map
+            
+            # Now, do an instant O(1) lookup in our cache.
+            # If the set for 'device' has more than 1 item (e.g., {'device', 'Device'}) it skips
+            if len(_module_member_cache[mod_name].get(name, set())) > 1:
+                return True 
+                    
+    return skip
+
+def setup(app):
+    app.connect('autodoc-skip-member', skip_case_collisions)
