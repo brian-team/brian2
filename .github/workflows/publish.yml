@@ -31,7 +31,7 @@ jobs:
       matrix:
         os: [ windows-latest, macos-15-intel, macos-latest ]
     steps:
-      - uses:  actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - uses:  actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -85,7 +85,7 @@ jobs:
         config: [{arch: auto64, image: ubuntu-24.04},
                  {arch: aarch64, image: ubuntu-24.04-arm}]
     steps:
-      - uses:  actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      - uses:  actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -189,7 +189,7 @@ jobs:
     if: ${{ github.event_name == 'push' || (github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'OWNER') }}
     steps:
     - name: Checkout repository
-      uses:  actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      uses:  actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         persist-credentials: false
       # https://github.com/actions/checkout/
@@ -221,14 +221,14 @@ jobs:
       # https://github.com/docker/setup-buildx-action
     - name: Login to DockerHub
       if: ${{ github.event_name == 'push' && github.repository == 'brian-team/brian2' && github.actor != 'dependabot[bot]'}}
-      uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
       # https://github.com/docker/login-action
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Login to GitHub Container Registry
       if: ${{ github.event_name == 'push' && github.repository == 'brian-team/brian2' && github.actor != 'dependabot[bot]'}}
-      uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
