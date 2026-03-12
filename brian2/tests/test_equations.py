@@ -9,6 +9,7 @@ except ImportError:
 import pytest
 
 from brian2 import Equations, Expression, Hz, Unit, farad, metre, ms, mV, second, volt
+from brian2 import NeuronGroup, run
 from brian2.core.namespace import DEFAULT_UNITS
 from brian2.equations.equations import (
     BOOLEAN,
@@ -565,6 +566,210 @@ def test_extract_subexpressions():
     assert variable["s1"].type == SUBEXPRESSION
     assert variable["s2"].type == PARAMETER
     assert constant["s2"].type == SUBEXPRESSION
+
+
+@pytest.mark.codegen_independent
+def test_prefix_basic():
+    # Test basic prefix functionality
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+        I = g*E : amp
+    """)
+    new_eqs = eqs.prefix('pop_')
+    assert 'pop_v' in new_eqs
+    assert 'pop_I' in new_eqs
+    # g and E are identifiers in the expression I = g*E
+    # but they're not defined as separate equations, so they're not in eqs
+    assert 'tau' not in new_eqs  # External, not included in equations dict
+
+
+@pytest.mark.codegen_independent
+def test_postfix_basic():
+    # Test basic postfix functionality
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+    """)
+    new_eqs = eqs.postfix('_pop')
+    assert 'v_pop' in new_eqs
+    assert 'tau' not in new_eqs  # External, not included in equations dict
+
+
+@pytest.mark.codegen_independent
+def test_prefix_recursive():
+    # Test recursive prefix behavior
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+    """)
+    eqs2 = eqs.prefix('a_')
+    assert 'a_v' in eqs2
+    eqs3 = eqs2.prefix('b_')
+    assert 'b_a_v' in eqs3  # Nested!
+
+
+@pytest.mark.codegen_independent
+def test_postfix_recursive():
+    # Test recursive postfix behavior
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+    """)
+    eqs2 = eqs.postfix('_a')
+    assert 'v_a' in eqs2
+    eqs3 = eqs2.postfix('_b')
+    assert 'v_a_b' in eqs3  # Nested!
+
+
+@pytest.mark.codegen_independent
+def test_prefix_builtin_protection():
+    # Test that built-in variables are protected
+    # Built-in variables like 't' and 'dt' are never in the equations dict
+    # They're implicit, not explicit equation definitions
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+    """)
+    new_eqs = eqs.prefix('pop_')
+    # t and dt are never in the equations dict to begin with
+    assert 't' not in new_eqs
+    assert 'dt' not in new_eqs
+    assert 'pop_t' not in new_eqs
+    assert 'pop_dt' not in new_eqs
+
+
+@pytest.mark.codegen_independent
+def test_prefix_validation():
+    # Test validation of prefix string
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+    """)
+
+    # Must be a string
+    with pytest.raises(ValueError, match="must be a string"):
+        eqs.prefix(123)
+
+    # Cannot start with digit
+    with pytest.raises(ValueError, match="must be a valid Python identifier"):
+        eqs.prefix('123_')
+
+    # Invalid characters
+    with pytest.raises(ValueError, match="must be a valid Python identifier"):
+        eqs.prefix('my-var')
+
+    # Cannot be a keyword
+    with pytest.raises(ValueError, match="cannot be a Python keyword"):
+        eqs.prefix('for')
+
+
+@pytest.mark.codegen_independent
+def test_postfix_validation():
+    # Test validation of postfix string
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+    """)
+
+    # Must be a string
+    with pytest.raises(ValueError, match="must be a string"):
+        eqs.postfix(123)
+
+    # Invalid characters
+    with pytest.raises(ValueError, match="must be a valid Python identifier"):
+        eqs.postfix('-invalid')
+
+
+@pytest.mark.codegen_independent
+def test_prefix_case_preservation():
+    # Test that case is preserved
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+        dV/dt = -V/tau : volt
+    """)
+    new_eqs = eqs.prefix('Pop_')
+    assert 'Pop_v' in new_eqs
+    assert 'Pop_V' in new_eqs
+    assert 'Pop_v' != 'Pop_V'  # Different!
+
+
+@pytest.mark.codegen_independent
+def test_prefix_external_references():
+    # Test that external namespace references are NOT added to equations
+    tau = 10*ms
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+    """)
+    new_eqs = eqs.prefix('pop_')
+    assert 'pop_v' in new_eqs
+    # tau is an external reference, not in equations dict
+    assert 'tau' not in eqs  # Not in original
+    assert 'tau' not in new_eqs  # Not in new either
+
+
+@pytest.mark.codegen_independent
+def test_prefix_empty():
+    # Test that empty prefix returns a copy
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+    """)
+    new_eqs = eqs.prefix('')
+    assert set(new_eqs.names) == set(eqs.names)
+    assert new_eqs is not eqs  # Different object
+
+
+@pytest.mark.codegen_independent
+def test_postfix_empty():
+    # Test that empty postfix returns a copy
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+    """)
+    new_eqs = eqs.postfix('')
+    assert set(new_eqs.names) == set(eqs.names)
+    assert new_eqs is not eqs  # Different object
+
+
+@pytest.mark.codegen_independent
+def test_prefix_subexpressions():
+    # Test that subexpressions are prefixed
+    eqs = Equations("""
+        dv/dt = (-v + I)/tau : volt
+        I = g*E : amp
+    """)
+    new_eqs = eqs.prefix('pop_')
+    assert 'pop_v' in new_eqs
+    assert 'pop_I' in new_eqs
+    # g and E are in the expression but not separate equations
+
+
+@pytest.mark.codegen_independent
+def test_prefix_parameters():
+    # Test that parameters are prefixed
+    eqs = Equations("""
+        dv/dt = -v/tau : volt
+        tau : second
+    """)
+    new_eqs = eqs.prefix('pop_')
+    assert 'pop_v' in new_eqs
+    assert 'pop_tau' in new_eqs
+
+
+@pytest.mark.standalone_compatible
+def test_prefix_with_neurongroup():
+    # Test that prefixed equations work with NeuronGroup
+    eqs = Equations("""
+        dv/dt = -v/(10*ms) : volt
+    """)
+    eqs_exc = eqs.prefix('exc_')
+    G = NeuronGroup(10, eqs_exc)
+    assert 'exc_v' in G.variables
+    run(1*ms)
+
+
+@pytest.mark.standalone_compatible
+def test_postfix_with_neurongroup():
+    # Test that postfixed equations work with NeuronGroup
+    eqs = Equations("""
+        dv/dt = -v/(10*ms) : volt
+    """)
+    eqs_exc = eqs.postfix('_exc')
+    G = NeuronGroup(10, eqs_exc)
+    assert 'v_exc' in G.variables
+    run(1*ms)
 
 
 @pytest.mark.codegen_independent

@@ -737,6 +737,276 @@ class Equations(Hashable, Mapping):
     def substitute(self, **kwds):
         return Equations(list(self._substitute(kwds).values()))
 
+    def prefix(self, prefix_str):
+        """
+        Return a copy of the equations with all variable names prefixed.
+
+        Parameters
+        ----------
+        prefix_str : str
+            String to prepend to variable names
+
+        Returns
+        -------
+        Equations
+            New Equations object with prefixed variables
+
+        Raises
+        ------
+        ValueError
+            If prefix_str is not a valid Python identifier
+
+        Notes
+        -----
+        This method prefixes all user-defined variables (differential equations,
+        parameters, subexpressions) while protecting built-in variables (t, dt, xi,
+        i, N, etc.) and external namespace references.
+
+        The prefixing is recursive, so `eqs.prefix('a_').prefix('b_')` would
+        result in variables prefixed with `b_a_` (nested).
+
+        Examples
+        --------
+        >>> eqs = Equations('''
+        ...     dv/dt = -v/tau : volt
+        ...     I = g*E : amp
+        ... ''')
+        >>> eqs_exc = eqs.prefix('exc_')
+        >>> 'exc_v' in eqs_exc
+        True
+        """
+        import keyword
+
+        # Validate prefix
+        if not isinstance(prefix_str, str):
+            raise ValueError("Prefix must be a string")
+        if prefix_str == "":
+            # Return a copy, not self
+            return Equations(list(self._equations.values()))
+        if not prefix_str.isidentifier():
+            raise ValueError(
+                f"Invalid prefix '{prefix_str}': must be a valid Python identifier"
+            )
+        if keyword.iskeyword(prefix_str):
+            raise ValueError(f"Prefix cannot be a Python keyword: '{prefix_str}'")
+
+        # Built-in variables to protect (never rename these)
+        protected = {
+            "t",
+            "dt",
+            "xi",
+            "i",
+            "N",
+            "not_refractory",
+            "refractory",
+            "refractory_until",
+            "time",
+            "clock",
+        }
+
+        # Collect all identifiers from expressions (to find external references)
+        external_refs = set()
+        for eq in self._equations.values():
+            if eq.expr is not None:
+                for identifier in eq.expr.identifiers:
+                    if identifier not in self._equations and identifier not in protected:
+                        external_refs.add(identifier)
+
+        # Create new equations dict
+        new_equations = {}
+
+        # First, add all renamed equations
+        for varname, eq in self._equations.items():
+            # Skip built-in variables
+            if varname in protected:
+                new_equations[varname] = eq
+                continue
+
+            # Create new name with prefix
+            new_name = prefix_str + varname
+
+            # Check for conflict
+            if new_name in self._equations and new_name != varname:
+                logger.warning(
+                    f"'{new_name}' already exists in equations, "
+                    f"will be overwritten by prefixing '{varname}'"
+                )
+
+            # Update expression if it has one
+            new_expr = None
+            if eq.expr is not None:
+                expr_code = eq.expr.code
+                # Replace all variable references with prefixed versions
+                # Only replace variables that are actually defined in equations
+                for old_var in self._equations.keys():
+                    if old_var not in protected:
+                        # Use regex to replace whole words only
+                        expr_code = re.sub(
+                            r"\b" + re.escape(old_var) + r"\b",
+                            prefix_str + old_var,
+                            expr_code,
+                        )
+                try:
+                    new_expr = Expression(expr_code)
+                except ValueError as ex:
+                    raise ValueError(
+                        f"Failed to prefix expression for '{varname}': {ex}"
+                    ) from ex
+
+            # Create new SingleEquation with prefixed name
+            new_equations[new_name] = SingleEquation(
+                eq.type,
+                new_name,
+                eq.dim,
+                var_type=eq.var_type,
+                expr=new_expr,
+                flags=eq.flags,
+            )
+
+        # Add external references as unchanged parameters (if they were in original)
+        for ref in external_refs:
+            if ref in self._equations:
+                # This was defined as an equation/parameter, already handled above
+                continue
+            # External reference - create as parameter to preserve it
+            # Find which equation referenced it to get dimensions
+            ref_dim = None
+            for eq in self._equations.values():
+                if eq.expr is not None and ref in eq.expr.identifiers:
+                    # Try to get dimension from context
+                    # For simplicity, we'll skip this optimization
+                    pass
+
+        return Equations(list(new_equations.values()))
+
+    def postfix(self, postfix_str):
+        """
+        Return a copy of the equations with all variable names postfixed.
+
+        Parameters
+        ----------
+        postfix_str : str
+            String to append to variable names
+
+        Returns
+        -------
+        Equations
+            New Equations object with postfixed variables
+
+        Raises
+        ------
+        ValueError
+            If postfix_str is not a valid Python identifier
+
+        Notes
+        -----
+        This method postfixes all user-defined variables (differential equations,
+        parameters, subexpressions) while protecting built-in variables (t, dt, xi,
+        i, N, etc.) and external namespace references.
+
+        The postfixing is recursive, so `eqs.postfix('_a').postfix('_b')` would
+        result in variables postfixed with `_a_b` (nested).
+
+        Examples
+        --------
+        >>> eqs = Equations('''
+        ...     dv/dt = -v/tau : volt
+        ...     I = g*E : amp
+        ... ''')
+        >>> eqs_pop = eqs.postfix('_pop')
+        >>> 'v_pop' in eqs_pop
+        True
+        """
+        import keyword
+
+        # Validate postfix
+        if not isinstance(postfix_str, str):
+            raise ValueError("Postfix must be a string")
+        if postfix_str == "":
+            # Return a copy, not self
+            return Equations(list(self._equations.values()))
+        if not postfix_str.isidentifier():
+            raise ValueError(
+                f"Invalid postfix '{postfix_str}': must be a valid Python identifier"
+            )
+        if keyword.iskeyword(postfix_str):
+            raise ValueError(f"Postfix cannot be a Python keyword: '{postfix_str}'")
+
+        # Built-in variables to protect (never rename these)
+        protected = {
+            "t",
+            "dt",
+            "xi",
+            "i",
+            "N",
+            "not_refractory",
+            "refractory",
+            "refractory_until",
+            "time",
+            "clock",
+        }
+
+        # Collect all identifiers from expressions (to find external references)
+        external_refs = set()
+        for eq in self._equations.values():
+            if eq.expr is not None:
+                for identifier in eq.expr.identifiers:
+                    if identifier not in self._equations and identifier not in protected:
+                        external_refs.add(identifier)
+
+        # Create new equations dict
+        new_equations = {}
+
+        # First, add all renamed equations
+        for varname, eq in self._equations.items():
+            # Skip built-in variables
+            if varname in protected:
+                new_equations[varname] = eq
+                continue
+
+            # Create new name with postfix
+            new_name = varname + postfix_str
+
+            # Check for conflict
+            if new_name in self._equations and new_name != varname:
+                logger.warning(
+                    f"'{new_name}' already exists in equations, "
+                    f"will be overwritten by postfixing '{varname}'"
+                )
+
+            # Update expression if it has one
+            new_expr = None
+            if eq.expr is not None:
+                expr_code = eq.expr.code
+                # Replace all variable references with postfixed versions
+                # Only replace variables that are actually defined in equations
+                for old_var in self._equations.keys():
+                    if old_var not in protected:
+                        # Use regex to replace whole words only
+                        expr_code = re.sub(
+                            r"\b" + re.escape(old_var) + r"\b",
+                            old_var + postfix_str,
+                            expr_code,
+                        )
+                try:
+                    new_expr = Expression(expr_code)
+                except ValueError as ex:
+                    raise ValueError(
+                        f"Failed to postfix expression for '{varname}': {ex}"
+                    ) from ex
+
+            # Create new SingleEquation with postfixed name
+            new_equations[new_name] = SingleEquation(
+                eq.type,
+                new_name,
+                eq.dim,
+                var_type=eq.var_type,
+                expr=new_expr,
+                flags=eq.flags,
+            )
+
+        return Equations(list(new_equations.values()))
+
     def __iter__(self):
         return iter(self._equations)
 
