@@ -1025,30 +1025,66 @@ class Equations(Hashable, Mapping):
         they should be updated
         """
 
-        # Get a dictionary of all the dependencies on other subexpressions,
-        # i.e. ignore dependencies on parameters and differential equations
+        # Separate "constant over dt" subexpressions from regular ones
+        constant_over_dt_subexprs = []
+        regular_subexprs = []
+
+        for eq in self._equations.values():
+            if eq.type == SUBEXPRESSION:
+                if "constant over dt" in eq.flags:
+                    constant_over_dt_subexprs.append(eq.varname)
+                else:
+                    regular_subexprs.append(eq.varname)
+
+        # Get dependencies for all subexpressions
         static_deps = {}
         for eq in self._equations.values():
             if eq.type == SUBEXPRESSION:
-                # "Constant over dt" subexpressions are implemented like parameters
-                # and can be considered as not depending on anything
-                if "constant over dt" in eq.flags:
-                    static_deps[eq.varname] = []
-                else:
-                    static_deps[eq.varname] = [
-                        dep
-                        for dep in eq.identifiers
-                        if dep in self._equations
-                        and self._equations[dep].type == SUBEXPRESSION
-                    ]
+                static_deps[eq.varname] = [
+                    dep
+                    for dep in eq.identifiers
+                    if dep in self._equations
+                    and self._equations[dep].type == SUBEXPRESSION
+                ]
+
+        # First, sort regular subexpressions (they cannot have cycles)
+        regular_deps = {
+            varname: static_deps[varname]
+            for varname in regular_subexprs
+        }
 
         try:
-            sorted_eqs = topsort(static_deps)
+            sorted_regular = topsort(regular_deps)
         except ValueError:
             raise ValueError(
                 "Cannot resolve dependencies between static "
                 "equations, dependencies contain a cycle."
             ) from None
+
+        # Then, sort "constant over dt" subexpressions
+        # They can have cycles, so we need special handling
+        constant_deps = {
+            varname: [
+                dep
+                for dep in static_deps[varname]
+                # Only keep dependencies on other "constant over dt" subexpressions
+                if dep in constant_over_dt_subexprs
+            ]
+            for varname in constant_over_dt_subexprs
+        }
+
+        # For "constant over dt" subexpressions, we need to handle cycles
+        # Try to sort, and if there's a cycle, break it arbitrarily
+        try:
+            sorted_constant = topsort(constant_deps)
+        except ValueError:
+            # There's a cycle among "constant over dt" subexpressions
+            # This is allowed, so we'll use a topological sort that can handle cycles
+            # by removing edges until no cycle remains
+            sorted_constant = self._topsort_with_cycles(constant_deps)
+
+        # Combine the two sorted lists
+        sorted_eqs = sorted_regular + sorted_constant
 
         # put the equations objects in the correct order
         for order, static_variable in enumerate(sorted_eqs):
@@ -1060,6 +1096,49 @@ class Equations(Hashable, Mapping):
                 eq.update_order = len(sorted_eqs)
             elif eq.type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
+
+    @staticmethod
+    def _topsort_with_cycles(dependencies):
+        """
+        Topological sort that can handle cycles by removing edges.
+
+        Parameters
+        ----------
+        dependencies : dict
+            Dictionary mapping variable names to lists of dependencies
+
+        Returns
+        -------
+        list
+            Sorted list of variable names (cycles are broken arbitrarily)
+        """
+        # Make a copy to avoid modifying the original
+        deps = {k: list(v) for k, v in dependencies.items()}
+
+        # Kahn's algorithm with cycle handling
+        sorted_vars = []
+        no_deps = [var for var, deps_list in deps.items() if not deps_list]
+
+        while no_deps:
+            var = no_deps.pop(0)
+            sorted_vars.append(var)
+
+            # Remove this variable from all dependency lists
+            for other_var in deps:
+                if var in deps[other_var]:
+                    deps[other_var].remove(var)
+
+            # Check for new variables with no dependencies
+            for other_var in list(deps.keys()):
+                if other_var not in sorted_vars and not deps[other_var]:
+                    no_deps.append(other_var)
+
+        # If there are still variables left, they have cycles
+        # Add them in any order (cycle is allowed for "constant over dt")
+        remaining = [var for var in deps if var not in sorted_vars]
+        sorted_vars.extend(remaining)
+
+        return sorted_vars
 
     @property
     def dependencies(self):

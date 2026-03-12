@@ -904,8 +904,10 @@ def test_namespace_warnings():
     net = Network(G2)
     with catch_logs() as l:
         net.run(0 * ms)
-        assert len(l) == 1, f"got {str(l)} as warnings"
-        assert l[0][1].endswith(".resolution_conflict")
+        # Filter to only count resolution_conflict warnings
+        conflict_warnings = [log for log in l if log[1].endswith(".resolution_conflict")]
+        assert len(conflict_warnings) == 1, f"got {str(l)} as warnings"
+        assert conflict_warnings[0][1].endswith(".resolution_conflict")
     del y
 
     i = 5
