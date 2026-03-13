@@ -105,7 +105,11 @@ cdef class SpikeQueue:
         else:
             spikes_data = <int32_t*>(&(dereference(spikes)[0]))
             shape[0] = spikes_size
-            return np.PyArray_SimpleNewFromData(1, shape, np.NPY_INT32, spikes_data)
+            arr = np.PyArray_SimpleNewFromData(1, shape, np.NPY_INT32, spikes_data)
+            # Keep the SpikeQueue alive as long as the array exists so that
+            # a future advance()+push() reallocation cannot free this buffer.
+            np.set_array_base(arr, self)
+            return arr
 
     def advance(self):
         self.thisptr.advance()
