@@ -1048,10 +1048,7 @@ class Equations(Hashable, Mapping):
                 ]
 
         # First, sort regular subexpressions (they cannot have cycles)
-        regular_deps = {
-            varname: static_deps[varname]
-            for varname in regular_subexprs
-        }
+        regular_deps = {varname: static_deps[varname] for varname in regular_subexprs}
 
         try:
             sorted_regular = topsort(regular_deps)
