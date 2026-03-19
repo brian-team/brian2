@@ -370,6 +370,10 @@ class SynapticPathway(CodeRunner, Group):
     @device_override("synaptic_pathway_before_run")
     def before_run(self, run_namespace):
         super().before_run(run_namespace)
+        # Ensure the queue is initialised before any code objects run.
+        # For Cython, this is also done in the template's before_code block,
+        # but cppyy's C++ before_code can't call Python, so we do it here.
+        self.initialise_queue()
 
     def create_code_objects(self, run_namespace):
         if self._pushspikes_codeobj is None:
@@ -1993,7 +1997,18 @@ class Synapses(Group):
             check_units=False,
             run_namespace={},
         )
+        old_num_synapses = len(self)
         codeobj()
+
+        # For cppyy backend, the C++ code resizes the dynamic arrays directly
+        # but can't call Python methods. We do the Python-side bookkeeping here.
+        # For Cython, this is already done in the template, but calling again is safe.
+        from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
+
+        if isinstance(codeobj, CppyyCodeObject):
+            new_num_synapses = old_num_synapses + len(variables["sources"].get_value())
+            self._resize(new_num_synapses)
+            self._update_synapse_numbers(old_num_synapses)
 
     def _expression_index_dependence(self, expr, namespace, additional_indices=None):
         """
@@ -2199,7 +2214,16 @@ class Synapses(Group):
             check_units=False,
             run_namespace=namespace,
         )
+        old_num_synapses = len(self)
         codeobj()
+
+        # For cppyy: C++ resizes arrays but can't call Python methods
+        from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
+
+        if isinstance(codeobj, CppyyCodeObject):
+            new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
+            self._resize(new_num_synapses)
+            self._update_synapse_numbers(old_num_synapses)
 
     def _check_parsed_synapses_generator(self, parsed, namespace):
         """

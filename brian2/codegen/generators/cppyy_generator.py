@@ -155,6 +155,16 @@ class CppyyCodeGenerator(CPPCodeGenerator):
                     capsule_key = f"{dyn_name}_capsule"
                     function_params.append(("PyObject*", capsule_key, capsule_key))
 
+        # --- Object variables with capsule-like names (e.g. _queue_capsule) ---
+        # These are PyCapsule objects passed as PyObject* parameters.
+        for varname, var in sorted(self.variables.items()):
+            if varname.endswith("_capsule") and not isinstance(
+                var,
+                (ArrayVariable, Constant, Function, AuxiliaryVariable, Subexpression),
+            ):
+                if varname not in {p[1] for p in function_params}:
+                    function_params.append(("PyObject*", varname, varname))
+
         # Optional denormals flushing (gcc/clang x86)
         denormals_code: str = ""
         if self.flush_denormals:

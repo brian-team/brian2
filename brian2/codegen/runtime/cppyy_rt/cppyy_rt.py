@@ -191,9 +191,14 @@ def _ensure_support_code() -> None:
     )
     cppyy.add_include_path(brianlib_path)
 
+    # Also add the synapses directory for spikequeue.h
+    synapses_path = os.path.join(os.path.dirname(brian2.__file__), "synapses")
+    cppyy.add_include_path(synapses_path)
+
     # Include the header — Cling compiles it and knows the class layout.
     # After this, cppyy C++ code can use DynamicArray1D<double>*, etc.
     cppyy.include("dynamic_array.h")
+    cppyy.include("spikequeue.h")
     from brian2.codegen.generators.cpp_generator import _universal_support_code
 
     guarded_code: str = f"""
@@ -218,9 +223,11 @@ def _ensure_support_code() -> None:
     // Brian2 universal support code: type promotion, _brian_mod, _brian_floordiv, etc.
     {_universal_support_code}
 
-    // int_() — standalone gets this from stdint_compat.h, we define it here
+    // int_() — stdint_compat.h may already define this (included by spikequeue.h)
+    #ifndef _BRIAN_STDINT_COMPAT_H
     template<typename T>
     inline int32_t int_(T value) {{ return static_cast<int32_t>(value); }}
+    #endif
 
     // Shared RNG for rand/randn/poisson
     static std::mt19937 _brian_cppyy_rng;
@@ -490,6 +497,22 @@ class CppyyCodeObject(NumpyCodeObject):
                     )
                     capsule_key = f"{dyn_name}_capsule"
                     params.append((capsule_key, capsule_key, "PyObject*"))
+
+        # --- Object variables with capsule-like names (e.g. _queue_capsule) ---
+        handled_keys = {p[1] for p in params}
+        for varname, var in sorted(self.variables.items()):
+            if varname.endswith("_capsule") and not isinstance(
+                var,
+                (
+                    ArrayVariable,
+                    Constant,
+                    Function,
+                    AuxiliaryVariable,
+                    Subexpression,
+                ),
+            ):
+                if varname not in handled_keys:
+                    params.append((varname, varname, "PyObject*"))
 
         return params
 
