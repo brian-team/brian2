@@ -472,6 +472,7 @@ class SynapticPathway(CodeRunner, Group):
         # variables, so remove it from the state dictionary so that it does not
         # get treated as a state variable by the standard mechanism in
         # `VariableOwner`
+        state = state.copy()  # copy to avoid corrupting stored state on failed restore
         queue_state = state.pop("_spikequeue")
         if "delay" in state:
             delay_state = state.pop("delay")
@@ -487,9 +488,6 @@ class SynapticPathway(CodeRunner, Group):
         if delay_state:
             self.variables["delay"].resize(delay_state[1])
             self.variables["delay"].set_value(delay_state[0])
-            state["delay"] = delay_state
-
-        state["_spikequeue"] = queue_state
 
     def _convert_queue_state_if_needed(self, queue_state):
         """
