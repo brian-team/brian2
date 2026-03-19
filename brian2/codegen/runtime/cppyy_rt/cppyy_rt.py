@@ -223,8 +223,16 @@ def _ensure_support_code() -> None:
     inline int32_t int_(T value) {{ return static_cast<int32_t>(value); }}
 
     // Shared RNG for rand/randn/poisson
-    // TODO: hook into Brian's seed() system for reproducibility
     static std::mt19937 _brian_cppyy_rng;
+
+    // Seeding function callable from Python via cppyy.gbl._brian_cppyy_seed()
+    extern "C" void _brian_cppyy_seed(unsigned int seed) {{
+        _brian_cppyy_rng.seed(seed);
+    }}
+    extern "C" void _brian_cppyy_seed_random() {{
+        std::random_device rd;
+        _brian_cppyy_rng.seed(rd());
+    }}
 
     // ── Helper to extract a C++ pointer from a PyCapsule ──
     // This is how we bridge Cython's DynamicArray objects to cppyy:
@@ -591,6 +599,12 @@ class CppyyCodeObject(NumpyCodeObject):
         try:
             param_mapping: list[ParamTuple] = self._param_mappings[block]
             args: list[Any] = []
+
+            # Sanity check: param count must match function arity
+            expected_nargs = len(param_mapping)
+            logger.diagnostic(
+                f"cppyy: calling {self.name}.{block} with {expected_nargs} params"
+            )
 
             for cpp_name, ns_key, c_type in param_mapping:
                 val: Any = self.namespace.get(ns_key)

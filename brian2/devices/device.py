@@ -632,6 +632,18 @@ class RuntimeDevice(Device):
         self.rand_buffer_index[:] = 0
         self.randn_buffer_index[:] = 0
 
+        # Also seed the cppyy RNG if the backend is loaded
+        try:
+            import cppyy
+
+            if hasattr(cppyy.gbl, "_brian_cppyy_seed"):
+                if seed is not None:
+                    cppyy.gbl._brian_cppyy_seed(int(seed) % (2**32))
+                else:
+                    cppyy.gbl._brian_cppyy_seed_random()
+        except (ImportError, AttributeError):
+            pass
+
     def get_random_state(self):
         return {
             "numpy_state": np.random.get_state(),
