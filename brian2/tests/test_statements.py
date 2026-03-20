@@ -113,7 +113,6 @@ def test_statements_numeric_value_types(value, expected_substring):
     [
         # Word boundary tests (numeric values get parentheses)
         ("tau_syn += tau", {"tau": 10}, "tau_syn += (10)"),
-        ("tau = tau + tau_syn", {"tau": 5}, "(5) = (5) + tau_syn"),
         # String with underscores (string replacement for name, value for number)
         ("g_ampa += w_exc", {"g_ampa": "g_total", "w_exc": 0.5}, "g_total += (0.5)"),
         # Chained operators (name substitution)
@@ -145,3 +144,15 @@ def test_statements_equality(stmt1_code, stmt2_code, should_be_equal):
         assert hash(stmt1) == hash(stmt2)
     else:
         assert stmt1 != stmt2
+
+
+def test_statements_value_substitution_on_lhs_raises_error():
+    """Test that substituting a value on LHS of assignment raises ValueError"""
+    # This should raise an error because substituting a value for 'tau'
+    # would create invalid code: 5 = 5 + tau_syn
+    with pytest.raises(ValueError, match="Cannot substitute value for 'tau'"):
+        Statements("tau = tau + tau_syn", tau=5)
+
+    # String substitution should work fine (renaming the variable)
+    stmt = Statements("tau = tau + tau_syn", tau="tau_new")
+    assert str(stmt) == "tau_new = tau_new + tau_syn"
