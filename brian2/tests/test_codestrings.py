@@ -1,22 +1,12 @@
-import numpy as np
 import pytest
 import sympy
-from numpy.testing import assert_equal
 
 import brian2
 from brian2 import (
-    DimensionMismatchError,
     Expression,
-    Hz,
     Statements,
-    get_dimensions,
-    ms,
     mV,
-    second,
-    volt,
 )
-from brian2.core.preferences import prefs
-from brian2.utils.logger import catch_logs
 
 
 def sympy_equals(expr1, expr2):
@@ -39,7 +29,7 @@ def test_expr_creation():
     assert (
         "v" in expr.identifiers
         and "mV" in expr.identifiers
-        and not "V" in expr.identifiers
+        and "V" not in expr.identifiers
     )
     with pytest.raises(SyntaxError):
         Expression("v 5 * mV")
@@ -47,7 +37,6 @@ def test_expr_creation():
 
 @pytest.mark.codegen_independent
 def test_split_stochastic():
-    tau = 5 * ms
     expr = Expression("(-v + I) / tau")
     # No stochastic part
     assert expr.split_stochastic() == (expr, None)
