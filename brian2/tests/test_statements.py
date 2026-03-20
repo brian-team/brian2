@@ -5,7 +5,7 @@ Tests for the Statements class and its substitution functionality.
 import pytest
 
 from brian2.equations.codestrings import Statements
-from brian2.units import mV, ms, nS
+from brian2.units import mV
 
 
 # Core functionality tests - separate for clarity
