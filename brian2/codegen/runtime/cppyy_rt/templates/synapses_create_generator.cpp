@@ -4,12 +4,28 @@
 {# ITERATE_ALL { _idx } #}
 {% extends 'common_group.cpp' %}
 
+{% block template_support_code %}
+#include <cstring>
+
+const int _buffer_size = 1024;
+
+inline void _flush_buffer(int32_t* buf, DynamicArray1D<int32_t>* dynarr, int buf_len) {
+    size_t _curlen = dynarr->size();
+    dynarr->resize(_curlen + buf_len);
+    memcpy(dynarr->get_data_ptr() + _curlen, buf, buf_len * sizeof(int32_t));
+}
+{% endblock %}
+
 {% block maincode %}
     {% set _pre_capsule = get_array_name(variables['_synaptic_pre'], access_data=False) + "_capsule" %}
     {% set _post_capsule = get_array_name(variables['_synaptic_post'], access_data=False) + "_capsule" %}
 
     auto* _dyn_pre = _extract_dynamic_array_1d<int32_t>({{ _pre_capsule }});
     auto* _dyn_post = _extract_dynamic_array_1d<int32_t>({{ _post_capsule }});
+
+    int32_t _prebuf[1024];
+    int32_t _postbuf[1024];
+    int _curbuf = 0;
 
     // scalar code
     const size_t _vectorisation_idx = 1;
@@ -117,11 +133,14 @@
             {{vector_code['update']|autoindent}}
 
             for (int _repetition = 0; _repetition < _n; _repetition++) {
-                size_t _curlen = _dyn_pre->size();
-                _dyn_pre->resize(_curlen + 1);
-                _dyn_post->resize(_curlen + 1);
-                _dyn_pre->get_data_ptr()[_curlen] = _pre_idx;
-                _dyn_post->get_data_ptr()[_curlen] = _post_idx;
+                _prebuf[_curbuf] = _pre_idx;
+                _postbuf[_curbuf] = _post_idx;
+                _curbuf++;
+                if (_curbuf == _buffer_size) {
+                    _flush_buffer(_prebuf, _dyn_pre, _curbuf);
+                    _flush_buffer(_postbuf, _dyn_post, _curbuf);
+                    _curbuf = 0;
+                }
             }
         {% if iterator_func=='range' %}
         }
@@ -129,5 +148,11 @@
             }
         }
         {% endif %}
+    }
+
+    // Final flush of remaining buffered synapses
+    if (_curbuf > 0) {
+        _flush_buffer(_prebuf, _dyn_pre, _curbuf);
+        _flush_buffer(_postbuf, _dyn_post, _curbuf);
     }
 {% endblock %}

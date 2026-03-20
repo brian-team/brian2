@@ -2,19 +2,8 @@
 {% extends 'common_group.cpp' %}
 
 {% block template_support_code %}
-// CSpikeQueue access — extract from capsule, peek, advance
 #include <vector>
 #include <cstdint>
-
-#ifndef _BRIAN2_CPPYY_SPIKEQUEUE_DECL
-#define _BRIAN2_CPPYY_SPIKEQUEUE_DECL
-// Forward declaration not needed — spikequeue.h already included via support code
-// but we need the extract helper
-inline CSpikeQueue* _extract_spike_queue(PyObject* capsule) {
-    void* ptr = PyCapsule_GetPointer(capsule, "CSpikeQueue");
-    return static_cast<CSpikeQueue*>(ptr);
-}
-#endif
 {% endblock %}
 
 {% block maincode %}

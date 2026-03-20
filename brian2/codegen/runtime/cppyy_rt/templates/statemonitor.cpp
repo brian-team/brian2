@@ -32,6 +32,13 @@
     }
     {% endfor %}
 
+    // ── Cache 2D array extractions before the loop ──
+    {% for varname, var in _recorded_variables | dictsort %}
+    {% set _rec_capsule = get_array_name(var, access_data=False) + "_capsule" %}
+    {% set _rec_ctype = c_data_type(var.dtype) %}
+    auto* _cached_dyn_{{ varname }} = _extract_dynamic_array_2d<{{ _rec_ctype }}>({{ _rec_capsule }});
+    {% endfor %}
+
     // ── Scalar code (runs once) ──
     const size_t _vectorisation_idx = -1;
     {{ scalar_code | autoindent }}
@@ -42,16 +49,8 @@
         const size_t _vectorisation_idx = _idx;
         {{ vector_code | autoindent }}
 
-        // Write recorded values into the last row of each 2D array.
-        // After resize, get_data_ptr() returns the (potentially new) buffer,
-        // and we index using stride * row + col to handle over-allocation.
         {% for varname, var in _recorded_variables | dictsort %}
-        {% set _rec_capsule = get_array_name(var, access_data=False) + "_capsule" %}
-        {% set _rec_ctype = c_data_type(var.dtype) %}
-        {
-            auto* _dyn = _extract_dynamic_array_2d<{{ _rec_ctype }}>({{ _rec_capsule }});
-            _dyn->operator()(_new_len - 1, _i) = _to_record_{{ varname }};
-        }
+        _cached_dyn_{{ varname }}->operator()(_new_len - 1, _i) = _to_record_{{ varname }};
         {% endfor %}
     }
 

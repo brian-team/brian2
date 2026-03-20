@@ -259,6 +259,12 @@ def _ensure_support_code() -> None:
         return static_cast<DynamicArray2D<T>*>(ptr);
     }}
 
+    // ── Helper to extract a CSpikeQueue from a PyCapsule ──
+    inline CSpikeQueue* _extract_spike_queue(PyObject* capsule) {{
+        void* ptr = PyCapsule_GetPointer(capsule, "CSpikeQueue");
+        return static_cast<CSpikeQueue*>(ptr);
+    }}
+
     #endif // _BRIAN2_CPPYY_SUPPORT_CODE
     """
     cppyy.cppdef(guarded_code)

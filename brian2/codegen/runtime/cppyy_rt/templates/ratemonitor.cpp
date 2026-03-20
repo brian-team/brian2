@@ -29,8 +29,8 @@
     _num_spikes = _end_idx - _start_idx;
 
     // Resize t and rate arrays via capsules
-    {% set _t_capsule = "_dynamic_array_" + owner.name + "_t_capsule" %}
-    {% set _rate_capsule = "_dynamic_array_" + owner.name + "_rate_capsule" %}
+    {% set _t_capsule = get_array_name(variables['t'], access_data=False) + "_capsule" %}
+    {% set _rate_capsule = get_array_name(variables['rate'], access_data=False) + "_capsule" %}
     auto* _dyn_t = _extract_dynamic_array_1d<double>({{ _t_capsule }});
     auto* _dyn_rate = _extract_dynamic_array_1d<double>({{ _rate_capsule }});
 

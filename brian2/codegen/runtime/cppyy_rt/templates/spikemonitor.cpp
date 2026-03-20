@@ -51,6 +51,14 @@
             // Update N after resize
             {{ N }} = _newlen;
 
+            // ── Cache capsule extractions and data pointers before spike loop ──
+            {% for varname, var in record_variables | dictsort %}
+            {% set _dyn_name = get_array_name(var, access_data=False) %}
+            {% set _rec_ctype = c_data_type(var.dtype) %}
+            auto* _cached_dyn_{{ varname }} = _extract_dynamic_array_1d<{{ _rec_ctype }}>({{ _dyn_name }}_capsule);
+            auto* _cached_ptr_{{ varname }} = _cached_dyn_{{ varname }}->get_data_ptr();
+            {% endfor %}
+
             // ── Record each spike ──
             for (size_t _j = _start_idx; _j < _end_idx; _j++) {
                 const size_t _idx = {{ _eventspace }}[_j];
@@ -58,12 +66,7 @@
                 {{ vector_code | autoindent }}
 
                 {% for varname, var in record_variables | dictsort %}
-                {% set _dyn_name = get_array_name(var, access_data=False) %}
-                {% set _rec_ctype = c_data_type(var.dtype) %}
-                {
-                    auto* _dyn = _extract_dynamic_array_1d<{{ _rec_ctype }}>({{ _dyn_name }}_capsule);
-                    _dyn->get_data_ptr()[_curlen + _j - _start_idx] = _to_record_{{ varname }};
-                }
+                _cached_ptr_{{ varname }}[_curlen + _j - _start_idx] = _to_record_{{ varname }};
                 {% endfor %}
 
                 {{ count }}[_idx - _source_start]++;

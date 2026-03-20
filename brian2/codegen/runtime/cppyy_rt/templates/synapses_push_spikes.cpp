@@ -4,14 +4,6 @@
 {% block template_support_code %}
 #include <vector>
 #include <cstdint>
-
-#ifndef _BRIAN2_CPPYY_SPIKEQUEUE_DECL
-#define _BRIAN2_CPPYY_SPIKEQUEUE_DECL
-inline CSpikeQueue* _extract_spike_queue(PyObject* capsule) {
-    void* ptr = PyCapsule_GetPointer(capsule, "CSpikeQueue");
-    return static_cast<CSpikeQueue*>(ptr);
-}
-#endif
 {% endblock %}
 
 {% block before_code %}
