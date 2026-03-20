@@ -31,8 +31,9 @@ If you use Brian for your published research, we kindly ask you to cite our arti
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 [![Discourse topics](https://img.shields.io/discourse/topics?server=https%3A%2F%2Fbrian.discourse.group)](https://brian.discourse.group)
 [![Discourse chat](https://img.shields.io/badge/discourse-chat-4EC820?logo=discourse&link=https%3A%2F%2Fbrian.discourse.group%2Fchat)](https://brian.discourse.group/chat)
-[![Neuromorphic Computing](https://img.shields.io/badge/Collaboration_Network-Open_Neuromorphic-blue)](https://open-neuromorphic.org/neuromorphic-computing/)
 
+[![Neuromorphic Computing](https://img.shields.io/badge/Collaboration_Network-Open_Neuromorphic-blue)](https://open-neuromorphic.org/neuromorphic-computing/)
+[![PySimHub](https://pysimhub.io/badge.svg)](https://pysimhub.io/projects/brian2)
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![SPEC 0 — Minimum Supported Dependencies](https://img.shields.io/badge/SPEC-0-green?labelColor=%23004811&color=%235CA038)](https://scientific-python.org/specs/spec-0000/)
@@ -63,7 +64,7 @@ For full functionality, you might also want to install:
 
 To build the documentation:
 
-* Sphinx >=7
+* Sphinx >=7,<9
 * ipython >=5
 * sphinx-tabs
 

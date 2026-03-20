@@ -1155,13 +1155,11 @@ class Equations(Hashable, Mapping):
             In case of any inconsistencies.
         """
         all_variables = dict(group.variables)
-        external = frozenset().union(
+        identifiers = frozenset().union(
             *[expr.identifiers for _, expr in self.eq_expressions]
         )
-        external -= set(all_variables.keys())
-
         resolved_namespace = group.resolve_all(
-            external, run_namespace, user_identifiers=external
+            identifiers, run_namespace, user_identifiers=identifiers
         )  # all variables are user defined
 
         all_variables.update(resolved_namespace)

@@ -74,6 +74,18 @@ def test_poissoninput_errors():
     with pytest.raises(DimensionMismatchError):
         PoissonInput(G, "y", 100, 100 * Hz, weight=1.0 * volt)
 
+    # Invalid N (must be integer >= 1)
+    with pytest.raises(ValueError):
+        PoissonInput(G, "x", 0, 100 * Hz, weight=1 * volt)
+    with pytest.raises(ValueError):
+        PoissonInput(G, "x", -1, 100 * Hz, weight=1 * volt)
+    with pytest.raises(ValueError):
+        PoissonInput(G, "x", 1.5, 100 * Hz, weight=1 * volt)
+
+    # Negative rate
+    with pytest.raises(ValueError):
+        PoissonInput(G, "x", 100, -10 * Hz, weight=1 * volt)
+
     # dt change
     old_dt = defaultclock.dt
     inp = PoissonInput(G, "x", 100, 100 * Hz, weight=1 * volt)

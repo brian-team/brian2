@@ -4,5 +4,5 @@
 # highlighting) get displayed correctly
 ipython >= 5
 sphinx-tabs
-sphinx>=7
+sphinx>=7,<9
 sphinx_rtd_theme

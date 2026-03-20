@@ -16,7 +16,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: mstimberg/update-spec0-dependencies@97a927bde768c536b9d6631eb4d7263c050a233b  # patched version for now
+      - uses: scientific-python/spec0-action@85e5cd0b40e7076bcea472d54d10b254fbe01417  # v1.2
         with:
           token: ${{ secrets.GH_PAT_SPEC0 }}
           target_branch: master

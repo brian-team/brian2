@@ -5,8 +5,8 @@ Installation
     :local:
     :depth: 1
 
-There are various ways to install Brian, and we recommend that you chose the installation method that
-they are most familiar with and use for other Python packages. If you do not yet have Python installed on
+There are various ways to install Brian, and we recommend that you choose the installation method that
+you are most familiar with and use for other Python packages. If you do not yet have Python installed on
 your system (in particular on Windows machines), you can install Python and all of Brian's dependencies
 via the `Anaconda distribution <https://www.anaconda.com/distribution/#download-section>`_. You can then install
 Brian with the ``conda`` package manager as detailed below.
@@ -33,7 +33,7 @@ Standard install
        `conda's documentation <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_
        for more details.
        Brian 2 is not part of the main Anaconda distribution, but built using the community-maintained
-       `conda-forge <https://conda-forge.org/>`_ project. You will therefore have to to install it from the
+       `conda-forge <https://conda-forge.org/>`_ project. You will therefore have to install it from the
        `conda-forge channel <https://anaconda.org/conda-forge>`_. To do so, use::
 
          conda install -c conda-forge brian2
@@ -42,7 +42,7 @@ Standard install
 
          conda config --add channels conda-forge
 
-       This has only to be done once. After that, you can install and update the brian2 packages as any other
+       This only has to be done once. After that, you can install and update the brian2 packages as any other
        Anaconda package::
 
          conda install brian2
@@ -65,7 +65,7 @@ Standard install
 
     .. group-tab:: Ubuntu/Debian package
 
-       If you are using a recent `Debian <https://debian.org>`_-based Linux distribution (Debian itself, or one if its
+       If you are using a recent `Debian <https://debian.org>`_-based Linux distribution (Debian itself, or one of its
        derivatives like `Ubuntu <https://ubuntu.com>`_ or `Linux Mint <https://linuxmint.com/>`_), you can install Brian
        using its built-in package manager::
 

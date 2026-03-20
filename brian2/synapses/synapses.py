@@ -17,7 +17,7 @@ from brian2.core.base import device_override, weakproxy_with_fallback
 from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import DynamicArrayVariable, Variables
-from brian2.devices.device import get_device
+from brian2.devices.device import device, get_device
 from brian2.equations.equations import (
     DIFFERENTIAL_EQUATION,
     PARAMETER,
@@ -260,12 +260,19 @@ class SynapticPathway(CodeRunner, Group):
                 n_synapses = synapses.N
             else:
                 n_synapses = 0
+            # We give the delay a unique name so that we can refer to them in synaptic
+            # contexts without ambiguity. We also add a reference with the simple
+            # "delay" name, since this is what users will use to refer to it.
             self.variables.add_dynamic_array(
-                "delay", dimensions=second.dim, size=n_synapses, constant=True
+                f"_{objname}_delay",
+                dimensions=second.dim,
+                size=n_synapses,
+                constant=True,
             )
+            self.variables.add_reference("delay", self, f"_{objname}_delay")
             # Register the object with the `SynapticIndex` object so it gets
             # automatically resized
-            synapses.register_variable(self.variables["delay"])
+            synapses.register_variable(self.variables[f"_{objname}_delay"])
         else:
             if not isinstance(delay, Quantity):
                 raise TypeError(
@@ -284,18 +291,26 @@ class SynapticPathway(CodeRunner, Group):
                 "Delay has to be specified in units of seconds but got {value}",
                 value=delay,
             )
+            # We give the delay a unique name so that we can refer to them in synaptic
+            # contexts without ambiguity. We also add a reference with the simple
+            # "delay" name, since this is what users will use to refer to it.
             # We use a "dynamic" array of constant size here because it makes
             # the generated code easier, we don't need to deal with a different
             # type for scalar and variable delays
             self.variables.add_dynamic_array(
-                "delay", dimensions=second.dim, size=1, constant=True, scalar=True
+                f"_{objname}_delay",
+                dimensions=second.dim,
+                size=1,
+                constant=True,
+                scalar=True,
             )
+            self.variables.add_reference("delay", self, f"_{objname}_delay")
             # Since this array does not grow with the number of synapses, we
             # have to resize it ourselves
-            self.variables["delay"].resize(1)
-            self.variables["delay"].set_value(delay)
+            self.variables[f"_{objname}_delay"].resize(1)
+            self.variables[f"_{objname}_delay"].set_value(delay)
 
-        self._delays = self.variables["delay"]
+        self._delays = self.variables[f"_{objname}_delay"]
 
         # Re-extract the last part of the name from the full name
         self.objname = self.name[len(synapses.name) + 1 :]
@@ -461,6 +476,7 @@ class SynapticPathway(CodeRunner, Group):
         # variables, so remove it from the state dictionary so that it does not
         # get treated as a state variable by the standard mechanism in
         # `VariableOwner`
+        state = state.copy()  # copy to avoid corrupting stored state on failed restore
         queue_state = state.pop("_spikequeue")
         if "delay" in state:
             delay_state = state.pop("delay")
@@ -476,9 +492,6 @@ class SynapticPathway(CodeRunner, Group):
         if delay_state:
             self.variables["delay"].resize(delay_state[1])
             self.variables["delay"].set_value(delay_state[0])
-            state["delay"] = delay_state
-
-        state["_spikequeue"] = queue_state
 
     def _convert_queue_state_if_needed(self, queue_state):
         """
@@ -1105,6 +1118,10 @@ class Synapses(Group):
                 raise ValueError(
                     f"Cannot set the delay for pathway '{pathway}': unknown pathway."
                 )
+
+        # Add references to the delay variables with qualified names
+        for pathway in self._pathways:
+            self.variables.add_reference(f"_{pathway.objname}_delay", pathway)
 
         #: Performs numerical integration step
         self.state_updater = None
@@ -1917,11 +1934,22 @@ class Synapses(Group):
     def _add_synapses_from_arrays(self, sources, targets, n, p, namespace=None):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
+        template_kwds["_registered_variables"] = self._registered_variables
+        template_kwds["source_offset_val"] = self.variables[
+            "_source_offset"
+        ].get_value()
+        template_kwds["target_offset_val"] = self.variables[
+            "_target_offset"
+        ].get_value()
+
+        for var in self._registered_variables:
+            if var.name not in needed_variables:
+                needed_variables.append(var.name)
+
         variables = Variables(self)
 
         sources = np.atleast_1d(sources).astype(np.int32)
         targets = np.atleast_1d(targets).astype(np.int32)
-
         # Check whether the values in sources/targets make sense
         error_message = (
             "The given {source_or_target} indices contain "
@@ -1995,7 +2023,10 @@ class Synapses(Group):
             template_kwds=template_kwds,
             needed_variables=needed_variables,
             check_units=False,
-            run_namespace={},
+            run_namespace=namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.synapse_connect_target"
+            ),
         )
         old_num_synapses = len(self)
         codeobj()
@@ -2066,6 +2097,19 @@ class Synapses(Group):
                 raise ValueError(f"The connect statement cannot refer to '{var}'.")
 
         template_kwds, needed_variables = self._get_multisynaptic_indices()
+
+        template_kwds["_registered_variables"] = self._registered_variables
+        template_kwds["source_offset_val"] = self.variables[
+            "_source_offset"
+        ].get_value()
+        template_kwds["target_offset_val"] = self.variables[
+            "_target_offset"
+        ].get_value()
+
+        for var in self._registered_variables:
+            if var.name not in needed_variables:
+                needed_variables.append(var.name)
+
         template_kwds.update(parsed)
         template_kwds["skip_if_invalid"] = skip_if_invalid
         # To support both i='...' and j='...' syntax, we provide additional keywords
@@ -2213,6 +2257,9 @@ class Synapses(Group):
             needed_variables=needed_variables,
             check_units=False,
             run_namespace=namespace,
+            codeobj_class=device.code_object_class(
+                fallback_pref="codegen.synapse_connect_target"
+            ),
         )
         old_num_synapses = len(self)
         codeobj()

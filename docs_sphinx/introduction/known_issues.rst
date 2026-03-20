@@ -32,14 +32,14 @@ that file.
 "Missing compiler_cxx fix for MSVCCompiler"
 -------------------------------------------
 
-If you keep seeing this message, do not worry. It's not possible for us to
-hide it, but doesn't indicate any problems.
+If you keep seeing this message, do not worry. It is not possible for us to
+hide it, but it does not indicate any problems.
 
 Problems with numerical integration
 -----------------------------------
 
 In some cases, the automatic choice of numerical integration method will not be
-appropriate, because of a choice of parameters that couldn't be determined in
+appropriate, because of parameter choices that could not be determined in
 advance. In this case, typically you will get nan (not a number) values in the
 results, or large oscillations. In this case, Brian will generate a warning to
 let you know, but will not raise an error.
@@ -80,7 +80,7 @@ file at the same time. To avoid this, Brian uses a file locking mechanism that e
 that only a process at a time can access these files. Unfortunately, this file locking
 mechanism is very slow on machines using the Network File System
 (`NFS <https://en.wikipedia.org/wiki/Network_File_System>`_), which is often the case on
-computing clusters. On such machines, it is recommend to use an independent cache
+computing clusters. On such machines, it is recommended to use an independent cache
 directory per process, and to disable the file locking mechanism. This can be done with
 the following code that has to be run at the beginning of each process::
 
