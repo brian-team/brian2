@@ -278,6 +278,35 @@ def _():
     """
 
 
+@register("SpikeGeneratorGroup")
+def _():
+    """
+    # Test the spikegenerator template
+    indices = np.array([0, 1, 2, 1, 0])
+    times = np.array([2, 4, 6, 8, 10]) * ms
+    G = SpikeGeneratorGroup(3, indices, times)
+    mon = SpikeMonitor(G)
+    run(15 * ms)
+    assert mon.num_spikes == 5, f"Expected 5 spikes, got {mon.num_spikes}"
+    recorded_i = np.array(mon.i[:])
+    np.testing.assert_array_equal(np.sort(recorded_i), np.sort(indices))
+    """
+
+
+@register("SpikeGeneratorGroup periodic")
+def _():
+    """
+    # SpikeGeneratorGroup with period
+    indices = np.array([0, 1])
+    times = np.array([1, 3]) * ms
+    G = SpikeGeneratorGroup(2, indices, times, period=5*ms)
+    mon = SpikeMonitor(G)
+    run(20 * ms)
+    # With 5ms period over 20ms, expect 4 cycles * 2 spikes = 8
+    assert mon.num_spikes >= 6, f"Expected >= 6 periodic spikes, got {mon.num_spikes}"
+    """
+
+
 def run_test(index, name, code):
     """Run a single test in a subprocess."""
     full_code = _PREAMBLE + textwrap.dedent(code)

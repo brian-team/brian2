@@ -151,14 +151,22 @@ def _get_cppyy() -> Any:
 
 def _cppyy_c_data_type(dtype: type | np.dtype) -> str:
     """
-    Like c_data_type but maps bool→int8_t instead of char.
+    Like c_data_type but remaps types for cppyy's buffer protocol.
 
-    cppyy enforces strict type matching on buffers: numpy's bool_ viewed as
-    int8 needs int8_t in the signature, not char (which is a distinct type in C++).
+    cppyy enforces strict type matching on buffers:
+    - numpy's bool_ viewed as int8 needs int8_t, not char
+    - numpy int64 maps to ``long`` on LP64 platforms, but ``int64_t`` is
+      typedef'd to ``long long`` which cppyy rejects for buffer conversion
     """
+    import struct
+
     ctype: str = c_data_type(dtype)
     if ctype == "char":
         return "int8_t"
+    if ctype == "int64_t" and struct.calcsize("l") == 8:
+        return "long"
+    if ctype == "uint64_t" and struct.calcsize("l") == 8:
+        return "unsigned long"
     return ctype
 
 

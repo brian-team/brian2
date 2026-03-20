@@ -31,15 +31,25 @@ FunctionParam = tuple[str, str, str]
 
 def _cppyy_c_data_type(dtype: type | Any) -> str:
     """
-    Like c_data_type but maps bool→int8_t instead of char.
+    Like c_data_type but remaps types for cppyy's buffer protocol.
 
-    cppyy is strict about buffer types: numpy int8 maps to signed char (int8_t),
-    not char. Using int8_t in the signature lets the buffer protocol match.
-    The function body still uses char for locals — implicit conversion handles it.
+    cppyy is strict about buffer types:
+    - numpy int8 maps to signed char (int8_t), not char
+    - numpy int64 maps to ``long`` on LP64 platforms (macOS, Linux 64-bit),
+      but ``int64_t`` is typedef'd to ``long long`` — cppyy's buffer protocol
+      only matches the canonical type, so we must use ``long`` directly.
     """
+    import struct
+
     ctype: str = c_data_type(dtype)
     if ctype == "char":
         return "int8_t"
+    # On LP64 platforms (sizeof(long)==8), cppyy maps numpy int64 buffers to
+    # ``long*`` but rejects ``int64_t*`` (== ``long long*``).
+    if ctype == "int64_t" and struct.calcsize("l") == 8:
+        return "long"
+    if ctype == "uint64_t" and struct.calcsize("l") == 8:
+        return "unsigned long"
     return ctype
 
 
