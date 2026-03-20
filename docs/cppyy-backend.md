@@ -100,11 +100,11 @@ flowchart LR
     GEN -->|"Same name used<br/>in template code"| BODY
 ```
 
-| Layer | Static Array | Dynamic Array (data) | Dynamic Array (container) |
-|-------|-------------|----------------------|---------------------------|
-| Device | `_array_G_v` | `_array_G_v` | `_dynamic_array_G_v` |
-| Generator | `_ptr_array_G_v` | `_ptr_array_G_v` | `_dynamic_array_G_v` |
-| C++ body | `_ptr_array_G_v[_idx]` | `_ptr_array_G_v[_idx]` | via `_dynamic_array_G_v_capsule` |
+| Layer     | Static Array           | Dynamic Array (data)   | Dynamic Array (container)        |
+| --------- | ---------------------- | ---------------------- | -------------------------------- |
+| Device    | `_array_G_v`           | `_array_G_v`           | `_dynamic_array_G_v`             |
+| Generator | `_ptr_array_G_v`       | `_ptr_array_G_v`       | `_dynamic_array_G_v`             |
+| C++ body  | `_ptr_array_G_v[_idx]` | `_ptr_array_G_v[_idx]` | via `_dynamic_array_G_v_capsule` |
 
 The generator's `get_array_name()` produces names for layers 2 and 3. The code object's `variables_to_namespace()` bridges layer 1 → 2.
 
@@ -136,6 +136,7 @@ flowchart TD
 ```
 
 **Both functions MUST**:
+
 1. Iterate `sorted(self.variables.items())`
 2. Skip `AuxiliaryVariable`, `Subexpression`, `Function`
 3. Handle `Constant` → scalar param
@@ -174,25 +175,26 @@ flowchart TD
 
 ### Template Inventory
 
-| Template | Purpose | Uses Capsules? | Special Features |
-|----------|---------|----------------|------------------|
-| `stateupdate.cpp` | ODE integration | No | Simple N-loop |
-| `threshold.cpp` | Spike detection | No | Writes to spikespace |
-| `reset.cpp` | Post-spike reset | No | Conditional on spikespace |
-| `spikemonitor.cpp` | Record spike times | Yes (1D) | Resizes `t`, `i`, recorded vars |
-| `statemonitor.cpp` | Record variable traces | Yes (2D) | Resizes 2D arrays per timestep |
-| `ratemonitor.cpp` | Population rate | Yes (1D) | Resizes `t`, `rate` |
-| `synapses.cpp` | Synapse propagation | Yes (SpikeQueue) | Extracts queue, peeks, advances |
-| `synapses_push_spikes.cpp` | Push spikes to queue | Yes (SpikeQueue) | Reads eventspace |
-| `synapses_create_array.cpp` | Direct i,j creation | Yes (1D) | Resizes pre/post arrays |
-| `synapses_create_generator.cpp` | Generator-based creation | Yes (1D) | Buffered (1024) resize pattern |
-| `summed_variable.cpp` | Summed synaptic vars | No | Accumulates across synapses |
-| `group_variable_get.cpp` | Get variable values | No | |
-| `group_variable_set.cpp` | Set variable values | No | |
-| `group_variable_get_conditional.cpp` | Conditional get | No | |
-| `group_variable_set_conditional.cpp` | Conditional set | No | |
+| Template                             | Purpose                  | Uses Capsules?   | Special Features                |
+| ------------------------------------ | ------------------------ | ---------------- | ------------------------------- |
+| `stateupdate.cpp`                    | ODE integration          | No               | Simple N-loop                   |
+| `threshold.cpp`                      | Spike detection          | No               | Writes to spikespace            |
+| `reset.cpp`                          | Post-spike reset         | No               | Conditional on spikespace       |
+| `spikemonitor.cpp`                   | Record spike times       | Yes (1D)         | Resizes `t`, `i`, recorded vars |
+| `statemonitor.cpp`                   | Record variable traces   | Yes (2D)         | Resizes 2D arrays per timestep  |
+| `ratemonitor.cpp`                    | Population rate          | Yes (1D)         | Resizes `t`, `rate`             |
+| `synapses.cpp`                       | Synapse propagation      | Yes (SpikeQueue) | Extracts queue, peeks, advances |
+| `synapses_push_spikes.cpp`           | Push spikes to queue     | Yes (SpikeQueue) | Reads eventspace                |
+| `synapses_create_array.cpp`          | Direct i,j creation      | Yes (1D)         | Resizes pre/post arrays         |
+| `synapses_create_generator.cpp`      | Generator-based creation | Yes (1D)         | Buffered (1024) resize pattern  |
+| `summed_variable.cpp`                | Summed synaptic vars     | No               | Accumulates across synapses     |
+| `group_variable_get.cpp`             | Get variable values      | No               |                                 |
+| `group_variable_set.cpp`             | Set variable values      | No               |                                 |
+| `group_variable_get_conditional.cpp` | Conditional get          | No               |                                 |
+| `group_variable_set_conditional.cpp` | Conditional set          | No               |                                 |
 
 **Missing** (still need porting from Cython):
+
 - `spatialstateupdate` — multi-compartment neurons (complex linear algebra)
 - `spikegenerator` — SpikeGeneratorGroup (straightforward)
 - `group_get_indices` — group index operations (low priority)
@@ -228,12 +230,14 @@ flowchart LR
 ### Two Kinds of Array Access
 
 **Static arrays** (fixed size, e.g., neuron state variables):
+
 ```
 Python: np.ndarray → cppyy → double* (zero copy)
 C++:    _ptr_array_G_v[_idx] = ...
 ```
 
 **Dynamic arrays** (resizable, e.g., monitor recordings):
+
 ```
 Python: PyCapsule → cppyy → DynamicArray1D<T>*
 C++:    _dyn->resize(_newlen);
@@ -268,6 +272,7 @@ flowchart TD
 ```
 
 Key design choices:
+
 - Uses `ctypes.pythonapi.PyCapsule_New` instead of cppyy for capsule creation (avoids template lookup issues)
 - Uses C++ helpers returning `uintptr_t` for reliable address extraction (`cppyy.addressof()` fails on some pointer types)
 - numpy views are zero-copy via `ctypes.from_address()`
@@ -527,6 +532,7 @@ brian2/
 ### Phase 2: DynamicArray Backend
 
 **`brian2/memory/cppyy_dynamicarray.py`** — Drop-in cppyy replacement for Cython's DynamicArray wrappers. Uses:
+
 - `cppyy.gbl.DynamicArray1D["double"]()` to instantiate C++ templates
 - `ctypes.pythonapi.PyCapsule_New` for capsule creation (ctypes, not cppyy — avoids template lookup issues)
 - C++ helpers `_brian_dynarray_data_addr_1d/2d` returning `uintptr_t` for reliable address extraction
@@ -537,6 +543,7 @@ brian2/
 ### Phase 3: SpikeQueue
 
 **`brian2/synapses/cppyy_spikequeue.py`** — cppyy wrapper for CSpikeQueue from `spikequeue.h`. Uses C++ helpers for data passing:
+
 - `_brian_sq_peek_data()` — returns raw pointer + size for zero-copy peek
 - `_brian_sq_push_array()` — pushes spike indices by pointer
 - `_brian_sq_prepare<scalar>()` — template function for float/double delay preparation
@@ -569,6 +576,7 @@ Four new templates in `brian2/codegen/runtime/cppyy_rt/templates/`:
 ### Phase 6: Multi-Backend Support
 
 Already clean — no additional changes needed:
+
 - `auto_target()` handles priority selection
 - Fallback chains in `dynamicarray.py` and `spikequeue.py`
 - All three targets (numpy, cython, cppyy) coexist cleanly
@@ -634,6 +642,7 @@ prefs.codegen.runtime.cppyy.enable_introspection = True
 ### Missing Templates
 
 Three Cython templates have no cppyy equivalent yet:
+
 - **`spatialstateupdate`** — Spatial (multi-compartment) neurons. Uses specialized linear algebra that needs careful porting.
 - **`spikegenerator`** — SpikeGeneratorGroup. Relatively straightforward to port.
 - **`group_get_indices`** — Used by some group operations. Low priority.
@@ -655,15 +664,3 @@ Three Cython templates have no cppyy equivalent yet:
 7. **Time-based refractoriness**: `refractory=5*ms` may not enforce exact timing with some integration methods. String-based conditions (`refractory='v > -40*mV'`) work correctly.
 
 ---
-
-## Continuation Prompt
-
-Use this to resume work in a new conversation:
-
-> I'm working on the brian2 `experimental-cppyy` branch — a cppyy/Cling JIT codegen backend that replaces Cython AOT compilation. The backend is functional with: state updates, thresholds, resets, monitors (spike/state/rate), synapses (creation, propagation, STDP), DynamicArray/SpikeQueue fallbacks, RNG seeding, and an introspector.
->
-> Key files: `brian2/codegen/runtime/cppyy_rt/cppyy_rt.py` (code object), `brian2/codegen/generators/cppyy_generator.py` (code generator), templates in `brian2/codegen/runtime/cppyy_rt/templates/`, `brian2/memory/cppyy_dynamicarray.py`, `brian2/synapses/cppyy_spikequeue.py`.
->
-> Read `docs/cppyy-backend.md` for the full architecture doc. The three naming worlds (device → generator → C++ body) and parameter sync between `determine_keywords()` and `_build_param_mapping()` are the most critical invariants.
->
-> Next steps: port missing templates (spatialstateupdate, spikegenerator, group_get_indices), and run the full Brian2 test suite with `prefs.codegen.target = "cppyy"`.
