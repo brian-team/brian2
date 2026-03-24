@@ -255,13 +255,13 @@ public:
             for (size_t i = new_rows; i < m_buffer_rows; ++i)
             {
                 size_t base = i * m_buffer_cols;
-                std::fill(&m_buffer[base], &m_buffer[base + m_buffer_cols], T(0));
+                std::fill(m_buffer.begin() + base, m_buffer.begin() + base + m_buffer_cols, T(0));
             }
             // Zero columns beyond new_cols in remaining rows
             for (size_t i = 0; i < new_rows; ++i)
             {
                 size_t base = i * m_buffer_cols + new_cols;
-                std::fill(&m_buffer[base], &m_buffer[base + (m_buffer_cols - new_cols)], T(0));
+                std::fill(m_buffer.begin() + base, m_buffer.begin() + base + (m_buffer_cols - new_cols), T(0));
             }
         }
         else if (new_rows > m_rows || new_cols > m_cols)
@@ -272,7 +272,7 @@ public:
             for (size_t i = m_rows; i < new_rows; ++i)
             {
                 size_t base = i * m_buffer_cols;
-                std::fill(&m_buffer[base], &m_buffer[base + m_buffer_cols], T(0));
+                std::fill(m_buffer.begin() + base, m_buffer.begin() + base + m_buffer_cols, T(0));
             }
 
             // Zero new columns in existing rows
@@ -282,7 +282,7 @@ public:
                 size_t new_cols_in_row = std::min(new_cols, m_buffer_cols) - m_cols;
                 if (new_cols_in_row > 0)
                 {
-                    std::fill(&m_buffer[base], &m_buffer[base + new_cols_in_row], T(0));
+                    std::fill(m_buffer.begin() + base, m_buffer.begin() + base + new_cols_in_row, T(0));
                 }
             }
         }
@@ -328,8 +328,8 @@ public:
                 // We copy one complete row in a single memcpy operation ... much faster than copying element by element
                 for (size_t i = 0; i < copy_rows; ++i)
                 {
-                    std::memcpy(&new_buf[i*m_buffer_cols], // destination: row i in new buffer
-                        &m_buffer[i*m_buffer_cols], // source: row i in old buffer
+                    std::memcpy(new_buf.data() + i * m_buffer_cols, // destination: row i in new buffer
+                        m_buffer.data() + i * m_buffer_cols, // source: row i in old buffer
                         m_buffer_cols * sizeof(T) // size: entire row
                     );
                 }
@@ -356,7 +356,7 @@ public:
                 size_t base = i * m_buffer_cols;
 
                 // Zero out the entire row in one operation
-                std::fill(&m_buffer[base], &m_buffer[base + m_buffer_cols],T(0));
+                std::fill(m_buffer.begin() + base, m_buffer.begin() + base + m_buffer_cols, T(0));
             }
 
            /* Note: We don't shrink the actual buffer capacity here
@@ -371,7 +371,7 @@ public:
             for (size_t i = m_rows; i < new_rows; ++i)
             {
                 size_t base = i * m_buffer_cols;
-                std::fill(&m_buffer[base], &m_buffer[base + m_buffer_cols], T(0));
+                std::fill(m_buffer.begin() + base, m_buffer.begin() + base + m_buffer_cols, T(0));
             }
         }
         // We just update the logical row count to reflect the new size
@@ -398,8 +398,8 @@ public:
             // Copy existing data row by row
             for (size_t i = 0; i < new_rows; ++i) {
                 if (std::is_trivially_copyable<T>::value && new_cols > 0) {
-                    std::memcpy(&new_buffer[i * new_cols],
-                              &m_buffer[i * m_buffer_cols],
+                    std::memcpy(new_buffer.data() + i * new_cols,
+                              m_buffer.data() + i * m_buffer_cols,
                               new_cols * sizeof(T));
                 } else {
                     for (size_t j = 0; j < new_cols; ++j) {
@@ -441,7 +441,7 @@ public:
             {
                 if (std::is_trivially_copyable<T>::value)
                 {
-                    std::memcpy(&new_buffer[i * m_cols], &m_buffer[index(i, 0)], m_cols * sizeof(T));
+                    std::memcpy(new_buffer.data() + i * m_cols, m_buffer.data() + index(i, 0), m_cols * sizeof(T));
                 }
                 else
                 {
