@@ -521,7 +521,7 @@ class SynapticPathway(CodeRunner, Group):
         """
         _, spike_array, __ = python_state
 
-        if not spike_array.any():
+        if spike_array.size == 0:
             return (0, [])
 
         # The first column contains the delay slots, the second the snyapse indexes that would be triggered
