@@ -234,7 +234,7 @@ class StateUpdateMethod(metaclass=ABCMeta):
                 stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
                 if stateupdater is None:
                     raise ValueError(
-                        "No state updater with the name '{method}' is known."
+                        f"No state updater with the name '{method}' is known."
                     )
             else:
                 raise TypeError(
