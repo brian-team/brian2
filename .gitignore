@@ -51,3 +51,6 @@ output/
 
 # System files
 .DS_Store
+
+.venv/
+venv/
