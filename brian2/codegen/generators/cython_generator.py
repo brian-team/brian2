@@ -555,8 +555,10 @@ DEFAULT_FUNCTIONS["exprel"].implementations.add_implementation(
     name="_exprel",
     availability_check=C99Check("exprel"),
 )
-_BUFFER_SIZE = 20000
-
+_BUFFER_SIZE = 1024
+# TODO: Investigate replacing Python-level NumPy random buffering
+# (np.random.rand / randn) with NumPy's random C API for cleaner
+# and potentially more efficient Cython code generation.
 rand_code = """
 cdef double _rand(int _idx):
     cdef double **buffer_pointer = <double**>_namespace_rand_buffer
