@@ -666,9 +666,25 @@ def test_ipython_pprint():
 def test_improved_error_messages():
     """Test that malformed equations produce clear, targeted diagnostics."""
 
-    # Missing colon (unit separator)
+    # Missing colon (unit separator) — single line
     with pytest.raises(EquationError, match=r"Missing ':' unit separator"):
         parse_string_equations("dv/dt = -v / tau volt")
+
+    # Missing colon in a multiline block — EXPRESSION greedily absorbs the next
+    # line, which is detected in _diagnose_expression_error.
+    with pytest.raises(
+        EquationError, match=r"Missing ':' unit separator in the equation"
+    ):
+        parse_string_equations(
+            """
+            dv/dt = -v / tau volt
+            dge/dt = -ge / tau_ge : volt
+            """
+        )
+
+    # Missing colon on a parameter line (no '=' involved)
+    with pytest.raises(EquationError, match=r"Missing ':' unit separator"):
+        parse_string_equations("f Hz")
 
     # Malformed differential operator
     with pytest.raises(EquationError, match=r"Incomplete differential operator"):
@@ -676,6 +692,10 @@ def test_improved_error_messages():
 
     with pytest.raises(EquationError, match=r"Invalid differential operator"):
         parse_string_equations("dv/dx = -v / tau : 1")
+
+    # 'dt' typo (dv/d) must NOT be masked as a missing-unit hint
+    with pytest.raises(EquationError, match=r"Incomplete differential operator"):
+        parse_string_equations("dv/d = -v / tau : 1")
 
     # Unmatched parenthesis (open)
     with pytest.raises(EquationError, match=r"Unmatched parenthesis"):
@@ -692,6 +712,26 @@ def test_improved_error_messages():
     # Missing unit after colon
     with pytest.raises(EquationError, match=r"Missing unit after ':'"):
         parse_string_equations("dv/dt = -v / tau :")
+
+
+@pytest.mark.codegen_independent
+def test_parse_error_false_positives():
+    """Valid equations must never trigger error-message diagnostics."""
+    valid = [
+        "dv/dt = -v / tau : volt",
+        "x : volt",
+        "x = 2*v : volt",
+        "dv/dt = -v / tau : 1",
+        "dv/dt = -v / tau : volt  # with a comment",
+        """
+        dv/dt = -(v + ge) / tau : volt
+        dge/dt = -ge / tau_ge : volt
+        f : Hz
+        """,
+    ]
+    for eq_str in valid:
+        # Should not raise any exception
+        parse_string_equations(eq_str)
 
 
 @pytest.mark.codegen_independent
@@ -728,4 +768,5 @@ if __name__ == "__main__":
     test_repeated_construction()
     test_str_repr()
     test_improved_error_messages()
+    test_parse_error_false_positives()
     test_comment_annotations()

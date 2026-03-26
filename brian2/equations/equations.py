@@ -329,17 +329,31 @@ def _diagnose_parse_error(eqns_str, parse_exception):
     if not diagnostics:
         # pyparsing columns are 1-based; clamp to 0 to avoid negative repeats.
         col = max(0, parse_exception.column - 1)
-        return (
-            f"Parsing failed:\n"
-            f"  {parse_exception.line}\n"
-            f"  {' ' * col}^\n"
-            f"  {parse_exception}"
-        )
+        # parse_exception.line can be empty/None when ZeroOrMore is involved.
+        raw_line = parse_exception.line or eqns_str.strip().split("\n")[0]
+        return f"Parsing failed:\n  {raw_line}\n  {' ' * col}^\n  {parse_exception}"
     return "Equation parsing failed.\n" + "\n".join(diagnostics)
 
 
 def _diagnose_expression_error(varname, expr_str, syntax_error):
-    """Helpful message when an expression is syntactically invalid Python."""
+    """Helpful message when an expression is syntactically invalid Python.
+
+    When a line is missing its ':' unit separator, ``EXPRESSION`` can greedily
+    swallow the next equation line (e.g. ``dge/dt = ...``), producing a
+    cryptic SyntaxError.  Detect this and emit a targeted missing-colon hint
+    instead.
+    """
+    # Heuristic: if the expression contains '/dt' or looks like it ate a
+    # following equation line ('d<var>/dt' or '<var> ='), the real problem is
+    # a missing ':' on the current line.
+    if re.search(r"/dt\b", expr_str) or re.search(r"\b\w+\s*=", expr_str):
+        return (
+            f"Missing ':' unit separator in the equation for variable '{varname}'.\n"
+            f"  The expression looks like it accidentally absorbed the next line:\n"
+            f"    {expr_str.strip()!r}\n"
+            f"  Add ':' before the unit, e.g.:\n"
+            f"    d{varname}/dt = <expr> : <unit>"
+        )
     prefix = f"Syntax error in the expression for variable '{varname}':\n  {expr_str}\n"
     return prefix + (_paren_mismatch_msg(expr_str) or str(syntax_error))
 
