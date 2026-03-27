@@ -396,18 +396,18 @@ def test_linked_variable_incorrect():
 
     # incorrect unit
     with pytest.raises(DimensionMismatchError):
-        setattr(G3, "l", linked_var(G1.y))
+        G3.l = linked_var(G1.y)
     # incorrect group size
     with pytest.raises(ValueError):
-        setattr(G3, "l", linked_var(G2.x))
+        G3.l = linked_var(G2.x)
     # incorrect use of linked_var
     with pytest.raises(ValueError):
-        setattr(G3, "l", linked_var(G1.x, "x"))
+        G3.l = linked_var(G1.x, "x")
     with pytest.raises(ValueError):
-        setattr(G3, "l", linked_var(G1))
+        G3.l = linked_var(G1)
     # Not a linked variable
     with pytest.raises(TypeError):
-        setattr(G3, "not_linked", linked_var(G1.x))
+        G3.not_linked = linked_var(G1.x)
 
 
 @pytest.mark.standalone_compatible
@@ -728,15 +728,15 @@ def test_linked_variable_indexed_incorrect():
 
     G.x = np.arange(10) * 0.1
     with pytest.raises(TypeError):
-        setattr(G, "y", linked_var(G.x, index=np.arange(10) * 1.0))
+        G.y = linked_var(G.x, index=np.arange(10) * 1.0)
     with pytest.raises(TypeError):
-        setattr(G, "y", linked_var(G.x, index=np.arange(10).reshape(5, 2)))
+        G.y = linked_var(G.x, index=np.arange(10).reshape(5, 2))
     with pytest.raises(TypeError):
-        setattr(G, "y", linked_var(G.x, index=np.arange(5)))
+        G.y = linked_var(G.x, index=np.arange(5))
     with pytest.raises(ValueError):
-        setattr(G, "y", linked_var(G.x, index=np.arange(10) - 1))
+        G.y = linked_var(G.x, index=np.arange(10) - 1)
     with pytest.raises(ValueError):
-        setattr(G, "y", linked_var(G.x, index=np.arange(10) + 1))
+        G.y = linked_var(G.x, index=np.arange(10) + 1)
 
 
 @pytest.mark.codegen_independent
@@ -749,7 +749,7 @@ def test_linked_synapses():
     S.connect()
     G2 = NeuronGroup(100, "x : 1 (linked)")
     with pytest.raises(NotImplementedError):
-        setattr(G2, "x", linked_var(S, "w"))
+        G2.x = linked_var(S, "w")
 
 
 @pytest.mark.standalone_compatible
@@ -1406,7 +1406,7 @@ def test_unknown_state_variables():
     # variable are handled
     G = NeuronGroup(10, "v : 1")
     with pytest.raises(AttributeError):
-        setattr(G, "unknown", 42)
+        G.unknown = 42
 
     # Creating a new private attribute should be fine
     G._unknown = 42
@@ -1650,6 +1650,222 @@ def test_constant_subexpression_order():
     assert code_lines[0].startswith("s1")
     assert code_lines[1].startswith("s3")
     assert code_lines[2].startswith("s2")
+
+
+@pytest.mark.codegen_independent
+def test_mixed_subexpression_order():
+    """
+    Test that the order of operations is correct when regular subexpressions
+    depend on 'constant over dt' subexpressions, and vice versa.
+
+    This verifies that the fix for issue #1187 doesn't change the behavior
+    for non-cyclical cases.
+    """
+    # Case 1: Regular subexpression depends on "constant over dt" subexpression
+    G = NeuronGroup(
+        10,
+        """
+        dv/dt = -v / (10*ms) : 1
+        s_constant = v + 1 : 1 (constant over dt)
+        s_regular = 2 * s_constant : 1
+        """,
+    )
+    run(0 * ms)
+    code_lines = G.subexpression_updater.abstract_code.split("\n")
+    # Only s_constant is in SubexpressionUpdater (s_regular is inline)
+    assert len(code_lines) == 1
+    assert code_lines[0].startswith("s_constant")
+
+    # Case 2: "Constant over dt" subexpression depends on regular subexpression
+    # This is a bit tricky, but should work: the regular subexpression will
+    # be evaluated once (when the "constant over dt" is computed)
+    G = NeuronGroup(
+        10,
+        """
+        dv/dt = -v / (10*ms) : 1
+        s_regular = v + 1 : 1
+        s_constant = 2 * s_regular : 1 (constant over dt)
+        """,
+    )
+    run(0 * ms)
+    code_lines = G.subexpression_updater.abstract_code.split("\n")
+    # Only s_constant is in SubexpressionUpdater (s_regular is inline)
+    assert len(code_lines) == 1
+    assert code_lines[0].startswith("s_constant")
+
+    # Case 3: Chain of dependencies across types
+    G = NeuronGroup(
+        10,
+        """
+        dv/dt = -v / (10*ms) : 1
+        s1 = v : 1 (constant over dt)
+        s2 = s1 + 1 : 1
+        s3 = s2 * 2 : 1 (constant over dt)
+        s4 = s3 + 1 : 1
+        """,
+    )
+    run(0 * ms)
+    code_lines = G.subexpression_updater.abstract_code.split("\n")
+    # Only s1 and s3 are in SubexpressionUpdater (constant over dt)
+    # s2 and s4 are regular (inlined)
+    assert len(code_lines) == 2
+    assert code_lines[0].startswith("s1")
+    assert code_lines[1].startswith("s3")
+
+
+@pytest.mark.codegen_independent
+def test_mixed_subexpression_dependencies_order():
+    """
+    Test that subexpression order respects cross-dependencies
+    between regular and 'constant over dt' subexpressions.
+
+    This verifies the fix for issue #1187 where dependencies
+    across subexpression types were broken.
+    """
+    # Case 1: Constant → Regular → Constant → Regular
+    G = NeuronGroup(
+        1,
+        """
+        dv/dt = -v / (10*ms) : 1
+        s1 = v + 1 : 1 (constant over dt)
+        s2 = s1 * 2 : 1
+        s3 = s2 + 5 : 1 (constant over dt)
+        s4 = s3 * 3 : 1
+        """,
+        method="euler",
+    )
+    net = Network(G)
+    net.run(0 * ms)
+    code_lines = G.subexpression_updater.abstract_code.split("\n")
+    # Should compute s1 first, then s3 (in dependency order)
+    assert code_lines[0].startswith("s1")
+    assert code_lines[1].startswith("s3")
+
+    # Case 2: Regular → Constant
+    G2 = NeuronGroup(
+        1,
+        """
+        dv/dt = -v / (10*ms) : 1
+        s_regular = v + 1 : 1
+        s_constant = s_regular * 2 : 1 (constant over dt)
+        """,
+        method="euler",
+    )
+    net2 = Network(G2)
+    net2.run(0 * ms)
+    code_lines2 = G2.subexpression_updater.abstract_code.split("\n")
+    # Should compute s_constant (s_regular is inlined)
+    assert len(code_lines2) == 1
+    assert code_lines2[0].startswith("s_constant")
+
+
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
+def test_mixed_subexpression_dependencies_values():
+    """
+    Test that subexpression values are computed correctly when there are
+    cross-dependencies between regular and 'constant over dt' subexpressions.
+
+    This verifies that the fix for issue #1187 produces correct values.
+    """
+    # Test case: constant → regular → constant
+    G = NeuronGroup(
+        1,
+        """
+        v : 1
+        s1 = v + 1 : 1 (constant over dt)
+        s2 = s1 * 2 : 1
+        s3 = s2 + 5 : 1 (constant over dt)
+        """,
+        method="euler",
+    )
+    G.v = 5
+
+    # Expected values: s1 = 6, s2 = 12, s3 = 17
+    net = Network(G)
+    net.run(0.1 * ms)  # Run for a short duration to trigger SubexpressionUpdater
+
+    # Verify s1 and s3 are computed correctly
+    # Note: v may have changed due to no differential equation, but s1 should
+    # still be based on the initial v value at start of timestep
+    assert_allclose(G.s1[0], 6.0)
+    assert_allclose(G.s3[0], 17.0)
+
+    # Verify s2 (regular subexpression) also works
+    assert_allclose(G.s2[0], 12.0)
+
+    device.build(direct_call=False, **device.build_options)
+
+
+@pytest.mark.codegen_independent
+def test_cyclical_constant_subexpressions_allowed():
+    """
+    Test that cyclical dependencies among 'constant over dt' subexpressions
+    are allowed (new feature from issue #1187).
+    """
+    # This should NOT raise an error
+    G = NeuronGroup(
+        1,
+        """
+        dv/dt = -v / (10*ms) : 1
+        s1 = 2 * s2 : 1 (constant over dt)
+        s2 = s1 / 2 : 1 (constant over dt)
+        """,
+        method="euler",
+    )
+    net = Network(G)
+    net.run(0 * ms)
+    # Should successfully create the group and run
+    assert G.subexpression_updater is not None
+
+
+@pytest.mark.codegen_independent
+def test_cyclical_regular_subexpressions_still_error():
+    """
+    Test that cyclical dependencies among regular subexpressions
+    still raise an error (unchanged behavior).
+    """
+    with pytest.raises(ValueError, match="cycle"):
+        NeuronGroup(
+            1,
+            """
+            dv/dt = -v / (10*ms) : 1
+            s1 = 2 * s2 : 1
+            s2 = s1 / 2 : 1
+            """,
+        )
+
+
+@pytest.mark.codegen_independent
+def test_mixed_cyclical_subexpressions_error():
+    """
+    Test that cyclical dependencies involving both regular and
+    'constant over dt' subexpressions still raise an error.
+
+    Only cycles that are ENTIRELY within 'constant over dt' are allowed.
+    """
+    # Case 1: Regular depends on constant, constant depends on regular (cycle)
+    with pytest.raises(ValueError, match="cycle"):
+        NeuronGroup(
+            1,
+            """
+            dv/dt = -v / (10*ms) : 1
+            s1 = s2 + 1 : 1 (constant over dt)
+            s2 = s1 * 2 : 1
+            """,
+        )
+
+    # Case 2: Chain that creates a cycle involving regular
+    with pytest.raises(ValueError, match="cycle"):
+        NeuronGroup(
+            1,
+            """
+            dv/dt = -v / (10*ms) : 1
+            s1 = s3 + 1 : 1 (constant over dt)
+            s2 = s1 * 2 : 1
+            s3 = s2 + 5 : 1
+            """,
+        )
 
 
 @pytest.mark.codegen_independent

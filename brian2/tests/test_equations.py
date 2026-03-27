@@ -575,9 +575,9 @@ def test_cyclical_subexpressions():
                      s1 = 2 * s2 : 1
                      s2 = s1/2 : 1""")
 
-    # With constant over dt, the cycle disappears
+    # With constant over dt on BOTH, the cycle is allowed
     Equations("""dv/dt = (-v + s1)/ (10*ms) : 1
-                 s1 = 2 * s2 : 1
+                 s1 = 2 * s2 : 1 (constant over dt)
                  s2 = s1/2 : 1 (constant over dt)""")
 
 

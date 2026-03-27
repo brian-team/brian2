@@ -1025,17 +1025,6 @@ class Equations(Hashable, Mapping):
         they should be updated
         """
 
-        # Separate "constant over dt" subexpressions from regular ones
-        constant_over_dt_subexprs = []
-        regular_subexprs = []
-
-        for eq in self._equations.values():
-            if eq.type == SUBEXPRESSION:
-                if "constant over dt" in eq.flags:
-                    constant_over_dt_subexprs.append(eq.varname)
-                else:
-                    regular_subexprs.append(eq.varname)
-
         # Get dependencies for all subexpressions
         static_deps = {}
         for eq in self._equations.values():
@@ -1047,41 +1036,83 @@ class Equations(Hashable, Mapping):
                     and self._equations[dep].type == SUBEXPRESSION
                 ]
 
-        # First, sort regular subexpressions (they cannot have cycles)
-        regular_deps = {varname: static_deps[varname] for varname in regular_subexprs}
-
+        # Try to sort all subexpressions together (preserves old behavior for non-cyclical cases)
         try:
-            sorted_regular = topsort(regular_deps)
+            sorted_eqs = topsort(static_deps)
         except ValueError:
-            raise ValueError(
-                "Cannot resolve dependencies between static "
-                "equations, dependencies contain a cycle."
-            ) from None
+            # There's a cycle. Check if it's only among "constant over dt" subexpressions
+            constant_over_dt_subexprs = {
+                eq.varname
+                for eq in self._equations.values()
+                if eq.type == SUBEXPRESSION and "constant over dt" in eq.flags
+            }
 
-        # Then, sort "constant over dt" subexpressions
-        # They can have cycles, so we need special handling
-        constant_deps = {
-            varname: [
-                dep
-                for dep in static_deps[varname]
-                # Only keep dependencies on other "constant over dt" subexpressions
-                if dep in constant_over_dt_subexprs
-            ]
-            for varname in constant_over_dt_subexprs
-        }
+            # Check if the cycle involves only "constant over dt" subexpressions
+            def has_cycle_involving_non_constant(
+                subexpr, visited=None, rec_stack=None, visited_in_path=None
+            ):
+                """
+                Check if there's a cycle that involves a non-constant subexpression.
 
-        # For "constant over dt" subexpressions, we need to handle cycles
-        # Try to sort, and if there's a cycle, break it arbitrarily
-        try:
-            sorted_constant = topsort(constant_deps)
-        except ValueError:
-            # There's a cycle among "constant over dt" subexpressions
-            # This is allowed, so we'll use a topological sort that can handle cycles
-            # by removing edges until no cycle remains
-            sorted_constant = self._topsort_with_cycles(constant_deps)
+                Returns True if the cycle involves at least one non-constant subexpression.
+                """
+                if visited is None:
+                    visited = set()
+                if rec_stack is None:
+                    rec_stack = set()
+                if visited_in_path is None:
+                    visited_in_path = set()
 
-        # Combine the two sorted lists
-        sorted_eqs = sorted_regular + sorted_constant
+                visited.add(subexpr)
+                rec_stack.add(subexpr)
+                visited_in_path.add(subexpr)
+
+                for dep in static_deps.get(subexpr, []):
+                    # If dependency is not in static_deps, it's not a subexpression
+                    if dep not in static_deps:
+                        continue
+
+                    # If this dependency is not "constant over dt", check if we found a cycle
+                    if dep not in constant_over_dt_subexprs:
+                        if dep in rec_stack:
+                            # Found a cycle involving a non-constant subexpression
+                            return True
+                        if dep not in visited:
+                            if has_cycle_involving_non_constant(
+                                dep, visited, rec_stack, visited_in_path
+                            ):
+                                return True
+                    else:
+                        # Dependency is "constant over dt"
+                        if dep not in visited:
+                            if has_cycle_involving_non_constant(
+                                dep, visited, rec_stack, visited_in_path
+                            ):
+                                return True
+                        elif dep in rec_stack:
+                            # Found a cycle, but it only involves constant subexpressions so far
+                            # Continue checking other paths
+                            pass
+
+                rec_stack.remove(subexpr)
+                return False
+
+            # Check all subexpressions for cycles involving non-constant ones
+            has_bad_cycle = any(
+                has_cycle_involving_non_constant(subexpr)
+                for subexpr in static_deps.keys()
+            )
+
+            if has_bad_cycle:
+                # Cycle involves non-constant subexpressions, not allowed
+                raise ValueError(
+                    "Cannot resolve dependencies between static "
+                    "equations, dependencies contain a cycle."
+                ) from None
+
+            # Cycle is only among "constant over dt" subexpressions, which is allowed
+            # Use cycle-tolerant sort for these
+            sorted_eqs = self._topsort_with_cycles(static_deps)
 
         # put the equations objects in the correct order
         for order, static_variable in enumerate(sorted_eqs):
