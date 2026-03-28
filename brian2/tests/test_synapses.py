@@ -3730,6 +3730,34 @@ def test_setting_from_weight_matrix():
         assert all(syn.w[i, j] == weights[i, j])
 
 
+def test_synapses_cython_codegen_target_runs():
+    from brian2 import prefs, start_scope, run, ms, NeuronGroup, Synapses
+
+    old_target = prefs.codegen.target
+    prefs.codegen.target = "cython"
+
+    try:
+        start_scope()
+
+        G = NeuronGroup(
+            2,
+            "v : 1",
+            threshold="v > 1",
+            reset="v = 0",
+        )
+
+        S = Synapses(G, G, on_pre="v_post += 1")
+        S.connect(i=0, j=1)
+
+        G.v = [2, 0]
+        run(1 * ms)
+
+        assert G.v[0] == pytest.approx(0)
+        assert G.v[1] == pytest.approx(1)
+    finally:
+        prefs.codegen.target = old_target
+
+
 if __name__ == "__main__":
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     # prefs.codegen.target = 'numpy'
@@ -3832,5 +3860,6 @@ if __name__ == "__main__":
     test_synaptic_subgroups()
     test_incorrect_connect_N_incoming_outgoing()
     test_setting_from_weight_matrix()
+    test_synapses_cython_codegen_target_runs()
 
     print("Tests took", time.time() - start)
