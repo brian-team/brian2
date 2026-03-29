@@ -96,6 +96,7 @@ __all__ = [
     "BrianPreference",
     "prefs",
     "brian_prefs",
+    "brian_configuration",
     "Clock",
     "EventClock",
     "defaultclock",
