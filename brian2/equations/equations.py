@@ -503,7 +503,11 @@ def _looks_like_missing_parameter_unit_separator(line, parse_exception):
         return False
 
     code_without_comment = line.split("#", 1)[0].strip()
-    if not code_without_comment or "=" in code_without_comment or ":" in code_without_comment:
+    if (
+        not code_without_comment
+        or "=" in code_without_comment
+        or ":" in code_without_comment
+    ):
         return False
 
     if not _expects_literal(parse_exception, ":"):
