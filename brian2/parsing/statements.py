@@ -22,7 +22,7 @@ OP = (
     .set_name("assignment operator")
 )
 EXPR = Combine(
-    CharsNotIn("=", min=1, max=1) + Optional(CharsNotIn("#"))
+    CharsNotIn("=#", min=1, max=1) + Optional(CharsNotIn("#"))
 ).set_results_name("expression")
 COMMENT = restOfLine.set_results_name("comment")
 STATEMENT = VARIABLE - OP - EXPR + Optional(Suppress("#") + COMMENT)
