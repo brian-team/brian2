@@ -3731,7 +3731,6 @@ def test_setting_from_weight_matrix():
 
 
 def test_synapses_cython_codegen_target_runs():
-
     old_target = prefs.codegen.target
     prefs.codegen.target = "cython"
 
@@ -3858,6 +3857,5 @@ if __name__ == "__main__":
     test_synaptic_subgroups()
     test_incorrect_connect_N_incoming_outgoing()
     test_setting_from_weight_matrix()
-    
 
     print("Tests took", time.time() - start)
