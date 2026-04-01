@@ -615,3 +615,11 @@ if __name__ == "__main__":
     test_error_messages()
     test_shadowed_internal_variable_function_call_error()
     test_sympy_infinity()
+
+def test_sympy_evaluation_preservation():
+    """Fix for Issue #1350: ensure exprel, expm1, and log1p are not prematurely evaluated"""
+    from brian2.parsing.sympytools import str_to_sympy
+    
+    assert str(str_to_sympy("expm1(x + 1.0)")) == "expm1(x + 1.0)"
+    assert str(str_to_sympy("log1p(x + 1.0)")) == "log1p(x + 1.0)"
+    assert str(str_to_sympy("exprel(x + 1.0)")) == "exprel(x + 1.0)"
