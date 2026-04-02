@@ -4,6 +4,7 @@ information about its namespace. Only serves as a parent class, its subclasses
 `Expression` and `Statements` are the ones that are actually used.
 """
 
+import re
 from collections.abc import Hashable
 
 import sympy
@@ -58,23 +59,118 @@ class CodeString(Hashable):
 
 class Statements(CodeString):
     """
-    Class for representing statements.
+    Class for representing statements with support for substitution.
 
     Parameters
     ----------
     code : str
         The statement or statements. Several statements can be given as a
         multi-line string or separated by semicolons.
+    **substitutions
+        Substitutions to apply to the code. Can be either strings (to replace
+        a name with another name) or values (to replace a name with a value).
 
-    Notes
-    -----
-    Currently, the implementation of this class does not add anything to
-    `~brian2.equations.codestrings.CodeString`, but it should be used instead
-    of that class for clarity and to allow for future functionality that is
-    only relevant to statements and not to expressions.
+    Examples
+    --------
+    >>> Statements('g += w')
+    Statements('g += w')
+    >>> Statements('g += k*w', k=0.3)
+    Statements('g += (0.3)*w')
+    >>> Statements('g += k*w', g='g_ampa')
+    Statements('g_ampa += k*w')
+    >>> Statements('g += k*w', g='g_ampa', k=0.3)
+    Statements('g_ampa += (0.3)*w')
     """
 
-    pass
+    def __init__(self, code, **substitutions):
+        if len(substitutions) > 0:
+            code = self._substitute(code, substitutions)
+        super().__init__(code)
+
+    @staticmethod
+    def _substitute(code, substitutions):
+        """
+        Perform substitutions in the code.
+
+        Parameters
+        ----------
+        code : str
+            The original code string
+        substitutions : dict
+            Dictionary mapping identifiers to replacements (strings or values)
+
+        Returns
+        -------
+        new_code : str
+            Code with substitutions applied
+
+        Raises
+        ------
+        ValueError
+            If a value substitution is attempted on a variable that appears
+            on the left-hand side of an assignment (which would create invalid code)
+        """
+        # Check for invalid value substitutions (LHS assignments)
+        for identifier, replacement in substitutions.items():
+            if not isinstance(replacement, str):
+                # This is a value substitution - check if identifier is on LHS
+                # We need to parse the statement to find LHS variables
+                lines = code.split("\n")
+                for line in lines:
+                    # Strip comments
+                    line_no_comment = line.split("#")[0].strip()
+                    if not line_no_comment:
+                        continue
+
+                    # Check if this is an assignment (contains +=, -=, *=, /=, or =)
+                    if any(op in line_no_comment for op in ["+=", "-=", "*=", "/=", "="]):
+                        # Extract the LHS (before the operator)
+                        for op in ["+=", "-=", "*=", "/=", "="]:
+                            if op in line_no_comment:
+                                lhs = line_no_comment.split(op)[0].strip()
+                                # Check if the identifier being substituted is the LHS
+                                if lhs == identifier:
+                                    raise ValueError(
+                                        f"Cannot substitute value for '{identifier}' "
+                                        f"on left-hand side of assignment '{line_no_comment}'. "
+                                        f"Use a string substitution instead."
+                                    )
+                                break
+
+        new_code = code
+        for identifier, replacement in substitutions.items():
+            if isinstance(replacement, str):
+                # Replace identifier with another identifier
+                # Replace in both code and comments
+                new_code = re.sub(r"\b" + identifier + r"\b", replacement, new_code)
+            else:
+                # Replace identifier with a value
+                # Only replace in code, not in comments
+                lines = new_code.split("\n")
+                new_lines = []
+                for line in lines:
+                    if "#" in line:
+                        # Split into code and comment parts
+                        code_part, comment_part = line.split("#", 1)
+                        # Apply substitution only to code part
+                        code_part = re.sub(
+                            r"\b" + identifier + r"\b",
+                            "(" + repr(replacement) + ")",
+                            code_part
+                        )
+                        # Keep comment as is (don't substitute values in comments)
+                        new_lines.append(code_part + "#" + comment_part)
+                    else:
+                        # No comment, apply substitution to whole line
+                        line = re.sub(
+                            r"\b" + identifier + r"\b",
+                            "(" + repr(replacement) + ")",
+                            line
+                        )
+                        new_lines.append(line)
+                new_code = "\n".join(new_lines)
+
+        return new_code
 
 
 class Expression(CodeString):
