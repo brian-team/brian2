@@ -19,6 +19,12 @@ work, e.g. in ipython, as it offers autocompletion and documentation.
 In ipython, ``prefs.codegen.cpp?`` would display a docstring with all
 the preferences available in the ``codegen.cpp`` category.
 
+To get a plain-text summary of the current preference values, use
+`brian_configuration`::
+
+    >>> from brian2 import brian_configuration
+    >>> print(brian_configuration())  # doctest: +SKIP
+
 Preference files
 ----------------
 

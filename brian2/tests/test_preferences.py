@@ -4,7 +4,7 @@ import pytest
 from numpy import float32, float64
 from numpy.testing import assert_equal
 
-from brian2 import amp, restore_initial_state, volt
+from brian2 import amp, brian_configuration, prefs, restore_initial_state, volt
 from brian2.core.preferences import (
     BrianGlobalPreferences,
     BrianGlobalPreferencesView,
@@ -196,6 +196,45 @@ def test_brianglobalpreferences():
     assert gp["a.b"] == 7
     gp.reset_to_defaults()
     assert gp["a.b"] == 5
+
+
+@pytest.mark.codegen_independent
+def test_brian_configuration():
+    configuration = brian_configuration()
+    assert len(configuration)
+    assert "core" in configuration
+    assert "``core.default_float_dtype``" in configuration
+
+    gp = BrianGlobalPreferences()
+    gp.register_preferences(
+        "example",
+        "Example preferences",
+        value=BrianPreference(1, "Example value"),
+    )
+    example_configuration = gp.get_configuration()
+    assert "example" in example_configuration
+    assert "``example.value`` = ``1``" in example_configuration
+
+
+@pytest.mark.codegen_independent
+def test_brian_configuration_current_values():
+    original_configuration = brian_configuration()
+    try:
+        prefs["core.default_float_dtype"] = float32
+        changed_configuration = brian_configuration()
+        assert changed_configuration != original_configuration
+        assert "``core.default_float_dtype`` = ``float32``" in changed_configuration
+
+        prefs.reset_to_defaults()
+        reset_configuration = brian_configuration()
+        assert reset_configuration == original_configuration
+    finally:
+        restore_initial_state()
+
+
+@pytest.mark.codegen_independent
+def test_brian_configuration_importable():
+    assert callable(brian_configuration)
 
 
 @pytest.mark.codegen_independent
