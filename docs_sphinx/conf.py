@@ -101,6 +101,8 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.extlinks",
     "sphinx_tabs.tabs",
+    "sphinx_gallery.gen_gallery",
+    "sphinx.ext.napoleon",
 ]
 
 # Set readthedocs theme if available
@@ -348,3 +350,24 @@ highlight_language = "python"  # instead of python3 (default for sphinx>=1.4)
 
 # Configure linking to github
 extlinks = {"issue": ("https://github.com/brian-team/brian2/issues/%s", "# %s")}
+
+sphinx_gallery_conf = {
+     'examples_dirs': '../examples',   #path to example scripts
+     'gallery_dirs': 'examples',  # path to where to save gallery generated output
+     'filename_pattern': '/plot_',
+     'backreferences_dir': 'gen_modules/backreferences',
+     'reference_url': {
+        # The module you locally document uses a None
+        'brian2': None,
+        # External python modules use their documentation websites
+        'matplotlib': 'https://matplotlib.org',
+        'numpy': 'https://docs.scipy.org/doc/numpy'
+    },
+    # Modules for which function level galleries are created.  In
+    # this case sphinx_gallery and numpy in a tuple of strings.
+    'doc_module': ('brian2'),
+    'plot_gallery': False,
+    }
+# generate autosummary even if no references
+autosummary_generate = True
+
