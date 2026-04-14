@@ -107,7 +107,7 @@ class CppyyIntrospector:
         the original and is calling restore(), the original is still there.
 
         If disambiguation is needed, uses these heuristics:
-          1. If one match lacks a trailing _\d+ suffix and others have one,
+          1. If one match lacks a trailing _\\d+ suffix and others have one,
              prefer the base name (the "original" code object).
           2. Otherwise prefer the most recently registered.
         """

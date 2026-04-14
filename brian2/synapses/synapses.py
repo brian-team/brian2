@@ -1935,12 +1935,8 @@ class Synapses(Group):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
         template_kwds["_registered_variables"] = self._registered_variables
-        template_kwds["source_offset_val"] = self.variables[
-            "_source_offset"
-        ].get_value()
-        template_kwds["target_offset_val"] = self.variables[
-            "_target_offset"
-        ].get_value()
+        template_kwds["source_offset_val"] = int(getattr(self.source, "start", 0))
+        template_kwds["target_offset_val"] = int(getattr(self.target, "start", 0))
 
         for var in self._registered_variables:
             if var.name not in needed_variables:
@@ -2030,15 +2026,11 @@ class Synapses(Group):
         )
         old_num_synapses = len(self)
         codeobj()
-
-        # For cppyy backend, the C++ code resizes the dynamic arrays directly
-        # but can't call Python methods. We do the Python-side bookkeeping here.
-        # For Cython, this is already done in the template, but calling again is safe.
+        new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
+        self._resize(new_num_synapses)
         from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
 
         if isinstance(codeobj, CppyyCodeObject):
-            new_num_synapses = old_num_synapses + len(variables["sources"].get_value())
-            self._resize(new_num_synapses)
             self._update_synapse_numbers(old_num_synapses)
 
     def _expression_index_dependence(self, expr, namespace, additional_indices=None):
@@ -2099,12 +2091,8 @@ class Synapses(Group):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
         template_kwds["_registered_variables"] = self._registered_variables
-        template_kwds["source_offset_val"] = self.variables[
-            "_source_offset"
-        ].get_value()
-        template_kwds["target_offset_val"] = self.variables[
-            "_target_offset"
-        ].get_value()
+        template_kwds["source_offset_val"] = int(getattr(self.source, "start", 0))
+        template_kwds["target_offset_val"] = int(getattr(self.target, "start", 0))
 
         for var in self._registered_variables:
             if var.name not in needed_variables:
@@ -2263,13 +2251,11 @@ class Synapses(Group):
         )
         old_num_synapses = len(self)
         codeobj()
-
-        # For cppyy: C++ resizes arrays but can't call Python methods
+        new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
+        self._resize(new_num_synapses)
         from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
 
         if isinstance(codeobj, CppyyCodeObject):
-            new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
-            self._resize(new_num_synapses)
             self._update_synapse_numbers(old_num_synapses)
 
     def _check_parsed_synapses_generator(self, parsed, namespace):
