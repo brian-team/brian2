@@ -426,6 +426,14 @@ class CppyyCodeObject(NumpyCodeObject):
                 self.nonconstant_values.append((gen_name, var.get_value))
                 self.nonconstant_values.append((f"_num{name}", var.get_len))
 
+        # group_get_indices: inject output buffers for the result.
+        # C++ fills _return_values_buf and writes the match count to
+        # _return_values_n[0].  run_block() reads them back as a return value.
+        if self.template_name == "group_get_indices":
+            N = int(self.namespace.get("N", 0))
+            self.namespace["_return_values_buf"] = np.zeros(N, dtype=np.int32)
+            self.namespace["_return_values_n"] = np.zeros(1, dtype=np.int32)
+
     def update_namespace(self) -> None:
         """Refresh data pointers/sizes for dynamic arrays that may have been resized."""
         for name, func in self.nonconstant_values:
@@ -527,6 +535,12 @@ class CppyyCodeObject(NumpyCodeObject):
             ):
                 if varname not in handled_keys:
                     params.append((varname, varname, "PyObject*"))
+
+        # group_get_indices: append output-buffer params that mirror the extra
+        # entries added by CppyyCodeGenerator.determine_keywords().
+        if self.template_name == "group_get_indices":
+            params.append(("_return_values_buf", "_return_values_buf", "int*"))
+            params.append(("_return_values_n", "_return_values_n", "int*"))
 
         return params
 
@@ -671,6 +685,13 @@ class CppyyCodeObject(NumpyCodeObject):
                             val = np.zeros(1, dtype=val.dtype)
                     args.append(val)
             compiled_func(*args)
+
+            # group_get_indices: C++ wrote matching indices into the output
+            # buffer and the count into _return_values_n[0].  Return the slice
+            # so the caller (group.__getitem__) gets back a numpy int32 array.
+            if self.template_name == "group_get_indices":
+                n = int(self.namespace["_return_values_n"][0])
+                return self.namespace["_return_values_buf"][:n].copy()
 
         except Exception as exc:
             raise BrianObjectException(

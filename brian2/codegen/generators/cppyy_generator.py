@@ -175,6 +175,16 @@ class CppyyCodeGenerator(CPPCodeGenerator):
                 if varname not in {p[1] for p in function_params}:
                     function_params.append(("PyObject*", varname, varname))
 
+        # group_get_indices: both _cond and _indices are AuxiliaryVariables only
+        # when the IndexWrapper.__getitem__ path in group.py creates the code
+        # object.  Other templates (e.g. synapses_create_generator) also have
+        # _cond but not _indices.  Require both to uniquely identify this template.
+        if isinstance(self.variables.get("_cond"), AuxiliaryVariable) and isinstance(
+            self.variables.get("_indices"), AuxiliaryVariable
+        ):
+            function_params.append(("int*", "_return_values_buf", "_return_values_buf"))
+            function_params.append(("int*", "_return_values_n", "_return_values_n"))
+
         # Optional denormals flushing (gcc/clang x86)
         denormals_code: str = ""
         if self.flush_denormals:

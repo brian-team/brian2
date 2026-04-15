@@ -36,6 +36,10 @@ if __name__ == "__main__":
         "yes",
         "true",
     ]
+    import importlib.util
+
+    cppyy_available = importlib.util.find_spec("cppyy") is not None
+
     if split_run == "1":
         targets = ["numpy"]
         independent = True
@@ -43,13 +47,15 @@ if __name__ == "__main__":
         targets = ["cython"]
         independent = False
     else:
-        targets = None
+        targets = None  # auto-detect (numpy + cython + cppyy if available)
         independent = True
 
     if operating_system == "windows" or standalone:
         in_parallel = []
     else:
         in_parallel = ["codegen_independent", "numpy", "cpp_standalone"]
+        if cppyy_available:
+            in_parallel.append("cppyy")
 
     if operating_system in ["linux", "windows_nt"]:
         openmp = True
