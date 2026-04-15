@@ -388,7 +388,10 @@ class SynapticPathway(CodeRunner, Group):
         # Ensure the queue is initialised before any code objects run.
         # For Cython, this is also done in the template's before_code block,
         # but cppyy's C++ before_code can't call Python, so we do it here.
-        self.initialise_queue()
+        # Under standalone mode the queue is initialised in the generated C++,
+        # so initialise_queue() must not be called from Python at that point.
+        if isinstance(get_device(), RuntimeDevice):
+            self.initialise_queue()
 
     def create_code_objects(self, run_namespace):
         if self._pushspikes_codeobj is None:
