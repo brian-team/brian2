@@ -2024,7 +2024,8 @@ class Synapses(Group):
                 fallback_pref="codegen.synapse_connect_target"
             ),
         )
-        old_num_synapses = len(self)
+        if isinstance(get_device(), RuntimeDevice):
+            old_num_synapses = len(self)
         codeobj()
         # Standalone device schedules code for later execution — synapse count
         # is only known after run(). Skip Python-side bookkeeping in that case.
@@ -2252,7 +2253,8 @@ class Synapses(Group):
                 fallback_pref="codegen.synapse_connect_target"
             ),
         )
-        old_num_synapses = len(self)
+        if isinstance(get_device(), RuntimeDevice):
+            old_num_synapses = len(self)
         codeobj()
         # Standalone device schedules code for later execution — synapse count
         # is only known after run(). Skip Python-side bookkeeping in that case.
