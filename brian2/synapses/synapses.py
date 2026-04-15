@@ -17,7 +17,7 @@ from brian2.core.base import device_override, weakproxy_with_fallback
 from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import DynamicArrayVariable, Variables
-from brian2.devices.device import device, get_device
+from brian2.devices.device import RuntimeDevice, device, get_device
 from brian2.equations.equations import (
     DIFFERENTIAL_EQUATION,
     PARAMETER,
@@ -2026,12 +2026,15 @@ class Synapses(Group):
         )
         old_num_synapses = len(self)
         codeobj()
-        new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
-        self._resize(new_num_synapses)
-        from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
+        # Standalone device schedules code for later execution — synapse count
+        # is only known after run(). Skip Python-side bookkeeping in that case.
+        if isinstance(get_device(), RuntimeDevice):
+            new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
+            self._resize(new_num_synapses)
+            from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
 
-        if isinstance(codeobj, CppyyCodeObject):
-            self._update_synapse_numbers(old_num_synapses)
+            if isinstance(codeobj, CppyyCodeObject):
+                self._update_synapse_numbers(old_num_synapses)
 
     def _expression_index_dependence(self, expr, namespace, additional_indices=None):
         """
@@ -2251,12 +2254,15 @@ class Synapses(Group):
         )
         old_num_synapses = len(self)
         codeobj()
-        new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
-        self._resize(new_num_synapses)
-        from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
+        # Standalone device schedules code for later execution — synapse count
+        # is only known after run(). Skip Python-side bookkeeping in that case.
+        if isinstance(get_device(), RuntimeDevice):
+            new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
+            self._resize(new_num_synapses)
+            from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
 
-        if isinstance(codeobj, CppyyCodeObject):
-            self._update_synapse_numbers(old_num_synapses)
+            if isinstance(codeobj, CppyyCodeObject):
+                self._update_synapse_numbers(old_num_synapses)
 
     def _check_parsed_synapses_generator(self, parsed, namespace):
         """
