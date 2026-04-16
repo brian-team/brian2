@@ -112,22 +112,19 @@ jobs:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           "$PYTHON_BINARY" -m pip install .[test]
-      - name: Set up MSVC environment for cppyy (Windows only)
-        # cppyy's Cling JIT needs cl.exe visible at runtime; ilammy/msvc-dev-cmd
-        # runs vcvarsall.bat and exports MSVC env vars into the shell session.
-        # Note: cppyy on Windows uses C++14 and has known issues with VS 2022+
-        # (https://github.com/wlav/cppyy/issues/50, #208). The cppyy install
-        # step below soft-fails, so Windows CI is not broken if cppyy crashes.
-        if: ${{ runner.os == 'Windows' && !matrix.standalone }}
-        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
-      - name: Install cppyy (runtime only)
+      - name: Install cppyy (non-Windows, runtime only)
+        # Windows is skipped: CPyCppyy has no pre-built wheel for Python 3.14+
+        # on Windows, and building from source fails with an ABI mismatch —
+        # the pre-built cppyy_backend-1.15.3 .lib is missing the symbol
+        # Cppyy::GetNumBasesLongestBranch that CPyCppyy 1.13.0 requires.
+        # This is an upstream cppyy issue; re-enable once fixed upstream.
         # standalone:true is skipped: cppyy is a runtime JIT backend only.
-        # Soft-fail (|| echo) so a bad wheel or runtime crash doesn't block CI.
-        if: ${{ !matrix.standalone }}
+        # Soft-fail (|| echo) so a transient PyPI issue doesn't block CI.
+        if: ${{ runner.os != 'Windows' && !matrix.standalone }}
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
-          "$PYTHON_BINARY" -m pip install "cppyy>=3.1" || echo "cppyy install failed or unsupported on this runner, skipping"
+          "$PYTHON_BINARY" -m pip install "cppyy>=3.1" || echo "cppyy install failed, skipping"
 
       - name: Determine Cython cache dir
         id: cython-cache
