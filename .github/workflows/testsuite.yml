@@ -112,6 +112,22 @@ jobs:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           "$PYTHON_BINARY" -m pip install .[test]
+      - name: Set up MSVC environment for cppyy (Windows only)
+        # cppyy's Cling JIT needs cl.exe visible at runtime; ilammy/msvc-dev-cmd
+        # runs vcvarsall.bat and exports MSVC env vars into the shell session.
+        # Note: cppyy on Windows uses C++14 and has known issues with VS 2022+
+        # (https://github.com/wlav/cppyy/issues/50, #208). The cppyy install
+        # step below soft-fails, so Windows CI is not broken if cppyy crashes.
+        if: ${{ runner.os == 'Windows' && !matrix.standalone }}
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+      - name: Install cppyy (runtime only)
+        # standalone:true is skipped: cppyy is a runtime JIT backend only.
+        # Soft-fail (|| echo) so a bad wheel or runtime crash doesn't block CI.
+        if: ${{ !matrix.standalone }}
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          "$PYTHON_BINARY" -m pip install "cppyy>=3.1" || echo "cppyy install failed or unsupported on this runner, skipping"
 
       - name: Determine Cython cache dir
         id: cython-cache
@@ -143,6 +159,9 @@ jobs:
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
           DO_NOT_RESET_PREFERENCES: true # Make sure that GSL setting is used
+          # cppyy's libCling.so on macOS links against a MacPorts zstd path;
+          # prepend both Homebrew locations (arm64 + Intel) so it resolves at runtime.
+          DYLD_LIBRARY_PATH: "/opt/homebrew/opt/zstd/lib:/usr/local/opt/zstd/lib"
       - name: Send coverage to Coveralls (parallel)
         if: ${{ startsWith(matrix.os.image, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
         uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e # v2.3.7
