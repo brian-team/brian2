@@ -6,6 +6,8 @@
 
 {% block template_support_code %}
 #include <cstring>
+#include <stdexcept>
+#include <string>
 
 const int _buffer_size = 1024;
 
@@ -50,6 +52,8 @@ inline void _flush_buffer(int32_t* buf, DynamicArray1D<int32_t>* dynarr, int buf
         {% if iterator_kwds['sample_size'] == 'fixed' %}
         {
             // Fixed-size sample: use selection sampling (Knuth AOCP Vol 2 3.4.2)
+            // _iter_size is const; copy to mutable _uiter_size so we can clamp it.
+            int _uiter_size = _iter_size;
             int _n_selected = 0;
             int _n_dealt_with = 0;
             int _n_total;
@@ -58,28 +62,27 @@ inline void _flush_buffer(int32_t* buf, DynamicArray1D<int32_t>* dynarr, int buf
             else
                 _n_total = (_iter_low - _iter_high - 1) / (-_iter_step) + 1;
 
-            if (_iter_size > _n_total) {
+            if (_uiter_size > _n_total) {
                 {% if skip_if_invalid %}
-                _iter_size = _n_total;
+                _uiter_size = _n_total;
                 {% else %}
-                // Error case — but we continue
-                _iter_size = _n_total;
+                throw std::out_of_range("Requested sample size " + std::to_string(_uiter_size) + " is bigger than the population size " + std::to_string(_n_total) + ".");
                 {% endif %}
             }
-            if (_iter_size < 0) {
+            if (_uiter_size < 0) {
                 {% if skip_if_invalid %}
                 continue;
                 {% else %}
-                continue;
+                throw std::out_of_range("Requested sample size " + std::to_string(_uiter_size) + " is negative.");
                 {% endif %}
             }
 
             int {{inner_variable}} = _iter_low - _iter_step;
-            while (_n_selected < _iter_size) {
+            while (_n_selected < _uiter_size) {
                 {{inner_variable}} += _iter_step;
                 _n_dealt_with++;
                 double _U = _rand(_vectorisation_idx);
-                if ((_n_total - _n_dealt_with) * _U >= _iter_size - _n_selected) {
+                if ((_n_total - _n_dealt_with) * _U >= _uiter_size - _n_selected) {
                     continue;
                 }
                 _n_selected++;
@@ -114,7 +117,7 @@ inline void _flush_buffer(int32_t* buf, DynamicArray1D<int32_t>* dynarr, int buf
                 {% if skip_if_invalid %}
                 continue;
                 {% else %}
-                continue;
+                throw std::out_of_range("index {{result_index}}=" + std::to_string(_{{result_index}}) + " outside allowed range from 0 to " + std::to_string(_N_result - 1));
                 {% endif %}
             }
             {% endif %}
@@ -134,7 +137,7 @@ inline void _flush_buffer(int32_t* buf, DynamicArray1D<int32_t>* dynarr, int buf
                 {% if skip_if_invalid %}
                 continue;
                 {% else %}
-                continue;
+                throw std::out_of_range("index {{result_index}}=" + std::to_string(_{{result_index}}) + " outside allowed range from 0 to " + std::to_string(_N_result - 1));
                 {% endif %}
             }
             {% endif %}

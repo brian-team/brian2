@@ -860,7 +860,17 @@ class CppyyCodeObject(NumpyCodeObject):
                         if val.size == 0 and c_type.endswith("*"):
                             val = np.zeros(1, dtype=val.dtype)
                     args.append(val)
-            compiled_func(*args)
+            try:
+                compiled_func(*args)
+            except Exception as cpp_exc:
+                # Convert C++ out_of_range to Python IndexError so that
+                # exc_isinstance(exc, IndexError) works in tests.
+                cppyy_mod = _get_cppyy()
+                if cppyy_mod is not None and isinstance(
+                    cpp_exc, cppyy_mod.gbl.std.out_of_range
+                ):
+                    raise IndexError(str(cpp_exc)) from cpp_exc
+                raise
 
             # group_get_indices: C++ wrote matching indices into the output
             # buffer and the count into _return_values_n[0].  Return the slice
