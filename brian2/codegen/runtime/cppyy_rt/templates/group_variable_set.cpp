@@ -1,4 +1,5 @@
 {# USES_VARIABLES { _group_idx } #}
+{# ALLOWS_SCALAR_WRITE #}
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
