@@ -1,7 +1,8 @@
-{# USES_VARIABLES { N, _spikespace } #}
+{# USES_VARIABLES { N } #}
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
+    {% set _eventspace = get_array_name(eventspace_variable) %}
     const size_t _vectorisation_idx = -1;
     {{ scalar_code | autoindent }}
     const int _N = {{ constant_or_scalar('N', variables['N']) }};
@@ -10,8 +11,17 @@
         const size_t _vectorisation_idx = _idx;
         {{ vector_code | autoindent }}
         if (_cond) {
-            {{ _spikespace }}[_count++] = _idx;
+            {{ _eventspace }}[_count++] = _idx;
+            {% if _uses_refractory %}
+            {{ not_refractory }}[_idx] = false;
+            {{ lastspike }}[_idx] = {{ t }};
+            {% endif %}
         }
     }
-    {{ _spikespace }}[_N] = _count;
+    {{ _eventspace }}[_N] = _count;
+{% endblock %}
+
+{% block after_code %}
+    {% set _eventspace = get_array_name(eventspace_variable) %}
+    {{ _eventspace }}[{{ constant_or_scalar('N', variables['N']) }}] = 0;
 {% endblock %}

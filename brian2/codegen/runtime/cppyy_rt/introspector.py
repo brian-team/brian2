@@ -424,6 +424,11 @@ class CppyyIntrospector:
             print(repr(display))
 
     def _get_func_name(self, name: str, block: str) -> str:
+        codeobj = self._objects.get(name)
+        if codeobj is not None:
+            stored = getattr(codeobj, "_compiled_func_names", {})
+            if block in stored:
+                return stored[block]
         safe: str = name.replace(".", "_").replace("*", "").replace("-", "_")
         return f"_brian_cppyy_{block}_{safe}"
 
