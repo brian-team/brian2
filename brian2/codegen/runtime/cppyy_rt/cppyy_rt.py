@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import os
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -38,8 +39,7 @@ from brian2.core.variables import (
 from brian2.utils.logger import get_logger
 
 from ...codeobject import check_compiler_kwds
-from ...generators.cpp_generator import c_data_type
-from ...generators.cppyy_generator import CppyyCodeGenerator
+from ...generators.cppyy_generator import CppyyCodeGenerator, _cppyy_c_data_type
 from ...targets import codegen_targets
 from ...templates import Templater
 from ..numpy_rt import NumpyCodeObject
@@ -133,6 +133,111 @@ def _guard_support_code(code: str) -> str:
     return f"#ifndef {guard}\n#define {guard}\n{support}#endif // {guard}\n\n{func_def}"
 
 
+# Maps C++ user-function name -> content_hash of the first compiled body.
+# Used by _rename_conflicting_user_functions to detect when the same C++
+# function name would be redefined with a different body in Cling.
+_user_func_registry: dict[str, str] = {}
+
+# Regex matching #ifndef _BRIAN_CPPYY_SYM_XXX ... #endif blocks emitted
+# by the generator for each user-function support code piece.
+_SYM_BLOCK_RE = re.compile(
+    r"(#ifndef (_BRIAN_CPPYY_SYM_(\w+))\n"
+    r"#define _BRIAN_CPPYY_SYM_\3\n"
+    r"(.*?)"
+    r"#endif // _BRIAN_CPPYY_SYM_\3)",
+    re.DOTALL,
+)
+
+
+def _rename_conflicting_user_functions(code: str) -> tuple[str, dict[str, str]]:
+    """
+    Ensure that user-function definitions (TimedArray, BinomialFunction, …)
+    in the per-codeobject support code never conflict with already-compiled
+    Cling symbols.
+
+    Strategy:
+    - Scan for ``#ifndef _BRIAN_CPPYY_SYM_*`` guard blocks.
+    - For blocks that contain a C++ function definition (detected by ``{``),
+      compute a hash of the function body.
+    - If the C++ function name was previously compiled with a *different* body,
+      rename it to ``funcname_<hash>`` everywhere in this code string (both the
+      definition and every call site inside the ``extern "C"`` body).
+    - Also rename any associated ``_namespace_<funcname>_values`` global so that
+      cppyy does not reject re-assigning a different-sized buffer to the same
+      C++ pointer (cppyy tracks buffer sizes per global).
+    - Update all guard macros accordingly.
+
+    Returns the modified code and a dict mapping original C++ global names to
+    renamed ones (used by ``_set_user_func_globals`` to write to the right symbol).
+
+    This handles the case where Brian2 recycles a name like ``_timedarray`` after
+    GC (the previous TimedArray with 2 values is collected, then a new one with
+    10 values reuses the name).  Without renaming both would try to define the
+    same C++ symbol, causing a Cling ``redefinition`` error.
+    """
+    global _user_func_registry
+
+    renames: dict[str, str] = {}  # original_func_name -> new_func_name
+
+    for m in _SYM_BLOCK_RE.finditer(code):
+        cpp_symbol: str = m.group(3)  # e.g. "_timedarray"
+        block_content: str = m.group(4).strip()
+
+        # Only care about function definitions (have { in the content)
+        if "{" not in block_content:
+            continue
+
+        content_hash: str = hashlib.md5(block_content.encode()).hexdigest()[:8]
+
+        if cpp_symbol not in _user_func_registry:
+            _user_func_registry[cpp_symbol] = content_hash
+        elif _user_func_registry[cpp_symbol] != content_hash:
+            # Same C++ name, different body → rename to avoid redefinition
+            new_name = f"{cpp_symbol}_{content_hash}"
+            if new_name not in _user_func_registry:
+                _user_func_registry[new_name] = content_hash
+            renames[cpp_symbol] = new_name
+
+    if not renames:
+        return code, {}
+
+    # Maps original C++ global name → renamed global name.
+    # Returned so that _set_user_func_globals can target the correct symbol.
+    ns_global_renames: dict[str, str] = {}
+
+    for old_name, new_name in renames.items():
+        # 1. Rename call sites and function definitions.
+        #    Negative lookbehind (?<![_\w]) skips occurrences that are already
+        #    part of a longer identifier (e.g. _namespace_timedarray_values).
+        code = re.sub(
+            rf"(?<![_\w]){re.escape(old_name)}\b",
+            new_name,
+            code,
+        )
+        # Update guard macro suffix for the function (guard names are preceded by
+        # "SYM_", which the lookbehind above skips).
+        code = code.replace(f"SYM_{old_name}", f"SYM_{new_name}")
+
+        # 2. Rename the associated _namespace_<funcname>_values global.
+        #    cppyy tracks the buffer size of each C++ global; reassigning to a
+        #    different-sized array raises "buffer too large for value".  Renaming
+        #    the global gives each distinct function body its own C++ pointer so
+        #    cppyy never sees a size mismatch.
+        #
+        #    Convention (from _add_user_function / generate_cpp_code):
+        #       C++ global = "_namespace" + ns_key   where ns_key = "<funcname>_values"
+        #    e.g. _timedarray → _namespace_timedarray_values
+        old_ns_global = f"_namespace{old_name}_values"  # _namespace_timedarray_values
+        new_ns_global = (
+            f"_namespace{new_name}_values"  # _namespace_timedarray_H2_values
+        )
+        if old_ns_global in code:
+            code = code.replace(old_ns_global, new_ns_global)
+            ns_global_renames[old_ns_global] = new_ns_global
+
+    return code, ns_global_renames
+
+
 def _get_cppyy() -> Any:
     """Import cppyy on first use so we don't blow up at import time."""
     global _cppyy
@@ -149,29 +254,11 @@ def _get_cppyy() -> Any:
     return _cppyy
 
 
-def _cppyy_c_data_type(dtype: type | np.dtype) -> str:
-    """
-    Like c_data_type but remaps types for cppyy's buffer protocol.
-
-    cppyy enforces strict type matching on buffers:
-    - numpy's bool_ viewed as int8 needs int8_t, not char
-    - numpy int64 maps to ``long`` on LP64 platforms, but ``int64_t`` is
-      typedef'd to ``long long`` which cppyy rejects for buffer conversion
-    """
-    import struct
-
-    ctype: str = c_data_type(dtype)
-    if ctype == "char":
-        return "int8_t"
-    if ctype == "int64_t" and struct.calcsize("l") == 8:
-        return "long"
-    if ctype == "uint64_t" and struct.calcsize("l") == 8:
-        return "unsigned long"
-    return ctype
-
-
 # --- One-time support code init ---
 _support_code_initialized: bool = False
+
+# --- Per-compilation unique counter (prevents Cling redefinition of extern "C" symbols) ---
+_compile_counter: int = 0
 
 
 def _ensure_support_code() -> None:
@@ -273,6 +360,38 @@ def _ensure_support_code() -> None:
         return static_cast<CSpikeQueue*>(ptr);
     }}
 
+    // ── Global inline helpers (shared across all code objects) ──
+    template<typename T>
+    inline T _clip(T value, double a_min, double a_max) {{
+        if (value < (T)a_min) return (T)a_min;
+        if (value > (T)a_max) return (T)a_max;
+        return value;
+    }}
+
+    template<typename T>
+    inline int _sign(T x) {{
+        return (T(0) < x) - (x < T(0));
+    }}
+
+    inline int64_t _timestep(double t, double dt) {{
+        return (int64_t)((t + 1e-3*dt)/dt);
+    }}
+
+    inline int32_t _poisson(double lam, int _vectorisation_idx) {{
+        std::poisson_distribution<int32_t> _poisson_dist(lam);
+        return _poisson_dist(_brian_cppyy_rng);
+    }}
+
+    inline double _rand(const int _vectorisation_idx) {{
+        static std::uniform_real_distribution<double> _dist_rand(0.0, 1.0);
+        return _dist_rand(_brian_cppyy_rng);
+    }}
+
+    inline double _randn(const int _vectorisation_idx) {{
+        static std::normal_distribution<double> _dist_randn(0.0, 1.0);
+        return _dist_randn(_brian_cppyy_rng);
+    }}
+
     #endif // _BRIAN2_CPPYY_SUPPORT_CODE
     """
     cppyy.cppdef(guarded_code)
@@ -346,6 +465,8 @@ class CppyyCodeObject(NumpyCodeObject):
         self._param_mappings: dict[str, list[ParamTuple]] = {}
         # Prevent GC of arrays whose pointers are held by C++ globals
         self._namespace_refs: dict[str, NDArray[Any]] = {}
+        # Maps block → unique C++ function name (counter-suffixed to avoid Cling redefinition)
+        self._compiled_func_names: dict[str, str] = {}
 
     @classmethod
     def is_available(cls) -> bool:
@@ -433,6 +554,23 @@ class CppyyCodeObject(NumpyCodeObject):
             N = int(self.namespace.get("N", 0))
             self.namespace["_return_values_buf"] = np.zeros(N, dtype=np.int32)
             self.namespace["_return_values_n"] = np.zeros(1, dtype=np.int32)
+
+        # group_variable_get: C++ writes subexpression values per index into _output_buf.
+        # Size = number of indices (_num_group_idx); dtype from _variable.
+        if self.template_name == "group_variable_get":
+            var = self.variables.get("_variable")
+            n = int(self.namespace.get("_num_group_idx", 0))
+            dtype = var.dtype if var is not None else np.float64
+            self.namespace["_output_buf"] = np.zeros(max(n, 1), dtype=dtype)
+
+        # group_variable_get_conditional: C++ writes matching values into _output_buf
+        # and the count into _output_n[0].  Max size = N.
+        if self.template_name == "group_variable_get_conditional":
+            var = self.variables.get("_variable")
+            N = int(self.namespace.get("N", 0))
+            dtype = var.dtype if var is not None else np.float64
+            self.namespace["_output_buf"] = np.zeros(max(N, 1), dtype=dtype)
+            self.namespace["_output_n"] = np.zeros(1, dtype=np.int32)
 
     def update_namespace(self) -> None:
         """Refresh data pointers/sizes for dynamic arrays that may have been resized."""
@@ -542,6 +680,21 @@ class CppyyCodeObject(NumpyCodeObject):
             params.append(("_return_values_buf", "_return_values_buf", "int*"))
             params.append(("_return_values_n", "_return_values_n", "int*"))
 
+        # group_variable_get: output buffer for subexpression values.
+        if self.template_name == "group_variable_get":
+            var = self.variables.get("_variable")
+            dtype = var.dtype if var is not None else np.float64
+            c_type = _cppyy_c_data_type(dtype)
+            params.append(("_output_buf", "_output_buf", f"{c_type}*"))
+
+        # group_variable_get_conditional: output buffer + count for conditional get.
+        if self.template_name == "group_variable_get_conditional":
+            var = self.variables.get("_variable")
+            dtype = var.dtype if var is not None else np.float64
+            c_type = _cppyy_c_data_type(dtype)
+            params.append(("_output_buf", "_output_buf", f"{c_type}*"))
+            params.append(("_output_n", "_output_n", "int*"))
+
         return params
 
     # --- Compilation ---
@@ -558,10 +711,27 @@ class CppyyCodeObject(NumpyCodeObject):
         cppyy = _get_cppyy()
         _ensure_support_code()
 
+        # Rename user functions whose name would be reused with a different body
+        # (e.g. a GC'd TimedArray's C++ name is recycled by a new TimedArray
+        # with different K/N parameters).  Must happen before _guard_support_code
+        # so the outer hash is computed on the already-renamed code.
+        code, _ns_renames = _rename_conflicting_user_functions(code)
+        # Store so _set_user_func_globals knows which C++ globals were renamed.
+        self._current_ns_global_renames: dict[str, str] = _ns_renames
+
         # Guard support code against redefinition (happens when run() is
         # called multiple times — Brian2 recreates code objects with the
         # same inline function definitions)
         code = _guard_support_code(code)
+
+        # Make function name unique per-compilation to prevent Cling redefinition
+        # errors when the same Brian object name appears across multiple test runs
+        # or simulation setups in the same Python process.
+        global _compile_counter
+        original_func_name = _make_func_name(self.name, block)
+        unique_func_name = f"{original_func_name}_{_compile_counter:06d}"
+        _compile_counter += 1
+        code = code.replace(original_func_name, unique_func_name)
 
         logger.diagnostic(f"cppyy: compiling '{block}' for {self.name}")
         try:
@@ -573,14 +743,15 @@ class CppyyCodeObject(NumpyCodeObject):
                 self.owner,
             ) from exc
 
-        func_name: str = _make_func_name(self.name, block)
         try:
-            compiled_func: Any = getattr(cppyy.gbl, func_name)
+            compiled_func: Any = getattr(cppyy.gbl, unique_func_name)
         except AttributeError:
             raise RuntimeError(
-                f"cppyy compiled OK but function '{func_name}' not found. "
+                f"cppyy compiled OK but function '{unique_func_name}' not found. "
                 f"Template/name mismatch? codeobj={self.name}, block={block}"
             ) from None
+
+        self._compiled_func_names[block] = unique_func_name
 
         # Wire up static C++ globals for user functions (e.g. TimedArray data pointers)
         self._set_user_func_globals(cppyy)
@@ -612,6 +783,11 @@ class CppyyCodeObject(NumpyCodeObject):
             for ns_key, ns_value in func_namespace.items():
                 if hasattr(ns_value, "dtype") and ns_value.ndim >= 1:
                     cpp_global_name: str = f"_namespace{ns_key}"
+                    # If this global was renamed during compilation (because its
+                    # function body differed from a previously compiled version),
+                    # use the renamed symbol so we don't hit a size-mismatch error.
+                    ns_renames = getattr(self, "_current_ns_global_renames", {})
+                    cpp_global_name = ns_renames.get(cpp_global_name, cpp_global_name)
                     try:
                         setattr(cppyy.gbl, cpp_global_name, ns_value)
                         self._namespace_refs[ns_key] = ns_value
@@ -692,6 +868,17 @@ class CppyyCodeObject(NumpyCodeObject):
             if self.template_name == "group_get_indices":
                 n = int(self.namespace["_return_values_n"][0])
                 return self.namespace["_return_values_buf"][:n].copy()
+
+            # group_variable_get: C++ filled _output_buf with _num_group_idx values.
+            if self.template_name == "group_variable_get":
+                n = int(self.namespace.get("_num_group_idx", 0))
+                return self.namespace["_output_buf"][:n].copy()
+
+            # group_variable_get_conditional: C++ filled _output_buf with values
+            # where _cond was True; count is in _output_n[0].
+            if self.template_name == "group_variable_get_conditional":
+                n = int(self.namespace["_output_n"][0])
+                return self.namespace["_output_buf"][:n].copy()
 
         except Exception as exc:
             raise BrianObjectException(

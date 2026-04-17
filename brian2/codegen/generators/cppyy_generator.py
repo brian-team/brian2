@@ -9,6 +9,8 @@ as function parameters rather than global C++ variables.
 
 from __future__ import annotations
 
+import hashlib
+import re
 from typing import Any
 
 from brian2.codegen.generators.cpp_generator import (
@@ -27,6 +29,35 @@ from brian2.core.variables import (
 
 # (c_type, param_name, namespace_key)
 FunctionParam = tuple[str, str, str]
+
+
+def _extract_primary_cpp_symbol(piece: str) -> str | None:
+    """
+    Extract the primary C++ symbol name (function or variable) defined in a code piece.
+
+    Only the FIRST non-comment, non-empty line is inspected so that identifiers
+    inside function bodies are never mistaken for the declaration symbol.
+
+    Returns None when no identifiable symbol is found.
+
+    Examples::
+
+        "static double* _namespaceta_values;"  -> "_namespaceta_values"
+        "static inline double ta(..."          -> "ta"
+        "static inline double _timedarray(...  -> "_timedarray"
+    """
+    for line in piece.split("\n"):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("//") or stripped.startswith("/*"):
+            continue
+        # Collect all identifiers that appear immediately before '(', '[', or ';'
+        # on this first declaration line, then take the last one — it is the
+        # function/variable name, not the return-type keywords.
+        candidates = re.findall(r"\b(\w+)\s*(?=[(\[;])", stripped)
+        if candidates:
+            return candidates[-1]
+        return None
+    return None
 
 
 def _cppyy_c_data_type(dtype: type | Any) -> str:
@@ -119,7 +150,37 @@ class CppyyCodeGenerator(CPPCodeGenerator):
                     if result is not None:
                         hd, _pointers, sc, uf = result
                         hash_define_parts.extend(hd)
-                        support_code_parts.extend(sc)
+                        # Wrap each user-function support code piece in its own
+                        # #ifndef guard so that Cling doesn't redeclare static
+                        # symbols (e.g. _namespace_timedarray_values) when the
+                        # same function is used across multiple code objects.
+                        for piece in sc:
+                            stripped = "\n".join(
+                                line
+                                for line in piece.split("\n")
+                                if line.strip() and not line.strip().startswith("//")
+                            )
+                            if stripped:
+                                # Key the guard on the C++ symbol name so that
+                                # Cling never tries to redefine the same symbol
+                                # even when the body differs (e.g. a GC'd
+                                # TimedArray's name is reused with different K/N
+                                # in a later test).  The data pointer is always
+                                # refreshed by _set_user_func_globals after
+                                # compilation, so skipping the redeclaration is
+                                # safe as long as only one test runs at a time.
+                                symbol = _extract_primary_cpp_symbol(piece)
+                                if symbol:
+                                    guard = f"_BRIAN_CPPYY_SYM_{symbol}"
+                                else:
+                                    h = hashlib.md5(stripped.encode()).hexdigest()[:16]
+                                    guard = f"_BRIAN_CPPYY_UF_{h}"
+                                support_code_parts.append(
+                                    f"#ifndef {guard}\n#define {guard}\n{piece}\n"
+                                    f"#endif // {guard}"
+                                )
+                            else:
+                                support_code_parts.append(piece)
                         user_functions.extend(uf)
 
                     # Grab namespace values (actual numpy arrays) for C++ globals
@@ -185,6 +246,29 @@ class CppyyCodeGenerator(CPPCodeGenerator):
             function_params.append(("int*", "_return_values_buf", "_return_values_buf"))
             function_params.append(("int*", "_return_values_n", "_return_values_n"))
 
+        # group_variable_get: _variable AuxiliaryVariable + _group_idx array present.
+        # C++ writes subexpression values per index into _output_buf.
+        if isinstance(self.variables.get("_variable"), AuxiliaryVariable) and (
+            "_group_idx" in self.variables
+            and not isinstance(self.variables.get("_cond"), AuxiliaryVariable)
+        ):
+            var = self.variables["_variable"]
+            c_type = _cppyy_c_data_type(var.dtype)
+            function_params.append((f"{c_type}*", "_output_buf", "_output_buf"))
+
+        # group_variable_get_conditional: _variable and _cond are AuxiliaryVariables,
+        # but _indices is NOT (unlike group_get_indices).
+        # C++ writes matching values into _output_buf and the count into _output_n[0].
+        if (
+            isinstance(self.variables.get("_variable"), AuxiliaryVariable)
+            and isinstance(self.variables.get("_cond"), AuxiliaryVariable)
+            and not isinstance(self.variables.get("_indices"), AuxiliaryVariable)
+        ):
+            var = self.variables["_variable"]
+            c_type = _cppyy_c_data_type(var.dtype)
+            function_params.append((f"{c_type}*", "_output_buf", "_output_buf"))
+            function_params.append(("int*", "_output_n", "_output_n"))
+
         # Optional denormals flushing (gcc/clang x86)
         denormals_code: str = ""
         if self.flush_denormals:
@@ -216,76 +300,33 @@ class CppyyCodeGenerator(CPPCodeGenerator):
 # We get sin/cos/exp/log/etc. for free via MRO (registered on CPPCodeGenerator).
 # Same for arcsin→asin, int→int_, exprel, TimedArray, BinomialFunction.
 #
-# We must explicitly register clip/sign/timestep/poisson — they're only on
-# CythonCodeGenerator which isn't in our MRO chain.
+# clip/sign/timestep/poisson/rand/randn are defined globally in _ensure_support_code()
+# (cppyy_rt.py) so each code object emits no per-codeobject support code for them.
+# This prevents redefinition errors when different code objects share the same
+# function but differ in other support code (different hash → both would compile the
+# function body without this guard).
 
-_clip_code: str = """
-template<typename T>
-inline T _clip(T value, double a_min, double a_max) {
-    if (value < (T)a_min) return (T)a_min;
-    if (value > (T)a_max) return (T)a_max;
-    return value;
-}
-"""
 DEFAULT_FUNCTIONS["clip"].implementations.add_implementation(
-    CppyyCodeGenerator, code=_clip_code, name="_clip"
+    CppyyCodeGenerator, code="", name="_clip"
 )
-
-_sign_code: str = """
-template<typename T>
-inline int _sign(T x) {
-    return (T(0) < x) - (x < T(0));
-}
-"""
 DEFAULT_FUNCTIONS["sign"].implementations.add_implementation(
-    CppyyCodeGenerator, code=_sign_code, name="_sign"
+    CppyyCodeGenerator, code="", name="_sign"
 )
-
-_timestep_code: str = """
-inline int64_t _timestep(double t, double dt) {
-    return (int64_t)((t + 1e-3*dt)/dt);
-}
-"""
 DEFAULT_FUNCTIONS["timestep"].implementations.add_implementation(
-    CppyyCodeGenerator, code=_timestep_code, name="_timestep"
+    CppyyCodeGenerator, code="", name="_timestep"
 )
-
-_poisson_code: str = """
-#include <random>
-inline int32_t _poisson(double lam, int _vectorisation_idx) {
-    std::poisson_distribution<int32_t> _poisson_dist(lam);
-    return _poisson_dist(_brian_cppyy_rng);
-}
-"""
 DEFAULT_FUNCTIONS["poisson"].implementations.add_implementation(
-    CppyyCodeGenerator, code=_poisson_code, name="_poisson"
+    CppyyCodeGenerator, code="", name="_poisson"
 )
-
-# rand/randn use the shared MT19937 engine from _ensure_support_code()
-_rand_support: str = """
-inline double _rand(const int _vectorisation_idx) {
-    static std::uniform_real_distribution<double> _dist_rand(0.0, 1.0);
-    return _dist_rand(_brian_cppyy_rng);
-}
-"""
-
-_randn_support: str = """
-inline double _randn(const int _vectorisation_idx) {
-    static std::normal_distribution<double> _dist_randn(0.0, 1.0);
-    return _dist_randn(_brian_cppyy_rng);
-}
-"""
-
 DEFAULT_FUNCTIONS["rand"].implementations.add_dynamic_implementation(
     CppyyCodeGenerator,
-    code=lambda owner: {"support_code": _rand_support},
+    code=lambda owner: {},
     namespace=lambda owner: {},
     name="_rand",
 )
-
 DEFAULT_FUNCTIONS["randn"].implementations.add_dynamic_implementation(
     CppyyCodeGenerator,
-    code=lambda owner: {"support_code": _randn_support},
+    code=lambda owner: {},
     namespace=lambda owner: {},
     name="_randn",
 )
