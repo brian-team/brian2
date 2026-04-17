@@ -116,10 +116,16 @@ inline void _flush_buffer(int32_t* buf, DynamicArray1D<int32_t>* dynarr, int buf
                 {% endif %}
             }
             {% endif %}
-            {{vector_code['create_cond']|autoindent}}
+            // create_cond and update both declare _post_idx (or _pre_idx) as
+            // const variables. Scope create_cond to prevent redefinition errors.
+            bool _create_cond_result = true;
+            {
+                {{vector_code['create_cond']|autoindent}}
+                _create_cond_result = (bool)_cond;
+            }
             {% endif %}
             {% if if_expression!='True' and result_index_condition %}
-            if (!_cond) continue;
+            if (!_create_cond_result) continue;
             {% endif %}
             {% if not result_index_used %}
             if (_{{result_index}} < 0 || _{{result_index}} >= {{result_index_size}}) {
