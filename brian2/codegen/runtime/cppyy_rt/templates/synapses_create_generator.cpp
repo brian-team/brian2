@@ -34,7 +34,9 @@ inline void _flush_buffer(int32_t* buf, DynamicArray1D<int32_t>* dynarr, int buf
     {{scalar_code['create_cond']|autoindent}}
     {{scalar_code['update']|autoindent}}
 
-    for (int _{{outer_index}} = 0; _{{outer_index}} < {{outer_index_size}}; _{{outer_index}}++) {
+    const int _N_outer = {{ constant_or_scalar(outer_index_size, variables[outer_index_size]) }};
+    const int _N_result = {{ constant_or_scalar(result_index_size, variables[result_index_size]) }};
+    for (int _{{outer_index}} = 0; _{{outer_index}} < _N_outer; _{{outer_index}}++) {
         int _raw{{outer_index_array}} = _{{outer_index}} + {{outer_index_offset}};
 
         {% if not result_index_condition %}
@@ -108,7 +110,7 @@ inline void _flush_buffer(int32_t* buf, DynamicArray1D<int32_t>* dynarr, int buf
 
             {% if result_index_condition %}
             {% if result_index_used %}
-            if (_{{result_index}} < 0 || _{{result_index}} >= {{result_index_size}}) {
+            if (_{{result_index}} < 0 || _{{result_index}} >= _N_result) {
                 {% if skip_if_invalid %}
                 continue;
                 {% else %}
@@ -128,7 +130,7 @@ inline void _flush_buffer(int32_t* buf, DynamicArray1D<int32_t>* dynarr, int buf
             if (!_create_cond_result) continue;
             {% endif %}
             {% if not result_index_used %}
-            if (_{{result_index}} < 0 || _{{result_index}} >= {{result_index_size}}) {
+            if (_{{result_index}} < 0 || _{{result_index}} >= _N_result) {
                 {% if skip_if_invalid %}
                 continue;
                 {% else %}
