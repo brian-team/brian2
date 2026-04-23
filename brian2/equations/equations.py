@@ -134,6 +134,230 @@ class EquationError(Exception):
     pass
 
 
+def _count_colons_outside_parens(s):
+    """Count ':' characters not nested inside parentheses."""
+    depth = count = 0
+    for ch in s:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(depth - 1, 0)
+        elif ch == ":" and depth == 0:
+            count += 1
+    return count
+
+
+def _paren_mismatch_msg(expr):
+    """Return a parenthesis-mismatch diagnostic, or ``None`` if balanced.
+
+    Uses depth-tracking so that ``)(`` (equal counts but wrong order) is
+    correctly flagged rather than silently treated as balanced.
+    """
+    depth = extra_close = 0
+    for ch in expr:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            if depth:
+                depth -= 1
+            else:
+                extra_close += 1
+    unclosed = depth
+    if not unclosed and not extra_close:
+        return None
+
+    n_open, n_close = expr.count("("), expr.count(")")
+    if not extra_close:
+        noun = "paren" if unclosed == 1 else "parens"
+        return (
+            f"Unmatched parenthesis — {n_open} opening '(' but only "
+            f"{n_close} closing ')'. Add {unclosed} closing {noun} to balance."
+        )
+    if not unclosed:
+        noun = "paren" if extra_close == 1 else "parens"
+        return (
+            f"Unmatched parenthesis — {n_close} closing ')' but only "
+            f"{n_open} opening '('. Remove {extra_close} extra {noun} or add matching '('."
+        )
+    # Mixed: stray ')' before its '(' and unclosed '(' at the end (e.g. ')(')
+    return (
+        f"Mismatched parentheses — {unclosed} unclosed '(' and "
+        f"{extra_close} unmatched ')'. Check parentheses order and count."
+    )
+
+
+def _multiword_unit_hint(unit_str):
+    """Return a hint if *unit_str* has bare multiple words, else ``''``."""
+    words = unit_str.strip().split()
+    if len(words) > 1 and not any(op in unit_str for op in ("/", "*")):
+        return (
+            f"Unit '{unit_str}' looks invalid — multiple words without "
+            f"operators. Did you mean '{words[0]}' or '{' * '.join(words)}'?"
+        )
+    return ""
+
+
+_EQUATION_FORMS = (
+    "  d<var>/dt = <expr> : <unit>   (differential equation)\n"
+    "  <var> = <expr> : <unit>       (subexpression)\n"
+    "  <var> : <unit>                (parameter)"
+)
+
+
+def _diagnose_single_line(line, line_num):
+    """
+    Targeted diagnostic for a single equation line that failed to parse.
+    Returns ``None`` if the line parses successfully.
+    """
+    try:
+        EQUATION.parse_string(line, parse_all=True)
+        return None
+    except ParseException:
+        pass
+
+    code = line.split("#")[0].strip()
+    if not code:
+        return None
+
+    def _fmt(title, suggestion):
+        return f"  Line {line_num}: {title}\n    {line}\n  {suggestion}"
+
+    # Only check parens in the expression part (before ':') so that
+    # flag parens such as '(const)' after the unit don't cause false
+    # positives.
+    expr_part = code.split(":")[0] if ":" in code else code
+    paren_msg = _paren_mismatch_msg(expr_part)
+    if paren_msg:
+        return _fmt(paren_msg, "Fix the parentheses and retry.")
+
+    diff_m = re.match(r"d(\w+)/d(\w*)", code)
+    if diff_m and diff_m.group(2) != "t":
+        var, bad = diff_m.group(1), diff_m.group(2)
+        label = "Incomplete" if bad == "" else "Invalid"
+        return _fmt(
+            f"{label} differential operator 'd{var}/d{bad}'.",
+            f"The time derivative must be 'd{var}/dt'.",
+        )
+
+    colons = _count_colons_outside_parens(code)
+    if colons > 1:
+        return _fmt(
+            f"Found {colons} ':' separators, expected exactly 1.",
+            "Each equation must have the form: <expr> : <unit>",
+        )
+    if colons == 0:
+        example = (
+            (
+                "Every equation needs a unit after ':', e.g.:\n"
+                "    dv/dt = -v / tau : volt\n"
+                "    x = 2 * y       : 1      (dimensionless)"
+            )
+            if "=" in code
+            else ("Parameters: <name> : <unit>   Equations: <name> = <expr> : <unit>")
+        )
+        return _fmt("Missing ':' unit separator.", example)
+
+    lhs, _, rhs = code.partition(":")
+    rhs = rhs.strip()
+    if not rhs:
+        return _fmt(
+            "Missing unit after ':'.",
+            "Specify a unit, e.g. 'volt', 'second', or '1' for dimensionless.",
+        )
+    if "=" in lhs and not lhs.split("=", 1)[1].strip():
+        return _fmt(
+            "Empty expression after '='.",
+            "Provide a right-hand side expression, e.g.: x = 2 * y : volt",
+        )
+
+    unit_for_check = re.sub(r"\([^)]*\)\s*$", "", rhs).strip()
+    unit_hint = _multiword_unit_hint(unit_for_check)
+    if unit_hint:
+        return _fmt(unit_hint, "")
+
+    return _fmt("Cannot parse this equation.", f"Expected one of:\n{_EQUATION_FORMS}")
+
+
+_VAR_START_RE = re.compile(r"d(\w+)\s*/\s*dt\b|(\w+)\s*[=:]")
+_MULTI_WHITESPACE_RE = re.compile(r"\s{2,}")
+
+
+def _extract_comments(eqns_str):
+    """
+    Map inline ``#``-comments to the variable defined on the same logical
+    line.  Returns ``{varname: comment_text}``.
+    """
+    result = {}
+    current_var = None
+    pending = []
+
+    for raw in eqns_str.split("\n"):
+        stripped = raw.strip()
+        if not stripped:
+            if current_var and pending:
+                result[current_var] = " ".join(pending)
+            current_var, pending = None, []
+            continue
+        code, _, comment = stripped.partition("#")
+        code = code.strip()
+        if code and (m := _VAR_START_RE.match(code)):
+            if current_var and pending:
+                result[current_var] = " ".join(pending)
+            current_var, pending = m.group(1) or m.group(2), []
+        if comment:
+            pending.append(comment.strip())
+
+    if current_var and pending:
+        result[current_var] = " ".join(pending)
+    return result
+
+
+def _diagnose_parse_error(eqns_str, parse_exception):
+    """
+    Try each non-empty line individually and collect targeted diagnostics.
+    Falls back to the raw ``ParseException`` when nothing specific is found.
+    """
+    diagnostics = []
+    for line_num, raw in enumerate(eqns_str.split("\n"), start=1):
+        s = raw.strip()
+        if not s or s.startswith("#"):
+            continue
+        diag = _diagnose_single_line(s, line_num)
+        if diag is not None:
+            diagnostics.append(diag)
+
+    if not diagnostics:
+        # pyparsing columns are 1-based; clamp to 0 to avoid negative repeats.
+        col = max(0, parse_exception.column - 1)
+        # parse_exception.line can be empty/None when ZeroOrMore is involved.
+        raw_line = parse_exception.line or eqns_str.strip().split("\n")[0]
+        return f"Parsing failed:\n  {raw_line}\n  {' ' * col}^\n  {parse_exception}"
+    return "Equation parsing failed.\n" + "\n".join(diagnostics)
+
+
+def _diagnose_expression_error(varname, expr_str, syntax_error):
+    """Helpful message when an expression is syntactically invalid Python.
+
+    When a line is missing its ':' unit separator, ``EXPRESSION`` can greedily
+    swallow the next equation line (e.g. ``dge/dt = ...``), producing a
+    cryptic SyntaxError.  Detect this and emit a targeted missing-colon hint
+    instead.
+    """
+    # Heuristic: if the expression contains '/dt' or looks like it ate a
+    # following equation line ('d<var>/dt' or '<var> ='), the real problem is
+    # a missing ':' on the current line.
+    if re.search(r"/dt\b", expr_str) or re.search(r"\b\w+\s*=", expr_str):
+        return (
+            f"Missing ':' unit separator in the equation for variable '{varname}'.\n"
+            f"  The expression looks like it accidentally absorbed the next line:\n"
+            f"    {expr_str.strip()!r}\n"
+            f"  Add ':' before the unit, e.g.:\n"
+            f"    d{varname}/dt = <expr> : <unit>"
+        )
+    prefix = f"Syntax error in the expression for variable '{varname}':\n  {expr_str}\n"
+    return prefix + (_paren_mismatch_msg(expr_str) or str(syntax_error))
+
+
 def check_identifier_basic(identifier):
     """
     Check an identifier (usually resulting from an equation string provided by
@@ -232,7 +456,7 @@ def check_identifier_functions(identifier):
 
 def check_identifier_constants(identifier):
     """
-    Make sure that identifier names do not clash with function names.
+    Make sure that identifier names do not clash with constant names.
     """
     if identifier in DEFAULT_CONSTANTS:
         raise SyntaxError(
@@ -241,8 +465,7 @@ def check_identifier_constants(identifier):
         )
 
 
-_base_units_with_alternatives = None
-_base_units = None
+_base_units_with_alternatives = _base_units = None
 
 
 def dimensions_and_type_from_string(unit_string):
@@ -270,8 +493,7 @@ def dimensions_and_type_from_string(unit_string):
     # Lazy import to avoid circular dependency
     from brian2.core.namespace import DEFAULT_UNITS
 
-    global _base_units_with_alternatives
-    global _base_units
+    global _base_units_with_alternatives, _base_units
     if _base_units_with_alternatives is None:
         base_units_for_dims = {}
         for unit_name, unit in reversed(DEFAULT_UNITS.items()):
@@ -358,7 +580,6 @@ def dimensions_and_type_from_string(unit_string):
                 f"has type {type(evaluated_unit)} instead."
             )
 
-    # No error has been raised, all good
     return evaluated_unit.dim, FLOAT
 
 
@@ -386,38 +607,44 @@ def parse_string_equations(eqns):
     try:
         parsed = EQUATIONS.parse_string(eqns, parse_all=True)
     except ParseException as p_exc:
-        raise EquationError(
-            "Parsing failed: \n"
-            + str(p_exc.line)
-            + "\n"
-            + " " * (p_exc.column - 1)
-            + "^\n"
-            + str(p_exc)
-        ) from p_exc
+        raise EquationError(_diagnose_parse_error(eqns, p_exc)) from p_exc
+
+    comments = _extract_comments(eqns)
+
     for eq in parsed:
         eq_type = eq.getName()
         eq_content = dict(eq.items())
-        # Check for reserved keywords
         identifier = eq_content["identifier"]
 
-        # Convert unit string to Unit object
         try:
             dims, var_type = dimensions_and_type_from_string(eq_content["unit"])
         except ValueError as ex:
-            raise EquationError(
-                f"Error parsing the unit specification for variable '{identifier}'."
-            ) from ex
+            hint = _multiword_unit_hint(eq_content["unit"])
+            msg = f"Error parsing the unit specification for variable '{identifier}': {ex}"
+            if hint:
+                msg += f"\n  {hint}"
+            raise EquationError(msg) from ex
 
         expression = eq_content.get("expression")
         if expression is not None:
-            # Replace multiple whitespaces (arising from joining multiline
-            # strings) with single space
-            p = re.compile(r"\s{2,}")
-            expression = Expression(p.sub(" ", expression))
+            expr_str = _MULTI_WHITESPACE_RE.sub(" ", expression)
+            try:
+                expression = Expression(expr_str)
+            except SyntaxError as syn_exc:
+                raise EquationError(
+                    _diagnose_expression_error(identifier, expr_str, syn_exc)
+                ) from syn_exc
         flags = list(eq_content.get("flags", []))
+        comment = comments.get(identifier)
 
         equation = SingleEquation(
-            eq_type, identifier, dims, var_type=var_type, expr=expression, flags=flags
+            eq_type,
+            identifier,
+            dims,
+            var_type=var_type,
+            expr=expression,
+            flags=flags,
+            comment=comment,
         )
 
         if identifier in equations:
@@ -454,10 +681,17 @@ class SingleEquation(Hashable, CacheKey):
         context.
     """
 
-    _cache_irrelevant_attributes = {"update_order"}
+    _cache_irrelevant_attributes = {"update_order", "comment"}
 
     def __init__(
-        self, type, varname, dimensions, var_type=FLOAT, expr=None, flags=None
+        self,
+        type,
+        varname,
+        dimensions,
+        var_type=FLOAT,
+        expr=None,
+        flags=None,
+        comment=None,
     ):
         self.type = type
         self.varname = varname
@@ -475,10 +709,9 @@ class SingleEquation(Hashable, CacheKey):
                     "Differential equations can only define floating point variables"
                 )
         self.expr = expr
-        if flags is None:
-            self.flags = []
-        else:
-            self.flags = list(flags)
+        self.flags = list(flags) if flags is not None else []
+
+        self.comment = comment
 
         # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
@@ -722,6 +955,7 @@ class Equations(Hashable, Mapping):
                     var_type=eq.var_type,
                     expr=Expression(new_code),
                     flags=eq.flags,
+                    comment=eq.comment,
                 )
             else:
                 new_equations[new_varname] = SingleEquation(
@@ -730,6 +964,7 @@ class Equations(Hashable, Mapping):
                     dimensions=eq.dim,
                     var_type=eq.var_type,
                     flags=eq.flags,
+                    comment=eq.comment,
                 )
 
         return new_equations
@@ -1186,9 +1421,7 @@ class Equations(Hashable, Mapping):
                     check_dimensions(str(eq.expr), self.dimensions[var], all_variables)
                 except DimensionMismatchError as ex:
                     raise DimensionMismatchError(
-                        "Inconsistent units in "
-                        f"subexpression {eq.varname}:"
-                        f"\n%{ex.desc}",
+                        f"Inconsistent units in subexpression {eq.varname}:\n{ex.desc}",
                         *ex.dims,
                     ) from ex
             else:
@@ -1380,7 +1613,12 @@ def extract_constant_subexpressions(eqs):
             flags = set(eq.flags) - {"constant over dt"}
             without_const_subexpressions.append(
                 SingleEquation(
-                    PARAMETER, eq.varname, eq.dim, var_type=eq.var_type, flags=flags
+                    PARAMETER,
+                    eq.varname,
+                    eq.dim,
+                    var_type=eq.var_type,
+                    flags=flags,
+                    comment=eq.comment,
                 )
             )
             const_subexpressions.append(eq)
