@@ -19,6 +19,7 @@ set_variable_from_value(name, {{array_name}}, var_size, (char)atoi(s_value.c_str
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
+#include "brianlib/randomgenerator.h"
 #include "network.h"
 #include<chrono>
 #include<random>
@@ -36,16 +37,6 @@ std::string results_dir = "results/";  // can be overwritten by --results_dir co
 
 // For multhreading, we need one generator for each thread.
 std::vector< RandomGenerator > _random_generators;
-
-std::ostream& operator<<(std::ostream& out, const RandomGenerator& rng)
-{
-    return out << rng.gen;
-}
-
-std::istream& operator>>(std::istream& in, RandomGenerator& rng)
-{
-    return in >> rng.gen;
-}
 
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
@@ -413,6 +404,7 @@ void _dealloc_arrays()
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
+#include "brianlib/randomgenerator.h"
 #include "network.h"
 #include<chrono>
 #include<random>
@@ -422,64 +414,6 @@ void _dealloc_arrays()
 namespace brian {
 
 extern std::string results_dir;
-
-class RandomGenerator {
-    private:
-        std::mt19937 gen;
-        double stored_gauss;
-        bool has_stored_gauss = false;
-    public:
-        RandomGenerator() {
-            seed();
-        }
-        void seed() {
-            std::random_device rd;
-            gen.seed(rd());
-            has_stored_gauss = false;
-        }
-        void seed(unsigned long seed) {
-            gen.seed(seed);
-            has_stored_gauss = false;
-        }
-        // Allow exporting/setting the internal state of the random generator
-        friend std::ostream& operator<<(std::ostream& out, const RandomGenerator& rng);
-        friend std::istream& operator>>(std::istream& in, RandomGenerator& rng);
-
-        double rand() {
-            /* shifts : 67108864 = 0x4000000, 9007199254740992 = 0x20000000000000 */
-            const long a = gen() >> 5;
-            const long b = gen() >> 6;
-            return (a * 67108864.0 + b) / 9007199254740992.0;
-        }
-
-        double randn() {
-            if (has_stored_gauss) {
-                const double tmp = stored_gauss;
-                has_stored_gauss = false;
-                return tmp;
-            }
-            else {
-                double f, x1, x2, r2;
-
-                do {
-                    x1 = 2.0*rand() - 1.0;
-                    x2 = 2.0*rand() - 1.0;
-                    r2 = x1*x1 + x2*x2;
-                }
-                while (r2 >= 1.0 || r2 == 0.0);
-
-                /* Box-Muller transform */
-                f = sqrt(-2.0*log(r2)/r2);
-                /* Keep for next call */
-                stored_gauss = f*x1;
-                has_stored_gauss = true;
-                return f*x2;
-            }
-        }
-};
-
-extern std::ostream& operator<<(std::ostream& out, const RandomGenerator& rng);
-extern std::istream& operator>>(std::istream& in, RandomGenerator& rng);
 
 // In OpenMP we need one state per thread
 extern std::vector< RandomGenerator > _random_generators;
