@@ -22,9 +22,12 @@ prefs.register_preferences(
         Can be a string, in which case it should be one of:
 
         * ``'auto'`` the default, automatically chose the best code generation
-          target available.
+          target available. Priority order: cython > cppyy > numpy.
         * ``'cython'``, uses the Cython package to generate C++ code. Needs a
           working installation of Cython and a C++ compiler.
+        * ``'cppyy'``, uses cppyy for JIT compilation via LLVM/Cling. Needs
+          cppyy installed but no external C++ compiler. Provides fast in-memory
+          compilation without filesystem I/O.
         * ``'numpy'`` works on all platforms and doesn't need a C compiler but
           is often less efficient.
 

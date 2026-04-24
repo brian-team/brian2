@@ -165,7 +165,11 @@ class BinomialFunction(Function, Nameable):
     #: The key has to be the name of the target, the value a function
     #: that takes three parameters (n, p, use_normal) and returns a tuple of
     #: (code, dependencies)
-    implementations = {"cpp": _generate_cpp_code, "cython": _generate_cython_code}
+    implementations = {
+        "cpp": _generate_cpp_code,
+        "cython": _generate_cython_code,
+        "cppyy": _generate_cpp_code,
+    }
 
     @check_units(n=1, p=1)
     def __init__(self, n, p, approximate=True, name="_binomial*"):

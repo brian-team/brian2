@@ -219,6 +219,7 @@ class TimedArray(Function, Nameable, CacheKey):
     implementations = {
         "cpp": (_generate_cpp_code_1d, _generate_cpp_code_2d),
         "cython": (_generate_cython_code_1d, _generate_cython_code_2d),
+        "cppyy": (_generate_cpp_code_1d, _generate_cpp_code_2d),
     }
 
     @check_units(dt=second)
