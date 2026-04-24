@@ -543,7 +543,7 @@ class Network(Nameable):
         """
         for obj in objs:
             if isinstance(obj, BrianObject):
-                if obj._network is not None:
+                if obj._network is not None and obj._network != self.id:
                     raise RuntimeError(
                         f"{obj.name} has already been simulated, cannot "
                         "add it to the network. If you were "
@@ -551,6 +551,7 @@ class Network(Nameable):
                         "temporarily stop it from being run, "
                         "set its active flag to False instead."
                     )
+                obj._network = self.id
                 self.objects.add(obj)
             else:
                 # allow adding values from dictionaries

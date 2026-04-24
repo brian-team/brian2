@@ -1922,6 +1922,33 @@ def test_negative_duration_in_net_run():
         net.run(-1 * second)
 
 
+@pytest.mark.codegen_independent
+def test_network_restore_loop():
+    # Issue 1814: Verify that running and restoring networks in a loop
+    # does not raise KeyError due to auto-generated clocks leaking iteratively
+    filename = tempfile.mktemp(suffix="state", prefix="brian_test")
+    try:
+        start_scope()
+        G = NeuronGroup(10, "v:1", name="G")
+        G.run_regularly("v += 0.1", dt=1 * ms)
+        net = Network(collect())
+        net.run(1 * ms)
+        net.store(filename=filename)
+
+        for i in range(2):
+            start_scope()
+            G = NeuronGroup(10, "v:1", name="G")
+            G.run_regularly("v += 0.1", dt=1 * ms)
+            net2 = Network(collect())
+            net2.restore(filename=filename)
+            net2.run(1 * ms)
+    finally:
+        try:
+            os.remove(filename)
+        except OSError:
+            pass
+
+
 if __name__ == "__main__":
     BrianLogger.log_level_warn()
     for t in [
