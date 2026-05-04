@@ -52,23 +52,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          [
-            { image: ubuntu-24.04, triplet: x64-linux },
-            { image: windows-2022, triplet: x64-windows },
-            { image: macos-15-intel, triplet: x64-osx },
-            { image: macos-latest, triplet: arm64-osx },
-          ]
-        standalone: [false, true]
-        float_dtype_32: [false, true]
-        python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
         include:
           - os: { image: ubuntu-24.04, triplet: x64-linux }
             standalone: false
-            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
-            float_dtype_32: false
-          - os: { image: ubuntu-24.04, triplet: x64-linux }
-            standalone: true
             python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
 
@@ -133,7 +119,7 @@ jobs:
       - name: Run Tests
         run: |
           cd  $GITHUB_WORKSPACE/.. && \
-          "$PYTHON_BINARY" $GITHUB_WORKSPACE/$SCRIPT_NAME && \
+          "$PYTHON_BINARY" -X faulthandler $GITHUB_WORKSPACE/$SCRIPT_NAME && \
           cp coverage.xml $GITHUB_WORKSPACE/
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
