@@ -77,9 +77,11 @@ jobs:
         with:
           pkgs: gsl
           triplet: ${{ matrix.os.triplet }}
-          cache-key: gsl-${{ matrix.os.triplet }}
           revision: master
           token: ${{ github.token }}
+        env:
+          VCPKG_CXX_FLAGS: "-march=native"
+          VCPKG_C_FLAGS: "-march=native"
       - name: Set GSL preference for vcpkg
         shell: bash
         run: |
