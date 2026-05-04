@@ -127,7 +127,7 @@ jobs:
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         if: ${{ ! matrix.standalone }}
         with:
-          key: cython-extensions-${{ matrix.os.image }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
+          key: cython-extensions-${{ matrix.os.image }}-${{ runner.arch }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
           path: ${{ steps.cython-cache.outputs.cachedir }}
 
       - name: Run Tests
