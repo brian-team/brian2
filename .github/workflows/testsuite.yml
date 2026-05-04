@@ -121,7 +121,6 @@ jobs:
       - name: Run Tests
         run: |
           cd  $GITHUB_WORKSPACE/.. && \
-          gsl-config --cflags && \
           lscpu && \
           grep -o 'flags[^:]*:.*' /proc/cpuinfo | head -1 | tr ' ' '\n' | sort && \
           "$PYTHON_BINARY" -X faulthandler $GITHUB_WORKSPACE/$SCRIPT_NAME && \
