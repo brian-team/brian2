@@ -71,18 +71,22 @@ jobs:
         run: |
           git remote add upstream https://github.com/brian-team/brian2 && \
           git fetch --tags --force upstream
+      - name: Install GSL on Ubuntu
+        if: ${{ matrix.os.triplet == 'x64-linux' }}
+        uses: awalsh128/cache-apt-pkgs-action@acb598e5ddbc6f68a970c5da0688d2f3a9f04d05 # v1.6.0
+        with:
+          packages: libgsl-dev
       - name: Install GSL
         uses: johnwason/vcpkg-action@ff71808de10afc0e3160fd079353c69ba0d7dd60 # v7.0.0
         id: vcpkg
+        if: ${{ matrix.os.triplet != 'x64-linux' }}
         with:
           pkgs: gsl
           triplet: ${{ matrix.os.triplet }}
           revision: master
           token: ${{ github.token }}
-        env:
-          VCPKG_CXX_FLAGS: "-march=native"
-          VCPKG_C_FLAGS: "-march=native"
       - name: Set GSL preference for vcpkg
+        if: ${{ matrix.os.triplet != 'x64-linux' }}
         shell: bash
         run: |
           mkdir ~/.brian/
