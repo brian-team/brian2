@@ -306,6 +306,8 @@ def _ensure_support_code() -> None:
     #include <algorithm>
     #include <random>
     #include <limits>
+    #include <sstream>
+    #include <iomanip>
 
     #ifndef M_PI
     #define M_PI 3.14159265358979323846
@@ -324,16 +326,39 @@ def _ensure_support_code() -> None:
     inline int32_t int_(T value) {{ return static_cast<int32_t>(value); }}
     #endif
 
-    // Shared RNG for rand/randn/poisson
-    static std::mt19937 _brian_cppyy_rng;
+    // Shared RNG for rand/randn/poisson — external linkage so all Cling TUs share one instance
+    std::mt19937 _brian_cppyy_rng;
+    std::uniform_real_distribution<double> _dist_rand(0.0, 1.0);
+
+    // Marsaglia polar method state — serializable unlike std::normal_distribution
+    bool _brian_randn_has_spare = false;
+    double _brian_randn_spare = 0.0;
 
     // Seeding function callable from Python via cppyy.gbl._brian_cppyy_seed()
     extern "C" void _brian_cppyy_seed(unsigned int seed) {{
         _brian_cppyy_rng.seed(seed);
+        _brian_randn_has_spare = false;
     }}
     extern "C" void _brian_cppyy_seed_random() {{
         std::random_device rd;
         _brian_cppyy_rng.seed(rd());
+        _brian_randn_has_spare = false;
+    }}
+
+    // RNG state serialization for get/set_random_state()
+    extern "C" const char* _brian_cppyy_get_rng_state() {{
+        std::ostringstream oss;
+        oss << _brian_cppyy_rng << " " << (int)_brian_randn_has_spare
+            << " " << std::setprecision(17) << _brian_randn_spare;
+        static std::string _rng_state_str;
+        _rng_state_str = oss.str();
+        return _rng_state_str.c_str();
+    }}
+    extern "C" void _brian_cppyy_set_rng_state(const char* state_cstr) {{
+        std::istringstream iss(state_cstr);
+        int has_spare_int;
+        iss >> _brian_cppyy_rng >> has_spare_int >> _brian_randn_spare;
+        _brian_randn_has_spare = (bool)has_spare_int;
     }}
 
     // ── Helper to extract a C++ pointer from a PyCapsule ──
@@ -383,13 +408,24 @@ def _ensure_support_code() -> None:
     }}
 
     inline double _rand(const int _vectorisation_idx) {{
-        static std::uniform_real_distribution<double> _dist_rand(0.0, 1.0);
         return _dist_rand(_brian_cppyy_rng);
     }}
 
     inline double _randn(const int _vectorisation_idx) {{
-        static std::normal_distribution<double> _dist_randn(0.0, 1.0);
-        return _dist_randn(_brian_cppyy_rng);
+        if (_brian_randn_has_spare) {{
+            _brian_randn_has_spare = false;
+            return _brian_randn_spare;
+        }}
+        double u, v, s;
+        do {{
+            u = _dist_rand(_brian_cppyy_rng) * 2.0 - 1.0;
+            v = _dist_rand(_brian_cppyy_rng) * 2.0 - 1.0;
+            s = u * u + v * v;
+        }} while (s >= 1.0 || s == 0.0);
+        double factor = std::sqrt(-2.0 * std::log(s) / s);
+        _brian_randn_spare = v * factor;
+        _brian_randn_has_spare = true;
+        return u * factor;
     }}
 
     #endif // _BRIAN2_CPPYY_SUPPORT_CODE

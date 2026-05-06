@@ -17,10 +17,10 @@ pytestmark = pytest.mark.gsl
 def skip_if_not_implemented(func):
     @functools.wraps(func)
     def wrapped():
-        if prefs.codegen.target == "numpy" or (
-            prefs.codegen.target == "auto" and auto_target().class_name == "numpy"
-        ):
-            pytest.skip("GSL support for numpy has not been implemented yet")
+        target = prefs.codegen.target
+        effective = auto_target().class_name if target == "auto" else target
+        if effective in ("numpy", "cppyy"):
+            pytest.skip(f"GSL support for {effective!r} has not been implemented yet")
         else:
             return func()
 

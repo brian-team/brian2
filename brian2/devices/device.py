@@ -632,26 +632,38 @@ class RuntimeDevice(Device):
         self.rand_buffer_index[:] = 0
         self.randn_buffer_index[:] = 0
 
-        # Also seed the cppyy RNG if the backend is loaded
+        # Also seed the cppyy RNG if the backend is available.
+        # _ensure_support_code() compiles the C++ RNG eagerly so that seeding
+        # takes effect before any code object is compiled.
         try:
+            from brian2.codegen.runtime.cppyy_rt.cppyy_rt import _ensure_support_code
+
+            _ensure_support_code()
             import cppyy
 
-            if hasattr(cppyy.gbl, "_brian_cppyy_seed"):
-                if seed is not None:
-                    cppyy.gbl._brian_cppyy_seed(int(seed) % (2**32))
-                else:
-                    cppyy.gbl._brian_cppyy_seed_random()
+            if seed is not None:
+                cppyy.gbl._brian_cppyy_seed(int(seed) % (2**32))
+            else:
+                cppyy.gbl._brian_cppyy_seed_random()
         except (ImportError, AttributeError):
             pass
 
     def get_random_state(self):
-        return {
+        state = {
             "numpy_state": np.random.get_state(),
             "rand_buffer_index": np.array(self.rand_buffer_index),
             "rand_buffer": np.array(self.rand_buffer),
             "randn_buffer_index": np.array(self.randn_buffer_index),
             "randn_buffer": np.array(self.randn_buffer),
         }
+        try:
+            import cppyy
+
+            if hasattr(cppyy.gbl, "_brian_cppyy_get_rng_state"):
+                state["cppyy_rng_state"] = str(cppyy.gbl._brian_cppyy_get_rng_state())
+        except (ImportError, AttributeError):
+            pass
+        return state
 
     def set_random_state(self, state):
         np.random.set_state(state["numpy_state"])
@@ -659,6 +671,14 @@ class RuntimeDevice(Device):
         self.rand_buffer[:] = state["rand_buffer"]
         self.randn_buffer_index[:] = state["randn_buffer_index"]
         self.randn_buffer[:] = state["randn_buffer"]
+        if "cppyy_rng_state" in state:
+            try:
+                import cppyy
+
+                if hasattr(cppyy.gbl, "_brian_cppyy_set_rng_state"):
+                    cppyy.gbl._brian_cppyy_set_rng_state(state["cppyy_rng_state"])
+            except (ImportError, AttributeError):
+                pass
 
 
 class Dummy:
