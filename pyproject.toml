@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.0.0",
-    'cython>=0.29.21,<3.1.4',
+    'cython>=0.29.21',
     'sympy>=1.2',
     'pyparsing>=3,!=3.2.4',
     'jinja2>=2.7',
