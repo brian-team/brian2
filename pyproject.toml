@@ -41,6 +41,10 @@ Homepage = 'https://briansimulator.org'
 Documentation ='https://brian2.readthedocs.io/'
 Source = 'https://github.com/brian-team/brian2'
 Tracker = 'https://github.com/brian-team/brian2/issues'
+Coverage = 'https://coveralls.io/github/brian-team/brian2'
+Changelog = 'https://brian2.readthedocs.io/en/stable/introduction/release_notes.html'
+Mastodon = 'https://neuromatch.social/@briansimulator'
+Bluesky = 'https://bsky.app/profile/briansimulator.org'
 
 [tool.setuptools]
 zip-safe = false
