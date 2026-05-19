@@ -243,12 +243,10 @@ class SympyNodeRenderer(NodeRenderer):
         else:
             unevaluated_funcs = ["exprel", "expm1", "log1p"]
 
-            kwargs = {}
-            if getattr(node.func, "id", None) in unevaluated_funcs:
-                kwargs["evaluate"] = False
+            evaluate = getattr(node.func, "id", None) not in unevaluated_funcs
 
             return self.render_func(node.func)(
-                *(self.render_node(arg) for arg in node.args), **kwargs
+                *(self.render_node(arg) for arg in node.args), evaluate=evaluate
             )
 
     def render_Compare(self, node):
