@@ -19,6 +19,10 @@ on:
   schedule:  # Also run regularly (dependency updates, Python version changed, etc.)
     - cron: '15 22 * * 0'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
