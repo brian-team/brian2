@@ -2,7 +2,10 @@ name: " GitHub Actions Security Analysis with Zizmor"
 
 # The scheduled workflow runs every Sunday at 23:45 UTC.
 on:
+  # Trigger on push to workflow files only
   push:
+    paths:
+      - '.github/workflows/*.yml'
   schedule:
     - cron: '45 23 * * 0'
 
