@@ -1,0 +1,82 @@
+name: Test building the documentation
+
+on:
+  # Only run when documentation is (potentially) affected
+  push:
+    paths:
+      - 'docs_sphinx/*'
+      - 'examples/*'
+      - 'tutorials/*'
+      - 'pyproject.toml'
+      - 'rtd-requirements.txt'
+      - '.github/workflows/test_doc_build.yml'
+  pull_request:
+      paths:
+      - 'docs_sphinx/*'
+      - 'examples/*'
+      - 'tutorials/*'
+      - 'pyproject.toml'
+      - 'rtd-requirements.txt'
+      - '.github/workflows/test_doc_build.yml'
+  schedule:  # Also run regularly (dependency updates, Python version changed, etc.)
+    - cron: '35 21 * * 0'
+permissions: {}
+
+jobs:
+  get_python_versions:
+    name: "Determine Python versions"
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      min-python: ${{ steps.nep29.outputs.min-python }}
+      max-python: ${{ steps.nep29.outputs.max-python }}
+    steps:
+      - name: "calculate versions according to SPEC-0"
+        id: nep29
+        uses: mstimberg/github-calc-nep29@1f825dcb1a90ced306e498cbd8584ef61af41423 # v0.8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Match SPEC-0
+          deprecate-python-after: 36
+          min-python-releases: 0
+
+  test_doc_build:
+    needs: get_python_versions
+    name: Test building the documentation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: true
+      - name: Fetch tags from main respository
+        run: |
+          git remote add upstream https://github.com/brian-team/brian2 && \
+          git fetch --tags --force upstream
+      - name: Setup Conda and Python
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+        with:
+          conda-remove-defaults: true
+          auto-update-conda: true
+          auto-activate-base: false
+          miniforge-version: latest
+          activate-environment: "test_env"
+          python-version: "${{ needs.get_python_versions.outputs.max-python }}"
+
+      - name: Install dependencies
+        run: pip install -r rtd-requirements.txt
+
+      - name: Install brian2
+        run: pip install .
+
+      - name: Build HTML documentation
+        run: |
+          cd docs_sphinx
+          sphinx-build -b html . ../docs
+        env:
+          READTHEDOCS: True

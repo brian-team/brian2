@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: "calculate versions according to SPEC-0"
         id: nep29
-        uses: mstimberg/github-calc-nep29@a73481e4e8488a5fa0b3be70a385cc5206a261ba # v0.7
+        uses: mstimberg/github-calc-nep29@1f825dcb1a90ced306e498cbd8584ef61af41423 # v0.8
         with:
           include-release-candidates: true
           include-beta-releases: true
