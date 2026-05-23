@@ -489,3 +489,7 @@ def start_scope():
     included by the magic functions such as `run`.
     """
     BrianObject._scope_current_key += 1
+
+    # Run garbage collection here to destroy stale objects from previous runs
+    # preventing them from squatting on auto-generated names in the InstanceFollower
+    gc.collect()
