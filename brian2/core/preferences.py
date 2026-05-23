@@ -11,7 +11,13 @@ from io import StringIO
 from brian2.units.fundamentalunits import Quantity, have_same_dimensions
 from brian2.utils.stringtools import deindent, indent
 
-__all__ = ["PreferenceError", "BrianPreference", "prefs", "brian_prefs"]
+__all__ = [
+    "PreferenceError",
+    "BrianPreference",
+    "prefs",
+    "brian_prefs",
+    "brian_configuration",
+]
 
 
 def parse_preference_name(name):
@@ -304,7 +310,7 @@ class BrianGlobalPreferences(MutableMapping):
         """
         self.prefs.update(**self.backup_prefs)
 
-    def _get_one_documentation(self, basename, link_targets):
+    def _get_one_documentation(self, basename, valuefunc, link_targets):
         """
         Document a single category of preferences.
         """
@@ -323,7 +329,7 @@ class BrianGlobalPreferences(MutableMapping):
             if link_targets:
                 # Make a link target
                 s += f".. _brian-pref-{linkname}:\n\n"
-            s += f"``{name}`` = ``{pref.representor(pref.default)}``\n"
+            s += f"``{name}`` = ``{pref.representor(valuefunc(pref, name))}``\n"
             s += indent(deindent(pref.docs, docstring=True))
             s += "\n\n"
         return s
@@ -345,13 +351,45 @@ class BrianGlobalPreferences(MutableMapping):
                     s += basename + "\n" + '"' * len(basename) + "\n\n"
                 else:
                     s += "**" + basename + "**\n\n"
-                s += self._get_one_documentation(basename, link_targets)
+                s += self._get_one_documentation(
+                    basename, lambda pref, fullname: pref.default, link_targets
+                )
             # for basename in self.pref_register:
             # s += '**' + basename + '**\n\n'
             # s += basename+'\n'+'"'*len(basename)+'\n\n'
             # s += self._get_one_documentation(basename, link_targets)
         else:
-            s += self._get_one_documentation(basename, link_targets)
+            s += self._get_one_documentation(
+                basename, lambda pref, fullname: pref.default, link_targets
+            )
+
+        return s
+
+    def get_configuration(self, basename=None):
+        """
+        Generates a string documenting the current values of all preferences
+        with the given `basename`. If no `basename` is given, all preferences
+        are documented.
+        """
+        s = ""
+        if basename is None:
+            basenames = sorted(
+                [tuple(basename.split(".")) for basename in self.pref_register]
+            )
+            for basename in basenames:
+                lev = len(basename)
+                basename = ".".join(basename)
+                if lev == 1:
+                    s += basename + "\n" + '"' * len(basename) + "\n\n"
+                else:
+                    s += "**" + basename + "**\n\n"
+                s += self._get_one_documentation(
+                    basename, lambda pref, fullname: self[fullname], False
+                )
+        else:
+            s += self._get_one_documentation(
+                basename, lambda pref, fullname: self[fullname], False
+            )
 
         return s
 
@@ -741,3 +779,10 @@ class ErrorRaiser:
 
 
 brian_prefs = ErrorRaiser()
+
+
+def brian_configuration():
+    """
+    Return a string summarizing the current Brian preferences.
+    """
+    return prefs.get_configuration()
