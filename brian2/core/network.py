@@ -18,6 +18,7 @@ from collections.abc import Mapping, Sequence
 
 from brian2.core.base import BrianObject, BrianObjectException
 from brian2.core.clocks import defaultclock
+from brian2.core.operations import NetworkOperation
 from brian2.core.names import Nameable
 from brian2.core.namespace import get_local_namespace
 from brian2.core.preferences import BrianPreference, prefs
@@ -642,6 +643,17 @@ class Network(Nameable):
         # Make sure that all clocks are up to date
         for clock in clocks:
             clock._set_t_update_dt(target_t=self.t)
+
+        for obj in _get_all_objects(self.objects):
+            if isinstance(obj, NetworkOperation):
+                logger.warn(
+                    f"NetworkOperation '{obj.name}' is present in the network but "
+                    "its state (e.g. closure variables) cannot be stored or "
+                    "restored. If this operation maintains internal state across "
+                    "timesteps, that state will not be reset by restore().",
+                    name_suffix="network_operation_store",
+                    once=True,
+                )
 
         state = self._full_state()
         # Store the state of the random number generator
