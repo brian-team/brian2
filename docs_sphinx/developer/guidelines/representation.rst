@@ -45,7 +45,7 @@ to work, they should use an underscore for subscripts and two underscores for su
 Sympy's printer supports formatting arbitrary objects, all they have to do is to implement a
 ``_latex`` method (no trailing underscore). For most Brian objects, this is unnecessary as they will
 never be formatted with sympy's LaTeX printer. For some core objects, in particular the units,
-is is useful, however, as it can be reused in LaTeX representations for ipython (see below).
+it is useful, however, as it can be reused in LaTeX representations for ipython (see below).
 Note that the ``_latex`` method should not return ``$`` or ``\begin{equation}`` (sympy's method
 includes a ``mode`` argument that wraps the output automatically).
 
