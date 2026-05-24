@@ -123,7 +123,9 @@ class Statements(CodeString):
                         continue
 
                     # Check if this is an assignment (contains +=, -=, *=, /=, or =)
-                    if any(op in line_no_comment for op in ["+=", "-=", "*=", "/=", "="]):
+                    if any(
+                        op in line_no_comment for op in ["+=", "-=", "*=", "/=", "="]
+                    ):
                         # Extract the LHS (before the operator)
                         for op in ["+=", "-=", "*=", "/=", "="]:
                             if op in line_no_comment:
@@ -156,7 +158,7 @@ class Statements(CodeString):
                         code_part = re.sub(
                             r"\b" + identifier + r"\b",
                             "(" + repr(replacement) + ")",
-                            code_part
+                            code_part,
                         )
                         # Keep comment as is (don't substitute values in comments)
                         new_lines.append(code_part + "#" + comment_part)
@@ -165,7 +167,7 @@ class Statements(CodeString):
                         line = re.sub(
                             r"\b" + identifier + r"\b",
                             "(" + repr(replacement) + ")",
-                            line
+                            line,
                         )
                         new_lines.append(line)
                 new_code = "\n".join(new_lines)
