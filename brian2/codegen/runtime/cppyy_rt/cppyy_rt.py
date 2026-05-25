@@ -254,6 +254,23 @@ def _get_cppyy() -> Any:
     return _cppyy
 
 
+# Cache of 1-element dummy arrays used to feed cppyy when a real array is empty.
+# cppyy's buffer protocol rejects zero-size buffers; we substitute a 1-element
+# array of the same dtype so the pointer is valid. The actual element value is
+# never read because the C++ code is gated by the matching _num* parameter,
+# which we pass as the real (zero) size. Cached at module level so it is shared
+# across code objects and never reallocated.
+_EMPTY_DUMMY_CACHE: dict[Any, NDArray[Any]] = {}
+
+
+def _empty_dummy(dtype: Any) -> NDArray[Any]:
+    d = _EMPTY_DUMMY_CACHE.get(dtype)
+    if d is None:
+        d = np.zeros(1, dtype=dtype)
+        _EMPTY_DUMMY_CACHE[dtype] = d
+    return d
+
+
 # --- One-time support code init ---
 _support_code_initialized: bool = False
 
@@ -503,6 +520,12 @@ class CppyyCodeObject(NumpyCodeObject):
         self._namespace_refs: dict[str, NDArray[Any]] = {}
         # Maps block → unique C++ function name (counter-suffixed to avoid Cling redefinition)
         self._compiled_func_names: dict[str, str] = {}
+        # Cached normalized args tuple per block. Rebuilt lazily on first call,
+        # and invalidated by update_namespace() whenever a dynamic-array reference
+        # may have changed. For static-namespace code objects (most stateupdate /
+        # threshold / reset / push_spikes / synapses operations after connect),
+        # the cache is permanent and run_block() avoids the per-call arg loop.
+        self._cached_args: dict[str, tuple] = {}
 
     @classmethod
     def is_available(cls) -> bool:
@@ -610,8 +633,14 @@ class CppyyCodeObject(NumpyCodeObject):
 
     def update_namespace(self) -> None:
         """Refresh data pointers/sizes for dynamic arrays that may have been resized."""
+        if not self.nonconstant_values:
+            # Nothing to refresh → cached args (if any) stay valid.
+            return
         for name, func in self.nonconstant_values:
             self.namespace[name] = func()
+        # A dynamic array's underlying numpy reference may now differ from the one
+        # stored in the cached tuple. Drop the cache so the next run_block rebuilds it.
+        self._cached_args.clear()
 
     def _insert_func_namespace(self, func: Function) -> None:
         """
@@ -847,6 +876,43 @@ class CppyyCodeObject(NumpyCodeObject):
 
     # --- Execution ---
 
+    def _build_args(self, block: str) -> tuple:
+        """
+        Normalize namespace values into the tuple expected by the compiled
+        C++ function. Runs once per cache miss (typically once per block
+        lifetime, since most code objects have a static namespace).
+        """
+        args: list[Any] = []
+        for cpp_name, ns_key, c_type in self._param_mappings[block]:
+            val: Any = self.namespace.get(ns_key)
+            if val is None:
+                # Naming bridge bug — log and limp along with a zero
+                logger.warn(
+                    f"Namespace key '{ns_key}' missing for param "
+                    f"'{cpp_name}' ({c_type}) in {self.name}.{block}. "
+                    f"Keys: {sorted(self.namespace.keys())[:20]}..."
+                )
+                if "*" in c_type:
+                    # Fresh allocation (not the shared dummy) — this branch only
+                    # fires on a naming-bridge bug and the C++ side may write to it.
+                    args.append(np.zeros(1, dtype=np.float64))
+                else:
+                    args.append(0)
+                continue
+
+            if isinstance(val, np.ndarray):
+                # bool arrays need int8 view so cppyy's buffer protocol matches
+                if val.dtype == np.bool_:
+                    val = val.view(np.int8)
+                if val.size == 0 and c_type.endswith("*"):
+                    # cppyy rejects zero-size buffers — substitute a cached
+                    # 1-element dummy. C++ is gated by the matching _num*.
+                    val = _empty_dummy(val.dtype)
+                elif not val.flags.c_contiguous:
+                    val = np.ascontiguousarray(val)
+            args.append(val)
+        return tuple(args)
+
     def run_block(self, block: str) -> None:
         """
         Call a compiled C++ function with args extracted from self.namespace.
@@ -860,42 +926,10 @@ class CppyyCodeObject(NumpyCodeObject):
             return
 
         try:
-            param_mapping: list[ParamTuple] = self._param_mappings[block]
-            args: list[Any] = []
-
-            # Sanity check: param count must match function arity
-            expected_nargs = len(param_mapping)
-            logger.diagnostic(
-                f"cppyy: calling {self.name}.{block} with {expected_nargs} params"
-            )
-
-            for cpp_name, ns_key, c_type in param_mapping:
-                val: Any = self.namespace.get(ns_key)
-
-                if val is None:
-                    # Naming bridge bug — log and limp along with a zero
-                    logger.warn(
-                        f"Namespace key '{ns_key}' missing for param "
-                        f"'{cpp_name}' ({c_type}) in {self.name}.{block}. "
-                        f"Keys: {sorted(self.namespace.keys())[:20]}..."
-                    )
-                    if "*" in c_type:
-                        args.append(np.zeros(1, dtype=np.float64))
-                    else:
-                        args.append(0)
-                else:
-                    if isinstance(val, np.ndarray):
-                        val = np.ascontiguousarray(val)
-                        # bool arrays need int8 view so cppyy's buffer protocol matches
-                        if val.dtype == np.bool_:
-                            val = val.view(np.int8)
-                        # cppyy can't extract a buffer pointer from empty arrays —
-                        # pass a 1-element dummy instead. The C++ code won't read
-                        # past _num* elements anyway, and for dynamic arrays the
-                        # real access goes through the capsule/DynamicArray object.
-                        if val.size == 0 and c_type.endswith("*"):
-                            val = np.zeros(1, dtype=val.dtype)
-                    args.append(val)
+            args = self._cached_args.get(block)
+            if args is None:
+                args = self._build_args(block)
+                self._cached_args[block] = args
             try:
                 compiled_func(*args)
             except Exception as cpp_exc:
