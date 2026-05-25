@@ -277,6 +277,13 @@ _support_code_initialized: bool = False
 # --- Per-compilation unique counter (prevents Cling redefinition of extern "C" symbols) ---
 _compile_counter: int = 0
 
+# --- Process-level cache: hash(canonical source) -> (compiled_func, unique_func_name) ---
+# Eliminates redundant cppdef calls across repeated Network.run() invocations
+# (parameter sweeps, store/restore loops, etc.) by reusing previously JITed
+# functions whose generated source is byte-identical.
+_compiled_block_cache: dict[str, tuple[Any, str]] = {}
+_cache_stats: dict[str, int] = {"hits": 0, "misses": 0}
+
 
 def _ensure_support_code() -> None:
     """
@@ -526,6 +533,21 @@ class CppyyCodeObject(NumpyCodeObject):
         # threshold / reset / push_spikes / synapses operations after connect),
         # the cache is permanent and run_block() avoids the per-call arg loop.
         self._cached_args: dict[str, tuple] = {}
+        # Fast-dispatch table: maps block -> (compiled_func, args_tuple) for
+        # code objects with a fully-static namespace (no nonconstant_values).
+        # Populated eagerly at end of compile_block().  When present, run_block
+        # bypasses the per-call dict lookups and cache-miss check.
+        self._fast_dispatch: dict[str, tuple] = {}
+        # Return-value kind for templates that need a Python-side return.
+        # Replaces three per-call template_name string compares in run_block.
+        if template_name == "group_get_indices":
+            self._return_kind: str | None = "group_get_indices"
+        elif template_name == "group_variable_get":
+            self._return_kind = "group_variable_get"
+        elif template_name == "group_variable_get_conditional":
+            self._return_kind = "group_variable_get_conditional"
+        else:
+            self._return_kind = None
 
     @classmethod
     def is_available(cls) -> bool:
@@ -641,6 +663,10 @@ class CppyyCodeObject(NumpyCodeObject):
         # A dynamic array's underlying numpy reference may now differ from the one
         # stored in the cached tuple. Drop the cache so the next run_block rebuilds it.
         self._cached_args.clear()
+        # Eager fast-dispatch entries are only built for static-namespace blocks
+        # (i.e. nonconstant_values is empty), so this branch should never run for
+        # them. Defensive clear in case a subclass uses nonconstant_values later.
+        self._fast_dispatch.clear()
 
     def _insert_func_namespace(self, func: Function) -> None:
         """
@@ -794,27 +820,50 @@ class CppyyCodeObject(NumpyCodeObject):
         # or simulation setups in the same Python process.
         global _compile_counter
         original_func_name = _make_func_name(self.name, block)
-        unique_func_name = f"{original_func_name}_{_compile_counter:06d}"
-        _compile_counter += 1
-        code = code.replace(original_func_name, unique_func_name)
 
-        logger.diagnostic(f"cppyy: compiling '{block}' for {self.name}")
-        try:
-            cppyy.cppdef(code)
-        except Exception as exc:
-            raise BrianObjectException(
-                f"cppyy compilation failed for '{block}' of '{self.name}'.\n"
-                f"Generated C++ code:\n{code}\n",
-                self.owner,
-            ) from exc
+        # Process-level cache: key on the canonical (pre-counter-rename) source.
+        # The counter rename is purely cosmetic — two code objects whose post-rename,
+        # post-guard source is byte-identical can safely share the JIT-compiled
+        # function. The cppyy proxy is module-bound, not codeobj-bound, so reusing
+        # it across CppyyCodeObject instances is safe. Per-codeobject globals
+        # (e.g. _namespace_timedarray_values) are still re-pointed by
+        # _set_user_func_globals below — and if two codeobjs share an identical
+        # body they reference the same data anyway (that's what makes them
+        # identical post-rename).
+        cache_key = hashlib.sha256(code.encode("utf-8")).hexdigest()
+        cached = _compiled_block_cache.get(cache_key)
+        if cached is not None:
+            compiled_func, unique_func_name = cached
+            _cache_stats["hits"] += 1
+            logger.diagnostic(
+                f"cppyy: cache HIT for '{block}' of {self.name} "
+                f"(reusing '{unique_func_name}')"
+            )
+        else:
+            unique_func_name = f"{original_func_name}_{_compile_counter:06d}"
+            _compile_counter += 1
+            code = code.replace(original_func_name, unique_func_name)
 
-        try:
-            compiled_func: Any = getattr(cppyy.gbl, unique_func_name)
-        except AttributeError:
-            raise RuntimeError(
-                f"cppyy compiled OK but function '{unique_func_name}' not found. "
-                f"Template/name mismatch? codeobj={self.name}, block={block}"
-            ) from None
+            logger.diagnostic(f"cppyy: compiling '{block}' for {self.name}")
+            try:
+                cppyy.cppdef(code)
+            except Exception as exc:
+                raise BrianObjectException(
+                    f"cppyy compilation failed for '{block}' of '{self.name}'.\n"
+                    f"Generated C++ code:\n{code}\n",
+                    self.owner,
+                ) from exc
+
+            try:
+                compiled_func: Any = getattr(cppyy.gbl, unique_func_name)
+            except AttributeError:
+                raise RuntimeError(
+                    f"cppyy compiled OK but function '{unique_func_name}' not found. "
+                    f"Template/name mismatch? codeobj={self.name}, block={block}"
+                ) from None
+
+            _compiled_block_cache[cache_key] = (compiled_func, unique_func_name)
+            _cache_stats["misses"] += 1
 
         self._compiled_func_names[block] = unique_func_name
 
@@ -825,6 +874,20 @@ class CppyyCodeObject(NumpyCodeObject):
 
         # register with introspector if enabled
         self._register_with_introspector(block, code)
+
+        # Eagerly build the fast-dispatch entry for static-namespace blocks.
+        # variables_to_namespace() already ran in __init__, so self.namespace
+        # holds every key referenced by _param_mappings[block]. Blocks with
+        # dynamic-array references (nonconstant_values non-empty) are skipped
+        # here because update_namespace() would invalidate the tuple.
+        if not getattr(self, "nonconstant_values", None):
+            try:
+                cached_args = self._build_args(block)
+                self._cached_args[block] = cached_args
+                self._fast_dispatch[block] = (compiled_func, cached_args)
+            except Exception:
+                # Best-effort: fall back to lazy build in run_block on first call.
+                pass
 
         return compiled_func
 
@@ -921,7 +984,36 @@ class CppyyCodeObject(NumpyCodeObject):
         passed where C++ expects double* gets its buffer pointer extracted with
         zero copies.
         """
-        compiled_func: Any | None = self.compiled_code.get(block)
+        # Fast path: static-namespace block whose args tuple was built eagerly
+        # at the end of compile_block().  Skips two dict.get() lookups and the
+        # cache-miss check on every tick.  Only safe when there's no return
+        # value to extract; templates with return values use the slow path.
+        if self._return_kind is None:
+            fast = self._fast_dispatch.get(block)
+            if fast is not None:
+                compiled_func, args = fast
+                try:
+                    compiled_func(*args)
+                    return
+                except Exception as cpp_exc:
+                    cppyy_mod = _get_cppyy()
+                    try:
+                        is_oor = cppyy_mod is not None and isinstance(
+                            cpp_exc, cppyy_mod.gbl.std.out_of_range
+                        )
+                    except Exception:
+                        is_oor = False
+                    if is_oor:
+                        raise BrianObjectException(
+                            f"Exception during '{block}' of '{self.name}'.\n",
+                            self.owner,
+                        ) from IndexError(str(cpp_exc))
+                    raise BrianObjectException(
+                        f"Exception during '{block}' of '{self.name}'.\n",
+                        self.owner,
+                    ) from cpp_exc
+
+        compiled_func = self.compiled_code.get(block)
         if compiled_func is None:
             return
 
@@ -942,21 +1034,15 @@ class CppyyCodeObject(NumpyCodeObject):
                     raise IndexError(str(cpp_exc)) from cpp_exc
                 raise
 
-            # group_get_indices: C++ wrote matching indices into the output
-            # buffer and the count into _return_values_n[0].  Return the slice
-            # so the caller (group.__getitem__) gets back a numpy int32 array.
-            if self.template_name == "group_get_indices":
-                n = int(self.namespace["_return_values_n"][0])
-                return self.namespace["_return_values_buf"][:n].copy()
-
-            # group_variable_get: C++ filled _output_buf with _num_group_idx values.
-            if self.template_name == "group_variable_get":
-                n = int(self.namespace.get("_num_group_idx", 0))
-                return self.namespace["_output_buf"][:n].copy()
-
-            # group_variable_get_conditional: C++ filled _output_buf with values
-            # where _cond was True; count is in _output_n[0].
-            if self.template_name == "group_variable_get_conditional":
+            rk = self._return_kind
+            if rk is not None:
+                if rk == "group_get_indices":
+                    n = int(self.namespace["_return_values_n"][0])
+                    return self.namespace["_return_values_buf"][:n].copy()
+                if rk == "group_variable_get":
+                    n = int(self.namespace.get("_num_group_idx", 0))
+                    return self.namespace["_output_buf"][:n].copy()
+                # group_variable_get_conditional
                 n = int(self.namespace["_output_n"][0])
                 return self.namespace["_output_buf"][:n].copy()
 
