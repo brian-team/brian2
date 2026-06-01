@@ -17,7 +17,7 @@ from brian2.core.base import device_override, weakproxy_with_fallback
 from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import DynamicArrayVariable, Variables
-from brian2.devices.device import device, get_device
+from brian2.devices.device import RuntimeDevice, device, get_device
 from brian2.equations.equations import (
     DIFFERENTIAL_EQUATION,
     PARAMETER,
@@ -385,6 +385,13 @@ class SynapticPathway(CodeRunner, Group):
     @device_override("synaptic_pathway_before_run")
     def before_run(self, run_namespace):
         super().before_run(run_namespace)
+        # Ensure the queue is initialised before any code objects run.
+        # For Cython, this is also done in the template's before_code block,
+        # but cppyy's C++ before_code can't call Python, so we do it here.
+        # Under standalone mode the queue is initialised in the generated C++,
+        # so initialise_queue() must not be called from Python at that point.
+        if isinstance(get_device(), RuntimeDevice):
+            self.initialise_queue()
 
     def create_code_objects(self, run_namespace):
         if self._pushspikes_codeobj is None:
@@ -1931,12 +1938,8 @@ class Synapses(Group):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
         template_kwds["_registered_variables"] = self._registered_variables
-        template_kwds["source_offset_val"] = self.variables[
-            "_source_offset"
-        ].get_value()
-        template_kwds["target_offset_val"] = self.variables[
-            "_target_offset"
-        ].get_value()
+        template_kwds["source_offset_val"] = int(getattr(self.source, "start", 0))
+        template_kwds["target_offset_val"] = int(getattr(self.target, "start", 0))
 
         for var in self._registered_variables:
             if var.name not in needed_variables:
@@ -2024,20 +2027,18 @@ class Synapses(Group):
                 fallback_pref="codegen.synapse_connect_target"
             ),
         )
+        if isinstance(get_device(), RuntimeDevice):
+            old_num_synapses = len(self)
         codeobj()
+        # Standalone device schedules code for later execution — synapse count
+        # is only known after run(). Skip Python-side bookkeeping in that case.
+        if isinstance(get_device(), RuntimeDevice):
+            new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
+            self._resize(new_num_synapses)
+            from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
 
-        # Update the DynamicArrayVariable.size attribute of resized variables
-        try:
-            for var in self._registered_variables:
-                var.size = len(var.get_value())
-            self.variables["N_incoming"].size = len(
-                self.variables["N_incoming"].get_value()
-            )
-            self.variables["N_outgoing"].size = len(
-                self.variables["N_outgoing"].get_value()
-            )
-        except NotImplementedError:
-            pass  # Does not apply to standalone mode
+            if isinstance(codeobj, CppyyCodeObject):
+                self._update_synapse_numbers(old_num_synapses)
 
     def _expression_index_dependence(self, expr, namespace, additional_indices=None):
         """
@@ -2097,12 +2098,8 @@ class Synapses(Group):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
         template_kwds["_registered_variables"] = self._registered_variables
-        template_kwds["source_offset_val"] = self.variables[
-            "_source_offset"
-        ].get_value()
-        template_kwds["target_offset_val"] = self.variables[
-            "_target_offset"
-        ].get_value()
+        template_kwds["source_offset_val"] = int(getattr(self.source, "start", 0))
+        template_kwds["target_offset_val"] = int(getattr(self.target, "start", 0))
 
         for var in self._registered_variables:
             if var.name not in needed_variables:
@@ -2259,20 +2256,18 @@ class Synapses(Group):
                 fallback_pref="codegen.synapse_connect_target"
             ),
         )
+        if isinstance(get_device(), RuntimeDevice):
+            old_num_synapses = len(self)
         codeobj()
+        # Standalone device schedules code for later execution — synapse count
+        # is only known after run(). Skip Python-side bookkeeping in that case.
+        if isinstance(get_device(), RuntimeDevice):
+            new_num_synapses = len(self.variables["_synaptic_pre"].get_value())
+            self._resize(new_num_synapses)
+            from brian2.codegen.runtime.cppyy_rt import CppyyCodeObject
 
-        # Update the DynamicArrayVariable.size attribute of resized variables
-        try:
-            for var in self._registered_variables:
-                var.size = len(var.get_value())
-            self.variables["N_incoming"].size = len(
-                self.variables["N_incoming"].get_value()
-            )
-            self.variables["N_outgoing"].size = len(
-                self.variables["N_outgoing"].get_value()
-            )
-        except NotImplementedError:
-            pass  # Does not apply to standalone mode
+            if isinstance(codeobj, CppyyCodeObject):
+                self._update_synapse_numbers(old_num_synapses)
 
     def _check_parsed_synapses_generator(self, parsed, namespace):
         """

@@ -47,6 +47,15 @@ fake_randn.implementations.add_implementation(
                                         return 0.5
                                     """,
 )
+fake_randn.implementations.add_implementation(
+    "cppyy",
+    """
+                                              double randn(int vectorisation_idx)
+                                              {
+                                                  return 0.5;
+                                              }
+                                              """,
+)
 
 
 @pytest.fixture
