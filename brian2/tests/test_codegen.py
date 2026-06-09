@@ -511,10 +511,12 @@ def test_incorrect_statements(s):
 
 def test_clear_cache():
     target = prefs.codegen.target
-    if target == "numpy":
-        assert "numpy" not in _cache_dirs_and_extensions
+    # numpy and cppyy have no on-disk cache (cppyy JIT-compiles in memory via
+    # Cling), so there is nothing to register or clear for those targets.
+    if target in ("numpy", "cppyy"):
+        assert target not in _cache_dirs_and_extensions
         with pytest.raises(ValueError):
-            clear_cache("numpy")
+            clear_cache(target)
     else:
         assert target in _cache_dirs_and_extensions
         cache_dir, _ = _cache_dirs_and_extensions[target]
