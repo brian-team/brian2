@@ -285,6 +285,102 @@ _compiled_block_cache: dict[str, tuple[Any, str]] = {}
 _cache_stats: dict[str, int] = {"hits": 0, "misses": 0}
 
 
+def _long_compat_support_code() -> str:
+    """
+    Extra template specializations for the C++ ``long`` type.
+
+    ``_cppyy_c_data_type`` maps numpy/Python int64 (and uint64) to ``long`` /
+    ``unsigned long`` because cppyy's buffer protocol rejects ``int64_t*``
+    (== ``long long*``) on LP64 platforms.  But Brian2's ``_higher_type`` /
+    ``_brian_mod`` / ``_brian_floordiv`` helpers are only specialized for
+    ``int64_t``.  On macOS ``int64_t`` is ``long long``, so a ``long`` operand
+    — e.g. a scalar integer constant used in ``%`` or ``//`` — has no matching
+    specialization and the generated C++ fails to compile.
+
+    This generates the missing specializations involving ``long`` (and
+    ``unsigned long`` for ``_higher_type``).  It must ONLY be compiled on
+    platforms where ``long`` is distinct from ``int64_t`` (detected via Cling in
+    ``_ensure_support_code``); otherwise it would redefine the existing
+    ``int64_t`` specializations and Cling would error.
+    """
+    # (c_type, order) — order mirrors ``typestrs`` in cpp_generator: the wider
+    # type wins.  ``long``/``unsigned long`` are 64-bit integers, so they share
+    # int64_t's order (1).
+    base = [
+        ("int32_t", 0),
+        ("int64_t", 1),
+        ("float", 2),
+        ("double", 3),
+        ("long double", 4),
+    ]
+    longs = [("long", 1), ("unsigned long", 1)]
+    all_types = base + longs
+    # Signed integer types only for the modulo/floordiv bodies — the sign
+    # correction ``(r ^ y) < 0`` would warn (always-false) on unsigned types,
+    # and unsigned 64-bit operands essentially never reach these helpers.
+    signed_int_types = [("int32_t", 0), ("int64_t", 1), ("long", 1)]
+    long_names = {"long", "unsigned long"}
+
+    def higher(a: str, oa: int, b: str, ob: int) -> str:
+        if oa != ob:
+            return a if oa > ob else b
+        # Equal order: both 64-bit integers — prefer a signed ``long`` result.
+        for pref in ("long", "unsigned long", "int64_t"):
+            if a == pref or b == pref:
+                return pref
+        return a
+
+    parts: list[str] = []
+
+    # _higher_type specializations for every pair touching long / unsigned long.
+    # Pairs where neither operand is a long-type are already defined in the base
+    # support code, so they are skipped (avoids redefinition).
+    for a, oa in all_types:
+        for b, ob in all_types:
+            if a not in long_names and b not in long_names:
+                continue
+            ht = higher(a, oa, b, ob)
+            parts.append(
+                f"template <> struct _higher_type<{a},{b}> {{ typedef {ht} type; }};"
+            )
+
+    # Integer _brian_mod (Python-style modulo) specializations for signed integer
+    # pairs where at least one operand is ``long``.  Without these, an integer
+    # ``long`` operand would fall through to the floating-point template and
+    # return a (lossy) float result instead of a true integer modulo.
+    for a, oa in signed_int_types:
+        for b, ob in signed_int_types:
+            if a not in long_names and b not in long_names:
+                continue
+            rt = higher(a, oa, b, ob)
+            parts.append(
+                "template <>\n"
+                f"inline {rt} _brian_mod({a} x, {b} y) {{\n"
+                f"    {rt} r = x % y;\n"
+                "    r += ((r != 0) & ((r ^ y) < 0)) * y;\n"
+                "    return r;\n"
+                "}"
+            )
+
+    # Integer _brian_floordiv specializations for the same signed pairs.
+    for a, oa in signed_int_types:
+        for b, ob in signed_int_types:
+            if a not in long_names and b not in long_names:
+                continue
+            rt = higher(a, oa, b, ob)
+            parts.append(
+                "template <>\n"
+                f"inline {rt} _brian_floordiv<{a}, {b}>({a} a, {b} b) {{\n"
+                f"    {rt} q = a / b;\n"
+                f"    {rt} r = a - q*b;\n"
+                "    q -= ((r != 0) & ((r ^ b) < 0));\n"
+                "    return q;\n"
+                "}"
+            )
+
+    return "\n".join(parts)
+
+
 def _ensure_support_code() -> None:
     """
     Define universal C++ helpers exactly once in cppyy's interpreter.
@@ -455,6 +551,21 @@ def _ensure_support_code() -> None:
     #endif // _BRIAN2_CPPYY_SUPPORT_CODE
     """
     cppyy.cppdef(guarded_code)
+
+    # On platforms where C++ ``long`` is a distinct type from ``int64_t``
+    # (notably macOS, where int64_t == long long), the math helpers above are
+    # not specialized for ``long`` operands.  ``_cppyy_c_data_type`` produces
+    # ``long`` for numpy/Python int64, so a scalar integer constant used in
+    # ``%`` or ``//`` would otherwise fail to compile.  Detect the situation via
+    # Cling itself and add the missing specializations only when needed (adding
+    # them where ``long == int64_t`` would be a redefinition error).
+    cppyy.cppdef(
+        "namespace _brian_compat { inline bool _long_is_int64() {"
+        " return std::is_same<long, int64_t>::value; } }"
+    )
+    if not cppyy.gbl._brian_compat._long_is_int64():
+        cppyy.cppdef(_long_compat_support_code())
+
     _support_code_initialized = True
 
 
