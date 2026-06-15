@@ -1,7 +1,7 @@
 # cppyy Optimization Benchmark Scripts
 
 These scripts are small benchmark helpers for comparing Brian2's `cppyy` runtime target
-against `cython` while working on PR #1769.
+against `cython` while working on PR #1769 ...
 
 The goal is not to produce a polished benchmark suite. The goal is to answer practical
 development questions:
