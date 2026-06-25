@@ -1106,8 +1106,11 @@ class Network(Nameable):
             raise ValueError(
                 f"Function 'run' expected a non-negative duration but got '{duration}'"
             )
-        # This will trigger warnings for objects that have not been included in a network
-        gc.collect()
+        # This will trigger warnings for objects that have not been included in a network.
+        # Only necessary if such warnings are enabled, since gc.collect() can be a
+        # significant fraction of run() overhead, especially for short or no-op runs.
+        if prefs.logging.warn_for_unused_objects:
+            gc.collect()
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
 
         if profile is None:
