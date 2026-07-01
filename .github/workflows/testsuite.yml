@@ -57,7 +57,7 @@ jobs:
           cache: "pip"
       - name: set PY
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-      - uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
@@ -145,7 +145,7 @@ jobs:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
 
       - name: restore Cython cache
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: ${{ ! matrix.standalone }}
         with:
           key: cython-extensions-${{ matrix.os.image }}-${{ runner.arch }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
