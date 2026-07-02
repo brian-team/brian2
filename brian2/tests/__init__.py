@@ -239,6 +239,12 @@ def run(
             codegen_targets.append("cython")
         except ImportError:
             pass
+        try:
+            import cppyy  # noqa: F401
+
+            codegen_targets.append("cppyy")
+        except ImportError:
+            pass
     elif isinstance(codegen_targets, str):  # allow to give a single target
         codegen_targets = [codegen_targets]
 

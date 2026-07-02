@@ -10,4 +10,4 @@ from .runtime import *
 from . import _prefs
 from . import cpp_prefs as _cpp_prefs
 
-__all__ = ["NumpyCodeObject", "CythonCodeObject"]
+__all__ = ["NumpyCodeObject", "CythonCodeObject", "CppyyCodeObject"]
