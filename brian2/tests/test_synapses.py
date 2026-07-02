@@ -360,6 +360,77 @@ def test_connection_string_deterministic_full_custom():
     _compare(S2, expected_custom)
 
 
+def test_connection_generator_constant_index_prechecked(monkeypatch):
+    G = NeuronGroup(17, "")
+    S = Synapses(G, G)
+
+    def fail_create_runner_codeobj(*args, **kwargs):
+        raise AssertionError("constant out-of-range indices should be prechecked")
+
+    monkeypatch.setattr(
+        "brian2.synapses.synapses.create_runner_codeobj", fail_create_runner_codeobj
+    )
+
+    with pytest.raises(BrianObjectException) as exc:
+        S.connect(j="20")
+    assert exc_isinstance(exc, IndexError)
+
+
+def test_connection_generator_range_index_prechecked(monkeypatch):
+    G = NeuronGroup(16, "")
+    G2 = NeuronGroup(4, "")
+    S = Synapses(G, G2)
+
+    def fail_create_runner_codeobj(*args, **kwargs):
+        raise AssertionError("out-of-range generator indices should be prechecked")
+
+    monkeypatch.setattr(
+        "brian2.synapses.synapses.create_runner_codeobj", fail_create_runner_codeobj
+    )
+
+    with pytest.raises(BrianObjectException) as exc:
+        S.connect(j="k for k in range(0, N_post*2)")
+    assert exc_isinstance(exc, IndexError)
+
+
+def test_connection_generator_post_condition_index_prechecked(monkeypatch):
+    G = NeuronGroup(16, "v : 1")
+    S = Synapses(G, G)
+
+    def fail_create_runner_codeobj(*args, **kwargs):
+        raise AssertionError("out-of-range post conditions should be prechecked")
+
+    monkeypatch.setattr(
+        "brian2.synapses.synapses.create_runner_codeobj", fail_create_runner_codeobj
+    )
+
+    with pytest.raises(BrianObjectException) as exc:
+        S.connect(j="i+k for k in range(0, 5) if i <= N_post-5 and v_post >= 0")
+    assert exc_isinstance(exc, IndexError)
+
+
+def test_connection_generator_sample_size_prechecked(monkeypatch):
+    G = NeuronGroup(5, "")
+    G2 = NeuronGroup(7, "")
+
+    def fail_create_runner_codeobj(*args, **kwargs):
+        raise AssertionError("invalid fixed sample sizes should be prechecked")
+
+    monkeypatch.setattr(
+        "brian2.synapses.synapses.create_runner_codeobj", fail_create_runner_codeobj
+    )
+
+    S1 = Synapses(G, G2)
+    with pytest.raises(BrianObjectException) as exc:
+        S1.connect(j="k for k in sample(N_post, size=i+4)")
+    assert exc_isinstance(exc, IndexError)
+
+    S2 = Synapses(G, G2)
+    with pytest.raises(BrianObjectException) as exc:
+        S2.connect(j="k for k in sample(N_post, size=3-i)")
+    assert exc_isinstance(exc, IndexError)
+
+
 @pytest.mark.standalone_compatible
 def test_connection_string_deterministic_multiple_and():
     # In Brian versions 2.1.0-2.1.2, this fails on the numpy target

@@ -2,6 +2,7 @@
 Module providing the `Synapses` class and related helper classes/functions.
 """
 
+import ast
 import functools
 import numbers
 import re
@@ -13,7 +14,11 @@ import numpy as np
 
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.codegen.translation import get_identifiers_recursively
-from brian2.core.base import device_override, weakproxy_with_fallback
+from brian2.core.base import (
+    BrianObjectException,
+    device_override,
+    weakproxy_with_fallback,
+)
 from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import DynamicArrayVariable, Variables
@@ -2095,6 +2100,11 @@ class Synapses(Group):
             if var in identifiers:
                 raise ValueError(f"The connect statement cannot refer to '{var}'.")
 
+        if self._precheck_generator_index(
+            parsed, over_presynaptic, skip_if_invalid, namespace
+        ):
+            return
+
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
         template_kwds["_registered_variables"] = self._registered_variables
@@ -2268,6 +2278,223 @@ class Synapses(Group):
 
             if isinstance(codeobj, CppyyCodeObject):
                 self._update_synapse_numbers(old_num_synapses)
+
+    def _precheck_generator_index(
+        self, parsed, over_presynaptic, skip_if_invalid, namespace
+    ):
+        if not skip_if_invalid:
+            sample_size_error = self._fixed_sample_size_error(parsed, over_presynaptic)
+            if sample_size_error is not None:
+                raise BrianObjectException(
+                    f"Exception during synapse creation for '{self.name}'.\n",
+                    self,
+                ) from sample_size_error
+
+        result_size = len(self.target) if over_presynaptic else len(self.source)
+        result_name = "j" if over_presynaptic else "i"
+        element_interval = self._generator_index_interval(parsed, over_presynaptic)
+
+        if element_interval is None:
+            return False
+
+        low, high = element_interval
+        if 0 <= low and high < result_size:
+            return False
+
+        if not self._generator_condition_requires_valid_result_index(
+            parsed, over_presynaptic, namespace
+        ):
+            return False
+
+        if skip_if_invalid and (high < 0 or low >= result_size):
+            return True
+
+        if skip_if_invalid:
+            return False
+
+        if low < 0:
+            element = low
+        elif low < result_size <= high:
+            element = result_size
+        else:
+            element = high
+
+        index_error = IndexError(
+            f"index {result_name}={element} outside allowed range from 0 to "
+            f"{result_size - 1}"
+        )
+        raise BrianObjectException(
+            f"Exception during synapse creation for '{self.name}'.\n",
+            self,
+        ) from index_error
+
+    def _fixed_sample_size_error(self, parsed, over_presynaptic):
+        if parsed["iterator_func"] != "sample":
+            return None
+        if parsed["iterator_kwds"]["sample_size"] != "fixed":
+            return None
+
+        env = self._generator_interval_env(over_presynaptic)
+        population_size = self._range_population_size(parsed["iterator_kwds"], env)
+        size_interval = self._integer_expr_interval(
+            parsed["iterator_kwds"]["size"], env
+        )
+        if population_size is None or size_interval is None:
+            return None
+
+        size_low, size_high = size_interval
+        if size_low < 0:
+            return IndexError(f"Requested sample size {size_low} is negative.")
+        if size_high > population_size:
+            return IndexError(
+                f"Requested sample size {size_high} is bigger than the "
+                f"population size {population_size}."
+            )
+        return None
+
+    def _generator_condition_requires_valid_result_index(
+        self, parsed, over_presynaptic, namespace
+    ):
+        if parsed["if_expression"] == "True":
+            return True
+
+        target_idx = "_postsynaptic_idx" if over_presynaptic else "_presynaptic_idx"
+        additional_indices = {
+            parsed["inner_variable"]: "_iterator_idx",
+            "_vectorisation_idx": "_iterator_idx",
+        }
+        deps = self._expression_index_dependence(
+            parsed["if_expression"],
+            namespace=namespace,
+            additional_indices=additional_indices,
+        )
+        return target_idx in deps
+
+    def _generator_interval_env(self, over_presynaptic):
+        env = {
+            "N_pre": (len(self.source), len(self.source)),
+            "N_post": (len(self.target), len(self.target)),
+        }
+
+        outer_index = "i" if over_presynaptic else "j"
+        outer_size = len(self.source) if over_presynaptic else len(self.target)
+        env[outer_index] = (0, outer_size - 1)
+        return env
+
+    def _generator_index_interval(self, parsed, over_presynaptic):
+        env = self._generator_interval_env(over_presynaptic)
+        outer_index = "i" if over_presynaptic else "j"
+
+        if parsed["iterator_func"] == "range":
+            if any(
+                outer_index in get_identifiers(expr)
+                for expr in parsed["iterator_kwds"].values()
+                if expr is not None
+            ):
+                return None
+            inner_interval = self._range_iterator_interval(parsed["iterator_kwds"], env)
+            if inner_interval is None:
+                return None
+            env[parsed["inner_variable"]] = inner_interval
+
+        return self._integer_expr_interval(parsed["element"], env)
+
+    def _range_population_size(self, kwds, env):
+        low_interval = self._integer_expr_interval(kwds["low"], env)
+        high_interval = self._integer_expr_interval(kwds["high"], env)
+        step_interval = self._integer_expr_interval(kwds["step"], env)
+
+        if low_interval is None or high_interval is None or step_interval is None:
+            return None
+
+        low_start, low_end = low_interval
+        high_start, high_end = high_interval
+        step_start, step_end = step_interval
+        if low_start != low_end or high_start != high_end or step_start != step_end:
+            return None
+
+        low, high, step = low_start, high_start, step_start
+        if step == 0:
+            return None
+        if step > 0:
+            return max(0, (high - low - 1) // step + 1)
+        return max(0, (low - high - 1) // (-step) + 1)
+
+    def _range_iterator_interval(self, kwds, env):
+        low_interval = self._integer_expr_interval(kwds["low"], env)
+        high_interval = self._integer_expr_interval(kwds["high"], env)
+        step_interval = self._integer_expr_interval(kwds["step"], env)
+
+        if low_interval is None or high_interval is None or step_interval is None:
+            return None
+
+        step_low, step_high = step_interval
+        if step_low != step_high or step_low == 0:
+            return None
+
+        low, high = low_interval[0], high_interval[1]
+        step = step_low
+        if step > 0:
+            if high <= low:
+                return None
+            return low, high - 1
+
+        low, high = low_interval[1], high_interval[0]
+        if low <= high:
+            return None
+        return high + 1, low
+
+    def _integer_expr_interval(self, expr, env):
+        try:
+            node = ast.parse(expr, mode="eval").body
+        except SyntaxError:
+            return None
+        return self._integer_ast_interval(node, env)
+
+    def _integer_ast_interval(self, node, env):
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, bool) or not isinstance(
+                node.value, numbers.Integral
+            ):
+                return None
+            return int(node.value), int(node.value)
+
+        if isinstance(node, ast.Name):
+            return env.get(node.id)
+
+        if isinstance(node, ast.UnaryOp):
+            interval = self._integer_ast_interval(node.operand, env)
+            if interval is None:
+                return None
+            if isinstance(node.op, ast.UAdd):
+                return interval
+            if isinstance(node.op, ast.USub):
+                return -interval[1], -interval[0]
+            return None
+
+        if isinstance(node, ast.BinOp):
+            left = self._integer_ast_interval(node.left, env)
+            right = self._integer_ast_interval(node.right, env)
+            if left is None or right is None:
+                return None
+
+            left_low, left_high = left
+            right_low, right_high = right
+            if isinstance(node.op, ast.Add):
+                return left_low + right_low, left_high + right_high
+            if isinstance(node.op, ast.Sub):
+                return left_low - right_high, left_high - right_low
+            if isinstance(node.op, ast.Mult):
+                products = [
+                    left_low * right_low,
+                    left_low * right_high,
+                    left_high * right_low,
+                    left_high * right_high,
+                ]
+                return min(products), max(products)
+            return None
+
+        return None
 
     def _check_parsed_synapses_generator(self, parsed, namespace):
         """
