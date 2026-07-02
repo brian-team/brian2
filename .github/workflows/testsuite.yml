@@ -1,6 +1,13 @@
 name: TestSuite
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  # workflow_dispatch lets you trigger the suite from the Actions tab
+  # without committing/pushing a code change. Useful for verifying the
+  # cppyy-on-Windows workaround on a Windows runner without committing
+  # any code yet.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -99,7 +106,7 @@ jobs:
         run: |
           mkdir ~/.brian/
           # Replaces backslashes with forward slashes
-          echo "GSL.directory=\"${{ github.workspace }}\\vcpkg\\installed\${{ matrix.os.triplet }}\\include"\" | tr '\\' '/' > ~/.brian/user_preferences
+          echo "GSL.directory=\"${{ github.workspace }}\\vcpkg\\installed\\${{ matrix.os.triplet }}\\include\"" | tr '\\' '/' > ~/.brian/user_preferences
           cat ~/.brian/user_preferences
       - name: Install Python
         id: python
@@ -107,17 +114,27 @@ jobs:
         with:
           cache: "pip"
           python-version: ${{ matrix.python-version }}
+
+      # On Windows, set up MSVC dev environment (cl.exe + link.exe on PATH)
+      # BEFORE we try to pip install CPyCppyy (which compiles C++ from source).
+      # The ilammy/msvc-dev-cmd action is the canonical way to do this on
+      # GitHub Actions; it locates vcvars64.bat via vswhere and sources it.
+      # Used only on Windows. Action outputs are referenced via the env.
+      - name: Set up MSVC dev command prompt (Windows only)
+        if: ${{ runner.os == 'Windows' }}
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        with:
+          arch: amd64
+
       - name: Install Brian2 and dependencies
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           "$PYTHON_BINARY" -m pip install .[test]
-      - name: Install cppyy (non-Windows, runtime only)
-        # Windows is skipped: CPyCppyy has no pre-built wheel for Python 3.14+
-        # on Windows, and building from source fails with an ABI mismatch —
-        # the pre-built cppyy_backend-1.15.3 .lib is missing the symbol
-        # Cppyy::GetNumBasesLongestBranch that CPyCppyy 1.13.0 requires.
-        # This is an upstream cppyy issue; re-enable once fixed upstream.
+
+      - name: Install cppyy (Linux/macOS, runtime only)
+        # Linux/macOS: simple one-shot install; cppyy-stack wheels are absent
+        # so this builds from source but the build is healthy on gcc/clang.
         # standalone:true is skipped: cppyy is a runtime JIT backend only.
         # Soft-fail (|| echo) so a transient PyPI issue doesn't block CI.
         if: ${{ runner.os != 'Windows' && !matrix.standalone }}
@@ -125,6 +142,66 @@ jobs:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
           "$PYTHON_BINARY" -m pip install "cppyy>=3.1" || echo "cppyy install failed, skipping"
+
+      - name: Install cppyy (Windows, runtime only, with upstream workaround)
+        # On Windows the simple `pip install cppyy>=3.1` fails with LNK2001
+        # (missing symbol Cppyy::GetNumBasesLongestBranch) — an ABI mismatch
+        # between cppyy-backend-1.15.3 (.lib pre-built) and CPyCppyy-1.13.0
+        # (built from source). Tracked upstream as wlav/cppyy#282 (open).
+        #
+        # The cppyy maintainer (wlav) and two independent users confirmed a
+        # workaround: install each stack layer with --no-deps --no-build-isolation
+        # --force-reinstall. PEP 517 build isolation reuses the older .lib from
+        # the user's env when allowed; disabling isolation forces the linker to
+        # see the freshly built cppyy-backend. last verified working 2025-04-23.
+        #
+        # Versions pinned to the exact ones from the issue #282 comment thread.
+        # MSVC dev env was set up by ilammy/msvc-dev-cmd above so cl.exe /
+        # link.exe are already on PATH for this step.
+        # Soft-fail per layer so a future breakage doesn't block CI.
+        if: ${{ runner.os == 'Windows' && !matrix.standalone }}
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        shell: cmd
+        run: |
+          echo ::group::Install cppyy stack on Windows (--no-build-isolation workaround)
+          "%PYTHON_BINARY%" -m pip install --upgrade pip || echo "pip upgrade failed, continuing"
+          rem Install from least-dependent to most so the linker sees fresh .lib.
+          "%PYTHON_BINARY%" -m pip install ^
+              cppyy-cling==6.32.8 ^
+              --no-deps --no-build-isolation --force-reinstall || ^
+              echo "cppyy-cling install failed, continuing"
+          "%PYTHON_BINARY%" -m pip install ^
+              cppyy-backend==1.15.3 ^
+              --no-deps --no-build-isolation --force-reinstall || ^
+              echo "cppyy-backend install failed, continuing"
+          "%PYTHON_BINARY%" -m pip install ^
+              CPyCppyy==1.13.0 ^
+              --no-deps --no-build-isolation --force-reinstall || ^
+              echo "CPyCppyy install failed, continuing"
+          "%PYTHON_BINARY%" -m pip install ^
+              cppyy==3.5.0 ^
+              --no-deps --no-build-isolation --force-reinstall || ^
+              echo "cppyy install failed, continuing without cppyy"
+          echo ::endgroup::
+
+      - name: Verify cppyy availability (Windows)
+        # Independent verification so the CI log unambiguously says whether
+        # cppyy was actually exercised by the tests below or silently skipped.
+        # run_test_suite.py auto-detects cppyy via importlib.util.find_spec
+        # and only adds it to the parallel target list when present.
+        if: ${{ runner.os == 'Windows' && !matrix.standalone }}
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        shell: cmd
+        run: |
+          "%PYTHON_BINARY%" -c ^
+              "import importlib.util; ok = importlib.util.find_spec('cppyy') is not None; ^
+               print('CPPYY_AVAILABLE=' + ('1' if ok else '0'))" ^
+              || echo "cppyy verification step failed, assuming not available"
+          "%PYTHON_BINARY%" -c ^
+              "import cppyy; print('cppyy imported successfully, version:', cppyy.__version__)" ^
+              || echo "cppyy import failed at runtime (DLL load error?) — tests will skip cppyy"
 
       - name: Determine Cython cache dir
         id: cython-cache
