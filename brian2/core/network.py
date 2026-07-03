@@ -551,7 +551,7 @@ class Network(Nameable):
                         "temporarily stop it from being run, "
                         "set its active flag to False instead."
                     )
-                obj._network = self.id
+                obj._used_in_network = True
                 self.objects.add(obj)
             else:
                 # allow adding values from dictionaries

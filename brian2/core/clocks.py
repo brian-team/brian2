@@ -84,6 +84,8 @@ class BaseClock(VariableOwner, ABC):
         # We need a name right away because some devices (e.g. cpp_standalone)
         # need a name for the object when creating the variables
         Nameable.__init__(self, name=name)
+        from brian2.core.base import BrianObject
+        self._scope_key = BrianObject._scope_current_key
         self.variables = Variables(self)
         self.variables.add_array(
             "timestep", size=1, dtype=np.int64, read_only=True, scalar=True

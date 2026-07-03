@@ -36,8 +36,16 @@ def find_name(name, names=None):
     name = name[:-1]
 
     if names is None:
+        from brian2.core.base import BrianObject
         instances = set(Nameable.__instances__())
-        allnames = {obj().name for obj in instances if hasattr(obj(), "name")}
+        allnames = set()
+        for obj_ref in instances:
+            obj = obj_ref()
+            if obj is not None and hasattr(obj, "name"):
+                obj_scope_key = getattr(obj, "_scope_key", None)
+                if obj_scope_key is not None and obj_scope_key != BrianObject._scope_current_key:
+                    continue
+                allnames.add(obj.name)
     else:
         allnames = names
 
