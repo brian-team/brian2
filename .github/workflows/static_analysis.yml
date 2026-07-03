@@ -2,7 +2,10 @@ name: " GitHub Actions Security Analysis with Zizmor"
 
 # The scheduled workflow runs every Sunday at 23:45 UTC.
 on:
+  # Trigger on push to workflow files only
   push:
+    paths:
+      - '.github/workflows/*.yml'
   schedule:
     - cron: '45 23 * * 0'
 
@@ -17,7 +20,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - name: Run zizmor 🌈
         run: uvx zizmor --format sarif . > results.sarif
         env:

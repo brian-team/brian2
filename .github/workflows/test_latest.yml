@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: "calculate versions according to SPEC-0"
         id: nep29
-        uses: mstimberg/github-calc-nep29@a73481e4e8488a5fa0b3be70a385cc5206a261ba # v0.7
+        uses: mstimberg/github-calc-nep29@1f825dcb1a90ced306e498cbd8584ef61af41423 # v0.8
         with:
           include-release-candidates: true
           include-beta-releases: true
@@ -50,7 +50,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install GSL
-        uses: johnwason/vcpkg-action@ff71808de10afc0e3160fd079353c69ba0d7dd60 # v7.0.0
+        uses: johnwason/vcpkg-action@04c68c847bf5196ecaa72331ecf51208583916ef # v8.0.0
         id: vcpkg
         with:
           pkgs: gsl
@@ -116,7 +116,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install GSL
-        uses: johnwason/vcpkg-action@ff71808de10afc0e3160fd079353c69ba0d7dd60 # v7.0.0
+        uses: johnwason/vcpkg-action@04c68c847bf5196ecaa72331ecf51208583916ef # v8.0.0
         id: vcpkg
         with:
           pkgs: gsl
@@ -160,7 +160,7 @@ jobs:
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
       - name: restore Cython cache
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: ${{ ! matrix.standalone }}
         with:
           key: cython-extensions-latest-${{ matrix.os }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}

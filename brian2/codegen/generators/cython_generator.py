@@ -440,7 +440,7 @@ class CythonCodeGenerator(CodeGenerator):
                                 " _buf_{array_name} = _namespace['{array_name}']"
                             ),
                             (
-                                "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *>"
+                                "cdef char* {array_name} = <char *>"
                                 " _buf_{array_name}.data"
                             ),
                         ]

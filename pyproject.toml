@@ -8,8 +8,8 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "numpy>=2.0.0",
-    'cython>=0.29.21,<3.1.4',
+    "numpy>=2.1.0",
+    'cython>=0.29.21',
     'sympy>=1.2',
     'pyparsing>=3,!=3.2.4',
     'jinja2>=2.7',
@@ -41,6 +41,10 @@ Homepage = 'https://briansimulator.org'
 Documentation ='https://brian2.readthedocs.io/'
 Source = 'https://github.com/brian-team/brian2'
 Tracker = 'https://github.com/brian-team/brian2/issues'
+Coverage = 'https://coveralls.io/github/brian-team/brian2'
+Changelog = 'https://brian2.readthedocs.io/en/stable/introduction/release_notes.html'
+Mastodon = 'https://neuromatch.social/@briansimulator'
+Bluesky = 'https://bsky.app/profile/briansimulator.org'
 
 [tool.setuptools]
 zip-safe = false
