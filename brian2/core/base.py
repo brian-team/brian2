@@ -132,6 +132,7 @@ class BrianObject(Nameable):
         #: Used to remember the `Network` in which this object has been included
         #: before, to raise an error if it is included in a new `Network`
         self._network = None
+        self._used_in_network = False
 
         #: The ID string determining when the object should be updated in `Network.run`.
         self.when = when
@@ -187,6 +188,7 @@ class BrianObject(Nameable):
         if (
             prefs.logging.warn_for_unused_objects
             and getattr(self, "_network", "uninitialized") is None
+            and not getattr(self, "_used_in_network", False)
             and getattr(self, "group", None) is None
             and not BrianLogger.exception_occured  # No need to add a warning if something went wrong
         ):
