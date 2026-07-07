@@ -85,6 +85,7 @@ class BaseClock(VariableOwner, ABC):
         # need a name for the object when creating the variables
         Nameable.__init__(self, name=name)
         from brian2.core.base import BrianObject
+
         self._scope_key = BrianObject._scope_current_key
         self.variables = Variables(self)
         self.variables.add_array(
