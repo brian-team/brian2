@@ -3665,7 +3665,7 @@ def test_missing_lastupdate_error_run_regularly():
     G = NeuronGroup(1, "v : 1")
     S = Synapses(G, G)
     S.connect()
-    S.run_regularly("v += exp(-lastupdate/dt")
+    S.run_regularly("v += exp(-lastupdate/dt)")
     with pytest.raises(BrianObjectException) as exc:
         run(0 * ms)
     assert exc_isinstance(exc, KeyError)
