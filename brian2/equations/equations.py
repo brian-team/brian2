@@ -1025,8 +1025,7 @@ class Equations(Hashable, Mapping):
         they should be updated
         """
 
-        # Get a dictionary of all the dependencies on other subexpressions,
-        # i.e. ignore dependencies on parameters and differential equations
+        # Get dependencies for all subexpressions
         static_deps = {}
         for eq in self._equations.values():
             if eq.type == SUBEXPRESSION:
@@ -1037,13 +1036,83 @@ class Equations(Hashable, Mapping):
                     and self._equations[dep].type == SUBEXPRESSION
                 ]
 
+        # Try to sort all subexpressions together (preserves old behavior for non-cyclical cases)
         try:
             sorted_eqs = topsort(static_deps)
         except ValueError:
-            raise ValueError(
-                "Cannot resolve dependencies between static "
-                "equations, dependencies contain a cycle."
-            ) from None
+            # There's a cycle. Check if it's only among "constant over dt" subexpressions
+            constant_over_dt_subexprs = {
+                eq.varname
+                for eq in self._equations.values()
+                if eq.type == SUBEXPRESSION and "constant over dt" in eq.flags
+            }
+
+            # Check if the cycle involves only "constant over dt" subexpressions
+            def has_cycle_involving_non_constant(
+                subexpr, visited=None, rec_stack=None, visited_in_path=None
+            ):
+                """
+                Check if there's a cycle that involves a non-constant subexpression.
+
+                Returns True if the cycle involves at least one non-constant subexpression.
+                """
+                if visited is None:
+                    visited = set()
+                if rec_stack is None:
+                    rec_stack = set()
+                if visited_in_path is None:
+                    visited_in_path = set()
+
+                visited.add(subexpr)
+                rec_stack.add(subexpr)
+                visited_in_path.add(subexpr)
+
+                for dep in static_deps.get(subexpr, []):
+                    # If dependency is not in static_deps, it's not a subexpression
+                    if dep not in static_deps:
+                        continue
+
+                    # If this dependency is not "constant over dt", check if we found a cycle
+                    if dep not in constant_over_dt_subexprs:
+                        if dep in rec_stack:
+                            # Found a cycle involving a non-constant subexpression
+                            return True
+                        if dep not in visited:
+                            if has_cycle_involving_non_constant(
+                                dep, visited, rec_stack, visited_in_path
+                            ):
+                                return True
+                    else:
+                        # Dependency is "constant over dt"
+                        if dep not in visited:
+                            if has_cycle_involving_non_constant(
+                                dep, visited, rec_stack, visited_in_path
+                            ):
+                                return True
+                        elif dep in rec_stack:
+                            # Found a cycle, but it only involves constant subexpressions so far
+                            # Continue checking other paths
+                            pass
+
+                rec_stack.remove(subexpr)
+                return False
+
+            # Check all subexpressions for cycles involving non-constant ones
+            has_bad_cycle = any(
+                has_cycle_involving_non_constant(subexpr)
+                for subexpr in static_deps.keys()
+            )
+
+            if has_bad_cycle:
+                # Cycle involves non-constant subexpressions, not allowed
+                raise ValueError(
+                    "Cannot resolve dependencies between static "
+                    "equations, dependencies contain a cycle."
+                ) from None
+
+            # Cycle is only among "constant over dt" subexpressions, which is allowed
+            # Use cycle-tolerant sort for these
+            sorted_eqs = self._topsort_with_cycles(static_deps)
 
         # put the equations objects in the correct order
         for order, static_variable in enumerate(sorted_eqs):
@@ -1055,6 +1124,49 @@ class Equations(Hashable, Mapping):
                 eq.update_order = len(sorted_eqs)
             elif eq.type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
+
+    @staticmethod
+    def _topsort_with_cycles(dependencies):
+        """
+        Topological sort that can handle cycles by removing edges.
+
+        Parameters
+        ----------
+        dependencies : dict
+            Dictionary mapping variable names to lists of dependencies
+
+        Returns
+        -------
+        list
+            Sorted list of variable names (cycles are broken arbitrarily)
+        """
+        # Make a copy to avoid modifying the original
+        deps = {k: list(v) for k, v in dependencies.items()}
+
+        # Kahn's algorithm with cycle handling
+        sorted_vars = []
+        no_deps = [var for var, deps_list in deps.items() if not deps_list]
+
+        while no_deps:
+            var = no_deps.pop(0)
+            sorted_vars.append(var)
+
+            # Remove this variable from all dependency lists
+            for other_var in deps:
+                if var in deps[other_var]:
+                    deps[other_var].remove(var)
+
+            # Check for new variables with no dependencies
+            for other_var in list(deps.keys()):
+                if other_var not in sorted_vars and not deps[other_var]:
+                    no_deps.append(other_var)
+
+        # If there are still variables left, they have cycles
+        # Add them in any order (cycle is allowed for "constant over dt")
+        remaining = [var for var in deps if var not in sorted_vars]
+        sorted_vars.extend(remaining)
+
+        return sorted_vars
 
     @property
     def dependencies(self):
