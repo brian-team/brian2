@@ -163,8 +163,8 @@ class BinomialFunction(Function, Nameable):
     #: Container for implementing functions for different targets
     #: This container can be extended by other codegeneration targets/devices
     #: The key has to be the name of the target, the value a function
-    #: that takes three parameters (n, p, use_normal) and returns a tuple of
-    #: (code, dependencies)
+    #: that takes three parameters (n, p, use_normal) and returns either a
+    #: tuple of (code, dependencies) or (code, dependencies, compiler_kwds)
     implementations = {"cpp": _generate_cpp_code, "cython": _generate_cython_code}
 
     @check_units(n=1, p=1)
@@ -205,7 +205,16 @@ class BinomialFunction(Function, Nameable):
         self.implementations.add_implementation("numpy", sample_function)
 
         for target, func in BinomialFunction.implementations.items():
-            code, dependencies = func(n=n, p=p, use_normal=use_normal, name=self.name)
+            result = func(n=n, p=p, use_normal=use_normal, name=self.name)
+            if len(result) == 2:
+                code, dependencies = result
+                compiler_kwds = None
+            elif len(result) == 3:
+                code, dependencies, compiler_kwds = result
             self.implementations.add_implementation(
-                target, code, dependencies=dependencies, name=self.name
+                target,
+                code,
+                dependencies=dependencies,
+                name=self.name,
+                compiler_kwds=compiler_kwds,
             )
