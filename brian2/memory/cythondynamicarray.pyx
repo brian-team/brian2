@@ -1,7 +1,7 @@
 # cython: language_level=3
 # distutils: language = c++
 # distutils: include_dirs = brian2/devices/cpp_standalone/brianlib
-# distutils: extra_compile_args = -std=c++11
+# distutils: extra_compile_args = -std=c++17
 
 
 import numpy as np
