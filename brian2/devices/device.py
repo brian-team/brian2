@@ -702,6 +702,7 @@ def set_device(device, build_on_run=True, **kwargs):
         that will be given to the `Device.build` call.
     """
     global previous_devices
+
     if active_device is not None:
         prev_build_on_run = getattr(active_device, "build_on_run", True)
         prev_build_options = getattr(active_device, "build_options", {})

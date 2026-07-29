@@ -2,7 +2,6 @@ from io import StringIO
 
 import pytest
 from numpy import float32, float64
-from numpy.testing import assert_equal
 
 from brian2 import amp, restore_initial_state, volt
 from brian2.core.preferences import (
@@ -199,6 +198,44 @@ def test_brianglobalpreferences():
 
 
 @pytest.mark.codegen_independent
+def test_deferred_device_preferences_from_file():
+    # Preferences for a device subcategory can be read before that subcategory
+    # is registered (e.g. when a 3rd-party device package is imported later).
+    gp = BrianGlobalPreferences()
+
+    # Mimic import-time preference loading for devices that are not imported yet.
+    gp.read_preference_file(
+        StringIO(
+            """
+            devices.cuda_standalone.test_pref = 5
+            devices.some_other_device.test_pref = 7
+            """
+        )
+    )
+
+    # Validation during import should defer, not fail, for devices.* entries.
+    gp.do_validation()
+    assert gp.prefs_unvalidated == {
+        "devices.cuda_standalone.test_pref": 5,
+        "devices.some_other_device.test_pref": 7,
+    }
+
+    # Register one device category: its preference should validate, the other
+    # should still be deferred.
+    gp.register_preferences("devices", "Device preferences")
+    gp.register_preferences(
+        "devices.cuda_standalone",
+        "cuda standalone preferences",
+        test_pref=BrianPreference(0, "test preference"),
+    )
+
+    assert gp.prefs_unvalidated == {"devices.some_other_device.test_pref": 7}
+
+    # This should be the value from the file, not the default value
+    assert gp.devices.cuda_standalone.test_pref == 5
+
+
+@pytest.mark.codegen_independent
 def test_preference_name_access():
     """
     Test various ways of accessing preferences
@@ -300,7 +337,7 @@ def test_preference_name_access():
     assert "main.name" in gp
     assert "name" in gp["main"]
     assert "name2" in gp["main.sub"]
-    assert not "name" in gp["main.sub"]
+    assert "name" not in gp["main.sub"]
 
     gp["main.name"] = True
     gp.update({"main.name": False})

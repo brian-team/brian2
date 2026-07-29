@@ -184,8 +184,17 @@ class BrianGlobalPreferences(MutableMapping):
     def __setitem__(self, name, value):
         basename, endname = parse_preference_name(name)
         if basename not in self.pref_register:
+            parts = basename.split(".")
+            if len(parts) >= 2 and parts[0] == "devices":
+                # This is an unknown preference category, but it is possibly defined
+                # for a device such as brian2cuda. Do not raise an error for now.
+                # If this is a preference for a 3rd-party device package it
+                # will be set and validated at the set_device call.
+                # If the category is wrong even after importing all other packages, it
+                # will raise a warning at the run call (see check_all_validated).
+                return
             raise PreferenceError(
-                "Preference category " + basename + " is unregistered. Spelling error?"
+                f"Preference category '{basename}' is unregistered. Spelling error?"
             )
         prefdefs, _ = self.pref_register[basename]
         if endname in prefdefs:
@@ -590,7 +599,10 @@ class BrianGlobalPreferences(MutableMapping):
                     "preference category."
                 )
             check_preference_name(k)
-            self.prefs_unvalidated[fullname] = v.default
+            if fullname not in self.prefs_unvalidated:
+                # Do not overwrite a preference set before the preference was
+                # registered (e.g. preference set in a file)
+                self.prefs_unvalidated[fullname] = v.default
         self.do_validation()
 
         # Update the docstring (a new toplevel category might have been added)
