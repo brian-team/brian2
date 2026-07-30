@@ -220,6 +220,10 @@ def test_deferred_device_preferences_from_file():
         "devices.some_other_device.test_pref": 7,
     }
 
+    # Direct setting of such a preference should still fail
+    with pytest.raises(PreferenceError):
+        gp["devices.cuda_standalone.test_prefs"] = 3
+
     # Register one device category: its preference should validate, the other
     # should still be deferred.
     gp.register_preferences("devices", "Device preferences")

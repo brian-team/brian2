@@ -185,7 +185,11 @@ class BrianGlobalPreferences(MutableMapping):
         basename, endname = parse_preference_name(name)
         if basename not in self.pref_register:
             parts = basename.split(".")
-            if len(parts) >= 2 and parts[0] == "devices":
+            if (
+                name in self.prefs_unvalidated  # Not for direct setting of preference
+                and len(parts) >= 2
+                and parts[0] == "devices"
+            ):
                 # This is an unknown preference category, but it is possibly defined
                 # for a device such as brian2cuda. Do not raise an error for now.
                 # If this is a preference for a 3rd-party device package it
