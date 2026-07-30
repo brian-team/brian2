@@ -11,6 +11,7 @@ from brian2.core.preferences import (
     DefaultValidator,
     PreferenceError,
 )
+from brian2.utils.logger import catch_logs
 
 
 @pytest.mark.codegen_independent
@@ -237,6 +238,16 @@ def test_deferred_device_preferences_from_file():
 
     # This should be the value from the file, not the default value
     assert gp.devices.cuda_standalone.test_pref == 5
+
+    # Unresolved deferred preferences should trigger a warning.
+    with catch_logs() as logs:
+        gp.check_all_validated()
+
+    assert len(logs) == 1
+    level, name, message = logs[0]
+    assert level == "WARNING"
+    assert name == "brian2.core.preferences"
+    assert "devices.some_other_device.test_pref" in message
 
 
 @pytest.mark.codegen_independent
