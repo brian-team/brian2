@@ -1,8 +1,12 @@
 name: " GitHub Actions Security Analysis with Zizmor"
 
 # The scheduled workflow runs every Sunday at 23:45 UTC.
+# TEMPORARY (will be reverted together with cppyy_windows_probe.yml):
+# the `push:` trigger is disabled so the Windows cppyy probe push does not
+# also trigger a zizmor analysis run. Restore by re-enabling `push:` below.
 on:
-  push:
+  # push:
+  workflow_dispatch:
   schedule:
     - cron: '45 23 * * 0'
 

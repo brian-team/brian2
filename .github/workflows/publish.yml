@@ -1,5 +1,8 @@
 name: Build and publish
-on: [push, pull_request]
+# TEMPORARY (will be reverted together with cppyy_windows_probe.yml):
+# was `on: [push, pull_request]`; disabled so the Windows cppyy probe push
+# does not also trigger a build-and-publish run.
+on: [workflow_dispatch]
 
 permissions:
   contents: read

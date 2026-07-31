@@ -1,8 +1,14 @@
 name: TestSuite
 
 on:
-  push:
-  pull_request:
+  # TEMPORARY (will be reverted together with cppyy_windows_probe.yml):
+  # push/pull_request triggers are disabled so that pushing the Windows cppyy
+  # probe does not also launch the full ~30-minute cross-OS matrix.
+  # Restore by re-enabling `push:` and `pull_request:` below.
+  #
+  # push:
+  # pull_request:
+  #
   # workflow_dispatch lets you trigger the suite from the Actions tab
   # without committing/pushing a code change. Useful for verifying the
   # cppyy-on-Windows workaround on a Windows runner without committing

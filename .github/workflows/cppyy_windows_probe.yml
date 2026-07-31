@@ -1,0 +1,251 @@
+name: cppyy Windows probe (TEMPORARY - will be reverted)
+
+# ---------------------------------------------------------------------------
+# TEMPORARY WORKFLOW. This commit is a throwaway experiment and will be
+# reverted. It exists to answer one question with real evidence:
+#
+#     Does the Brian2 cppyy codegen backend actually work on Windows?
+#
+# The other push-triggered workflows (testsuite.yml, publish.yml,
+# static_analysis.yml) are temporarily switched to workflow_dispatch-only in
+# this same commit so that pushing this probe does not also launch the full
+# ~30-minute test matrix on every OS.
+#
+# Structure is copied from the workflow that was already PROVEN to pass on
+# windows-2022 (branch perf/v3-investigation, run 28614981836), so this is
+# not a new untested recipe. Two deliberate changes from that one:
+#
+#   1. Windows only, and a Python matrix instead of a fixed 3.12.
+#   2. shell: bash everywhere (Git Bash on Windows). This is important —
+#      the version of this check currently in testsuite.yml uses `shell: cmd`
+#      with `^` line-continuations INSIDE double-quoted strings. In cmd.exe a
+#      caret is not an escape character inside quotes, so the caret is passed
+#      through to Python literally and the step dies with:
+#          SyntaxError: invalid syntax
+#          || was unexpected at this time.
+#      That is what is currently failing the Windows jobs on this branch, and
+#      it is why "Run Tests" is being skipped there. bash has one quoting
+#      dialect and avoids the whole problem.
+#
+# WHAT EACH MATRIX ENTRY IS FOR
+#
+#   windows-2022 / 3.12  -> CONTROL. Already known-good end to end. If this
+#                           fails, something about the harness is wrong, not
+#                           about cppyy.
+#   windows-2022 / 3.14  -> THE ACTUAL QUESTION. 3.14 is what Brian2's CI
+#                           selects today (max-python). The cppyy stack is
+#                           known to INSTALL there, but import / JIT / Brian2
+#                           simulation have never once been observed, because
+#                           the cmd.exe bug above killed the step first.
+#   windows-latest/ 3.14 -> CANARY, EXPECTED TO FAIL. windows-latest now maps
+#                           to the windows-2025-vs2026 image (VS 18, MSVC
+#                           14.51). MSVC 14.51's STL headers use the Clang 19+
+#                           builtins __builtin_verbose_trap and
+#                           __is_trivially_equality_comparable; the Cling
+#                           inside cppyy-cling 6.32.8 is built on Clang 16.0.6
+#                           and cannot parse them. Expect install to succeed
+#                           and Stage 1 to fail. continue-on-error so it does
+#                           not mask the two rows that matter.
+#
+# Background on the Windows install flags: plain `pip install cppyy` can fail
+# on Windows with LNK2001 (Cppyy::GetNumBasesLongestBranch) because CPyCppyy
+# 1.13.0's pyproject.toml build-requires cppyy-backend==1.15.2, which does not
+# contain that symbol, while its setup.py run-requires 1.15.3, which does.
+# Under PEP 517 build isolation pip installs the declared (wrong) 1.15.2 and
+# the link fails. Installing bottom-up with --no-build-isolation makes the
+# build link against the correct, already-installed 1.15.3.
+# Upstream: wlav/cppyy#282 (open).
+# ---------------------------------------------------------------------------
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: "cppyy ${{ matrix.os }} py${{ matrix.python }}"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    continue-on-error: ${{ matrix.expect == 'fail' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            python: "3.12"
+            expect: pass
+          - os: windows-2022
+            python: "3.14"
+            expect: pass
+          - os: windows-latest
+            python: "3.14"
+            expect: fail
+    defaults:
+      run:
+        # bash on Windows too (Git Bash). One quoting dialect; it inherits the
+        # MSVC environment exported by ilammy/msvc-dev-cmd.
+        shell: bash
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # Full history + tags: Brian2's version comes from setuptools_scm.
+          # A shallow clone makes it fall back to 'unknown', which packaging
+          # rejects, and `pip install .[test]` then fails.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch tags from main repository
+        run: |
+          git remote add upstream https://github.com/brian-team/brian2
+          git fetch --tags --force upstream
+
+      - name: Set up Python ${{ matrix.python }}
+        id: python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      # Must run BEFORE pip compiles CPyCppyy / cppyy-backend from source:
+      # neither publishes a wheel on any platform, so a C++ compiler is
+      # mandatory on Windows.
+      - name: Set up MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        with:
+          arch: amd64
+
+      - name: "Stage 0 - toolchain report"
+        id: stage0
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          echo "== Python =="
+          "$PYTHON_BINARY" -VV
+          "$PYTHON_BINARY" -m pip --version
+          echo "== MSVC =="
+          echo "VCToolsVersion    = ${VCToolsVersion:-<unset>}"
+          echo "WindowsSDKVersion = ${WindowsSDKVersion:-<unset>}"
+          echo "VisualStudioVersion = ${VisualStudioVersion:-<unset>}"
+          echo "DevEnvDir         = ${DevEnvDir:-<unset>}"
+          command -v cl && (cl 2>&1 | head -2) || echo "cl.exe NOT on PATH"
+
+      - name: Install Brian2 with test dependencies
+        id: install_brian2
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          "$PYTHON_BINARY" -m pip install --upgrade pip
+          # setuptools/wheel must be present explicitly in the main env: the
+          # cppyy install below disables PEP 517 build isolation, so the build
+          # backend has to be importable from the real environment.
+          "$PYTHON_BINARY" -m pip install --upgrade setuptools wheel
+          "$PYTHON_BINARY" -m pip install ".[test]"
+
+      - name: "Layer 1+2 - install cppyy stack (wlav/cppyy#282 workaround)"
+        id: install_cppyy
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          # Bottom-up, pinned, no build isolation. Hard-fail on purpose: this
+          # probe exists to surface failures, not to hide them behind `|| echo`.
+          "$PYTHON_BINARY" -m pip install cppyy-cling==6.32.8   --no-deps --no-build-isolation --force-reinstall
+          "$PYTHON_BINARY" -m pip install cppyy-backend==1.15.3 --no-deps --no-build-isolation --force-reinstall
+          "$PYTHON_BINARY" -m pip install CPyCppyy==1.13.0      --no-deps --no-build-isolation --force-reinstall
+          "$PYTHON_BINARY" -m pip install cppyy==3.5.0          --no-deps --no-build-isolation --force-reinstall
+          echo "== installed cppyy stack =="
+          "$PYTHON_BINARY" -m pip list | grep -iE "cppyy|CPyCppyy" || true
+
+      - name: "Layer 2b - precompiled-header sanity check"
+        id: pch_check
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          # Diagnostic that distinguishes "installed and healthy" from
+          # "installed but inert". When Cling cannot parse the platform's MSVC
+          # headers, cppyy's precompiled header is silently not built: the
+          # cppyy wheel came out at ~18 MB on windows-2022 but only ~28 KB on
+          # the VS2026 image. Deliberately does NOT `import cppyy` — that is
+          # the step which fails, and we want this size reading first.
+          # Reported, not asserted, so Stage 1 still shows the real compiler
+          # diagnostics.
+          "$PYTHON_BINARY" - <<'PYEOF'
+          import pathlib, sysconfig
+          site = pathlib.Path(sysconfig.get_paths()["purelib"])
+          for name in ("cppyy", "cppyy_backend", "CPyCppyy"):
+              d = site / name
+              if not d.is_dir():
+                  print(f"{name:14} directory not found under {site}")
+                  continue
+              total = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+              print(f"{name:14} {total:>14,} bytes   ({d})")
+          pch = sorted(site.rglob("*.pch"))
+          if pch:
+              for p in pch:
+                  print(f"PCH: {p.name}  {p.stat().st_size:,} bytes  ({p.parent})")
+          else:
+              print("PCH: NONE FOUND -> Cling could not precompile the system headers")
+          PYEOF
+
+      - name: "Layer 3+4 - import cppyy and trivial JIT"
+        id: stage1
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          # THE step that has never run at Python 3.14 on Windows.
+          "$PYTHON_BINARY" - <<'PYEOF'
+          import cppyy
+          print("cppyy version:", cppyy.__version__)
+          cppyy.cppdef("int brian_probe_add(int a, int b) { return a + b; }")
+          result = cppyy.gbl.brian_probe_add(2, 3)
+          print("brian_probe_add(2, 3) =", result)
+          assert result == 5, result
+          print("STAGE1_OK: cppyy can JIT-compile and run C++ on this machine")
+          PYEOF
+
+      - name: "Layer 5+6 - Brian2 cppyy smoke simulation"
+        id: stage2
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          # Run from outside the checkout so `import brian2` resolves to the
+          # installed package rather than the source tree (testsuite.yml does
+          # the same). This script checks the state updater against the
+          # analytic solution, asserts the code object really is a
+          # CppyyCodeObject, and checks spike counts / synaptic weights.
+          cd "$RUNNER_TEMP"
+          "$PYTHON_BINARY" "$GITHUB_WORKSPACE/dev/continuous-integration/cppyy_smoke_test.py"
+
+      - name: "Layer 7 - Brian2 test-suite subset (codegen target = cppyy)"
+        id: stage3
+        env:
+          PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          # ~4-5 minutes. Baseline observed on windows-2022 / py3.12:
+          #   274 passed, 18 skipped, 483 deselected
+          cd "$RUNNER_TEMP"
+          "$PYTHON_BINARY" "$GITHUB_WORKSPACE/dev/continuous-integration/cppyy_smoke_test.py" --suite
+
+      - name: Write job summary
+        if: always()
+        run: |
+          {
+            echo "### cppyy Windows probe - \`${{ matrix.os }}\` / Python \`${{ matrix.python }}\`"
+            echo ""
+            echo "Expectation for this row: **${{ matrix.expect }}**"
+            echo ""
+            echo "| Layer | Step | Outcome |"
+            echo "| --- | --- | --- |"
+            echo "| 0 | toolchain report | ${{ steps.stage0.outcome }} |"
+            echo "| - | Brian2 install | ${{ steps.install_brian2.outcome }} |"
+            echo "| 1+2 | cppyy stack install | ${{ steps.install_cppyy.outcome }} |"
+            echo "| 2b | PCH sanity check | ${{ steps.pch_check.outcome }} |"
+            echo "| 3+4 | import cppyy + trivial JIT | ${{ steps.stage1.outcome }} |"
+            echo "| 5+6 | Brian2 cppyy smoke simulation | ${{ steps.stage2.outcome }} |"
+            echo "| 7 | Brian2 cppyy test-suite subset | ${{ steps.stage3.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
