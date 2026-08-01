@@ -16,6 +16,6 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: scientific-python/spec0-action@8b8b76f254aecce36e6f07de7dde174cb3cafa81  # v1.3
+      - uses: scientific-python/spec0-action@6d7df2702c1dfc225a7ce5918616db9a6a652901  # v1.4
         with:
           target_branch: master
