@@ -214,13 +214,13 @@ def test_correct_replacements():
     # replace a variable name with a new name
     eqs = Equations("dv/dt = -v / tau : 1", v="V")
     # Correct left hand side
-    assert ("V" in eqs) and not ("v" in eqs)
+    assert ("V" in eqs) and "v" not in eqs
     # Correct right hand side
-    assert ("V" in eqs["V"].identifiers) and not ("v" in eqs["V"].identifiers)
+    assert ("V" in eqs["V"].identifiers) and "v" not in eqs["V"].identifiers
 
     # replace a variable name with a value
     eqs = Equations("dv/dt = -v / tau : 1", tau=10 * ms)
-    assert not "tau" in eqs["v"].identifiers
+    assert "tau" not in eqs["v"].identifiers
 
 
 @pytest.mark.codegen_independent
@@ -568,6 +568,20 @@ def test_extract_subexpressions():
 
 
 @pytest.mark.codegen_independent
+def test_cyclical_subexpressions():
+    with pytest.raises(ValueError):
+        # dependency cycle
+        Equations("""dv/dt = (-v + s1)/ (10*ms) : 1
+                     s1 = 2 * s2 : 1
+                     s2 = s1/2 : 1""")
+
+    # With constant over dt on BOTH, the cycle is allowed
+    Equations("""dv/dt = (-v + s1)/ (10*ms) : 1
+                 s1 = 2 * s2 : 1 (constant over dt)
+                 s2 = s1/2 : 1 (constant over dt)""")
+
+
+@pytest.mark.codegen_independent
 def test_repeated_construction():
     eqs1 = Equations("dx/dt = x : 1")
     eqs2 = Equations("dx/dt = x : 1", x="y")
@@ -674,5 +688,6 @@ if __name__ == "__main__":
     test_unit_checking()
     test_properties()
     test_extract_subexpressions()
+    test_cyclical_subexpressions()
     test_repeated_construction()
     test_str_repr()
