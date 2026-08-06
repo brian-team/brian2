@@ -39,9 +39,10 @@ If you use Brian for your published research, we kindly ask you to cite our arti
 [![SPEC 0 — Minimum Supported Dependencies](https://img.shields.io/badge/SPEC-0-green?labelColor=%23004811&color=%235CA038)](https://scientific-python.org/specs/spec-0000/)
 
 ## Quickstart
-Try out Brian on the [mybinder](https://mybinder.org/) service:
+Try out Brian on these cloud services:
 
 [![mybinder](https://static.mybinder.org/badge.svg)](https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=index.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/brian-team/brian2/blob/master/tutorials/1-intro-to-brian-neurons.ipynb)
 
 ## Dependencies
 The following packages need to be installed to use Brian 2 (cf. [`pyproject.toml`](pyproject.toml)):
