@@ -1,22 +1,12 @@
-import numpy as np
 import pytest
 import sympy
-from numpy.testing import assert_equal
 
 import brian2
 from brian2 import (
-    DimensionMismatchError,
     Expression,
-    Hz,
     Statements,
-    get_dimensions,
-    ms,
     mV,
-    second,
-    volt,
 )
-from brian2.core.preferences import prefs
-from brian2.utils.logger import catch_logs
 
 
 def sympy_equals(expr1, expr2):
@@ -39,7 +29,7 @@ def test_expr_creation():
     assert (
         "v" in expr.identifiers
         and "mV" in expr.identifiers
-        and not "V" in expr.identifiers
+        and "V" not in expr.identifiers
     )
     with pytest.raises(SyntaxError):
         Expression("v 5 * mV")
@@ -47,7 +37,6 @@ def test_expr_creation():
 
 @pytest.mark.codegen_independent
 def test_split_stochastic():
-    tau = 5 * ms
     expr = Expression("(-v + I) / tau")
     # No stochastic part
     assert expr.split_stochastic() == (expr, None)
@@ -103,7 +92,103 @@ def test_str_repr():
     assert repr(statement) == "Statements('v += w')"
 
 
+@pytest.mark.codegen_independent
+def test_statements_substitution():
+    """
+    Test that Statements correctly handles substitutions.
+    """
+    # Test string substitution (rename variable)
+    stmt = Statements("v += w", v="x")
+    assert str(stmt) == "x += w"
+
+    # Test value substitution
+    stmt = Statements("v += k*w", k=0.3)
+    assert "0.3" in str(stmt)
+
+    # Test both types of substitutions
+    stmt = Statements("v += k*w", v="x", k=0.3)
+    assert "x" in str(stmt)
+    assert "0.3" in str(stmt)
+
+
+@pytest.mark.codegen_independent
+def test_statements_substitution_lhs_error():
+    """
+    Test that Statements raises an error when trying to substitute a value
+    for a variable on the left-hand side of an assignment.
+    """
+    # Trying to replace LHS variable with a value should raise an error
+    with pytest.raises(ValueError, match="Cannot substitute value"):
+        Statements("v += x", v=3 * mV)
+
+    with pytest.raises(ValueError, match="Cannot substitute value"):
+        Statements("v = x", v=5)
+
+    # This should work fine (string substitution on LHS)
+    stmt = Statements("v += x", v="y")
+    assert str(stmt) == "y += x"
+
+    # This should work fine (value substitution on RHS)
+    stmt = Statements("v += x", x=3 * mV)
+    assert "(3. * mvolt)" in str(stmt)
+
+
+@pytest.mark.codegen_independent
+def test_statements_substitution_comments():
+    """
+    Test that value substitutions do not affect comments, but name
+    substitutions do.
+    """
+    # Value substitution should not affect comments
+    stmt = Statements("x += weight # Use a small weight", weight=1 * brian2.nS)
+    code = str(stmt)
+    # Comment should remain unchanged
+    assert "# Use a small weight" in code
+    # Code should have the substitution
+    assert "(1. * nsiemens)" in code
+
+    # Name substitution should affect both code and comments
+    stmt = Statements("x += weight # x is the post-synaptic target variable", x="y")
+    assert str(stmt) == "y += weight # y is the post-synaptic target variable"
+
+    # Multiple lines with comments
+    stmt = Statements(
+        """
+        x += weight
+        y += x  # x is the variable
+        """,
+        x="z",
+        weight=0.5,
+    )
+    code = str(stmt)
+    assert "z" in code
+    assert "0.5" in code
+    assert "# z is the variable" in code
+
+
+@pytest.mark.codegen_independent
+def test_statements_substitution_multiple_lines():
+    """
+    Test substitutions in multi-line statements.
+    """
+    stmt = Statements(
+        """
+        v += w
+        u += v
+        """,
+        v="x",
+    )
+    code = str(stmt)
+    # Both occurrences of v should be replaced
+    assert "x += w" in code
+    assert "u += x" in code
+
+
 if __name__ == "__main__":
     test_expr_creation()
     test_split_stochastic()
     test_str_repr()
+    test_statements_substitution()
+    test_statements_substitution_lhs_error()
+    test_statements_substitution_comments()
+    test_statements_substitution_multiple_lines()
