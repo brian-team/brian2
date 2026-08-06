@@ -3698,6 +3698,24 @@ def test_synaptic_subgroups():
 
 
 @pytest.mark.codegen_independent
+def test_synaptic_subgroup_type_error():
+    # Issue 1287: Ensure error is raised if passing SynapticSubgroup directly
+    source = NeuronGroup(5, "")
+    target = NeuronGroup(3, "")
+    syn1 = Synapses(source, target)
+    syn1.connect()
+    subgroup = syn1[0:2, :]
+
+    with pytest.raises(TypeError) as exc:
+        Synapses(subgroup, target)
+    assert "SynapticSubgroup cannot be used as a source" in str(exc.value)
+
+    with pytest.raises(TypeError) as exc:
+        Synapses(source, subgroup)
+    assert "SynapticSubgroup cannot be used as a target" in str(exc.value)
+
+
+@pytest.mark.codegen_independent
 def test_incorrect_connect_N_incoming_outgoing():
     # See github issue #1227
     source = NeuronGroup(5, "")
