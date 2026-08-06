@@ -17,6 +17,7 @@ from pyparsing import (
     OneOrMore,
     Optional,
     ParseException,
+    StringEnd,
     Suppress,
     Word,
     ZeroOrMore,
@@ -386,14 +387,7 @@ def parse_string_equations(eqns):
     try:
         parsed = EQUATIONS.parse_string(eqns, parse_all=True)
     except ParseException as p_exc:
-        raise EquationError(
-            "Parsing failed: \n"
-            + str(p_exc.line)
-            + "\n"
-            + " " * (p_exc.column - 1)
-            + "^\n"
-            + str(p_exc)
-        ) from p_exc
+        raise EquationError(_format_parse_error_message(eqns, p_exc)) from p_exc
     for eq in parsed:
         eq_type = eq.getName()
         eq_content = dict(eq.items())
@@ -426,6 +420,178 @@ def parse_string_equations(eqns):
         equations[identifier] = equation
 
     return equations
+
+
+def _format_parse_error(parse_exception, line=None, prefix="Parsing failed"):
+    if line is None:
+        line = parse_exception.line
+
+    return (
+        f"{prefix}: \n"
+        + str(line)
+        + "\n"
+        + " " * max(0, parse_exception.column - 1)
+        + "^\n"
+        + str(parse_exception)
+    )
+
+
+def _first_equation_line(eqns):
+    for lineno, line in enumerate(eqns.splitlines(), start=1):
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            return lineno, line
+    return None, None
+
+
+def _expects_end_of_text(parse_exception):
+    parser_element = getattr(parse_exception, "parser_element", None)
+    return isinstance(parser_element, StringEnd)
+
+
+def _expects_literal(parse_exception, literal):
+    parser_element = getattr(parse_exception, "parser_element", None)
+    return getattr(parser_element, "match", None) == literal
+
+
+def _is_valid_expression(expr):
+    try:
+        str_to_sympy(expr)
+    except SyntaxError:
+        return False
+    return True
+
+
+def _is_identifier_like(text):
+    try:
+        IDENTIFIER.parse_string(text, parse_all=True)
+    except ParseException:
+        return False
+    return True
+
+
+def _is_known_unit(unit_text):
+    try:
+        dimensions_and_type_from_string(unit_text)
+    except ValueError:
+        return False
+    return True
+
+
+def _can_split_expression_and_unit(rhs):
+    parts = rhs.split()
+    if len(parts) < 2:
+        return False
+
+    for split_idx in range(1, len(parts)):
+        expr_candidate = " ".join(parts[:-split_idx]).strip()
+        unit_candidate = " ".join(parts[-split_idx:]).strip()
+        if not expr_candidate or not unit_candidate:
+            continue
+
+        if not _is_valid_expression(expr_candidate):
+            continue
+
+        if _is_known_unit(unit_candidate) or _is_identifier_like(unit_candidate):
+            return True
+
+    return False
+
+
+def _looks_like_missing_parameter_unit_separator(line, parse_exception):
+    if line is None:
+        return False
+
+    code_without_comment = line.split("#", 1)[0].strip()
+    if (
+        not code_without_comment
+        or "=" in code_without_comment
+        or ":" in code_without_comment
+    ):
+        return False
+
+    if not _expects_literal(parse_exception, ":"):
+        return False
+
+    parts = code_without_comment.split(None, 1)
+    if len(parts) != 2:
+        return False
+
+    identifier, unit_candidate = parts
+    return _is_identifier_like(identifier) and _is_known_unit(unit_candidate)
+
+
+def _looks_like_missing_unit_separator(line, parse_exception):
+    if line is None:
+        return False
+
+    code_without_comment = line.split("#", 1)[0]
+    if "=" not in code_without_comment or ":" in code_without_comment:
+        return False
+
+    if not (
+        _expects_literal(parse_exception, ":") or _expects_end_of_text(parse_exception)
+    ):
+        return False
+
+    rhs = code_without_comment.split("=", 1)[1].strip()
+    if not rhs:
+        return False
+
+    return _is_valid_expression(rhs) or _can_split_expression_and_unit(rhs)
+
+
+def _should_add_missing_unit_hint(line, parse_exception):
+    return _looks_like_missing_unit_separator(
+        line, parse_exception
+    ) or _looks_like_missing_parameter_unit_separator(line, parse_exception)
+
+
+def _with_missing_unit_separator_hint(message):
+    return (
+        "Equation syntax error: expected ':' before unit declaration.\n\n"
+        + message
+        + "\n\nBrian expects: <equation> : <unit>\n"
+        + "Example: dv/dt = -v / tau : 1"
+    )
+
+
+def _format_parse_error_message(eqns, parse_exception):
+    degraded_error = parse_exception.loc == 0 and _expects_end_of_text(parse_exception)
+
+    # ZeroOrMore(EQUATION) can sometimes degrade the initial parse error to a
+    # generic "Expected end of text at char 0". Re-parse the first equation line
+    # to recover a more specific location and message.
+    if not degraded_error:
+        line_exception = parse_exception
+        # Re-parse the failing line to replace generic end-of-text errors with a
+        # more specific expectation from the single-equation grammar.
+        if _expects_end_of_text(parse_exception) and parse_exception.line:
+            try:
+                EQUATION.parse_string(parse_exception.line, parse_all=True)
+            except ParseException as p_exc:
+                line_exception = p_exc
+
+        message = _format_parse_error(line_exception, line=parse_exception.line)
+        if _should_add_missing_unit_hint(parse_exception.line, line_exception):
+            message = _with_missing_unit_separator_hint(message)
+        return message
+
+    message = _format_parse_error(parse_exception)
+
+    line_number, first_line = _first_equation_line(eqns)
+    if first_line is None:
+        return message
+
+    try:
+        EQUATION.parse_string(first_line, parse_all=True)
+    except ParseException as line_exception:
+        prefix = f"Parsing failed near line {line_number}"
+        message = _format_parse_error(line_exception, line=first_line, prefix=prefix)
+        if _should_add_missing_unit_hint(first_line, line_exception):
+            message = _with_missing_unit_separator_hint(message)
+
+    return message
 
 
 class SingleEquation(Hashable, CacheKey):

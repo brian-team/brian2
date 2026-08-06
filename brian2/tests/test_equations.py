@@ -209,6 +209,41 @@ def test_parse_equations():
 
 
 @pytest.mark.codegen_independent
+def test_parse_error_messages():
+    with pytest.raises(EquationError, match="expected ':' before unit declaration"):
+        Equations("dv/dt = -v / tau volt")
+
+    with pytest.raises(EquationError, match="Expected 'dt'"):
+        Equations("dv/d = -v / tau : 1")
+
+    with pytest.raises(EquationError, match="expected ':' before unit declaration"):
+        Equations(
+            """
+            # comment
+            spacelength=(diameter/(4*Ri*gtot__private))**.5
+            """
+        )
+
+    with pytest.raises(EquationError, match="Expected 'dt'") as exc:
+        Equations("dv/d = -v / tau")
+    assert "expected ':' before unit declaration" not in str(exc.value)
+
+    with pytest.raises(EquationError) as exc:
+        Equations("x = (")
+    assert "expected ':' before unit declaration" not in str(exc.value)
+
+    with pytest.raises(EquationError, match="expected ':' before unit declaration"):
+        Equations("tau second")
+
+    with pytest.raises(EquationError, match="expected ':' before unit declaration"):
+        Equations("dv/dt = -v / tau foobaz")
+
+    with pytest.raises(EquationError) as exc:
+        Equations("this is not equation")
+    assert "expected ':' before unit declaration" not in str(exc.value)
+
+
+@pytest.mark.codegen_independent
 def test_correct_replacements():
     """Test replacing variables via keyword arguments"""
     # replace a variable name with a new name
