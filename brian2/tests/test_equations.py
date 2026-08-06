@@ -662,6 +662,97 @@ def test_ipython_pprint():
     sys.stdout = old_stdout
 
 
+@pytest.mark.codegen_independent
+def test_improved_error_messages():
+    """Test that malformed equations produce clear, targeted diagnostics."""
+
+    # Missing colon (unit separator) — single line
+    with pytest.raises(EquationError, match=r"Missing ':' unit separator"):
+        parse_string_equations("dv/dt = -v / tau volt")
+
+    # Missing colon in a multiline block — EXPRESSION greedily absorbs the next
+    # line, which is detected in _diagnose_expression_error.
+    with pytest.raises(
+        EquationError, match=r"Missing ':' unit separator in the equation"
+    ):
+        parse_string_equations(
+            """
+            dv/dt = -v / tau volt
+            dge/dt = -ge / tau_ge : volt
+            """
+        )
+
+    # Missing colon on a parameter line (no '=' involved)
+    with pytest.raises(EquationError, match=r"Missing ':' unit separator"):
+        parse_string_equations("f Hz")
+
+    # Malformed differential operator
+    with pytest.raises(EquationError, match=r"Incomplete differential operator"):
+        parse_string_equations("dv/d = -v / tau : 1")
+
+    with pytest.raises(EquationError, match=r"Invalid differential operator"):
+        parse_string_equations("dv/dx = -v / tau : 1")
+
+    # 'dt' typo (dv/d) must NOT be masked as a missing-unit hint
+    with pytest.raises(EquationError, match=r"Incomplete differential operator"):
+        parse_string_equations("dv/d = -v / tau : 1")
+
+    # Unmatched parenthesis (open)
+    with pytest.raises(EquationError, match=r"Unmatched parenthesis"):
+        parse_string_equations("dv/dt = -v / (tau : volt")
+
+    # Double colon
+    with pytest.raises(EquationError, match=r"Found 2 ':' separators"):
+        parse_string_equations("dv/dt = -v / tau : 1 : volt")
+
+    # Two-word unit without operator
+    with pytest.raises(EquationError, match=r"looks invalid"):
+        parse_string_equations("dv/dt = -v / tau : volt second")
+
+    # Missing unit after colon
+    with pytest.raises(EquationError, match=r"Missing unit after ':'"):
+        parse_string_equations("dv/dt = -v / tau :")
+
+
+@pytest.mark.codegen_independent
+def test_parse_error_false_positives():
+    """Valid equations must never trigger error-message diagnostics."""
+    valid = [
+        "dv/dt = -v / tau : volt",
+        "x : volt",
+        "x = 2*v : volt",
+        "dv/dt = -v / tau : 1",
+        "dv/dt = -v / tau : volt  # with a comment",
+        """
+        dv/dt = -(v + ge) / tau : volt
+        dge/dt = -ge / tau_ge : volt
+        f : Hz
+        """,
+    ]
+    for eq_str in valid:
+        # Should not raise any exception
+        parse_string_equations(eq_str)
+
+
+@pytest.mark.codegen_independent
+def test_comment_annotations():
+    """Test that inline comments are captured as annotations on equations."""
+    eqs = parse_string_equations(
+        """
+        dv/dt = -(v + ge) / tau : volt  # membrane potential
+        dge/dt = -ge / tau_ge : volt     # excitatory conductance
+        f : Hz                           # driving frequency
+        """
+    )
+    assert eqs["v"].comment == "membrane potential"
+    assert eqs["ge"].comment == "excitatory conductance"
+    assert eqs["f"].comment == "driving frequency"
+
+    # Equations without comments should have None
+    eqs2 = parse_string_equations("dv/dt = -v / tau : volt")
+    assert eqs2["v"].comment is None
+
+
 if __name__ == "__main__":
     test_utility_functions()
     test_identifier_checks()
@@ -676,3 +767,6 @@ if __name__ == "__main__":
     test_extract_subexpressions()
     test_repeated_construction()
     test_str_repr()
+    test_improved_error_messages()
+    test_parse_error_false_positives()
+    test_comment_annotations()
