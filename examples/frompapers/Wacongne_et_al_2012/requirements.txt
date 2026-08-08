@@ -1,0 +1,3 @@
+brian2
+numpy
+matplotlib
