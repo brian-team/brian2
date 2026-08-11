@@ -1908,6 +1908,31 @@ def test_unused_object_warning():
 
 
 @pytest.mark.codegen_independent
+def test_conditional_gc_collect():
+    # The garbage collection at the start of Network.run only serves to raise
+    # the warning for unused objects. It is costly and therefore skipped when
+    # the warning is disabled (see #1823).
+    import gc
+    from unittest import mock
+
+    group = NeuronGroup(1, "v : 1")
+    net = Network(group)
+    _old_pref = prefs.logging.warn_for_unused_objects
+    try:
+        with catch_logs():
+            net.run(0 * ms)  # warm up (code generation, caches, ...)
+            with mock.patch.object(gc, "collect", wraps=gc.collect) as mocked:
+                prefs.logging.warn_for_unused_objects = False
+                net.run(0 * ms)
+                assert mocked.call_count == 0
+                prefs.logging.warn_for_unused_objects = True
+                net.run(0 * ms)
+                assert mocked.call_count == 1
+    finally:
+        prefs.logging.warn_for_unused_objects = _old_pref
+
+
+@pytest.mark.codegen_independent
 def test_negative_duration_in_run():
     G = NeuronGroup(1, "v:1")
     with pytest.raises(ValueError):

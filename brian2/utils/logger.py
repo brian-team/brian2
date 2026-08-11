@@ -176,7 +176,10 @@ if "logging" not in prefs.pref_register:
             programming error (e.g. a function creates a `Network` and returns it,
             but forgets to include one of the created objects), but in some cases
             adds unwanted noise (e.g. in interactive programming in a notebook, or
-            in the test suite).
+            in the test suite). If this preference is set to ``False``,
+            `Network.run` will also skip the garbage collection that is otherwise
+            triggered before each run to raise these warnings, reducing the
+            fixed overhead of a call to `run` (in particular for short runs).
             """,
         ),
     )
