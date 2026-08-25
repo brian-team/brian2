@@ -4,11 +4,11 @@
 
 Brian is a free, open source simulator for spiking neural networks. It is written in the Python programming language and is available on almost all platforms. We believe that a simulator should not only save the time of processors, but also the time of scientists. Brian is therefore designed to be easy to learn and use, highly flexible and easily extensible.
 
-Please report issues at the github issue tracker (https://github.com/brian-team/brian2/issues) or in the Brian forum (https://brian.discourse.group).
+Please report issues at the GitHub issue tracker (https://github.com/brian-team/brian2/issues) or in the Brian forum (https://brian.discourse.group).
 
-Documentation for Brian2 can be found at http://brian2.readthedocs.org
+Documentation for Brian 2 can be found at http://brian2.readthedocs.org
 
-Brian2 is released under the terms of the [CeCILL 2.1 license](https://opensource.org/licenses/CECILL-2.1).
+Brian 2 is released under the terms of the [CeCILL 2.1 license](https://opensource.org/licenses/CECILL-2.1).
 
 If you use Brian for your published research, we kindly ask you to cite our article:
 
