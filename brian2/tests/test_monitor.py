@@ -512,6 +512,56 @@ def test_state_monitor_resize():
 
 
 @pytest.mark.standalone_compatible
+def test_state_monitor_dtype():
+    # Test the dtype argument of StateMonitor
+    G = NeuronGroup(
+        2,
+        """
+        v : 1
+        i_var : integer
+        b_var : boolean
+        """,
+    )
+    G.v = [1.5, 2.5]
+    G.i_var = [1, 2]
+    G.b_var = [True, False]
+
+    # No dtype given: use the same dtype as the source variable
+    mon_default = StateMonitor(G, ["v", "i_var", "b_var"], record=True)
+    # Single dtype for all (compatible) variables
+    mon_single = StateMonitor(G, "v", record=True, dtype=np.float32)
+    # dtype given per variable
+    mon_dict = StateMonitor(
+        G,
+        ["v", "i_var", "b_var"],
+        record=True,
+        dtype={"v": np.float32, "i_var": np.int64},
+    )
+    run(defaultclock.dt)
+
+    assert mon_default.variables["v"].dtype == prefs.core.default_float_dtype
+    assert mon_default.variables["i_var"].dtype == G.variables["i_var"].dtype
+    assert mon_default.variables["b_var"].dtype == np.dtype(bool)
+
+    assert mon_single.variables["v"].dtype == np.float32
+
+    assert mon_dict.variables["v"].dtype == np.float32
+    assert mon_dict.variables["i_var"].dtype == np.int64
+    # not specified for b_var, should fall back to the default
+    assert mon_dict.variables["b_var"].dtype == np.dtype(bool)
+
+    assert_allclose(mon_dict.v[:], mon_default.v[:])
+    assert_array_equal(mon_dict.i_var[:], mon_default.i_var[:])
+    assert_array_equal(mon_dict.b_var[:], mon_default.b_var[:])
+
+    # Using an incompatible dtype should raise an error
+    with pytest.raises(TypeError):
+        StateMonitor(G, "b_var", record=True, dtype=np.float32)
+    with pytest.raises(TypeError):
+        StateMonitor(G, "i_var", record=True, dtype=bool)
+
+
+@pytest.mark.standalone_compatible
 def test_state_monitor_synapses():
     # Check that recording from synapses works correctly
     G = NeuronGroup(5, "v : 1", threshold="False", reset="v = 0")
