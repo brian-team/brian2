@@ -746,10 +746,13 @@ class SynapticIndexing:
         else:
             raise IndexError(f"Unsupported index type {type(index)}")
 
-        if index_var not in ("_idx", "0"):
-            return index_var.get_value()[final_indices.astype(np.int32)]
+        final_indices = final_indices.astype(np.int32)
+        if index_var == "0":
+            return np.zeros(len(final_indices), dtype=np.int32)
+        elif index_var != "_idx":
+            return index_var.get_value()[final_indices]
         else:
-            return final_indices.astype(np.int32)
+            return final_indices
 
 
 class Synapses(Group):

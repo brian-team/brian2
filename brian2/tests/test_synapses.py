@@ -1646,6 +1646,8 @@ def test_linked_to_shared_variables():
     syn.x1 = linked_var(source1.x)
     syn.x2 = linked_var(source2.x)
     syn.connect(i=[0, 5], j=[3, 6])
+    assert syn.variables.indices["x1"] == "0"
+    assert_allclose(syn.x1[:], np.ones(2) * source1.x)  # direct read, see #1870
     mon_syn = StateMonitor(syn, ["x1", "x2"], record=True)
     run(2 * defaultclock.dt)
     assert_allclose(mon.x[0], mon_syn.x1[0])
