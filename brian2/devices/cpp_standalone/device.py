@@ -1037,7 +1037,7 @@ class CPPStandaloneDevice(Device):
             if os.name == "nt":
                 rm_cmd = "del *.o /s\n\tdel main.exe $(DEPS)"
             else:
-                rm_cmd = "rm $(OBJS) $(PROGRAM) $(DEPS)"
+                rm_cmd = "rm -f $(OBJS) $(PROGRAM) $(DEPS)"
             if debug:
                 compiler_debug_flags = "-g -DDEBUG"
                 linker_debug_flags = "-g"
@@ -1054,6 +1054,7 @@ class CPPStandaloneDevice(Device):
                 linker_debug_flags=linker_debug_flags,
                 linker_flags=linker_flags,
                 rm_cmd=rm_cmd,
+                auto_dependencies=os.name != "nt",
             )
             writer.write("makefile", makefile_tmp)
 
@@ -1696,7 +1697,9 @@ class CPPStandaloneDevice(Device):
                     ]
                 )
             else:
-                fnames.extend(["make.deps", "makefile", "main"])
+                fnames.extend(["makefile", "main"])
+                if os.path.exists(os.path.join(self.project_dir, "make.deps")):
+                    fnames.append("make.deps")
 
             fnames.extend(
                 [
@@ -1712,6 +1715,9 @@ class CPPStandaloneDevice(Device):
                     fnames.append(f"{base_name}.obj")
                 else:
                     fnames.append(f"{base_name}.o")
+                    dependency_file = f"{base_name}.d"
+                    if os.path.exists(os.path.join(self.project_dir, dependency_file)):
+                        fnames.append(dependency_file)
 
             for static_array_name in self.static_arrays:
                 fnames.append(os.path.join("static_arrays", static_array_name))
