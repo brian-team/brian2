@@ -1640,8 +1640,8 @@ def test_linked_to_shared_variables():
         group,
         group,
         """x1 : 1 (linked)
-                      x2 : 1 (linked)
-                   """,
+           x2 : 1 (linked)
+        """,
     )
     syn.x1 = linked_var(source1.x)
     syn.x2 = linked_var(source2.x)

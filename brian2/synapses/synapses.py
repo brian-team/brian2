@@ -748,7 +748,7 @@ class SynapticIndexing:
 
         final_indices = final_indices.astype(np.int32)
         if index_var == "0":
-            return np.zeros(len(final_indices), dtype=np.int32)
+            return np.zeros_like(final_indices)
         elif index_var != "_idx":
             return index_var.get_value()[final_indices]
         else:
