@@ -89,6 +89,17 @@ prefs.register_preferences(
         of command arguments (e.g. ["./binary", "--key", "value"]).
         """,
     ),
+    use_precompiled_headers=BrianPreference(
+        default=False,
+        docs="""
+        Experimental project-local precompiled headers for generated C++ code
+        objects on POSIX GCC/Clang. Disabled by default. Unsupported compiler
+        flags and configurations use the normal build with a warning. This can
+        increase clean-build time for small projects. Regenerate the project
+        after compiler/toolchain changes; command-line compiler/flag overrides
+        are not supported when PCH is active.
+        """,
+    ),
     extra_make_args_unix=BrianPreference(
         default=[f"-j{os.cpu_count()}"],
         docs="""
@@ -232,6 +243,7 @@ class CPPStandaloneDevice(Device):
         self.extra_compile_args = []
         self.define_macros = []
         self.headers = []
+        self._pch_files = set()
         self.include_dirs = []
         self.library_dirs = []
         self.runtime_library_dirs = []
@@ -995,6 +1007,36 @@ class CPPStandaloneDevice(Device):
     def generate_makefile(
         self, writer, compiler, compiler_flags, linker_flags, nb_threads, debug
     ):
+        from .pch import owned_pch_files, prepare_pch, remove_pch_files
+
+        previous_pch_files = owned_pch_files(writer) if os.name != "nt" else set()
+        pch = None
+        if prefs.devices.cpp_standalone.use_precompiled_headers:
+            pch, reason = prepare_pch(
+                writer,
+                compiler,
+                compiler_flags,
+                prefs.devices.cpp_standalone.extra_make_args_unix,
+            )
+            if reason:
+                logger.warn(f"PCH disabled: {reason}.", name_suffix="pch_disabled")
+            else:
+                self._pch_files = getattr(self, "_pch_files", set()) | set(pch["files"])
+        if pch is None:
+            if previous_pch_files:
+                # Clang's PCH-derived .d files can name the removed umbrella
+                # without an -MP dummy target. Recreate these dependencies.
+                for source in writer.source_files:
+                    if source.startswith("code_objects/") and source.endswith(".cpp"):
+                        dependency = os.path.join(
+                            writer.project_dir, source[:-4] + ".d"
+                        )
+                        if os.path.exists(dependency):
+                            os.remove(dependency)
+            remove_pch_files(writer, previous_pch_files)
+            self._pch_files.clear()
+        else:
+            remove_pch_files(writer, previous_pch_files - set(pch["files"]))
         if compiler == "msvc":
             if nb_threads > 1:
                 openmp_flag = "/openmp"
@@ -1038,6 +1080,8 @@ class CPPStandaloneDevice(Device):
                 rm_cmd = "del *.o /s\n\tdel main.exe $(DEPS)"
             else:
                 rm_cmd = "rm -f $(OBJS) $(PROGRAM) $(DEPS)"
+                if pch:
+                    rm_cmd += " $(PCH) $(PCH_DEPS)"
             if debug:
                 compiler_debug_flags = "-g -DDEBUG"
                 linker_debug_flags = "-g"
@@ -1055,6 +1099,7 @@ class CPPStandaloneDevice(Device):
                 linker_flags=linker_flags,
                 rm_cmd=rm_cmd,
                 auto_dependencies=os.name != "nt",
+                pch=pch,
             )
             writer.write("makefile", makefile_tmp)
 
@@ -1698,6 +1743,11 @@ class CPPStandaloneDevice(Device):
                 )
             else:
                 fnames.extend(["makefile", "main"])
+                for pch_file in getattr(self, "_pch_files", set()):
+                    if pch_file not in self.writer.header_files and os.path.exists(
+                        os.path.join(self.project_dir, pch_file)
+                    ):
+                        fnames.append(pch_file)
                 if os.path.exists(os.path.join(self.project_dir, "make.deps")):
                     fnames.append("make.deps")
 

@@ -1,4 +1,8 @@
 PROGRAM = main
+{% if pch %}
+# {{ pch.version }}
+CXX = {{ pch.compiler }}
+{% endif %}
 
 SRCS = {{source_files}}
 {% if not auto_dependencies %}
@@ -40,6 +44,30 @@ $(patsubst %.d,%.o,$(filter-out $(wildcard $(DEPS)),$(DEPS))): missing-deps
 
 %.o : %.c makefile
 	$(COMPILE.c) -MMD -MP -MF $(@:.o=.d) -MT $@ $< -o $@
+{% if pch %}
+
+# Regenerate through Brian to change compiler or flags consistently.
+ifneq ($(filter command line environment override,$(origin CXXFLAGS) $(origin OPTIMISATIONS) $(origin CXX)),)
+$(error Regenerate the Brian project instead of overriding PCH compiler flags)
+endif
+.DELETE_ON_ERROR:
+PCH = {{ pch.artifact }}
+PCH_DEPS = brian_pch.d
+PCH_OBJS = $(filter code_objects/%.o,$(OBJS))
+$(PCH_OBJS): $(PCH)
+ifeq ($(wildcard $(PCH_DEPS)),)
+$(PCH): missing-deps
+endif
+-include $(PCH_DEPS)
+$(PCH): brian_pch.h makefile
+	$(CXX) $(CXXFLAGS) -x c++-header -MMD -MP -MF $(PCH_DEPS) -MT $@ $< -o $@
+$(PCH_OBJS): %.o: %.cpp makefile
+{% if pch.mode == 'clang' %}
+	$(CXX) $(CXXFLAGS) -include-pch $(PCH) -MMD -MP -MF $(@:.o=.d) -MT $@ $< -o $@
+{% else %}
+	$(CXX) $(CXXFLAGS) -include brian_pch_use.h -Werror=invalid-pch -MMD -MP -MF $(@:.o=.d) -MT $@ $< -o $@
+{% endif %}
+{% endif %}
 {% else %}
 make.deps: $(SRCS) $(H_SRCS)
 	$(CXX) $(CXXFLAGS) -MM $(SRCS) > make.deps

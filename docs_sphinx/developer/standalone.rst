@@ -40,6 +40,34 @@ previously stored values::
     None
     >>> set_device('runtime')  # Reset device to avoid problems in other doctests
 
+Precompiled headers (experimental)
+----------------------------------------
+
+The ``devices.cpp_standalone.use_precompiled_headers`` preference enables a
+project-local precompiled header (PCH) for generated code objects. It is disabled
+by default. The PCH contains common Brian and standard-library headers; external
+C/C++ sources are compiled normally. Supported configurations use identified
+POSIX GCC or Clang executables. Small projects may compile more slowly because
+creating the PCH can cost more than the work it saves.
+
+Set the preference before generating the project::
+
+    prefs.devices.cpp_standalone.use_precompiled_headers = True
+
+Forced includes, opaque preprocessor flags, compiler wrappers, unsupported
+compilers/platforms, and make variable overrides fall back to the normal build
+with a warning. Direct compiler/optimization overrides on a generated PCH
+Makefile are rejected. Change preferences and regenerate the project instead.
+After changing the compiler or SDK, regenerate and perform a clean build; PCH
+artifacts are not portable between toolchains or build directories.
+
+Each PCH has a dependency file and is a prerequisite of its consuming objects.
+Missing dependency metadata forces regeneration. GCC uses an error-only fallback
+header so an invalid PCH cannot be silently ignored. A bounded manifest tracks
+generator-owned artifacts across device reinitialization; disabling PCH removes
+those artifacts and invalidates their consumers' dependency metadata. User files
+outside that manifest are not removed.
+
 Command line arguments
 ----------------------
 
