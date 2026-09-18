@@ -1109,7 +1109,7 @@ class Network(Nameable):
         # Trigger a garbage collection to raise warnings for objects that have
         # been created but never included in a network (see
         # `BrianObject.__del__`). A full collection can take a significant
-        # amount of time, in particular for short or repeated runs (see #1823),
+        # amount of time, in particular for short or repeated runs (see #1861),
         # so it is only performed when these warnings are enabled.
         if prefs.logging.warn_for_unused_objects:
             gc.collect()

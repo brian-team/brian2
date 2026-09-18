@@ -1911,7 +1911,7 @@ def test_unused_object_warning():
 def test_conditional_gc_collect():
     # The garbage collection at the start of Network.run only serves to raise
     # the warning for unused objects. It is costly and therefore skipped when
-    # the warning is disabled (see #1823).
+    # the warning is disabled (see #1861).
     import gc
     from unittest import mock
 
