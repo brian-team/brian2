@@ -1654,6 +1654,56 @@ class CPPStandaloneDevice(Device):
         ]
         logger.debug(f"Time measurements: {', '.join(logged_times)}")
 
+    def data_files_to_delete(self):
+        """Return data/result files that `delete` may remove.
+
+        Subclasses can override to add device-specific files.
+        """
+        results_dir = self.results_dir
+        fnames = [
+            os.path.join(results_dir, "random_generator_state"),
+            os.path.join(results_dir, "last_run_info.txt"),
+        ]
+        if self.profiled_codeobjects:
+            fnames.append(os.path.join(results_dir, "profiling_info.txt"))
+        for var in self.arrays:
+            fnames.append(os.path.join(results_dir, self.get_array_filename(var)))
+        for syn in self.synapses:
+            for pathway in syn._pathways:
+                fnames.append(os.path.join(results_dir, f"{pathway.name}_queue"))
+        return fnames
+
+    def code_files_to_delete(self):
+        """Return generated source/build files that `delete` may remove.
+
+        Subclasses can override to add device-specific files.
+        """
+        if sys.platform == "win32":
+            fnames = [
+                "sourcefiles.txt",
+                "win_makefile",
+                "main.exe",
+                "main.ilk",
+                "main.pdb",
+                "winmake.log",
+            ]
+            obj_ext = ".obj"
+        else:
+            fnames = ["make.deps", "makefile", "main"]
+            obj_ext = ".o"
+
+        fnames.append(os.path.join("brianlib", "stdint_compat.h"))
+        fnames.extend(self.writer.header_files)
+
+        for source_file in self.writer.source_files:
+            fnames.append(source_file)
+            base_name, _ = os.path.splitext(source_file)
+            fnames.append(f"{base_name}{obj_ext}")
+
+        for static_array_name in self.static_arrays:
+            fnames.append(os.path.join("static_arrays", static_array_name))
+        return fnames
+
     def delete(self, code=True, data=True, run_args=True, directory=True, force=False):
         if self.project_dir is None:
             return  # Nothing to delete
@@ -1669,52 +1719,13 @@ class CPPStandaloneDevice(Device):
 
         # Delete data
         if data:
-            results_dir = self.results_dir
-            logger.debug(f"Deleting data files in '{results_dir}'")
-            fnames.append(os.path.join(results_dir, "random_generator_state"))
-            fnames.append(os.path.join(results_dir, "last_run_info.txt"))
-            if self.profiled_codeobjects:
-                fnames.append(os.path.join(results_dir, "profiling_info.txt"))
-            for var in self.arrays:
-                fnames.append(os.path.join(results_dir, self.get_array_filename(var)))
-            for syn in self.synapses:
-                for pathway in syn._pathways:
-                    fnames.append(os.path.join(results_dir, f"{pathway.name}_queue"))
+            logger.debug(f"Deleting data files in '{self.results_dir}'")
+            fnames.extend(self.data_files_to_delete())
 
         # Delete code
         if code:
             logger.debug(f"Deleting code files in '{self.project_dir}'")
-            if sys.platform == "win32":
-                fnames.extend(
-                    [
-                        "sourcefiles.txt",
-                        "win_makefile",
-                        "main.exe",
-                        "main.ilk",
-                        "main.pdb",
-                        "winmake.log",
-                    ]
-                )
-            else:
-                fnames.extend(["make.deps", "makefile", "main"])
-
-            fnames.extend(
-                [
-                    os.path.join("brianlib", "stdint_compat.h"),
-                ]
-            )
-            fnames.extend(self.writer.header_files)
-
-            for source_file in self.writer.source_files:
-                fnames.append(source_file)
-                base_name, _ = os.path.splitext(source_file)
-                if sys.platform == "win32":
-                    fnames.append(f"{base_name}.obj")
-                else:
-                    fnames.append(f"{base_name}.o")
-
-            for static_array_name in self.static_arrays:
-                fnames.append(os.path.join("static_arrays", static_array_name))
+            fnames.extend(self.code_files_to_delete())
 
         if run_args:
             for fname in self.run_args_arrays:
