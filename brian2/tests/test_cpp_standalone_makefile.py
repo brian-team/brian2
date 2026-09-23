@@ -13,14 +13,7 @@ pytestmark = pytest.mark.cpp_standalone
 
 def make(folder, *targets, check=True):
     result = subprocess.run(
-        [
-            "make",
-            "-j2",
-            "CFLAGS=-std=c11 -DC_SOURCE=1",
-            "CPPFLAGS=-DC_SOURCE=2",
-            "TARGET_ARCH=-DARCH_FLAG=7",
-            *targets,
-        ],
+        ["make", "-j2", *targets],
         cwd=folder,
         text=True,
         capture_output=True,
@@ -48,8 +41,8 @@ def make_project(tmp_path):
 
     if os.name == "nt":
         pytest.skip("Requires a POSIX shell and GNU make")
-    if any(shutil.which(tool) is None for tool in ("make", "cc", "c++")):
-        pytest.skip("Requires make and C/C++ compilers")
+    if any(shutil.which(tool) is None for tool in ("make", "c++")):
+        pytest.skip("Requires make and a C++ compiler")
     (tmp_path / "nested").mkdir()
     writer = CPPWriter(str(tmp_path))
     writer.write("nested/value.h", "#define VALUE 21\n")
@@ -57,20 +50,10 @@ def make_project(tmp_path):
         "nested/value.cpp", '#include "value.h"\nint cpp_value() { return VALUE; }\n'
     )
     writer.write(
-        "nested/value_c.c",
-        """#include "value.h"
-#if defined(__cplusplus) || C_SOURCE != 2 || ARCH_FLAG != 7
-#error C source must preserve the built-in C compilation flags and their order
-#endif
-int c_value(void) { return VALUE; }
-""",
-    )
-    writer.write(
         "main.cpp",
         """#include <iostream>
 int cpp_value();
-extern "C" int c_value(void);
-int main() { std::cout << cpp_value() + c_value() << std::endl; }
+int main() { std::cout << cpp_value() << std::endl; }
 """,
     )
     CPPStandaloneDevice().generate_makefile(writer, "unix", "-O0", "", 0, False)
@@ -81,9 +64,9 @@ def test_makefile_clean_and_noop(make_project):
     folder = make_project
     make(folder, "clean")  # Cleaning a never-built project is valid.
     make(folder)
-    assert output(folder) == "42"
+    assert output(folder) == "21"
     objects = list(folder.rglob("*.o"))
-    assert len(objects) == 3
+    assert len(objects) == 2
     for obj in objects:
         assert (
             obj.with_suffix(".d")
@@ -99,7 +82,7 @@ def test_makefile_clean_and_noop(make_project):
     assert not list(folder.rglob("*.d"))
     assert not (folder / "main").exists()
     make(folder)
-    assert output(folder) == "42"
+    assert output(folder) == "21"
 
 
 def test_makefile_nested_header_change(make_project):
@@ -109,11 +92,11 @@ def test_makefile_nested_header_change(make_project):
     next_timestamp()
     (folder / "nested/value.h").write_text("#define VALUE 22\n")
     make(folder)
-    assert output(folder) == "44"
+    assert output(folder) == "22"
     assert (folder / "main.o").stat().st_mtime_ns == main_time
 
 
-@pytest.mark.parametrize("suffix", ["value", "value_c", "all"])
+@pytest.mark.parametrize("suffix", ["value", "all"])
 def test_makefile_missing_dependencies(make_project, suffix):
     folder = make_project
     make(folder)
@@ -129,16 +112,15 @@ def test_makefile_missing_dependencies(make_project, suffix):
     next_timestamp()
     (folder / "nested/value.h").write_text("#define VALUE 23\n")
     make(folder)
-    assert output(folder) == "46"
+    assert output(folder) == "23"
 
 
-@pytest.mark.parametrize("suffix", ["value", "value_c"])
-def test_makefile_missing_dependency_direct_target(make_project, suffix):
+def test_makefile_missing_dependency_direct_target(make_project):
     folder = make_project
     make(folder)
-    dep = folder / f"nested/{suffix}.d"
+    dep = folder / "nested/value.d"
     dep.unlink()
-    make(folder, f"nested/{suffix}.o")
+    make(folder, "nested/value.o")
     assert dep.exists()
 
 
@@ -148,16 +130,15 @@ def test_makefile_deleted_header(make_project):
     (folder / "nested/value.h").unlink()
     assert make(folder, check=False).returncode != 0
     next_timestamp()
-    for name in ("value.cpp", "value_c.c"):
-        source = folder / "nested" / name
-        source.write_text(
-            source.read_text().replace('#include "value.h"', "#define VALUE 24")
-        )
+    source = folder / "nested/value.cpp"
+    source.write_text(
+        source.read_text().replace('#include "value.h"', "#define VALUE 24")
+    )
     make(folder)
-    assert output(folder) == "48"
+    assert output(folder) == "24"
 
 
-def test_makefile_change_rebuilds_c_and_cpp(make_project):
+def test_makefile_change_rebuilds_objects(make_project):
     folder = make_project
     make(folder)
     before = {obj: obj.stat().st_mtime_ns for obj in folder.rglob("*.o")}
@@ -166,7 +147,39 @@ def test_makefile_change_rebuilds_c_and_cpp(make_project):
         stream.write("\n# Makefile changed\n")
     make(folder)
     assert all(obj.stat().st_mtime_ns > stamp for obj, stamp in before.items())
-    assert output(folder) == "42"
+    assert output(folder) == "21"
+
+
+def test_cpp_sources_only(tmp_path):
+    from brian2.devices.cpp_standalone.device import CPPStandaloneDevice, CPPWriter
+
+    writer = CPPWriter(str(tmp_path))
+    writer.write("legacy.c", "")
+    writer.write("main.cpp", "")
+    assert writer.source_files == {"main.cpp"}
+    device = CPPStandaloneDevice()
+    device.build_on_run = False
+    with pytest.raises(ValueError, match=r"only supports \.cpp source files"):
+        device.build(directory=str(tmp_path), additional_source_files=["legacy.c"])
+
+
+@pytest.mark.parametrize("platform", ["linux", "win32"])
+def test_dependency_cleanup_uses_current_device_hook(tmp_path, monkeypatch, platform):
+    import brian2.devices.cpp_standalone.device as module
+
+    device = module.CPPStandaloneDevice()
+    device.project_dir = str(tmp_path)
+    device.writer = module.CPPWriter(str(tmp_path))
+    device.writer.write("main.cpp", "")
+    (tmp_path / "main.d").touch()
+    (tmp_path / "unrelated.d").touch()
+    monkeypatch.setattr(module, "sys", SimpleNamespace(platform=platform))
+    files = device.code_files_to_delete()
+    assert ("main.d" in files) == (platform != "win32")
+    assert "unrelated.d" not in files
+    assert "make.deps" not in files
+    (tmp_path / "make.deps").touch()
+    assert ("make.deps" in device.code_files_to_delete()) == (platform != "win32")
 
 
 def test_windows_makefile_keeps_legacy_dependencies(monkeypatch):
