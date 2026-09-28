@@ -69,6 +69,18 @@ def get_cython_extensions():
 class CythonExtensionManager:
     def __init__(self):
         self._code_cache = {}
+        self._dll_directory_handles = {}
+
+    def _add_compiler_dll_directory(self, compiler):
+        if compiler != "mingw32" or os.name != "nt":
+            return
+        compiler_path = shutil.which("g++")
+        if compiler_path is not None:
+            compiler_dir = os.path.dirname(os.path.abspath(compiler_path))
+            if compiler_dir not in self._dll_directory_handles:
+                self._dll_directory_handles[compiler_dir] = os.add_dll_directory(
+                    compiler_dir
+                )
 
     def create_extension(
         self,
@@ -86,6 +98,7 @@ class CythonExtensionManager:
         sources=None,
         owner_name="",
     ):
+        self._add_compiler_dll_directory(compiler)
         if sources is None:
             sources = []
         self._simplify_paths()

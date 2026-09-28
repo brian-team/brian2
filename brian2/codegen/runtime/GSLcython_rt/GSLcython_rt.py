@@ -52,7 +52,7 @@ class GSLCythonCodeObject(CythonCodeObject):
             self.library_dirs += [
                 os.path.abspath(os.path.join(prefs.GSL.directory, "..", "lib"))
             ]
-            if sys.platform == "win32":
+            if sys.platform == "win32" and self.compiler != "mingw32":
                 GSL_bin = os.path.abspath(
                     os.path.join(os.path.join(prefs.GSL.directory, "..", "bin"))
                 )
