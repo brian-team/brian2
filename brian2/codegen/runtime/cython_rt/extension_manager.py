@@ -251,6 +251,18 @@ class CythonExtensionManager:
             if libraries is None:
                 libraries = []
 
+            if compiler == "mingw32" and os.name == "nt":
+                include_dirs = [
+                    include_dir.replace("\\", "/") for include_dir in include_dirs
+                ]
+                library_dirs = [
+                    library_dir.replace("\\", "/") for library_dir in library_dirs
+                ]
+                runtime_library_dirs = [
+                    runtime_dir.replace("\\", "/")
+                    for runtime_dir in runtime_library_dirs
+                ]
+
             c_include_dirs = include_dirs
             if "numpy" in code:
                 import numpy
