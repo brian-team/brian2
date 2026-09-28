@@ -178,8 +178,13 @@ def test_dependency_cleanup_uses_current_device_hook(tmp_path, monkeypatch, plat
     assert ("main.d" in files) == (platform != "win32")
     assert "unrelated.d" not in files
     assert "make.deps" not in files
+    uses_mingw = module.prefs["codegen.cpp.compiler"] == "mingw32"
     (tmp_path / "make.deps").touch()
-    assert ("make.deps" in device.code_files_to_delete()) == (platform != "win32")
+    assert ("make.deps" in device.code_files_to_delete()) == (
+        platform != "win32" or uses_mingw
+    )
+    if platform == "win32" and uses_mingw:
+        assert "main.exe" in files
 
 
 def test_windows_makefile_keeps_legacy_dependencies(monkeypatch):

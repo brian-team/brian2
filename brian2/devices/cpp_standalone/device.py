@@ -1705,7 +1705,7 @@ class CPPStandaloneDevice(Device):
 
         Subclasses can override to add device-specific files.
         """
-        if sys.platform == "win32":
+        if sys.platform == "win32" and prefs["codegen.cpp.compiler"] != "mingw32":
             fnames = [
                 "sourcefiles.txt",
                 "win_makefile",
@@ -1716,7 +1716,8 @@ class CPPStandaloneDevice(Device):
             ]
             obj_ext = ".obj"
         else:
-            fnames = ["makefile", "main"]
+            executable = "main.exe" if sys.platform == "win32" else "main"
+            fnames = ["makefile", executable]
             if os.path.exists(os.path.join(self.project_dir, "make.deps")):
                 fnames.append("make.deps")
             obj_ext = ".o"
@@ -1729,8 +1730,10 @@ class CPPStandaloneDevice(Device):
             base_name, _ = os.path.splitext(source_file)
             fnames.append(f"{base_name}{obj_ext}")
             dependency_file = f"{base_name}.d"
-            if obj_ext == ".o" and os.path.exists(
-                os.path.join(self.project_dir, dependency_file)
+            if (
+                obj_ext == ".o"
+                and sys.platform != "win32"
+                and os.path.exists(os.path.join(self.project_dir, dependency_file))
             ):
                 fnames.append(dependency_file)
 
