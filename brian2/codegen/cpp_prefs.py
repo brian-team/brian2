@@ -155,7 +155,7 @@ prefs.register_preferences(
         default="",
         docs="""
         Compiler to use (uses default if empty).
-        Should be ``'unix'`` or ``'msvc'``.
+        Should be ``'unix'``, ``'mingw32'``, or ``'msvc'``.
 
         To specify a specific compiler binary on unix systems, set the `CXX` environment
         variable instead.
@@ -311,7 +311,7 @@ def get_compiler_and_args():
         compiler = get_default_compiler()
     extra_compile_args = prefs["codegen.cpp.extra_compile_args"]
     if extra_compile_args is None:
-        if compiler in ("gcc", "unix"):
+        if compiler in ("gcc", "unix", "mingw32"):
             extra_compile_args = prefs["codegen.cpp.extra_compile_args_gcc"]
         elif compiler == "msvc":
             extra_compile_args = prefs["codegen.cpp.extra_compile_args_msvc"]

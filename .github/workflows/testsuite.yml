@@ -59,10 +59,11 @@ jobs:
       matrix:
         os:
           [
-            { image: ubuntu-24.04, triplet: x64-linux },
+            #{ image: ubuntu-24.04, triplet: x64-linux },
             { image: windows-2022, triplet: x64-windows },
-            { image: macos-15-intel, triplet: x64-osx },
-            { image: macos-latest, triplet: arm64-osx },
+            { image: windows-2022, triplet: x64-mingw-dynamic, compiler: mingw },
+            #{ image: macos-15-intel, triplet: x64-osx },
+            #{ image: macos-latest, triplet: arm64-osx },
           ]
         standalone: [false, true]
         float_dtype_32: [false, true]
@@ -112,6 +113,17 @@ jobs:
         with:
           cache: "pip"
           python-version: ${{ matrix.python-version }}
+      - name: Install mingw
+        id: mingw
+        if: ${{ matrix.os.compiler == 'mingw' }}
+        uses: egor-tensin/setup-mingw@41b837e47d7f85214629d255b9c4bc3fcbe9fd63 # v3.0
+      - name: Set mingw compiler on Windows
+        id: mingw-pref
+        if: ${{ matrix.os.compiler == 'mingw' }}
+        run: |
+          gcc --version
+          g++ --version
+          echo "codegen.cpp.compiler = \"mingw32\" " >> ~/.brian/user_preferences
       - name: Install Brian2 and dependencies
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
