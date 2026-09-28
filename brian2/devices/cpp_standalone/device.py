@@ -1044,11 +1044,20 @@ class CPPStandaloneDevice(Device):
             else:
                 compiler_debug_flags = ""
                 linker_debug_flags = ""
+            source_files = sorted(writer.source_files)
+            header_files = sorted(writer.header_files)
+            if compiler == "mingw32" and os.name == "nt":
+                source_files = [
+                    source_file.replace("\\", "/") for source_file in source_files
+                ]
+                header_files = [
+                    header_file.replace("\\", "/") for header_file in header_files
+                ]
             makefile_tmp = self.code_object_class().templater.makefile(
                 None,
                 None,
-                source_files=" ".join(sorted(writer.source_files)),
-                header_files=" ".join(sorted(writer.header_files)),
+                source_files=" ".join(source_files),
+                header_files=" ".join(header_files),
                 compiler_flags=compiler_flags,
                 compiler_debug_flags=compiler_debug_flags,
                 linker_debug_flags=linker_debug_flags,
@@ -1552,6 +1561,17 @@ class CPPStandaloneDevice(Device):
 
         # Distutils does not use the shell, so it does not need to quote filenames/paths
         # Since we include the compiler flags in the makefile, we need to quote them
+        if compiler == "mingw32" and os.name == "nt":
+            include_dirs = [
+                include_dir.replace("\\", "/") for include_dir in include_dirs
+            ]
+            library_dirs = [
+                library_dir.replace("\\", "/") for library_dir in library_dirs
+            ]
+            runtime_library_dirs = [
+                runtime_dir.replace("\\", "/") for runtime_dir in runtime_library_dirs
+            ]
+
         include_dirs = [f'"{include_dir}"' for include_dir in include_dirs]
         library_dirs = [f'"{library_dir}"' for library_dir in library_dirs]
         runtime_library_dirs = [

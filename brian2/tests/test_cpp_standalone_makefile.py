@@ -201,3 +201,23 @@ def test_windows_makefile_keeps_legacy_dependencies(monkeypatch):
     assert "del *.o /s\n\tdel main.exe $(DEPS)" in text
     assert "-MMD" not in text
     assert "missing-deps" not in text
+
+
+def test_mingw_makefile_uses_forward_slashes_for_windows_paths(monkeypatch):
+    import brian2.devices.cpp_standalone.device as module
+
+    generated = {}
+    device = module.CPPStandaloneDevice()
+    writer = SimpleNamespace(
+        source_files={r"C:\temp\source.cpp"},
+        header_files={r"C:\temp\header.h"},
+        write=lambda name, contents: generated.update({name: contents}),
+    )
+    with monkeypatch.context() as patch:
+        patch.setattr(module, "os", SimpleNamespace(**{**vars(os), "name": "nt"}))
+        device.generate_makefile(writer, "mingw32", "-O2", "", 0, False)
+    text = generated["makefile"]
+    assert r"C:\temp\source.cpp" not in text
+    assert "C:/temp/source.cpp" in text
+    assert r"C:\temp\header.h" not in text
+    assert "C:/temp/header.h" in text
