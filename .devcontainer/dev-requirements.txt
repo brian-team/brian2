@@ -3,5 +3,5 @@ scipy >= 0.13.3
 matplotlib >= 2.0
 jupyterlab
 ipympl
-pre-commit == 3.3.*
+prek >= 0.5.4
 ruff == 0.14.2

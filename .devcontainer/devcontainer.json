@@ -55,7 +55,7 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "pip3 install --user -r requirements.txt",
-	"postCreateCommand": "pre-commit install && pip3 install --user -e '.[test,docs]' && pip3 freeze > .devcontainer/frozen-requirements.txt",
+	"postCreateCommand": "prek install && pip3 install --user -e '.[test,docs]' && pip3 freeze > .devcontainer/frozen-requirements.txt",
 
 	// Workaround for git security restrictions and dubious ownership in devcontainers
 	"postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
@@ -65,6 +65,7 @@
 	// https: //code.visualstudio.com/docs/remote/containers#_dev-container-features-preview
 	"features": {
 		// "git": "latest",
-		"github-cli": "latest"
+		"github-cli": "latest",
+		"ghcr.io/devcontainers-extra/features/prek:1": {}
 	}
 }
