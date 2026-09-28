@@ -61,7 +61,7 @@ jobs:
           [
             #{ image: ubuntu-24.04, triplet: x64-linux },
             { image: windows-2022, triplet: x64-windows },
-            { image: windows-2022, triplet: x64-mingw-dynamic, compiler: mingw },
+            { image: windows-2022, triplet: x64-mingw-static, compiler: mingw },
             #{ image: macos-15-intel, triplet: x64-osx },
             #{ image: macos-latest, triplet: arm64-osx },
           ]

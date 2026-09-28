@@ -102,7 +102,10 @@ class GSLContainer:
                     "<gsl/gsl_errno.h>",
                     "<gsl/gsl_matrix.h>",
                 ]
-                if sys.platform == "win32":
+                if (
+                    sys.platform == "win32"
+                    and prefs["codegen.cpp.compiler"] != "mingw32"
+                ):
                     device.define_macros += [("WIN32", "1"), ("GSL_DLL", "1")]
                 if prefs.GSL.directory is not None:
                     device.include_dirs += [prefs.GSL.directory]

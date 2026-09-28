@@ -45,7 +45,7 @@ class GSLCythonCodeObject(CythonCodeObject):
             "<gsl/gsl_errno.h>",
             "<gsl/gsl_matrix.h>",
         ]
-        if sys.platform == "win32":
+        if sys.platform == "win32" and self.compiler != "mingw32":
             self.define_macros += [("WIN32", "1"), ("GSL_DLL", "1")]
         if prefs.GSL.directory is not None:
             self.include_dirs += [prefs.GSL.directory]
