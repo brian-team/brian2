@@ -147,7 +147,8 @@ jobs:
             test_status=$?
             if [[ "${{ matrix.os.compiler }}" == "mingw" && "${{ matrix.standalone }}" == "false" ]]; then
               echo "Full suite failed; rerunning GSL tests uncaptured for native crash diagnostics"
-              "$PYTHON_BINARY" -X faulthandler -c '
+              run_gsl_diagnostics() {
+                "$PYTHON_BINARY" -X faulthandler -c '
           import os
           import pytest
           import brian2
@@ -162,8 +163,18 @@ jobs:
               "--confcutdir", package_dir,
               "--pyargs", "brian2.tests.test_GSL",
           ]
+          test_filter = os.environ.get("GSL_DIAGNOSTIC_FILTER")
+          if test_filter:
+              args.extend(["-k", test_filter])
           raise SystemExit(pytest.main(args, plugins=[PreferencePlugin(prefs)]))
-                ' || true
+                '
+              }
+              if run_gsl_diagnostics; then
+                :
+              else
+                echo "Rerunning test_GSL_non_autonomous in a fresh process"
+                GSL_DIAGNOSTIC_FILTER=test_GSL_non_autonomous run_gsl_diagnostics || true
+              fi
             fi
             exit "$test_status"
           fi
