@@ -425,31 +425,12 @@ def test_GSL_non_autonomous():
              freq : Hz"""
     neuron = NeuronGroup(10, eqs, method="gsl")
     neuron.freq = "i*10*Hz + 10*Hz"
-    neuron2 = NeuronGroup(10, eqs, method="euler")
-    neuron2.freq = "i*10*Hz + 10*Hz"
     mon = StateMonitor(neuron, "v", record=True)
-    mon2 = StateMonitor(neuron2, "v", record=True)
     run(20 * ms)
-    abs_err = np.abs(mon.v.T - mon2.v.T)
-    max_allowed = 1000 * np.finfo(prefs.core.default_float_dtype).eps
-    assert np.max(abs_err) < max_allowed
-
-
-@pytest.mark.standalone_compatible
-@skip_if_not_implemented
-def test_GSL_non_autonomous():
-    eqs = """dv/dt = sin(2*pi*freq*t)/ms : 1
-             freq : Hz"""
-    neuron = NeuronGroup(10, eqs, method="gsl")
-    neuron.freq = "i*10*Hz + 10*Hz"
-    neuron2 = NeuronGroup(10, eqs, method="euler")
-    neuron2.freq = "i*10*Hz + 10*Hz"
-    mon = StateMonitor(neuron, "v", record=True)
-    mon2 = StateMonitor(neuron2, "v", record=True)
-    run(20 * ms)
-    abs_err = np.abs(mon.v.T - mon2.v.T)
-    max_allowed = 1000 * np.finfo(prefs.core.default_float_dtype).eps
-    assert np.max(abs_err) < max_allowed
+    expected = (1 - np.cos(2 * np.pi * neuron.freq[:, None] * mon.t)) / (
+        2 * np.pi * neuron.freq[:, None] * ms
+    )
+    assert np.max(np.abs(mon.v[:] - expected)) < 1e-8
 
 
 @pytest.mark.standalone_compatible

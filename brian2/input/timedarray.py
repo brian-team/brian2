@@ -39,6 +39,12 @@ def _find_K(group_dt, dt):
     return K
 
 
+def _is_gsl_owner(owner):
+    state_updater = getattr(owner, "state_updater", None)
+    method_choice = getattr(state_updater, "method_choice", "")
+    return isinstance(method_choice, str) and method_choice.startswith("gsl")
+
+
 def _generate_cpp_code_1d(values, dt, name):
     def cpp_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
@@ -100,12 +106,20 @@ def _generate_cpp_code_2d(values, dt, name):
 def _generate_cython_code_1d(values, dt, name):
     def cython_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
+        if _is_gsl_owner(owner):
+            time_code = (
+                f"global _namespace{name}_clock_t\n"
+                f"            cdef double lookup_t = _namespace{name}_clock_t[0]"
+            )
+        else:
+            time_code = "cdef double lookup_t = t"
         code = (
             """
         cdef double %NAME%(const double t):
             global _namespace%NAME%_values
+            %TIME_CODE%
             cdef double epsilon = %DT% / %K%
-            cdef int i = (int)((t/epsilon + 0.5)/%K%)
+            cdef int i = (int)((lookup_t/epsilon + 0.5)/%K%)
             if i < 0:
                i = 0
             if i >= %NUM_VALUES%:
@@ -115,6 +129,7 @@ def _generate_cython_code_1d(values, dt, name):
             .replace("%DT%", f"{dt:.18f}")
             .replace("%K%", str(K))
             .replace("%NUM_VALUES%", str(len(values)))
+            .replace("%TIME_CODE%", time_code)
         )
 
         return code
@@ -125,13 +140,21 @@ def _generate_cython_code_1d(values, dt, name):
 def _generate_cython_code_2d(values, dt, name):
     def cython_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
+        if _is_gsl_owner(owner):
+            time_code = (
+                f"global _namespace{name}_clock_t\n"
+                f"            cdef double lookup_t = _namespace{name}_clock_t[0]"
+            )
+        else:
+            time_code = "cdef double lookup_t = t"
         code = """
         cdef double %NAME%(const double t, const int i):
             global _namespace%NAME%_values
+            %TIME_CODE%
             cdef double epsilon = %DT% / %K%
             if i < 0 or i >= %COLS%:
                 return _numpy.nan
-            cdef int timestep = (int)((t/epsilon + 0.5)/%K%)
+            cdef int timestep = (int)((lookup_t/epsilon + 0.5)/%K%)
             if timestep < 0:
                timestep = 0
             elif timestep >= %ROWS%:
@@ -146,6 +169,7 @@ def _generate_cython_code_2d(values, dt, name):
                 "%K%": str(K),
                 "%COLS%": str(values.shape[1]),
                 "%ROWS%": str(values.shape[0]),
+                "%TIME_CODE%": time_code,
             },
         )
         return code
@@ -284,11 +308,17 @@ class TimedArray(Function, Nameable, CacheKey):
         )
         namespace = lambda owner: {f"{self.name}_values": self.values}
 
+        def cython_namespace(owner):
+            result = namespace(owner)
+            if _is_gsl_owner(owner):
+                result[f"{self.name}_clock_t"] = owner.clock.variables["t"].get_value()
+            return result
+
         for target, (func_1d, _) in TimedArray.implementations.items():
             self.implementations.add_dynamic_implementation(
                 target,
                 func_1d(self.values, self.dt, self.name),
-                namespace=namespace,
+                namespace=cython_namespace if target == "cython" else namespace,
                 name=self.name,
             )
 
@@ -336,11 +366,17 @@ class TimedArray(Function, Nameable, CacheKey):
         values_flat = self.values.astype(np.double, order="C", copy=False).ravel()
         namespace = lambda owner: {f"{self.name}_values": values_flat}
 
+        def cython_namespace(owner):
+            result = namespace(owner)
+            if _is_gsl_owner(owner):
+                result[f"{self.name}_clock_t"] = owner.clock.variables["t"].get_value()
+            return result
+
         for target, (_, func_2d) in TimedArray.implementations.items():
             self.implementations.add_dynamic_implementation(
                 target,
                 func_2d(self.values, self.dt, self.name),
-                namespace=namespace,
+                namespace=cython_namespace if target == "cython" else namespace,
                 name=self.name,
             )
 

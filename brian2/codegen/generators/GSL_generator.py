@@ -2,6 +2,7 @@
 GSLCodeGenerators for code that uses the ODE solver provided by the GNU Scientific Library (GSL)
 """
 
+import copy
 import os
 import re
 
@@ -898,6 +899,10 @@ class GSLCodeGenerator:
         # in the case no non-scalar variables are used in the expression
         diff_vars = self.find_differential_variables(list(code.values()))
         self.add_gsl_variables_as_non_scalar(diff_vars)
+        variables = dict(self.variables)
+        time_variable = copy.copy(variables["t"])
+        time_variable.scalar = False
+        variables["t"] = time_variable
 
         # add arrays we want to use in generated code before self.generator.translate() so
         # brian does namespace unpacking for us
@@ -907,7 +912,7 @@ class GSLCodeGenerator:
         vector_statements = {}
         for ac_name, ac_code in code.items():
             statements = make_statements(
-                ac_code, self.variables, dtype, optimise=True, blockname=ac_name
+                ac_code, variables, dtype, optimise=True, blockname=ac_name
             )
             scalar_statements[ac_name], vector_statements[ac_name] = statements
         for vs in vector_statements.values():
