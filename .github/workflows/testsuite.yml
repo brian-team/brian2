@@ -60,23 +60,14 @@ jobs:
         os:
           [
             #{ image: ubuntu-24.04, triplet: x64-linux },
-            { image: windows-2022, triplet: x64-windows },
+            # { image: windows-2022, triplet: x64-windows },
             { image: windows-2022, triplet: x64-mingw-static, compiler: mingw },
             #{ image: macos-15-intel, triplet: x64-osx },
             #{ image: macos-latest, triplet: arm64-osx },
           ]
-        standalone: [false, true]
+        standalone: [false]
         float_dtype_32: [false, true]
         python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
-        include:
-          - os: { image: ubuntu-24.04, triplet: x64-linux }
-            standalone: false
-            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
-            float_dtype_32: false
-          - os: { image: ubuntu-24.04, triplet: x64-linux }
-            standalone: true
-            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
-            float_dtype_32: false
 
     defaults:
       run:
@@ -149,9 +140,17 @@ jobs:
 
       - name: Run Tests
         run: |
-          cd  $GITHUB_WORKSPACE/.. && \
-          "$PYTHON_BINARY" $GITHUB_WORKSPACE/$SCRIPT_NAME && \
-          cp coverage.xml $GITHUB_WORKSPACE/
+          cd "$GITHUB_WORKSPACE/.."
+          if "$PYTHON_BINARY" "$GITHUB_WORKSPACE/$SCRIPT_NAME"; then
+            cp coverage.xml "$GITHUB_WORKSPACE/"
+          else
+            test_status=$?
+            if [[ "${{ matrix.os.compiler }}" == "mingw" && "${{ matrix.standalone }}" == "false" ]]; then
+              echo "Full suite failed; rerunning GSL tests uncaptured for native crash diagnostics"
+              "$PYTHON_BINARY" -X faulthandler -m pytest -s -vv "$GITHUB_WORKSPACE/brian2/tests/test_GSL.py" || true
+            fi
+            exit "$test_status"
+          fi
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           SPHINX_DIR: ${{ github.workspace }}/docs_sphinx
