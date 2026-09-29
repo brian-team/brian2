@@ -134,6 +134,16 @@ class CythonExtensionManager:
             numpy_version,
             CC,
             CXX,
+            compiler,
+            name,
+            tuple(define_macros or ()),
+            tuple(include_dirs or ()),
+            tuple(library_dirs or ()),
+            tuple(runtime_library_dirs or ()),
+            tuple(extra_compile_args or ()),
+            tuple(extra_link_args or ()),
+            tuple(libraries or ()),
+            tuple(sources),
         )
 
         if force:
