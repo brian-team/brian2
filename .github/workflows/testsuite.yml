@@ -147,7 +147,23 @@ jobs:
             test_status=$?
             if [[ "${{ matrix.os.compiler }}" == "mingw" && "${{ matrix.standalone }}" == "false" ]]; then
               echo "Full suite failed; rerunning GSL tests uncaptured for native crash diagnostics"
-              "$PYTHON_BINARY" -X faulthandler -m pytest -s -vv --pyargs brian2.tests.test_GSL || true
+              "$PYTHON_BINARY" -X faulthandler -c '
+          import os
+          import pytest
+          import brian2
+          from brian2.core.preferences import prefs
+          from brian2.tests import PreferencePlugin
+
+          package_dir = os.path.dirname(brian2.__file__)
+          tests_dir = os.path.join(package_dir, "tests")
+          args = [
+              "-s", "-vv",
+              "-c", os.path.join(tests_dir, "pytest.ini"),
+              "--confcutdir", package_dir,
+              "--pyargs", "brian2.tests.test_GSL",
+          ]
+          raise SystemExit(pytest.main(args, plugins=[PreferencePlugin(prefs)]))
+                ' || true
             fi
             exit "$test_status"
           fi
