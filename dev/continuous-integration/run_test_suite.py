@@ -69,6 +69,7 @@ if __name__ == "__main__":
         if "GITHUB_WORKSPACE" in os.environ:
             args = [
                 "--durations=10",  # print a list of the 10 slowest tests
+                "--verbose",
                 "--cov",
                 "--cov-append",
                 "--cov-report",
