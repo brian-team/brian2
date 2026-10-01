@@ -113,6 +113,7 @@ else:
             "-fno-finite-math-only",
             "-march=native",
             "-std=c++17",
+            "-g",
         ]
     elif re.match("^(alpha|ppc.*|sparc.*)$", machine):
         default_buildopts = [

@@ -146,6 +146,7 @@ jobs:
           gdb -nx --batch --quiet \
           -ex run \
           -ex "thread apply all bt full" \
+          -ex "info registers" \
           --args "$PYTHON_BINARY" -E -X faulthandler "$GITHUB_WORKSPACE/brian2/tests/test_GSL.py"
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
