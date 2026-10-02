@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-pytestmark = pytest.mark.cpp_standalone
+pytestmark = [pytest.mark.cpp_standalone, pytest.mark.standalone_only]
 
 
 def make(folder, *targets, check=True):
