@@ -53,7 +53,7 @@ endif
 .DELETE_ON_ERROR:
 PCH = {{ pch.artifact }}
 PCH_DEPS = brian_pch.d
-PCH_OBJS = $(filter code_objects/%.o,$(OBJS))
+PCH_OBJS = {{ pch.objects }}
 $(PCH_OBJS): $(PCH)
 ifeq ($(wildcard $(PCH_DEPS)),)
 $(PCH): missing-deps

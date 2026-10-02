@@ -105,11 +105,7 @@ def prepare_pch(writer, compiler, compiler_flags, make_args):
         artifact = "brian_pch_use.h.gch"
     else:
         return None, "compiler is neither identified GCC nor Clang"
-    sources = [
-        source
-        for source in writer.source_files
-        if source.startswith("code_objects/") and source.endswith(".cpp")
-    ]
+    sources = sorted(writer.code_object_sources)
     if not sources:
         return None, "no generated code objects to precompile for"
     writer.write("brian_pch.h", HEADER)
@@ -124,6 +120,7 @@ def prepare_pch(writer, compiler, compiler_flags, make_args):
         mode=mode,
         compiler=executable,
         artifact=artifact,
+        objects=" ".join(source[:-4] + ".o" for source in sources),
         files=files,
         version=version.replace("\n", "\n# "),
     ), None
