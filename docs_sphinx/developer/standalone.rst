@@ -46,7 +46,7 @@ Precompiled headers (experimental)
 The ``devices.cpp_standalone.use_precompiled_headers`` preference enables a
 project-local precompiled header (PCH) for generated code objects. It is disabled
 by default. The PCH contains common Brian and standard-library headers; external
-C/C++ sources are compiled normally. Supported configurations use identified
+C++ sources are compiled normally. Supported configurations use identified
 POSIX GCC or Clang executables. Small projects may compile more slowly because
 creating the PCH can cost more than the work it saves.
 

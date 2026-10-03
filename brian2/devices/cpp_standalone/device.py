@@ -132,7 +132,7 @@ class CPPWriter:
 
     def write(self, filename, contents):
         logger.diagnostic(f"Writing file {filename}:\n{contents}")
-        if filename.lower().endswith(".cpp") or filename.lower().endswith(".c"):
+        if filename.lower().endswith(".cpp"):
             self.source_files.add(filename)
         elif filename.lower().endswith(".h"):
             self.header_files.add(filename)
@@ -1051,7 +1051,7 @@ class CPPStandaloneDevice(Device):
                 linker_debug_flags = ""
             # Generate the visual studio makefile
             source_bases = [
-                fname.replace(".cpp", "").replace(".c", "").replace("/", "\\")
+                fname.replace(".cpp", "").replace("/", "\\")
                 for fname in sorted(writer.source_files)
             ]
             win_makefile_tmp = self.code_object_class().templater.win_makefile(
@@ -1625,6 +1625,12 @@ class CPPStandaloneDevice(Device):
             for source_file in codeobj.compiler_kwds.get("sources", [])
         ]
         additional_source_files += codeobj_source_files
+        for source_file in additional_source_files:
+            if not source_file.lower().endswith(".cpp"):
+                raise ValueError(
+                    "C++ standalone only supports .cpp source files, "
+                    f"got '{source_file}'."
+                )
 
         for d in ["code_objects", "results", "static_arrays"]:
             ensure_directory(os.path.join(directory, d))
@@ -1738,7 +1744,9 @@ class CPPStandaloneDevice(Device):
             ]
             obj_ext = ".obj"
         else:
-            fnames = ["make.deps", "makefile", "main"]
+            fnames = ["makefile", "main"]
+            if os.path.exists(os.path.join(self.project_dir, "make.deps")):
+                fnames.append("make.deps")
             obj_ext = ".o"
             for pch_file in getattr(self, "_pch_files", set()):
                 if pch_file not in self.writer.header_files and os.path.exists(
@@ -1753,10 +1761,11 @@ class CPPStandaloneDevice(Device):
             fnames.append(source_file)
             base_name, _ = os.path.splitext(source_file)
             fnames.append(f"{base_name}{obj_ext}")
-            if sys.platform != "win32":
-                dependency_file = f"{base_name}.d"
-                if os.path.exists(os.path.join(self.project_dir, dependency_file)):
-                    fnames.append(dependency_file)
+            dependency_file = f"{base_name}.d"
+            if obj_ext == ".o" and os.path.exists(
+                os.path.join(self.project_dir, dependency_file)
+            ):
+                fnames.append(dependency_file)
 
         for static_array_name in self.static_arrays:
             fnames.append(os.path.join("static_arrays", static_array_name))
