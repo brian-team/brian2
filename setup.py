@@ -41,6 +41,7 @@ spike_queue_ext = require_cython_extension(
 
 extensions.append(spike_queue_ext)
 
+# Dynamic Array extension
 dynamic_array_ext = require_cython_extension(
     module_path=["brian2", "memory"],
     module_name="cythondynamicarray",
@@ -49,5 +50,21 @@ dynamic_array_ext = require_cython_extension(
 
 extensions.append(dynamic_array_ext)
 
+# Random number generator extension
+rng_ext = require_cython_extension(
+    module_path=["brian2", "random"],
+    module_name="cythonrng",
+    extra_include_dirs=["brian2/devices/cpp_standalone/brianlib"]
+)
+extensions.append(rng_ext)
 
-setup(ext_modules=extensions)
+
+setup(
+    ext_modules=extensions,
+    #  Include .pxd files so they get installed
+    package_data={
+        'brian2.random': ['*.pxd'],
+    },
+    # Make sure package data is included
+    include_package_data=True,
+)
