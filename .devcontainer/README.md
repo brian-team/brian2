@@ -12,7 +12,7 @@ Once the container is built, there will be another prompt saying that [`pylance`
 
 The container environment can be customised in many ways, such as with [dotfiles](https://code.visualstudio.com/docs/remote/containers#_personalizing-with-dotfile-repositories) if hosted in a public repository. Further documentation for development in containers can be found here: https://code.visualstudio.com/docs/remote/containers.
 
-The exact dependency versions used in this container will be saved in `.devcontainer/frozen_dependencies.txt`, which may be useful for debugging.
+The exact dependency versions used in this container will be saved in `.devcontainer/frozen-requirements.txt`, which may be useful for debugging.
 
 Note, when updating the packages in `.devcontainer/dev-requirements.txt`, the versions specified in `.pre-commit-config.yaml` must also be updated to match in order for the pre-commit hooks to work.
 
