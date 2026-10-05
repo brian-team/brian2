@@ -48,7 +48,7 @@ def parse_statement(code):
     ('v', '+=', 'dt*(-v/tau)', '')
     """
     try:
-        parsed = STATEMENT.parse_string(code, parseAll=True)
+        parsed = STATEMENT.parse_string(code, parse_all=True)
     except ParseException as p_exc:
         raise ValueError(
             "Parsing the statement failed: \n"
