@@ -1,7 +1,7 @@
 # docker buildx build --push --platform linux/amd64,linux/arm64/v8 -o type=image -t briansimulator/brian -f docker/Dockerfile .
 # docker run -it --init --rm -p 8888:8888 briansimulator/brian
 
-ARG BASE_IMAGE_TAG=3.12-slim-bookworm
+ARG BASE_IMAGE_TAG=3.14-slim-bookworm
 FROM python:${BASE_IMAGE_TAG}
 
 LABEL maintainer="Ben Evans <B.D.Evans@sussex.ac.uk>" \

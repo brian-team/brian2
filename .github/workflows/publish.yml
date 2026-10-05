@@ -240,8 +240,8 @@ jobs:
         path: packages
     - run: |
         mkdir dist
-        cp packages/[Bb]rian2*cp312-manylinux*_x86_64.whl dist
-        cp packages/[Bb]rian2*cp312-manylinux*_aarch64.whl dist
+        cp packages/[Bb]rian2*cp314-manylinux*_x86_64.whl dist
+        cp packages/[Bb]rian2*cp314-manylinux*_aarch64.whl dist
     - name: Build (and potentially push) the Docker image
       uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
       # https://github.com/docker/build-push-action
@@ -249,7 +249,7 @@ jobs:
         context: .
         file: docker/Dockerfile
         build-args: |
-            'BASE_IMAGE_TAG=3.12-bookworm'
+            'BASE_IMAGE_TAG=3.14-bookworm'
         cache-from: type=gha
         cache-to: type=gha,mode=max
         platforms: 'amd64,arm64'
@@ -263,7 +263,7 @@ jobs:
         context: .
         file: docker/Dockerfile
         build-args: |
-            'BASE_IMAGE_TAG=3.12-bookworm'
+            'BASE_IMAGE_TAG=3.14-bookworm'
         platforms: 'amd64,arm64'
         push: true
         tags: |
