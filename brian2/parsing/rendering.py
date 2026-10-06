@@ -241,8 +241,12 @@ class SympyNodeRenderer(NodeRenderer):
         elif len(node.args) == 0:
             return self.render_func(node.func)(sympy.Symbol("_placeholder_arg"))
         else:
+            unevaluated_funcs = ["exprel", "expm1", "log1p"]
+
+            evaluate = getattr(node.func, "id", None) not in unevaluated_funcs
+
             return self.render_func(node.func)(
-                *(self.render_node(arg) for arg in node.args)
+                *(self.render_node(arg) for arg in node.args), evaluate=evaluate
             )
 
     def render_Compare(self, node):

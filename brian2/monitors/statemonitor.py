@@ -1,9 +1,10 @@
 import numbers
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 import numpy as np
 
-from brian2.core.variables import Variables, get_dtype
+from brian2.core.variables import Variables
+from brian2.core.variables import get_dtype as get_index_dtype
 from brian2.groups.group import CodeRunner, Group
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity
@@ -12,6 +13,33 @@ from brian2.utils.logger import get_logger
 __all__ = ["StateMonitor"]
 
 logger = get_logger(__name__)
+
+
+def _get_record_dtype(varname, var, dtype):
+    """
+    Determine the dtype to use for recording `varname`, taking into account
+    the (optional) `dtype` argument of `StateMonitor` (either a single dtype
+    used for all variables, or a dictionary mapping variable names to dtypes).
+    """
+    if dtype is None:
+        return var.dtype
+    if isinstance(dtype, Mapping):
+        if varname not in dtype:
+            return var.dtype
+        provided_dtype = np.dtype(dtype[varname])
+    else:
+        provided_dtype = np.dtype(dtype)
+    var_dtype = np.dtype(var.dtype)
+    compatible_kinds = {"b": "b", "i": "iu", "u": "iu", "f": "f"}.get(
+        var_dtype.kind, var_dtype.kind
+    )
+    if provided_dtype.kind not in compatible_kinds:
+        raise TypeError(
+            f"Cannot use dtype '{provided_dtype.name}' for variable "
+            f"'{varname}': it is not compatible with the type of the "
+            f"variable ({var_dtype.name})."
+        )
+    return provided_dtype
 
 
 class StateMonitorView:
@@ -53,7 +81,7 @@ class StateMonitorView:
         Convert the neuron indices to indices into the stored values. For example, if neurons [0, 5, 10] have been
         recorded, [5, 10] is converted to [1, 2].
         """
-        dtype = get_dtype(item)
+        dtype = get_index_dtype(item)
         # scalar value
         if np.issubdtype(dtype, np.signedinteger) and not isinstance(item, np.ndarray):
             indices = np.nonzero(self.monitor.record == item)[0]
@@ -121,6 +149,12 @@ class StateMonitor(Group, CodeRunner):
     name : str, optional
         A unique name for the object, otherwise will use
         ``source.name+'statemonitor_0'``, etc.
+    dtype : (`dtype`, `dict`), optional
+        The `numpy.dtype` that will be used to store the recorded values, or
+        a dictionary specifying the type for individual variable names. If a
+        value is not provided for a variable (or no value is provided at
+        all), the same `dtype` as for the respective variable in `source` is
+        used.
     codeobj_class : `CodeObject`, optional
         The `CodeObject` class to create.
 
@@ -171,6 +205,7 @@ class StateMonitor(Group, CodeRunner):
         when="start",
         order=0,
         name="statemonitor*",
+        dtype=None,
         codeobj_class=None,
     ):
         self.source = source
@@ -304,22 +339,24 @@ class StateMonitor(Group, CodeRunner):
             )
             if index not in ("_idx", "0") and index not in variables:
                 self.variables.add_reference(index, source)
+            record_dtype = _get_record_dtype(varname, var, dtype)
             self.variables.add_dynamic_array(
                 varname,
                 size=(0, len(self.record)),
                 resize_along_first=True,
                 dimensions=var.dim,
-                dtype=var.dtype,
+                dtype=record_dtype,
                 constant=False,
                 read_only=True,
             )
 
         for varname in variables:
             var = self.source.variables[varname]
+            record_dtype = _get_record_dtype(varname, var, dtype)
             self.variables.add_auxiliary_variable(
                 f"_to_record_{varname}",
                 dimensions=var.dim,
-                dtype=var.dtype,
+                dtype=record_dtype,
                 scalar=var.scalar,
             )
 
@@ -346,7 +383,7 @@ class StateMonitor(Group, CodeRunner):
         raise NotImplementedError()
 
     def __getitem__(self, item):
-        dtype = get_dtype(item)
+        dtype = get_index_dtype(item)
         if np.issubdtype(dtype, np.signedinteger):
             return StateMonitorView(self, item)
         elif isinstance(item, Sequence):

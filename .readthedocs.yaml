@@ -7,7 +7,7 @@ sphinx:
   configuration: docs_sphinx/conf.py
 
 build:
-  os: "ubuntu-20.04"
+  os: "ubuntu-26.04"
   tools:
     python: "3"  # latest stable CPython
   jobs:

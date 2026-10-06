@@ -1079,20 +1079,13 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
         code = []
         if isinstance(var_obj, ArrayVariable):
             array_name = self.generator.get_array_name(var_obj)
-            dtype = self.c_data_type(var_obj.dtype)
             if in_vector:
-                code += [
-                    f"_GSL_dataholder.{array_name} = <{dtype} *> _buf_{array_name}.data"
-                ]
-            if in_scalar:
-                code += [f"{array_name} = <{dtype} *> _buf_{array_name}.data"]
+                code += [f"_GSL_dataholder.{array_name} = {array_name}"]
         else:
             if in_vector:
                 code += [
                     f'_GSL_dataholder.{var_obj.name} = _namespace["{var_obj.name}"]'
                 ]
-            if in_scalar:
-                code += [f'{var_obj.name} = _namespace["{var_obj.name}"]']
         return "\n".join(code)
 
     @staticmethod

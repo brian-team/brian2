@@ -2,7 +2,10 @@ name: " GitHub Actions Security Analysis with Zizmor"
 
 # The scheduled workflow runs every Sunday at 23:45 UTC.
 on:
+  # Trigger on push to workflow files only
   push:
+    paths:
+      - '.github/workflows/*.yml'
   schedule:
     - cron: '45 23 * * 0'
 
@@ -13,17 +16,17 @@ jobs:
       security-events: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - name: Run zizmor 🌈
         run: uvx zizmor --format sarif . > results.sarif
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@89a39a4e59826350b863aa6b6252a07ad50cf83e # v4.32.4
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: results.sarif
           category: zizmor
