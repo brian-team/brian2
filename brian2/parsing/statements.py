@@ -55,7 +55,7 @@ def parse_statement(code):
     """
     try:
         parsed = STATEMENT.parse_string(code, parse_all=True)
-    except ParseException as p_exc:
+    except (ParseException, ParseSyntaxException) as p_exc:
         raise ValueError(
             f"Parsing the statement failed: {p_exc.msg}\n"
             + str(p_exc.line)
