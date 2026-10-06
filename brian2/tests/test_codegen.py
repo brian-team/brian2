@@ -502,11 +502,23 @@ def test_automatic_augmented_assignments():
         "x[0] = 3",
         "dx/dt = -v / tau",
         "v == 3*mV",
+        "v = (5 + 3",
+        "v = 5 + 3)",
     ],
 )
 def test_incorrect_statements(s):
     with pytest.raises(ValueError):
         parse_statement(s)
+
+
+@pytest.mark.codegen_independent
+def test_parse_statement_comments():
+    s = "v = 1.0 # some # comment"
+    var, op, expr, comment = parse_statement(s)
+    assert var == "v"
+    assert op == "="
+    assert expr == "1.0"
+    assert comment == "some # comment"
 
 
 def test_clear_cache():
