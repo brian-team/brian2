@@ -35,21 +35,6 @@ automatically on the GitHub CI infrastructure.
     enforced for files in the ``brian2`` package itself, code examples in the
     documentation or examples and tutorials do not have to follow ruff's style.
 
-The code style includes the following conventions in particular:
-
-* Use 4 spaces instead of tabs per indentation level
-* Use spaces after commas and around the following binary operators:
-  assignment (=), augmented assignment (+=, -= etc.),
-  comparisons (==, <, >, !=, <>, <=, >=, in, not in, is, is not),
-  Booleans (and, or, not).
-* Do *not* use spaces around the equals sign in keyword arguments or when
-  specifying default values. Neither put spaces immediately inside parentheses,
-  brackets or braces, immediately before the open parenthesis that starts the
-  argument list of a function call, or immediately before the open parenthesis
-  that starts an indexing or slicing.
-* Avoid using a backslash for continuing lines whenever possible, instead use
-  Python's implicit line joining inside parentheses, brackets and braces.
-
 Imports
 ~~~~~~~
 Imports should be on different lines (e.g. do not use ``import sys, os``) and should be
