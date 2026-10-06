@@ -231,7 +231,7 @@ Doctests are a great way of testing things as they not only make sure that the
 code does what it is supposed to do but also that the documentation is up to
 date!
 
-.. _`doctest documentation`: https://docs.python.org/2/library/doctest.html
+.. _`doctest documentation`: https://docs.python.org/3/library/doctest.html
 .. _`Sphinx's doctest extension`: http://www.sphinx-doc.org/en/stable/ext/doctest.html
 
 
