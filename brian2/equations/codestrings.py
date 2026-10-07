@@ -110,35 +110,6 @@ class Statements(CodeString):
             If a value substitution is attempted on a variable that appears
             on the left-hand side of an assignment (which would create invalid code)
         """
-        # Check for invalid value substitutions (LHS assignments)
-        for identifier, replacement in substitutions.items():
-            if not isinstance(replacement, str):
-                # This is a value substitution - check if identifier is on LHS
-                # We need to parse the statement to find LHS variables
-                lines = code.split("\n")
-                for line in lines:
-                    # Strip comments
-                    line_no_comment = line.split("#")[0].strip()
-                    if not line_no_comment:
-                        continue
-
-                    # Check if this is an assignment (contains +=, -=, *=, /=, or =)
-                    if any(
-                        op in line_no_comment for op in ["+=", "-=", "*=", "/=", "="]
-                    ):
-                        # Extract the LHS (before the operator)
-                        for op in ["+=", "-=", "*=", "/=", "="]:
-                            if op in line_no_comment:
-                                lhs = line_no_comment.split(op)[0].strip()
-                                # Check if the identifier being substituted is the LHS
-                                if lhs == identifier:
-                                    raise ValueError(
-                                        f"Cannot substitute value for '{identifier}' "
-                                        f"on left-hand side of assignment '{line_no_comment}'. "
-                                        f"Use a string substitution instead."
-                                    )
-                                break
-
         new_code = code
         for identifier, replacement in substitutions.items():
             if isinstance(replacement, str):
@@ -151,9 +122,20 @@ class Statements(CodeString):
                 lines = new_code.split("\n")
                 new_lines = []
                 for line in lines:
+                    # Check that we are not replacing a LHS variable with a value
+                    if (
+                        lhs_var := re.match(r"\s*(\w+)\s*[\+\-\*/]?=", line)
+                    ) is not None:
+                        lhs_var = lhs_var.group(1)
+                        if lhs_var == identifier:
+                            raise ValueError(
+                                f"Cannot substitute value for variable '{identifier}' "
+                                "that appears on the left-hand side of an assignment"
+                            )
                     if "#" in line:
                         # Split into code and comment parts
                         code_part, comment_part = line.split("#", 1)
+
                         # Apply substitution only to code part
                         code_part = re.sub(
                             r"\b" + identifier + r"\b",
