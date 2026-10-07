@@ -948,9 +948,15 @@ def test_threshold_reset():
     """
     # Membrane potential does not change by itself
     G1 = NeuronGroup(3, "dv/dt = 0 / second : 1", threshold="v > 1", reset="v=0.5")
+    # Providing a Statements object should work as well
+    G2 = NeuronGroup(
+        3, "dv/dt = 0 / second : 1", threshold="v > 1", reset=Statements("v=0.5")
+    )
     G1.v = np.array([0, 1, 2])
+    G2.v = np.array([0, 1, 2])
     run(defaultclock.dt)
     assert_allclose(G1.v[:], np.array([0, 1, 0.5]))
+    assert_allclose(G2.v[:], np.array([0, 1, 0.5]))
 
     with catch_logs() as logs:
         G2 = NeuronGroup(1, "v : 1", threshold="True")
