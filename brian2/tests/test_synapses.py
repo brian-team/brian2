@@ -898,6 +898,22 @@ def test_delay_specification():
         Synapses(G, G, "w:1", on_pre="v+=w", delay={"post": 5 * ms})
 
 
+@pytest.mark.codegen_independent
+def test_statements_objects():
+    # Use Statements objects instead of strings
+    G = NeuronGroup(10, "v: volt", threshold="False")
+    S = Synapses(
+        G,
+        G,
+        "w:1",
+        on_pre={"pre1": Statements("v += w"), "pre2": "v += w"},
+        on_post=Statements("v -= w"),
+    )
+    assert S.pre1.code == "v += w"
+    assert S.pre2.code == "v += w"
+    assert S.post.code == "v -= w"
+
+
 def test_delays_pathways():
     G = NeuronGroup(10, "x: meter", threshold="False")
     G.x = "i*mmeter"
