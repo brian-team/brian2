@@ -5,7 +5,7 @@ Tests for the Statements class and its substitution functionality.
 import pytest
 
 from brian2.equations.codestrings import Statements
-from brian2.units import mV
+from brian2.units import mV, nS
 
 
 # Core functionality tests - separate for clarity
@@ -39,23 +39,6 @@ def test_statements_with_units():
     result = str(stmt)
     # Brian2 units are represented with their unit name
     assert "mvolt" in result or "mV" in result
-
-
-def test_statements_multiline():
-    """Test statements with multiple lines"""
-    stmt = Statements(
-        """
-        g_ampa += w1
-        g_nmda += w2
-    """,
-        w1="0.5*nS",
-        w2="0.3*nS",
-    )
-    result = str(stmt)
-    assert "g_ampa +=" in result
-    assert "g_nmda +=" in result
-    assert "0.5*nS" in result
-    assert "0.3*nS" in result
 
 
 def test_statements_with_semicolons():
@@ -146,13 +129,91 @@ def test_statements_equality(stmt1_code, stmt2_code, should_be_equal):
         assert stmt1 != stmt2
 
 
-def test_statements_value_substitution_on_lhs_raises_error():
-    """Test that substituting a value on LHS of assignment raises ValueError"""
-    # This should raise an error because substituting a value for 'tau'
-    # would create invalid code: 5 = 5 + tau_syn
-    with pytest.raises(ValueError, match="Cannot substitute value for 'tau'"):
-        Statements("tau = tau + tau_syn", tau=5)
+@pytest.mark.codegen_independent
+def test_statements_substitution_lhs_error():
+    """
+    Test that Statements raises an error when trying to substitute a value
+    for a variable on the left-hand side of an assignment.
+    """
+    # Trying to replace LHS variable with a value should raise an error
+    with pytest.raises(ValueError, match="Cannot substitute value"):
+        Statements("v += x", v=3 * mV)
 
-    # String substitution should work fine (renaming the variable)
-    stmt = Statements("tau = tau + tau_syn", tau="tau_new")
-    assert str(stmt) == "tau_new = tau_new + tau_syn"
+    with pytest.raises(ValueError, match="Cannot substitute value"):
+        Statements("v = x", v=5)
+
+    # This should work fine (string substitution on LHS)
+    stmt = Statements("v += x", v="y")
+    assert str(stmt) == "y += x"
+
+    # This should work fine (value substitution on RHS)
+    stmt = Statements("v += x", x=3 * mV)
+    assert "(3. * mvolt)" in str(stmt)
+
+
+@pytest.mark.codegen_independent
+def test_statements_substitution_comments():
+    """
+    Test that value substitutions do not affect comments, but name
+    substitutions do.
+    """
+    # Value substitution should not affect comments
+    stmt = Statements("x += weight # Use a small weight", weight=1 * nS)
+    code = str(stmt)
+    # Comment should remain unchanged
+    assert "# Use a small weight" in code
+    # Code should have the substitution
+    assert "(1. * nsiemens)" in code
+
+    # Name substitution should affect both code and comments
+    stmt = Statements("x += weight # x is the post-synaptic target variable", x="y")
+    assert str(stmt) == "y += weight # y is the post-synaptic target variable"
+
+    # Multiple lines with comments
+    stmt = Statements(
+        """
+        x += weight
+        y += x  # x is the variable
+        """,
+        x="z",
+        weight=0.5,
+    )
+    code = str(stmt)
+    assert "z" in code
+    assert "0.5" in code
+    assert "# z is the variable" in code
+
+
+@pytest.mark.codegen_independent
+def test_statements_substitution_multiple_lines():
+    """
+    Test substitutions in multi-line statements.
+    """
+    stmt = Statements(
+        """
+        v += w
+        u += v
+        """,
+        v="x",
+    )
+    code = str(stmt)
+    # Both occurrences of v should be replaced
+    assert "x += w" in code
+    assert "u += x" in code
+
+    if __name__ == "__main__":
+        test_statements_basic()
+        test_statements_value_substitution()
+        test_statements_name_substitution()
+        test_statements_multiple_substitutions()
+        test_statements_with_units()
+        test_statements_with_semicolons()
+        test_statements_complex_expression()
+        test_statements_identifiers_after_substitution()
+        test_statements_repr()
+        # test_statements_numeric_value_types()
+        # test_statements_edge_cases()
+        # test_statements_equality()
+        test_statements_substitution_lhs_error()
+        test_statements_substitution_comments()
+        test_statements_substitution_multiple_lines()
