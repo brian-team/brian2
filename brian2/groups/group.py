@@ -1144,7 +1144,7 @@ class Group(VariableOwner, BrianObject):
 
         Parameters
         ----------
-        code : str
+        code : str or `Statements`
             The abstract code to run.
         dt : `Quantity`, optional
             The time step to use for this custom operation. Cannot be combined
@@ -1198,7 +1198,7 @@ class Group(VariableOwner, BrianObject):
 
         Parameters
         ----------
-        code : str
+        code : str or `Statements`
             The abstract code to run.
         clock : `Clock`, optional
             The update clock to use for this operation. If neither a clock nor
@@ -1238,6 +1238,9 @@ class Group(VariableOwner, BrianObject):
             if self not in source_group.contained_objects:
                 source_group.contained_objects.append(self)
 
+        # Support Statements objects (where Statements.code is a string) or strings
+        code = getattr(code, "code", code)
+
         runner = CodeRunner(
             self,
             "stateupdate",
@@ -1269,7 +1272,7 @@ class Group(VariableOwner, BrianObject):
 
         Parameters
         ----------
-        code : str
+        code : str or `Statements`
             The abstract code to run.
         times : array-like
             The specific simulation times at which to execute the code.
