@@ -1324,8 +1324,8 @@ def test_state_variable_set_strings():
     G.v_ref = "2*i"
 
     G.v2 = np.arange(10) * volt
-    # String value referring to a state variable
-    G.v2 = "2*v2"
+    # String value referring to a state variable (passed as an Expression object)
+    G.v2 = Expression("2*v2")
     G.v2[:5] = "2*v2"
 
     G.v3 = np.arange(10) * volt
@@ -1344,8 +1344,8 @@ def test_state_variable_set_strings():
     G.v6["rand() <= 1"] = 0 * mV
 
     G.v7 = np.arange(10) * volt
-    # String index referring to i and setting to a scalar value
-    G.v7["i>=5"] = 0 * mV
+    # String index referring to i (passed as an Expression) and setting to a scalar value
+    G.v7[Expression("i>=5")] = 0 * mV
 
     G.v7b = np.arange(10) * volt
     # String index referring to i and setting to a scalar value (no effect)

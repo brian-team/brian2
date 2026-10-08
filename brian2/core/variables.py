@@ -952,9 +952,9 @@ class VariableView:
 
         Parameters
         ----------
-        item : slice, `ndarray` or string
+        item : slice, `ndarray`, string or `Expression`
             The index for the setting operation
-        value : `Quantity`, `ndarray` or number
+        value : `Quantity`, `ndarray`, number, string or `Expression`
             The value for the setting operation
         level : int, optional
             How much farther to go up in the stack to find the implicit
@@ -985,6 +985,10 @@ class VariableView:
             item.start is None and item.stop is None and item.step is None
         ):
             item = "True"
+
+        # Accept Expression objects for item and value
+        item = getattr(item, "code", item)
+        value = getattr(value, "code", value)
 
         check_units = self.dim is not None
 
