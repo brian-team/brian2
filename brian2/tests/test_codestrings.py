@@ -36,6 +36,19 @@ def test_expr_creation():
 
 
 @pytest.mark.codegen_independent
+def test_expr_substitutions():
+    expr = Expression("g + k*w", g="g_ampa", k=0.3)
+    assert expr.code == "g_ampa + (0.3)*w"
+
+    expr = Expression(sympy_expression=sympy.Symbol("g") + 1, g="g_ampa")
+    assert expr.code == "g_ampa + 1"
+
+    # Name substitutions also apply to comments, but value substitutions do not.
+    expr = Expression("g + k*w # g and k", g="g_ampa", k=0.3)
+    assert expr.code == "g_ampa + (0.3)*w # g_ampa and k"
+
+
+@pytest.mark.codegen_independent
 def test_split_stochastic():
     expr = Expression("(-v + I) / tau")
     # No stochastic part

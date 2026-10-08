@@ -159,7 +159,7 @@ class Statements(CodeString):
 
 class Expression(CodeString):
     """
-    Class for representing an expression.
+    Class for representing an expression with support for substitution.
 
     Parameters
     ----------
@@ -170,9 +170,24 @@ class Expression(CodeString):
     sympy_expression : sympy expression, optional
         A sympy expression. Alternatively, a plain string expression can be
         provided (in the ``code`` argument).
+    **substitutions
+        Substitutions to apply to the expression. Can be either strings (to
+        replace a name with another name) or values (to replace a name with a
+        value).
+
+    Examples
+    --------
+    >>> Expression('g + k*w')
+    Expression('g + k*w')
+    >>> Expression('g + k*w', k=0.3)
+    Expression('g + (0.3)*w')
+    >>> Expression('g + k*w', g='g_ampa')
+    Expression('g_ampa + k*w')
+    >>> Expression('g + k*w', g='g_ampa', k=0.3)
+    Expression('g_ampa + (0.3)*w')
     """
 
-    def __init__(self, code=None, sympy_expression=None):
+    def __init__(self, code=None, sympy_expression=None, **substitutions):
         if code is None and sympy_expression is None:
             raise TypeError("Have to provide either a string or a sympy expression")
         if code is not None and sympy_expression is not None:
@@ -182,11 +197,43 @@ class Expression(CodeString):
 
         if code is None:
             code = sympy_to_str(sympy_expression)
-        else:
-            # Just try to convert it to a sympy expression to get syntax errors
-            # for incorrect expressions
-            str_to_sympy(code)
+        if substitutions:
+            code = self._substitute(code, substitutions)
+
+        # Just try to convert it to a sympy expression to get syntax errors
+        # for incorrect expressions.
+        str_to_sympy(code)
         super().__init__(code=code)
+
+    @staticmethod
+    def _substitute(code, substitutions):
+        """
+        Perform substitutions in the expression.
+
+        String replacements also apply to comments, while value replacements
+        only apply to the expression itself.
+        """
+        new_code = code
+        for identifier, replacement in substitutions.items():
+            if isinstance(replacement, str):
+                new_code = re.sub(r"\b" + identifier + r"\b", replacement, new_code)
+            else:
+                if "#" in new_code:
+                    code_part, comment_part = new_code.split("#", 1)
+                    code_part = re.sub(
+                        r"\b" + identifier + r"\b",
+                        "(" + repr(replacement) + ")",
+                        code_part,
+                    )
+                    new_code = code_part + "#" + comment_part
+                else:
+                    new_code = re.sub(
+                        r"\b" + identifier + r"\b",
+                        "(" + repr(replacement) + ")",
+                        new_code,
+                    )
+
+        return new_code
 
     stochastic_variables = property(
         lambda self: {
