@@ -18,6 +18,7 @@ from brian2.core.namespace import get_local_namespace
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import DynamicArrayVariable, Variables
 from brian2.devices.device import device, get_device
+from brian2.equations.codestrings import Statements
 from brian2.equations.equations import (
     DIFFERENTIAL_EQUATION,
     PARAMETER,
@@ -772,17 +773,17 @@ class Synapses(Group):
         the same as `source`
     model : `str`, `Equations`, optional
         The model equations for the synapses.
-    on_pre : str, dict, optional
+    on_pre : str, `Statements`, dict, optional
         The code that will be executed after every pre-synaptic spike. Can be
-        either a single (possibly multi-line) string, or a dictionary mapping
-        pathway names to code strings. In the first case, the pathway will be
-        called ``pre`` and made available as an attribute of the same name.
-        In the latter case, the given names will be used as the
+        either a single (possibly multi-line) string or `Statements` object, or a
+        dictionary mapping pathway names to code strings or `Statements`. In the first
+        case, the pathway will be called ``pre`` and made available as an attribute of
+        the same name. In the latter case, the given names will be used as the
         pathway/attribute names. Each pathway has its own code and its own
         delays.
     pre : str, dict, optional
         Deprecated. Use ``on_pre`` instead.
-    on_post : str, dict, optional
+    on_post : str, `Statements`, dict, optional
         The code that will be executed after every post-synaptic spike. Same
         conventions as for `on_pre``, the default name for the pathway is
         ``post``.
@@ -1085,7 +1086,7 @@ class Synapses(Group):
         for prepost, argument in zip(("pre", "post"), (on_pre, on_post), strict=True):
             if not argument:
                 continue
-            if isinstance(argument, str):
+            if isinstance(argument, (str, Statements)):
                 pathway_delay = delay.get(prepost)
                 self._add_updater(
                     argument,
@@ -1317,7 +1318,7 @@ class Synapses(Group):
 
         Parameters
         ----------
-        code : str
+        code : str or `Statements`
             The abstract code that should be executed on pre-/postsynaptic
             spikes.
         prepost : {'pre', 'post'}
@@ -1361,6 +1362,8 @@ class Synapses(Group):
                 f" clock attribute. Is type {type(spike_group)!r} instead."
             )
 
+        # Support Statements objects (where Statements.code is a string) or strings
+        code = getattr(code, "code", code)
         updater = SynapticPathway(
             self, code, prepost, objname, delay=delay, event=event
         )

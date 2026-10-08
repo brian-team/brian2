@@ -432,7 +432,9 @@ class Resetter(CodeRunner):
                 t = "a quantity"
             else:
                 t = f"{type(code)}"
-            error_msg = f"Reset statement has to be a string, not {t}."
+            error_msg = (
+                f"Reset statement has to be a string or a Statements object, not {t}."
+            )
             if self.event == "spike":
                 vm_var = _guess_membrane_potential(self.group.equations)
                 if vm_var is not None:
@@ -461,8 +463,9 @@ class NeuronGroup(Group, SpikeSource):
     threshold : str, optional
         The condition which produces spikes. Should be a single line boolean
         expression.
-    reset : str, optional
-        The (possibly multi-line) string with the code to execute on reset.
+    reset : str or `Statements`, optional
+        The (possibly multi-line) string or `Statements` object with the code to execute
+        on reset.
     refractory : {str, `Quantity`}, optional
         Either the length of the refractory period (e.g. ``2*ms``), a string
         expression that evaluates to the length of the refractory period
@@ -729,7 +732,7 @@ class NeuronGroup(Group, SpikeSource):
         ----------
         event : str
             The name of the event that should trigger the code
-        code : str
+        code : str or `Statements`
             The code that should be executed
         when : str, optional
             The scheduling slot that should be used to execute the code.
@@ -753,7 +756,8 @@ class NeuronGroup(Group, SpikeSource):
                 "Cannot add code for event '%s', code for this "
                 "event has already been added." % event
             )
-        self.event_codes[event] = code
+        # Support Statements objects (where Statements.code is a string) or strings
+        self.event_codes[event] = getattr(code, "code", code)
         resetter = Resetter(self, when=when, order=order, event=event)
         self.resetter[event] = resetter
         self.contained_objects.append(resetter)

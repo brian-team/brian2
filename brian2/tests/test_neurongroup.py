@@ -12,6 +12,7 @@ from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.variables import linked_var
 from brian2.devices.device import device, get_device, seed
+from brian2.equations.codestrings import Statements
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -947,9 +948,15 @@ def test_threshold_reset():
     """
     # Membrane potential does not change by itself
     G1 = NeuronGroup(3, "dv/dt = 0 / second : 1", threshold="v > 1", reset="v=0.5")
+    # Providing a Statements object should work as well
+    G2 = NeuronGroup(
+        3, "dv/dt = 0 / second : 1", threshold="v > 1", reset=Statements("v=0.5")
+    )
     G1.v = np.array([0, 1, 2])
+    G2.v = np.array([0, 1, 2])
     run(defaultclock.dt)
     assert_allclose(G1.v[:], np.array([0, 1, 0.5]))
+    assert_allclose(G2.v[:], np.array([0, 1, 0.5]))
 
     with catch_logs() as logs:
         G2 = NeuronGroup(1, "v : 1", threshold="True")
@@ -2129,7 +2136,8 @@ def test_run_regularly_scheduling():
         """,
     )
     G.run_regularly("v1 += 1")
-    G.run_regularly("v2 = v1", when="end")
+    # Providing a Statements object should work as well
+    G.run_regularly(Statements("v2 = v1"), when="end")
     G.run_regularly("v3 = v1", when="before_start")
     run(2 * defaultclock.dt)
     assert_allclose(G.v1[:], 2)
@@ -2189,10 +2197,12 @@ def test_run_regularly_dt():
 def test_run_at():
     G = NeuronGroup(1, "v : 1")
     G.run_at("v += 1", times=[0, 1, 3] * defaultclock.dt)
+    # Providing a Statements object should work as well
+    G.run_at(Statements("v += 0.5"), times=[0, 1, 3] * defaultclock.dt)
     M = StateMonitor(G, "v", record=0, when="end")
     run(4 * defaultclock.dt)
-    assert_allclose(G.v[:], 3)
-    assert_allclose(M.v[0], [1, 2, 2, 3])
+    assert_allclose(G.v[:], 4.5)
+    assert_allclose(M.v[0], [1.5, 3, 3, 4.5])
 
 
 @pytest.mark.standalone_compatible

@@ -1144,7 +1144,7 @@ class Group(VariableOwner, BrianObject):
 
         Parameters
         ----------
-        code : str
+        code : str or `Statements`
             The abstract code to run.
         dt : `Quantity`, optional
             The time step to use for this custom operation. Cannot be combined
@@ -1198,7 +1198,7 @@ class Group(VariableOwner, BrianObject):
 
         Parameters
         ----------
-        code : str
+        code : str or `Statements`
             The abstract code to run.
         clock : `Clock`, optional
             The update clock to use for this operation. If neither a clock nor
@@ -1238,6 +1238,9 @@ class Group(VariableOwner, BrianObject):
             if self not in source_group.contained_objects:
                 source_group.contained_objects.append(self)
 
+        # Support Statements objects (where Statements.code is a string) or strings
+        code = getattr(code, "code", code)
+
         runner = CodeRunner(
             self,
             "stateupdate",
@@ -1269,7 +1272,7 @@ class Group(VariableOwner, BrianObject):
 
         Parameters
         ----------
-        code : str
+        code : str or `Statements`
             The abstract code to run.
         times : array-like
             The specific simulation times at which to execute the code.
@@ -1345,14 +1348,14 @@ class CodeRunner(BrianObject):
         The group to which this object belongs.
     template : `Template`
         The template that should be used for code generation
-    code : str, optional
+    code : str or `Statements`, optional
         The abstract code that should be executed every time step. The
         `update_abstract_code` method might generate this code dynamically
         before every run instead.
     dt : `Quantity`, optional
         The time step to be used for the simulation. Cannot be combined with
         the `clock` argument.
-    user_code : str, optional
+    user_code : str or `Statements`, optional
         The abstract code as specified by the user, i.e. without any additions
         of internal code that the user not necessarily knows about. This will
         be used for warnings and error messages.
@@ -1419,8 +1422,9 @@ class CodeRunner(BrianObject):
         )
         self.group = weakproxy_with_fallback(group)
         self.template = template
-        self.user_code = user_code
-        self.abstract_code = code
+        # Support Statements objects (where Statements.code is a string) or strings
+        self.user_code = getattr(user_code, "code", user_code)
+        self.abstract_code = getattr(code, "code", code)
         self.check_units = check_units
         if needed_variables is None:
             needed_variables = []
