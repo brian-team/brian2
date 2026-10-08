@@ -1629,23 +1629,23 @@ class Synapses(Group):
 
         Parameters
         ----------
-        condition : str, bool, optional
+        condition : str, `Expression`, bool, optional
             A boolean or string expression that evaluates to a boolean.
             The expression can depend on indices ``i`` and ``j`` and on
             pre- and post-synaptic variables. Can be combined with
             arguments ``n``, and ``p`` but not ``i`` or ``j``.
-        i : int, ndarray of int, str, optional
+        i : int, ndarray of int, str, `Expression`, optional
             The presynaptic neuron indices  It can be an index or array of
             indices if combined with the ``j`` argument, or it can be a string
             generator expression.
-        j : int, ndarray of int, str, optional
+        j : int, ndarray of int, str, `Expression`, optional
             The postsynaptic neuron indices. It can be an index or array of
             indices if combined with the ``i`` argument, or it can be a string
             generator expression.
-        p : float, str, optional
+        p : float, str, `Expression`, optional
             The probability to create ``n`` synapses wherever the ``condition``
             evaluates to true. Cannot be used with generator syntax for ``j``.
-        n : int, str, optional
+        n : int, str, `Expression`, optional
             The number of synapses to create per pre/post connection pair.
             Defaults to 1.
         skip_if_invalid : bool, optional
@@ -1677,6 +1677,13 @@ class Synapses(Group):
         >>> S.connect(j='k for k in sample(N_post, p=i*1.0/(N_pre-1))') # neuron i connects to j with probability i/(N-1)
         >>> S.connect(j='k for k in sample(N_post, size=i//2)') # Each neuron connects to i//2 other neurons (chosen randomly)
         """
+        # Accept Expression objects for cond, i, j, n, p
+        condition = getattr(condition, "code", condition)
+        i = getattr(i, "code", i)
+        j = getattr(j, "code", j)
+        n = getattr(n, "code", n)
+        p = getattr(p, "code", p)
+
         # check types
         self._verify_connect_argument_types(condition, i, j, n, p)
 

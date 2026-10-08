@@ -626,6 +626,34 @@ def test_connection_multiple_synapses():
     _compare(S6, expected)
 
 
+@pytest.mark.standalone_compatible
+def test_connection_expression_objects():
+    G = NeuronGroup(42, "v: 1")
+    G.v = "i"
+    G2 = NeuronGroup(17, "v: 1")
+    G2.v = "i"
+
+    S1 = Synapses(G, G2)
+    S1.connect(Expression("i != j"), p=Expression("1.0"))
+
+    S2 = Synapses(G, G2)
+    S2.connect(i=Expression("j"), n=Expression("2"))
+
+    S3 = Synapses(G, G2)
+    S3.connect(j=Expression("i"), n=Expression("2"), skip_if_invalid=True)
+
+    run(0 * ms)
+
+    expected = np.ones((len(G), len(G2)), dtype=np.int32)
+    expected[np.arange(len(G2)), np.arange(len(G2))] = 0
+    _compare(S1, expected)
+
+    expected = np.zeros((len(G), len(G2)), dtype=np.int32)
+    expected[np.arange(len(G2)), np.arange(len(G2))] = 2
+    _compare(S2, expected)
+    _compare(S3, expected)
+
+
 def test_state_variable_assignment():
     """
     Assign values to state variables in various ways
