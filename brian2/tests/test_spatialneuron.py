@@ -6,6 +6,7 @@ from numpy.testing import assert_equal
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete
+from brian2.equations.codestrings import Expression
 from brian2.tests.utils import assert_allclose
 
 try:
@@ -919,7 +920,7 @@ def test_spatialneuron_threshold_location():
         threshold="should_spike",
     )
     neuron3 = SpatialNeuron(
-        morpho, model, threshold_location=2, threshold="should_spike"
+        morpho, model, threshold_location=2, threshold=Expression("should_spike")
     )
     # Cannot use multiple compartments
     with pytest.raises(AttributeError):
