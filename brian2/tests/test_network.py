@@ -1,6 +1,7 @@
 import copy
 import logging
 import os
+import signal
 import tempfile
 import uuid
 import weakref
@@ -27,6 +28,7 @@ from brian2 import (
     StateMonitor,
     Synapses,
     TimedArray,
+    _InterruptHandler,
     collect,
     defaultclock,
     magic_network,
@@ -1945,6 +1947,52 @@ def test_negative_duration_in_net_run():
     net = Network(G)
     with pytest.raises(ValueError):
         net.run(-1 * second)
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize("profile", [False, True])
+@pytest.mark.parametrize("multiple_clocks", [False, True])
+def test_running_state_after_error(profile, multiple_clocks):
+    def fail():
+        raise RuntimeError("simulation failed")
+
+    objects = [NetworkOperation(fail, dt=0.1 * ms)]
+    if multiple_clocks:
+        objects.append(NetworkOperation(lambda: None, dt=0.2 * ms))
+    net = Network(objects)
+    handler = _InterruptHandler(signal.default_int_handler)
+    try:
+        with pytest.raises(RuntimeError, match="simulation failed"):
+            net.run(0.2 * ms, profile=profile)
+        with pytest.raises(KeyboardInterrupt):
+            handler(signal.SIGINT, None)
+        assert not Network._globally_running
+        assert not Network._globally_stopped
+    finally:
+        Network._globally_running = False
+        Network._globally_stopped = False
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize("profile", [False, True])
+def test_stop_with_multiple_clocks(profile):
+    fast = Clock(dt=0.2 * ms)
+    slow = Clock(dt=0.3 * ms)
+    times = []
+
+    def record():
+        times.append(float(fast.t / ms))
+
+    def finish():
+        if slow.t >= 0.3 * ms:
+            net.stop()
+
+    net = Network(
+        NetworkOperation(record, clock=fast), NetworkOperation(finish, clock=slow)
+    )
+    net.run(1 * ms, profile=profile)
+    assert_allclose(times, [0, 0.2])
+    assert_allclose(net.t / ms, 0.4)
 
 
 if __name__ == "__main__":
