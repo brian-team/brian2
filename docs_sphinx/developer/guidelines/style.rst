@@ -7,8 +7,8 @@ to reflect the concepts as directly as possible. Ideally, a Brian script
 should be readable by someone who doesn't know Python or Brian, although this
 isn't always possible. Function, class and keyword argument names should be
 explicit rather than abbreviated and consistent across Brian. See Romain's paper
-`On the design of script languages for neural simulators
-<http://briansimulator.org/WordPress/wp-content/uploads/2012/05/On-the-design-of-script-languages-for-neural-simulation.pdf>`__
+`On the design of script languages for neural simulation
+<https://doi.org/10.3109/0954898X.2012.716902>`__
 for a discussion.
 
 .. _code_style:
@@ -34,21 +34,6 @@ automatically on the GitHub CI infrastructure.
     to exclude code from ruff's formatting. Also note that the code formatting is only
     enforced for files in the ``brian2`` package itself, code examples in the
     documentation or examples and tutorials do not have to follow ruff's style.
-
-The code style includes the following conventions in particular:
-
-* Use 4 spaces instead of tabs per indentation level
-* Use spaces after commas and around the following binary operators:
-  assignment (=), augmented assignment (+=, -= etc.),
-  comparisons (==, <, >, !=, <>, <=, >=, in, not in, is, is not),
-  Booleans (and, or, not).
-* Do *not* use spaces around the equals sign in keyword arguments or when
-  specifying default values. Neither put spaces immediately inside parentheses,
-  brackets or braces, immediately before the open parenthesis that starts the
-  argument list of a function call, or immediately before the open parenthesis
-  that starts an indexing or slicing.
-* Avoid using a backslash for continuing lines whenever possible, instead use
-  Python's implicit line joining inside parentheses, brackets and braces.
 
 Imports
 ~~~~~~~

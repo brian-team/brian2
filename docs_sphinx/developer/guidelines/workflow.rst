@@ -20,7 +20,7 @@ always be in a deployable state, i.e. one should be able to use it as the base
 for everyday work without worrying about random breakages due to updates. To
 ensure this, no commit ever goes into the *master* branch without passing the
 test suite before (see below). The only exception to this rule is if a commit
-not touches any code files, e.g. additions to the README file or to the
+does not touch any code files, e.g. additions to the README file or to the
 documentation (but even in this case, care should be taken that the
 documentation is still built correctly).
 
@@ -59,4 +59,4 @@ Useful links
 * GitHub Actions tests for Brian: https://github.com/brian-team/brian2/actions
 * Code Coverage for Brian: https://coveralls.io/github/brian-team/brian2
 * The Pro Git book: https://git-scm.com/book/en/v2
-* github's documentation on pull requests: https://help.github.com/articles/using-pull-requests
+* github's documentation on pull requests: https://docs.github.com/en/pull-requests

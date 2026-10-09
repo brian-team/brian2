@@ -59,7 +59,7 @@ In particular for representations involing arrays or lists, it can be useful to 
 representation into chunks, or indent parts of the representation. This is supported by the
 ipython console's "pretty printer". To make this work for a class, add a
 ``_repr_pretty_(self, p, cycle)`` (note the *single* underscores) method. You can find more
-information in the `ipython documentation <http://ipython.org/ipython-doc/dev/api/generated/IPython.lib.pretty.html#extending>`__ .
+information in the `ipython documentation <https://ipython.readthedocs.io/en/stable/api/generated/IPython.lib.pretty.html#extending>`__ .
 
 "New" ipython console (qtconsole and notebook)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

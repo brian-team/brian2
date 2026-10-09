@@ -56,8 +56,8 @@ that will raise an ``AssertionError`` when they are violated, e.g.::
     G = NeuronGroup(42, model='dv/dt = -v / (10*ms) : 1')
     assert len(G) == 42
 
-When comparing arrays, use the `array_equal` function from
-`numpy.testing.utils` which takes care of comparing types, shapes and content
+When comparing arrays, use the `~numpy.testing.assert_array_equal` function from
+`numpy.testing` which takes care of comparing shapes and content
 and gives a nicer error message in case the assertion fails. Never make tests
 depend on external factors like random numbers -- tests should always give the
 same result when run on the same codebase. You should not only test the
@@ -101,7 +101,7 @@ of the network afterwards. Such tests can be marked as
 the same way as for ``codegen_independent`` tests.::
 
     import pytest
-    from numpy.testing.utils import assert_equal
+    from numpy.testing import assert_equal
     from brian2 import *
 
     @pytest.mark.standalone_compatible
@@ -119,7 +119,7 @@ results of the simulation before the end of the simulation), can be marked as
 explicit ``device.build(...)`` call of the form shown below::
 
     import pytest
-    from numpy.testing.utils import assert_equal
+    from numpy.testing import assert_equal
     from brian2 import *
 
     @pytest.mark.standalone_compatible
@@ -231,7 +231,7 @@ Doctests are a great way of testing things as they not only make sure that the
 code does what it is supposed to do but also that the documentation is up to
 date!
 
-.. _`doctest documentation`: https://docs.python.org/2/library/doctest.html
+.. _`doctest documentation`: https://docs.python.org/3/library/doctest.html
 .. _`Sphinx's doctest extension`: http://www.sphinx-doc.org/en/stable/ext/doctest.html
 
 
