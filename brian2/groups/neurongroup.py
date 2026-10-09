@@ -460,7 +460,7 @@ class NeuronGroup(Group, SpikeSource):
         registered method (e.g. "euler") or a function that receives an
         `Equations` object and returns the corresponding abstract code. If no
         method is specified, a suitable method will be chosen automatically.
-    threshold : str, optional
+    threshold : str or `Expression`, optional
         The condition which produces spikes. Should be a single line boolean
         expression.
     reset : str or `Statements`, optional
@@ -638,7 +638,8 @@ class NeuronGroup(Group, SpikeSource):
                 raise ValueError(
                     "The NeuronGroup defines both a threshold and a 'spike' event"
                 )
-            events["spike"] = threshold
+            # Accept a Expression object or a string
+            events["spike"] = getattr(threshold, "code", threshold)
 
         # Setup variables
         # Since we have to create _spikespace and possibly other "eventspace"

@@ -12,7 +12,7 @@ from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.variables import linked_var
 from brian2.devices.device import device, get_device, seed
-from brian2.equations.codestrings import Statements
+from brian2.equations.codestrings import Statements, Expression
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -948,9 +948,12 @@ def test_threshold_reset():
     """
     # Membrane potential does not change by itself
     G1 = NeuronGroup(3, "dv/dt = 0 / second : 1", threshold="v > 1", reset="v=0.5")
-    # Providing a Statements object should work as well
+    # Providing a Statements/Expression object should work as well
     G2 = NeuronGroup(
-        3, "dv/dt = 0 / second : 1", threshold="v > 1", reset=Statements("v=0.5")
+        3,
+        "dv/dt = 0 / second : 1",
+        threshold=Expression("v > 1"),
+        reset=Statements("v=0.5"),
     )
     G1.v = np.array([0, 1, 2])
     G2.v = np.array([0, 1, 2])
@@ -1321,8 +1324,8 @@ def test_state_variable_set_strings():
     G.v_ref = "2*i"
 
     G.v2 = np.arange(10) * volt
-    # String value referring to a state variable
-    G.v2 = "2*v2"
+    # String value referring to a state variable (passed as an Expression object)
+    G.v2 = Expression("2*v2")
     G.v2[:5] = "2*v2"
 
     G.v3 = np.arange(10) * volt
@@ -1341,8 +1344,8 @@ def test_state_variable_set_strings():
     G.v6["rand() <= 1"] = 0 * mV
 
     G.v7 = np.arange(10) * volt
-    # String index referring to i and setting to a scalar value
-    G.v7["i>=5"] = 0 * mV
+    # String index referring to i (passed as an Expression) and setting to a scalar value
+    G.v7[Expression("i>=5")] = 0 * mV
 
     G.v7b = np.arange(10) * volt
     # String index referring to i and setting to a scalar value (no effect)

@@ -183,7 +183,7 @@ class SpatialNeuron(NeuronGroup):
         registered method (e.g. "euler") or a function that receives an
         `Equations` object and returns the corresponding abstract code. If no
         method is specified, a suitable method will be chosen automatically.
-    threshold : str, optional
+    threshold : str or `Expression`, optional
         The condition which produces spikes. Should be a single line boolean
         expression.
     threshold_location : (int, `Morphology`), optional

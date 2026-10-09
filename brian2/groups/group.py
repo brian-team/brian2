@@ -254,6 +254,8 @@ class Indexing:
 
         if hasattr(item, "_indices"):
             item = item._indices()
+        if hasattr(item, "code"):
+            item = item.code
 
         if isinstance(item, tuple):
             raise IndexError(
@@ -309,6 +311,9 @@ class IndexWrapper:
         self.indices = group._indices
 
     def __getitem__(self, item):
+        if hasattr(item, "code"):
+            item = item.code
+
         if isinstance(item, str):
             variables = Variables(None)
             variables.add_auxiliary_variable("_indices", dtype=np.int32)
@@ -460,6 +465,8 @@ class VariableOwner(Nameable):
                 log_msg += f'(using "{index}" as index variable)'
             logger.diagnostic(log_msg)
         else:
+            # Allow passing Expression objects as value
+            value = getattr(value, "code", value)
             if isinstance(value, LinkedVariable):
                 raise TypeError(
                     f"Cannot link variable '{key}', it has to be marked "
