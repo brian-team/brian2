@@ -139,6 +139,7 @@ jobs:
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
         run: |
+          cd  $GITHUB_WORKSPACE/..
           CPU_INFO=$("$PYTHON_BINARY" -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cpu_info; print(get_cpu_info())')
           CACHE_DIR=$("$PYTHON_BINARY" -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
           CACHE_KEY=$(printf '%s' "$CPU_INFO" | "$PYTHON_BINARY" -c 'import hashlib, sys; print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest())')
