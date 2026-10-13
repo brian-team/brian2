@@ -134,22 +134,24 @@ jobs:
         run: |
           "$PYTHON_BINARY" -m pip install .[test]
 
-      - name: Determine Cython cache dir
+      - name: Determine Cython cache key
         id: cython-cache
-        run: |
-          cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
-          CACHE_DIR=$("$PYTHON_BINARY" -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
-          echo "Cython cache dir: $CACHE_DIR"
-          echo "cachedir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
         env:
           PYTHON_BINARY: ${{ steps.python.outputs.python-path }}
+        run: |
+          CPU_INFO=$("$PYTHON_BINARY" -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cpu_info; print(get_cpu_info())')
+          CACHE_DIR=$("$PYTHON_BINARY" -c 'from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir; print(get_cython_cache_dir())')
+          CACHE_KEY=$(printf '%s' "$CPU_INFO" | "$PYTHON_BINARY" -c 'import hashlib, sys; print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest())')
+          echo "cpu-info=$CPU_INFO" >> "$GITHUB_OUTPUT"
+          echo "cache-key=$CACHE_KEY" >> "$GITHUB_OUTPUT"
+          echo "cache-dir=$CACHE_DIR" >> "$GITHUB_OUTPUT"
 
-      - name: restore Cython cache
+      - name: Restore and save Cython cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: ${{ ! matrix.standalone }}
         with:
-          key: cython-extensions-${{ matrix.os.image }}-${{ runner.arch }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}
-          path: ${{ steps.cython-cache.outputs.cachedir }}
+          key: cython-extensions-${{ matrix.os.image }}-${{ runner.arch }}-${{ matrix.python-version }}-32bit-${{ matrix.float_dtype_32 }}-${{ steps.cython-cache.outputs.cache-key }}
+          path: ${{ steps.cython-cache.outputs.cache-dir }}
 
       - name: Run Tests
         run: |

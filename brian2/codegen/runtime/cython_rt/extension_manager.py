@@ -9,7 +9,10 @@ import glob
 import hashlib
 import importlib.util
 import os
+import platform
+import re
 import shutil
+import subprocess
 import sys
 import time
 
@@ -46,6 +49,64 @@ def get_cython_cache_dir():
     if cache_dir is None and Cython is not None:
         cache_dir = os.path.join(base_cython_cache_dir(), "brian_extensions")
     return cache_dir
+
+
+def get_cpu_info():
+    """Return a normalized, single-line description of CPU features."""
+    architecture = platform.machine() or "unknown"
+    model = platform.processor() or "unknown"
+    features = set()
+
+    def normalize(value):
+        return re.sub(r"[^a-zA-Z0-9_.-]+", "_", value.strip()).strip("_").lower()
+
+    try:
+        if sys.platform.startswith("linux"):
+            with open("/proc/cpuinfo", encoding="utf-8") as cpuinfo:
+                for line in cpuinfo:
+                    key, separator, value = line.partition(":")
+                    if not separator:
+                        continue
+                    key = key.strip().lower()
+                    if key in {"model name", "hardware", "processor", "cpu model"}:
+                        if model == "unknown" or key != "processor":
+                            model = value.strip()
+                    elif key in {"flags", "features", "isa"}:
+                        features.update(value.split())
+        elif sys.platform == "darwin":
+            for key in (
+                "machdep.cpu.brand_string",
+                "machdep.cpu.features",
+                "machdep.cpu.leaf7_features",
+            ):
+                try:
+                    value = subprocess.check_output(
+                        ["sysctl", "-n", key],
+                        text=True,
+                        stderr=subprocess.DEVNULL,
+                        timeout=2,
+                    ).strip()
+                except (OSError, subprocess.SubprocessError):
+                    continue
+                if key.endswith("brand_string"):
+                    model = value
+                else:
+                    features.update(value.split())
+        elif sys.platform == "win32":
+            import cpuinfo
+
+            cpu_details = cpuinfo.get_cpu_info()
+            model = cpu_details.get("brand_raw") or cpu_details.get("brand") or model
+            features.update(cpu_details.get("flags") or [])
+    except (OSError, ImportError, subprocess.SubprocessError):
+        pass
+
+    normalized_features = ",".join(sorted(filter(None, map(normalize, features))))
+    return (
+        f"arch={normalize(architecture) or 'unknown'};"
+        f"model={normalize(model) or 'unknown'};"
+        f"features={normalized_features or 'unknown'}"
+    )
 
 
 def get_cython_extensions():
@@ -110,6 +171,8 @@ class CythonExtensionManager:
         numpy_version = ".".join(
             numpy.__version__.split(".")[:2]
         )  # Only use major.minor version
+        cpu_info = get_cpu_info()
+        code = f"# CPU info: {cpu_info}\n{code}"
         # avoid some issues when manually switching compilers
         CC = os.environ.get("CC", None)
         CXX = os.environ.get("CXX", None)
@@ -119,6 +182,7 @@ class CythonExtensionManager:
             sys.executable,
             Cython.__version__,
             numpy_version,
+            cpu_info,
             CC,
             CXX,
         )
@@ -276,7 +340,7 @@ class CythonExtensionManager:
             # pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
             # with io.open(pyx_file, 'w', encoding='utf-8') as f:
             #    f.write(code)
-            with open(pyx_file, "w") as f:
+            with open(pyx_file, "w", encoding="utf-8") as f:
                 f.write(code)
 
             for source in sources:
