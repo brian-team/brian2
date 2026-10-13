@@ -13,6 +13,7 @@ from brian2.codegen.cpp_prefs import compiler_supports_c99, get_compiler_and_arg
 from brian2.codegen.generators.cython_generator import CythonNodeRenderer
 from brian2.codegen.optimisation import optimise_statements
 from brian2.codegen.runtime.cython_rt import CythonCodeObject
+from brian2.codegen.runtime.cython_rt.extension_manager import get_cpu_info
 from brian2.codegen.statements import Statement
 from brian2.codegen.translation import (
     analyse_identifiers,
@@ -30,6 +31,16 @@ from brian2.units.fundamentalunits import Unit
 from brian2.utils.logger import catch_logs
 
 FakeGroup = namedtuple("FakeGroup", ["variables"])
+
+
+@pytest.mark.codegen_independent
+def test_cython_cpu_info():
+    cpu_info = get_cpu_info()
+    assert cpu_info == get_cpu_info()
+    assert "\n" not in cpu_info
+    assert cpu_info.startswith("arch=")
+    assert ";model=" in cpu_info
+    assert ";features=" in cpu_info
 
 
 @pytest.mark.codegen_independent

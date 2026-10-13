@@ -5,6 +5,7 @@ Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 """
 
+import functools
 import glob
 import hashlib
 import importlib.util
@@ -51,11 +52,14 @@ def get_cython_cache_dir():
     return cache_dir
 
 
+@functools.lru_cache(maxsize=1)
 def get_cpu_info():
     """Return a normalized, single-line description of CPU features."""
     architecture = platform.machine() or "unknown"
     model = platform.processor() or "unknown"
     features = set()
+    if sys.platform == "darwin":
+        model = "unknown"
 
     def normalize(value):
         return re.sub(r"[^a-zA-Z0-9_.-]+", "_", value.strip()).strip("_").lower()
@@ -78,6 +82,7 @@ def get_cpu_info():
                 "machdep.cpu.brand_string",
                 "machdep.cpu.features",
                 "machdep.cpu.leaf7_features",
+                "hw.model",
             ):
                 try:
                     value = subprocess.check_output(
@@ -90,15 +95,36 @@ def get_cpu_info():
                     continue
                 if key.endswith("brand_string"):
                     model = value
-                else:
+                elif key.endswith("features"):
                     features.update(value.split())
+                elif key == "hw.model" and model == "unknown":
+                    model = value
+            if architecture.lower() in {"arm64", "aarch64"}:
+                try:
+                    sysctl_output = subprocess.check_output(
+                        ["sysctl", "-a"],
+                        text=True,
+                        stderr=subprocess.DEVNULL,
+                        timeout=2,
+                    )
+                except (OSError, subprocess.SubprocessError):
+                    pass
+                else:
+                    for line in sysctl_output.splitlines():
+                        key, separator, value = line.partition(":")
+                        if (
+                            separator
+                            and key.startswith("hw.optional.arm.FEAT_")
+                            and value.strip() == "1"
+                        ):
+                            features.add(key.rsplit(".", 1)[-1])
         elif sys.platform == "win32":
             import cpuinfo
 
             cpu_details = cpuinfo.get_cpu_info()
             model = cpu_details.get("brand_raw") or cpu_details.get("brand") or model
             features.update(cpu_details.get("flags") or [])
-    except (OSError, ImportError, subprocess.SubprocessError):
+    except Exception:
         pass
 
     normalized_features = ",".join(sorted(filter(None, map(normalize, features))))
