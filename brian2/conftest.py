@@ -98,6 +98,7 @@ def setup_and_teardown(request):
 
     yield  # run test
 
+    brian2.prefs._restore()
     # Reset defaultclock.dt to be sure
     defaultclock.dt = 0.1 * ms
 
