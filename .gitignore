@@ -37,7 +37,8 @@ output/
 /Brian2.egg-info
 
 # VisualStudio Code
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 
 # VS Code devcontainer metadata
 .devcontainer/frozen-requirements.txt
