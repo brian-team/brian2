@@ -1278,7 +1278,7 @@ class Network(Nameable):
         end_time = time.time()
         Network._globally_running = False
         if self._stopped or Network._globally_stopped:
-            self.t_ = clock.t_
+            self.t_ = clock.t_ if single_clock else self._nextclocks()[0].t_
         else:
             self.t_ = float(t_end)
 
