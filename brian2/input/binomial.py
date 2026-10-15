@@ -30,6 +30,42 @@ def _pre_calc_constants(n, p):
     return reverse, q, P, qn, bound
 
 
+def _float_literal(value):
+    # Shortest representation that converts back to the same double. A fixed
+    # number of decimal places would round small probabilities such as qn to
+    # zero (or lose most of their significant digits).
+    return repr(float(value))
+
+
+def _inversion_availability_check(n, p):
+    """
+    Return ``None`` if the inversion algorithm used in the generated code can
+    sample from the binomial distribution B(n, p), or a function raising a
+    ``NotImplementedError`` (to be used as an ``availability_check``) otherwise.
+    """
+    _, _, _, qn, _ = _pre_calc_constants(n, p)
+    # The sequential search starts with the probability qn = (1 - P)**n of
+    # X = 0, and computes all other probabilities from it. If qn underflows to
+    # zero, the accumulated probabilities never reach the uniform random number
+    # and the loop in the generated code does not terminate. If qn is
+    # subnormal, it has reduced precision, which carries over to all
+    # probabilities.
+    if qn >= np.finfo(np.float64).tiny:
+        return None
+    message = (
+        "Cannot generate code to sample from a binomial distribution with "
+        f"n={n} and p={p} without the normal approximation: the inversion "
+        "algorithm starts from the probability max(p, 1-p)**n, which is too "
+        "small to be represented accurately as a double precision number. Use "
+        "'approximate=True', or the 'numpy' code generation target."
+    )
+
+    def availability_check():
+        raise NotImplementedError(message)
+
+    return availability_check
+
+
 def _generate_cython_code(n, p, use_normal, name):
     # Cython implementation
     # Inversion transform sampling
@@ -69,10 +105,10 @@ def _generate_cython_code(n, p, use_normal, name):
             cython_code,
             {
                 "%N%": f"{int(n)}",
-                "%P%": f"{p:.15f}",
-                "%Q%": f"{q:.15f}",
-                "%QN%": f"{qn:.15f}",
-                "%BOUND%": f"{bound:.15f}",
+                "%P%": _float_literal(P),
+                "%Q%": _float_literal(q),
+                "%QN%": _float_literal(qn),
+                "%BOUND%": _float_literal(bound),
                 "%RETURN_VALUE%": f"{int(n)}-X" if reverse else "X",
                 "%NAME%": name,
             },
@@ -130,10 +166,10 @@ def _generate_cpp_code(n, p, use_normal, name):
             cpp_code,
             {
                 "%N%": f"{int(n)}",
-                "%P%": f"{P:.15f}",
-                "%Q%": f"{q:.15f}",
-                "%QN%": f"{qn:.15f}",
-                "%BOUND%": f"{bound:.15f}",
+                "%P%": _float_literal(P),
+                "%Q%": _float_literal(q),
+                "%QN%": _float_literal(qn),
+                "%BOUND%": _float_literal(bound),
                 "%RETURN_VALUE%": f"{int(n)}-X" if reverse else "X",
                 "%NAME%": name,
             },
@@ -204,6 +240,10 @@ class BinomialFunction(Function, Nameable):
 
         self.implementations.add_implementation("numpy", sample_function)
 
+        if use_normal:
+            availability_check = None
+        else:
+            availability_check = _inversion_availability_check(n, p)
         for target, func in BinomialFunction.implementations.items():
             result = func(n=n, p=p, use_normal=use_normal, name=self.name)
             if len(result) == 2:
@@ -215,6 +255,7 @@ class BinomialFunction(Function, Nameable):
                 target,
                 code,
                 dependencies=dependencies,
+                availability_check=availability_check,
                 name=self.name,
                 compiler_kwds=compiler_kwds,
             )
