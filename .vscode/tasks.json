@@ -4,7 +4,8 @@
     {
       "label": "Run Brian tests",
       "type": "shell",
-      "command": "python dev/tools/run_tests.py",
+      "command": "${command:python.interpreterPath}",
+      "args": ["dev/tools/run_tests.py"],
       "group": {
         "kind": "test",
         "isDefault": true
