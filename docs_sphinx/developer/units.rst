@@ -156,7 +156,7 @@ for units and return quantities when appropriate:
 
 ``log``, ``exp``, ``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, ``arctan``, ``sinh``,
 ``cosh``, ``tanh``, ``arcsinh``, ``arccosh``, ``arctanh``, ``diagonal``, ``ravel``, ``trace``,
-``dot``
+``dot``, ``concatenate``
 
 **numpy functions that work unchanged**
 
