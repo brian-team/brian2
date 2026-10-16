@@ -35,6 +35,8 @@ from brian2.units.stdunits import Hz, cm, kHz, mM, ms, mV, nA, nS
 # https://github.com/matplotlib/matplotlib/pull/2591), we make `ravel`
 # return a unitless array and emit a warning explaining the issue.
 use_matplotlib_units_fix = False
+
+
 try:
     import matplotlib
 
@@ -42,6 +44,62 @@ try:
         use_matplotlib_units_fix = True
 except ImportError:
     pass
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize("axis", [0, 1, -1, None])
+@pytest.mark.parametrize("unit", [ms, mV, 1])
+def test_concatenate_quantities(axis, unit):
+    a = np.arange(6).reshape(2, 3)
+    b = a + 6
+    result = brian2.concatenate([a * unit, b * unit], axis=axis)
+    assert have_same_dimensions(result, unit)
+    assert_equal(np.asarray(result / unit), np.concatenate([a, b], axis=axis))
+
+
+@pytest.mark.codegen_independent
+def test_concatenate_units_and_zeros():
+    expected = np.array([0, 1, 2, 3]) * ms
+    for arrays in (
+        [np.zeros(1), np.array([1, 2, 3]) * ms],
+        [np.array([0, 1, 2]) * ms, [3 * ms]],
+    ):
+        result = brian2.concatenate(arrays)
+        assert have_same_dimensions(result, second)
+        assert_allclose(result, expected)
+    result = brian2.concatenate([[] * ms, [1, 2] * ms])
+    assert have_same_dimensions(result, second)
+    assert_allclose(result, [1, 2] * ms)
+    with pytest.raises(DimensionMismatchError):
+        brian2.concatenate([[1] * ms, [2] * mV])
+    with pytest.raises(DimensionMismatchError):
+        brian2.concatenate([[1] * ms, [2]])
+    with pytest.raises(ValueError):
+        brian2.concatenate([])
+    assert_equal(brian2.concatenate([["a"], ["b"]]), ["a", "b"])
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_concatenate_output(dtype):
+    arrays = [np.array([1, 2]) * ms, [3 * ms]]
+    expected = np.concatenate([np.asarray(a) for a in arrays], dtype=dtype)
+    result = brian2.concatenate(arrays, dtype=dtype)
+    assert result.dtype == dtype
+    assert have_same_dimensions(result, second)
+    assert_equal(np.asarray(result), expected)
+    out = Quantity(np.zeros(3, dtype=dtype), dim=second.dim)
+    assert brian2.concatenate(arrays, out=out) is out
+    assert_equal(np.asarray(out), expected)
+    with pytest.raises(TypeError):
+        brian2.concatenate(arrays, dtype=dtype, out=out)
+    for invalid_out in (np.zeros(3), np.zeros(3) * mV):
+        with pytest.raises(DimensionMismatchError):
+            brian2.concatenate(arrays, out=invalid_out)
+        assert_equal(np.asarray(invalid_out), np.zeros(3))
+    unitless_out = np.zeros(3, dtype=np.int64)
+    assert brian2.concatenate([[1, 2], [3]], out=unitless_out) is unitless_out
+    assert_equal(unitless_out, [1, 2, 3])
 
 
 def assert_quantity(q, values, unit):
