@@ -1122,6 +1122,8 @@ class Synapses(Group):
         # Add references to the delay variables with qualified names
         for pathway in self._pathways:
             self.variables.add_reference(f"_{pathway.objname}_delay", pathway)
+        if "pre" in self._synaptic_updaters:
+            self.variables.add_reference("delay", self.pre)
 
         #: Performs numerical integration step
         self.state_updater = None
