@@ -34,6 +34,11 @@ logger = get_logger(__name__)
 
 all_devices = {}
 
+#: Number of random numbers that the Cython target draws at once from numpy's
+#: random number generator for the ``rand()`` and ``randn()`` functions (see
+#: `RuntimeDevice.rand_buffer`)
+RANDOM_BUFFER_SIZE = 20000
+
 
 prefs.register_preferences("devices", "Device preferences")
 
@@ -479,10 +484,13 @@ class RuntimeDevice(Device):
         #: objects). Arrays in this dictionary will disappear as soon as the
         #: last reference to the `Variable` object used as a key is gone
         self.arrays = WeakKeyDictionary()
-        # Note that the buffers only store a pointer to the actual random
-        # numbers -- the buffer will be filled in Cython code
-        self.randn_buffer = np.zeros(1, dtype=np.intp)
-        self.rand_buffer = np.zeros(1, dtype=np.intp)
+        # Buffers of random numbers for the rand() and randn() functions of the
+        # Cython target. The generated code refills them in place when their
+        # index wraps around to 0. Since the device owns their memory, their
+        # content can be stored and restored with the state of numpy's random
+        # number generator, see get_random_state.
+        self.randn_buffer = np.zeros(RANDOM_BUFFER_SIZE, dtype=np.float64)
+        self.rand_buffer = np.zeros(RANDOM_BUFFER_SIZE, dtype=np.float64)
         self.randn_buffer_index = np.zeros(1, dtype=np.int32)
         self.rand_buffer_index = np.zeros(1, dtype=np.int32)
 
@@ -599,6 +607,9 @@ class RuntimeDevice(Device):
         self.randn_buffer_index[:] = 0
 
     def get_random_state(self):
+        # The numbers in the buffers have already been drawn from numpy's
+        # generator, but not all of them have been used yet: their values are
+        # part of the random state, not only the position in the buffer.
         return {
             "numpy_state": np.random.get_state(),
             "rand_buffer_index": np.array(self.rand_buffer_index),
@@ -609,10 +620,29 @@ class RuntimeDevice(Device):
 
     def set_random_state(self, state):
         np.random.set_state(state["numpy_state"])
-        self.rand_buffer_index[:] = state["rand_buffer_index"]
-        self.rand_buffer[:] = state["rand_buffer"]
-        self.randn_buffer_index[:] = state["randn_buffer_index"]
-        self.randn_buffer[:] = state["randn_buffer"]
+        for name in ["rand", "randn"]:
+            # Copy into the existing arrays, the generated code refers to them
+            buffer = getattr(self, f"{name}_buffer")
+            buffer_index = getattr(self, f"{name}_buffer_index")
+            stored_buffer = np.asarray(state[f"{name}_buffer"])
+            buffer_index[:] = state[f"{name}_buffer_index"]
+            if stored_buffer.shape == buffer.shape:
+                buffer[:] = stored_buffer
+            elif buffer_index[0] != 0:
+                # States stored by earlier versions of Brian contain the memory
+                # address of the buffer instead of its content. This address
+                # cannot be used, so the buffer will be refilled instead. With
+                # an index of 0, the buffer was going to be refilled anyway and
+                # the state is restored exactly.
+                logger.warn(
+                    "The stored random state does not contain the numbers "
+                    f"buffered for the {name}() function (it was probably "
+                    "stored with an earlier version of Brian). The buffer "
+                    "will be refilled from the restored random number "
+                    "generator, the random numbers will therefore differ "
+                    "from the ones of the original simulation."
+                )
+                buffer_index[:] = 0
 
 
 class Dummy:
