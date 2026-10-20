@@ -26,6 +26,7 @@ _numpy.import_array()
 cdef extern from "numpy/ndarraytypes.h":
     void PyArray_CLEARFLAGS(_numpy.PyArrayObject *arr, int flags)
 from libc.stdlib cimport free
+from libc.string cimport memcpy
 
 cdef extern from "numpy/npy_math.h":
     bint npy_isinf(double x)
