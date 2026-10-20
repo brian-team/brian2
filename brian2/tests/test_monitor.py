@@ -310,6 +310,31 @@ def test_synapses_state_monitor():
 
 
 @pytest.mark.standalone_compatible
+@pytest.mark.parametrize("scalar_delay", [False, True])
+@pytest.mark.parametrize("extra_pathway", [False, True])
+def test_synapses_delay_monitor(scalar_delay, extra_pathway):
+    G = NeuronGroup(2, "v : 1", threshold="False", reset="")
+    on_pre = {"pre": "v_post += 1"}
+    if extra_pathway:
+        on_pre["other"] = "v_post += 2"
+    delays = {"pre": 2 * ms} if scalar_delay else {}
+    S = Synapses(G, G, on_pre=on_pre, on_post="v_pre += 1", delay=delays)
+    S.connect()
+    if not scalar_delay:
+        S.delay = "(i + 2*j)*ms"
+    S.post.delay = "(4 + i + j)*ms"
+    monitor = StateMonitor(S, "delay", record=[0, 1, 2, 3])
+    pre_monitor = StateMonitor(S.pre, "delay", record=[0, 1, 2, 3])
+    post_monitor = StateMonitor(S.post, "delay", record=[0, 1, 2, 3])
+    net = Network(G, S, monitor, pre_monitor, post_monitor)
+    net.run(1 * ms)
+    expected = np.full(4, 2.0) if scalar_delay else np.array([0, 2, 1, 3])
+    assert_allclose(monitor.delay / ms, np.tile(expected[:, None], (1, 10)))
+    assert_array_equal(monitor.delay, pre_monitor.delay)
+    assert_allclose(post_monitor.delay / ms, np.tile([[4], [5], [5], [6]], (1, 10)))
+
+
+@pytest.mark.standalone_compatible
 def test_state_monitor():
     # Unique name to get the warning even for repeated runs of the test
     unique_name = f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}"
