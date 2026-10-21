@@ -55,6 +55,8 @@ def test_concatenate_quantities(axis, unit):
     result = brian2.concatenate([a * unit, b * unit], axis=axis)
     assert have_same_dimensions(result, unit)
     assert_equal(np.asarray(result / unit), np.concatenate([a, b], axis=axis))
+    # Check whether we have the alias as well
+    assert brian2.concat is brian2.concatenate
 
 
 @pytest.mark.codegen_independent

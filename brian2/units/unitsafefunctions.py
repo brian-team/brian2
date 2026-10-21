@@ -47,6 +47,7 @@ __all__ = [
     "arange",
     "linspace",
     "ptp",
+    "concat",
     "concatenate",
 ]
 
@@ -90,6 +91,10 @@ def concatenate(arrays, axis=0, out=None, **kwargs):
         **kwargs,
     )
     return out if out is not None else Quantity(result, dim=dim)
+
+
+# Alias as introduced by numpy 2.0
+concat = concatenate
 
 
 def where(condition, *args, **kwds):  # pylint: disable=C0111
