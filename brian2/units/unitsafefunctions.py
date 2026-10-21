@@ -51,7 +51,7 @@ __all__ = [
 ]
 
 
-def concatenate(arrays, axis=0, out=None, *, dtype=None, casting="same_kind"):
+def concatenate(arrays, axis=0, out=None, **kwargs):
     """
     Join arrays along an existing axis, preserving their common dimensions.
 
@@ -61,7 +61,7 @@ def concatenate(arrays, axis=0, out=None, *, dtype=None, casting="same_kind"):
     """
     arrays = list(arrays)
     if not arrays:
-        return np.concatenate(arrays, axis=axis, out=out, dtype=dtype, casting=casting)
+        return np.concat(arrays, axis=axis, out=out, **kwargs)
     dimensions = []
     for array in arrays:
         try:
@@ -82,13 +82,12 @@ def concatenate(arrays, axis=0, out=None, *, dtype=None, casting="same_kind"):
             get_dimensions(out), dim, "Output has incorrect dimensions"
         )
     if dim is DIMENSIONLESS:
-        return np.concatenate(arrays, axis=axis, out=out, dtype=dtype, casting=casting)
+        return np.concatenate(arrays, axis=axis, out=out, **kwargs)
     result = np.concatenate(
         [np.asarray(array) for array in arrays],
         axis=axis,
         out=None if out is None else np.asarray(out),
-        dtype=dtype,
-        casting=casting,
+        **kwargs,
     )
     return out if out is not None else Quantity(result, dim=dim)
 
