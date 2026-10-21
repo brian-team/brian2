@@ -1,6 +1,100 @@
 Release notes
 =============
 
+Brian 2.11.0
+------------
+New features
+~~~~~~~~~~~~
+- `Statements` and `Expression` objects wrapping strings can now be used instead of
+  respective strings (e.g. for thresholds, resets, synaptic connections, ...). These
+  objects now support replacing variable names in the same way as `Equations`
+  (:issue:`1768`, :issue:`1886`, :issue:`1887`). Thanks to
+  Nishant Raghuvanshi for contributing to this feature.
+- Brian now offers a unit-aware version of numpy's `.concatenate`/`.concat` function
+  (:issue:`1895`). Thanks to antonsoo for implementing this feature.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Better error messages for incorrect statements (:issue:`1804`). Thanks to Hasnain
+  Habib Sayed for contributing this improvement.
+- Performance improvement, reducing the simulation loop overhead (:issue:`1752`). Thanks
+  to Ayush Kumar for contributing this.
+- Improved diagnostics for syntax errors in equations (e.g. missing unit definition).
+  Thanks to Lexing Zhang for implementing this feature :issue:`1798`
+- The clock time is now correctly set when `Network.stop` is used :issue:`1881`.
+  Thanks to Arthur031221 for reporting and fixing this issue.
+- Synaptic delays can now be recorded by a `StateMonitor` like any other variable
+  (:issue:`1289`). Note that delays cannot change during a run, so there is usually no
+  need for recording them. Thanks to antonsoo for fixing this issue.
+- Fix a bug where using `Network.restore` with ``restore_random_state=True`` under
+  Cython would not correctly restore the random number state or even crash
+  (:issue:`1896`). Thanks to AxelNoun for reporting and fixing this issue.
+- For C++ compilation, compilation now uses c++17 instead of c++11 by default
+  (:issue:`1853`). Thanks to Weiyuan Du for contributing this feature.
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Update the development guidelines to be in line with our ruff usage and fix stale
+  references (:issue:`1885`). Thanks to AxelNoun for contributing these improvements.
+- Remove obsolete settings from Brian's dev container (:issue:`1884`) and add a VS Code
+  task to run tests :issue:`1888`. Thanks to Anish-185 for contributing these.
+
+Contributions
+~~~~~~~~~~~~~
+GitHub code, documentation, and issue contributions (ordered by the number of
+interactions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Ayush Kumar (`@ayush4874 <https://github.com/ayush4874>`_)
+* Nishant Raghuvanshi (`@nishantraghuvanshi <https://github.com/nishantraghuvanshi>`_)
+* Mrigesh Thakur (`@Legend101Zz <https://github.com/Legend101Zz>`_)
+* AxelNoun (`@AxelNoun <https://github.com/AxelNoun>`_)
+* SANCHIT KUMAR (`@Sanchit2662 <https://github.com/Sanchit2662>`_)
+* `@tharun-mk <https://github.com/tharun-mk>`_
+* Anish (`@Anish-185 <https://github.com/Anish-185>`_)
+* Mushkaan Rana (`@mushkanrana73 <https://github.com/mushkanrana73>`_)
+* `@pradeeep-pal <https://github.com/pradeeep-pal>`_
+* Hasnain Habib Sayed (`@has9sayed <https://github.com/has9sayed>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Weiyuan Du (`@SinYita <https://github.com/SinYita>`_)
+* Daria Agafonova (`@viranovskaya <https://github.com/viranovskaya>`_)
+* Utkarsha Dunde (`@Utkarsha2811 <https://github.com/Utkarsha2811>`_)
+* Lexing Zhang (`@lexing-2026 <https://github.com/lexing-2026>`_)
+* Arya bhatt (`@AryaBhatt45 <https://github.com/AryaBhatt45>`_)
+* Arthur (`@Arthur031221 <https://github.com/Arthur031221>`_)
+* vaishnavi baghel (`@vshnvii <https://github.com/vshnvii>`_)
+* `@xBelisarius <https://github.com/xBelisarius>`_
+* Étienne Mollier (`@emollier <https://github.com/emollier>`_)
+* Dhiraj Rathod (`@dhiraj-143r <https://github.com/dhiraj-143r>`_)
+* `@cecelia-byte <https://github.com/cecelia-byte>`_
+* Anthony (`@antonsoo <https://github.com/antonsoo>`_)
+* Carlo Castoldi (`@carlocastoldi <https://github.com/carlocastoldi>`_)
+* Aditya Mishra (`@jane-street <https://github.com/jane-street>`_)
+* Sotirios Panagiotou (`@spanag <https://github.com/spanag>`_)
+* Sukaran Gulati (`@sukarxn <https://github.com/sukarxn>`_)
+* `@Cairo09 <https://github.com/Cairo09>`_
+* Björn Lindqvist (`@bjourne <https://github.com/bjourne>`_)
+* Çağatay Dişli (`@cagataydisli <https://github.com/cagataydisli>`_)
+* hillsberg (`@hillsberg3008 <https://github.com/hillsberg3008>`_)
+* Meet R Potdar (`@meetpotdar777 <https://github.com/meetpotdar777>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* Chetan Sahney (`@Chetansahney <https://github.com/Chetansahney>`_)
+* Syed Hussain Ather (`@HussainAther <https://github.com/HussainAther>`_)
+* Aslan (`@aslansd <https://github.com/aslansd>`_)
+* Joel Dietz (`@fractastical <https://github.com/fractastical>`_)
+* Guilhem Saurel (`@nim65s <https://github.com/nim65s>`_)
+* Hong Zhu (`@Jasmine969 <https://github.com/Jasmine969>`_)
+* Yamini Chittygori (`@Yamzxx <https://github.com/Yamzxx>`_)
+* Peter Corke (`@petercorke <https://github.com/petercorke>`_)
+* `@mahipalimkar <https://github.com/mahipalimkar>`_
+* Ljubica Cimeša (`@LjubicaCimesa <https://github.com/LjubicaCimesa>`_)
+* Tushar (`@smalltimer <https://github.com/smalltimer>`_)
+* Abhijit Das (`@Sukuna0007Abhi <https://github.com/Sukuna0007Abhi>`_)
+* sanchit_sehgal (`@sanchitsehgal8 <https://github.com/sanchitsehgal8>`_)
+* Paras Jain (`@Parasjain1234 <https://github.com/Parasjain1234>`_)
+* Kevin Rajan (`@kvnloo <https://github.com/kvnloo>`_)
+
 Brian 2.10.1
 ------------
 This release fixes a bug, where the names of clocks in `~.Group.run_regularly` and
