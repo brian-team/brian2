@@ -74,13 +74,13 @@
       "name": "numpy",
       "@type": "SoftwareApplication",
       "runtimePlatform": "Python 3",
-      "version": ">=2.0.0"
+      "version": ">=2.3.0"
     },
     {
       "name": "cython",
       "@type": "SoftwareApplication",
       "runtimePlatform": "Python 3",
-      "version": "<3.1.4,>=0.29.21"
+      "version": ">=0.29.21"
     },
     {
       "name": "sympy",
@@ -92,7 +92,7 @@
       "name": "pyparsing",
       "@type": "SoftwareApplication",
       "runtimePlatform": "Python 3",
-      "version": ">=3,!=3.2.4"
+      "version": "!=3.2.4,>=3"
     },
     {
       "name": "jinja2",
@@ -453,8 +453,110 @@
       "givenName": "Samuele De",
       "familyName": "Cristofaro",
       "identifier": "https://github.com/De-Cri"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Ayush",
+      "familyName": "Kumar",
+      "identifier": "https://github.com/ayush4874"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Arybhatt",
+      "identifier": "https://github.com/arybhatt4533"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Sanchit",
+      "familyName": "Kumar",
+      "identifier": "https://github.com/Sanchit2662"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Hasnain Habib",
+      "familyName": "Sayed",
+      "identifier": "https://github.com/has9sayed"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Vaishnavi",
+      "familyName": "Baghel",
+      "identifier": "https://github.com/vshnvii"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Utkarsha",
+      "familyName": "Dunde",
+      "identifier": "https://github.com/Utkarsha2811"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Cairo09",
+      "identifier": "https://github.com/Cairo09"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Guilhem",
+      "familyName": "Saurel",
+      "identifier": "https://github.com/nim65s"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Weiyuan",
+      "familyName": "Du",
+      "identifier": "https://github.com/SinYita"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Aditya",
+      "familyName": "Mishra",
+      "identifier": "https://github.com/jane-street"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Carlo",
+      "familyName": "Castoldi",
+      "identifier": "https://github.com/carlocastoldi"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Daria",
+      "familyName": "Agafonova",
+      "identifier": "https://github.com/viranovskaya"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Anish",
+      "identifier": "https://github.com/Anish-185"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Nishant",
+      "familyName": "Raghuvanshi",
+      "identifier": "https://github.com/nishantraghuvanshi"
+    },
+    {
+      "@type": "Person",
+      "givenName": "AxelNoun",
+      "identifier": "https://github.com/AxelNoun"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Lexing",
+      "familyName": "Zhang",
+      "identifier": "https://github.com/lexing-2026"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Arthur",
+      "identifier": "https://github.com/Arthur031221"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Anthony",
+      "identifier": "https://github.com/antonsoo"
     }
   ],
-  "version": "2.10.1",
-  "softwareVersion": "2.10.1"
+  "version": "2.11.0",
+  "softwareVersion": "2.11.0"
 }
