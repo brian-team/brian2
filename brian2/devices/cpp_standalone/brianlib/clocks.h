@@ -1,7 +1,6 @@
 #ifndef _BRIAN_CLOCKS_H
 #define _BRIAN_CLOCKS_H
-#include<stdlib.h>
-#include<iostream>
+#include<stddef.h>
 #include<algorithm>
 #include<brianlib/stdint_compat.h>
 #include<math.h>

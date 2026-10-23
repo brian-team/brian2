@@ -1,4 +1,5 @@
 #include "spikequeue.h"
+#include<iostream>
 
 // Operator to serialize the spike queue state to an output stream
 ostream& operator<<(ostream& os, const CSpikeQueue& queue)
