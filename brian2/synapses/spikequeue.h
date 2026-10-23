@@ -1,10 +1,10 @@
 #ifndef C_SPIKEQUEUE_H
 #define C_SPIKEQUEUE_H
-#include<iostream>
+#include<iosfwd>
 #include<vector>
-#include<map>
 #include<iterator>
 #include<algorithm>
+#include<utility>
 #include"stdint_compat.h"
 #include<assert.h>
 using namespace std;

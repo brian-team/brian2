@@ -2,7 +2,6 @@
 #define _BRIAN_COMMON_MATH_H
 
 #include<limits>
-#include<stdlib.h>
 
 #ifdef _MSC_VER
 #define INFINITY (std::numeric_limits<double>::infinity())
