@@ -11,6 +11,54 @@
         "isDefault": true
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Run Brian tests (numpy)",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": [
+        "-c",
+        "import sys, brian2; sys.exit(0 if brian2.test('numpy') else 1)"
+      ],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Ruff check",
+      "type": "shell",
+      "command": "ruff",
+      "args": ["check", "--fix", "brian2"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Ruff format",
+      "type": "shell",
+      "command": "ruff",
+      "args": ["format", "brian2"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run pre-commit hooks",
+      "type": "shell",
+      "command": "pre-commit",
+      "args": ["run", "--all-files"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Profile current file",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m cProfile -o /tmp/brian2_profile.pstats \"${file}\" && ${command:python.interpreterPath} -m snakeviz --hostname 0.0.0.0 --port 8080 /tmp/brian2_profile.pstats",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
     }
   ]
 }

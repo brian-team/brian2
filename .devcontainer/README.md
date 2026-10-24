@@ -10,7 +10,16 @@ Cloning the Brian repository and opening it in VS Code should result in a prompt
 
 Once the container is built, there will be another prompt saying that [`pylance`](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance) has been installed and asking if you wish to reload the container to activate it (click `Yes` to enable Python language support). You now have an isolated development environment (which will not conflict with packages installed elsewhere on your system) with all the dependencies needed for Brian already installed.
 
-To run the test suite, open the Command Palette (`Ctrl+Shift+P`) and choose **Tasks: Run Test Task**. This runs `dev/tools/run_tests.py`, i.e. the full non-standalone test suite, which takes several minutes.
+Developer tasks, debugging and profiling
+----------------------------------------
+
+The container installs the Python debugger, Ruff, Jupyter and ``snakeviz``. Shared VS Code tasks and launch configurations live in ``.vscode/``.
+
+**Tests** — Command Palette → **Tasks: Run Test Task** runs `dev/tools/run_tests.py` (the full non-standalone suite, several minutes). **Run Brian tests (numpy)** is a faster variant that only covers the numpy runtime target, which is usually enough while iterating. To debug tests, use **Run and Debug** and choose **Python: Debug pytest (current file)** or **Python: Debug Brian tests**.
+
+**Formatting and linting** — Python files use Ruff on save, matching the ``ruff-check`` / ``ruff-format`` pre-commit hooks. **Tasks: Run Build Task** runs ``pre-commit run --all-files``. **Ruff check** and **Ruff format** are also available if you want to run those steps on their own.
+
+**Profiling** — open a Python file, then run the **Profile current file** task. It writes a ``cProfile`` dump and opens `snakeviz` on port 8080 (forwarded from the container).
 
 The container environment can be customised in many ways, such as with [dotfiles](https://code.visualstudio.com/docs/remote/containers#_personalizing-with-dotfile-repositories) if hosted in a public repository. Further documentation for development in containers can be found here: https://code.visualstudio.com/docs/remote/containers.
 
