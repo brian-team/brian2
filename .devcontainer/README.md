@@ -19,7 +19,7 @@ The container installs the Python debugger, Ruff, Jupyter and ``snakeviz``. Shar
 
 **Formatting and linting** — Python files use Ruff on save, matching the ``ruff-check`` / ``ruff-format`` pre-commit hooks. **Tasks: Run Build Task** runs ``pre-commit run --all-files``. **Ruff check** and **Ruff format** are also available if you want to run those steps on their own.
 
-**Profiling** — open a Python file, then run the **Profile current file** task. It writes a ``cProfile`` dump and opens `snakeviz` on port 8080 (forwarded from the container).
+**Profiling** — open a Python file, then run the **Profile current file** task. It writes a ``cProfile`` dump and starts `snakeviz` in server-only mode on port 8080 (forwarded from the container). Open the forwarded URL in the local browser; there is no browser inside the container.
 
 The container environment can be customised in many ways, such as with [dotfiles](https://code.visualstudio.com/docs/remote/containers#_personalizing-with-dotfile-repositories) if hosted in a public repository. Further documentation for development in containers can be found here: https://code.visualstudio.com/docs/remote/containers.
 

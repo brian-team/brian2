@@ -27,7 +27,15 @@
       "label": "Ruff check",
       "type": "shell",
       "command": "ruff",
-      "args": ["check", "--fix", "brian2"],
+      "args": [
+        "check",
+        "--fix",
+        "--exclude",
+        "brian2/tests",
+        "--exclude",
+        "**/__init__.py",
+        "brian2"
+      ],
       "group": "build",
       "problemMatcher": []
     },
@@ -53,7 +61,7 @@
     {
       "label": "Profile current file",
       "type": "shell",
-      "command": "${command:python.interpreterPath} -m cProfile -o /tmp/brian2_profile.pstats \"${file}\" && ${command:python.interpreterPath} -m snakeviz --hostname 0.0.0.0 --port 8080 /tmp/brian2_profile.pstats",
+      "command": "${command:python.interpreterPath} -m cProfile -o /tmp/brian2_profile.pstats \"${file}\" && ${command:python.interpreterPath} -m snakeviz --server --hostname 0.0.0.0 --port 8080 /tmp/brian2_profile.pstats",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
