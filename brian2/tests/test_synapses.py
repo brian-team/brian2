@@ -842,6 +842,30 @@ def test_constant_variable_subexpression_in_synapses():
 
 
 @pytest.mark.standalone_compatible
+def test_state_variable_get_all_copy():
+    # Synaptic variables are stored in dynamic arrays, whose memory is
+    # reallocated when new synapses are created: S.w[:] has to return a copy
+    G = NeuronGroup(5, "")
+    S = Synapses(G, G, "w : 1")
+    S.connect(j="i")
+    S.w = "1.0*i"
+    w = S.w[:]
+    pre = S.i[:]
+    assert not np.shares_memory(w, S.variables["w"].get_value())
+    assert not np.shares_memory(pre, S.variables["_synaptic_pre"].get_value())
+    S.connect(j="(i + 1) % N")
+    assert_equal(w, np.arange(5))
+    assert_equal(pre, np.arange(5))
+    # Changing the returned values does not change the synapses
+    w[:] = -1
+    pre[:] = 0
+    assert_equal(S.w[:5], np.arange(5))
+    assert_equal(S.i[:5], np.arange(5))
+    # Changing a subset of values has to use indexing on the variable itself
+    S.w["w < 2"] = 10
+    assert_equal(S.w[:], [10, 10, 2, 3, 4, 10, 10, 10, 10, 10])
+
+
 def test_nested_subexpression_references():
     """
     Assure that subexpressions in targeted groups are handled correctly.
@@ -3807,6 +3831,7 @@ if __name__ == "__main__":
     test_state_variable_indexing()
     test_indices()
     test_subexpression_references()
+    test_state_variable_get_all_copy()
     test_nested_subexpression_references()
     test_constant_variable_subexpression_in_synapses()
     test_equations_unit_check()
