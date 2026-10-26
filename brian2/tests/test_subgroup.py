@@ -117,6 +117,19 @@ def test_state_variables_group_as_index():
 
 
 @pytest.mark.codegen_independent
+def test_state_variables_boolean_index():
+    G = NeuronGroup(10, "v : 1")
+    G.v = np.arange(10)
+    SG = G[3:7]
+    assert_equal(SG.v[SG.v > 4], [5, 6])
+    SG.v[SG.v > 4] = 0
+    assert_equal(G.v[:], [0, 1, 2, 3, 4, 0, 0, 7, 8, 9])
+    # The mask refers to the subgroup, not to the full group
+    with pytest.raises(IndexError):
+        SG.v[np.ones(10, dtype=bool)]
+
+
+@pytest.mark.codegen_independent
 def test_state_variables_group_as_index_problematic():
     G = NeuronGroup(10, "v : 1")
     SG = G[4:9]
@@ -905,6 +918,7 @@ if __name__ == "__main__":
     test_state_variables_simple()
     test_state_variables_string_indices()
     test_state_variables_group_as_index()
+    test_state_variables_boolean_index()
     test_state_variables_group_as_index_problematic()
     test_state_monitor()
     test_shared_variable()

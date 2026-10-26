@@ -250,7 +250,9 @@ regardless of the number of synapses it receives::
 
 Note that it is also possible to index synaptic variables with a single index
 (integer, slice, or array), but in this case synaptic indices have to be
-provided.
+provided. A boolean array with one entry per synapse selects the synapses where
+it is ``True``, e.g. ``S.w[S.j >= 10]`` returns the weights of all synapses
+targeting neurons with an index of 10 or more.
 
 The ``N_incoming`` and ``N_outgoing`` variables give access to the
 total number of incoming/outgoing synapses for a neuron, but this access is given

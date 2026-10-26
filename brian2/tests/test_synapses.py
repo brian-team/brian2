@@ -770,6 +770,36 @@ def test_state_variable_indexing():
         S.w.__getitem__(1.5)
 
 
+@pytest.mark.codegen_independent
+def test_state_variable_boolean_indexing():
+    # See github issue #1844
+    G = NeuronGroup(10, "v : 1")
+    S = Synapses(G[:8], G, "w : 1")
+    S.connect(i=[0, 0, 1, 3, 5, 7, 7], j=[0, 9, 4, 8, 2, 9, 5])
+    S.w = np.arange(7)
+
+    mask = S.j >= 8
+    assert_equal(S.j[mask], [9, 8, 9])
+    assert_equal(S.i[mask], [0, 3, 7])
+    assert_equal(S.w[mask], [1, 3, 5])
+    assert_equal(S.w[list(mask)], [1, 3, 5])
+    assert_equal(S.indices[mask], [1, 3, 5])
+    assert len(S.w[np.zeros(7, dtype=bool)]) == 0
+
+    S.w[mask] = -1
+    assert_equal(S.w[:], [0, -1, 2, -1, 4, -1, 6])
+    S.w[S.w < 0] = [10, 11, 12]
+    assert_equal(S.w[:], [0, 10, 2, 11, 4, 12, 6])
+
+    # The mask needs one entry per synapse
+    with pytest.raises(IndexError):
+        S.w[mask[:-1]]
+    with pytest.raises(IndexError):
+        S.w[np.ones(8, dtype=bool)] = 0
+    with pytest.raises(IndexError):
+        S.w[np.ones((7, 1), dtype=bool)]
+
+
 def test_indices():
     G = NeuronGroup(10, "v : 1")
     S = Synapses(G, G, "")
@@ -3805,6 +3835,7 @@ if __name__ == "__main__":
     reinit_and_delete()
     test_state_variable_assignment()
     test_state_variable_indexing()
+    test_state_variable_boolean_indexing()
     test_indices()
     test_subexpression_references()
     test_nested_subexpression_references()
