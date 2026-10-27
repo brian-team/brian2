@@ -841,7 +841,6 @@ def test_constant_variable_subexpression_in_synapses():
     assert np.sum((S.v2 - S.v1) ** 2) > 1e-10
 
 
-@pytest.mark.standalone_compatible
 def test_state_variable_get_all_copy():
     # Synaptic variables are stored in dynamic arrays, whose memory is
     # reallocated when new synapses are created: S.w[:] has to return a copy
@@ -866,6 +865,7 @@ def test_state_variable_get_all_copy():
     assert_equal(S.w[:], [10, 10, 2, 3, 4, 10, 10, 10, 10, 10])
 
 
+@pytest.mark.standalone_compatible
 def test_nested_subexpression_references():
     """
     Assure that subexpressions in targeted groups are handled correctly.
