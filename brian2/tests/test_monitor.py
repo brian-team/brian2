@@ -298,8 +298,9 @@ def test_synapses_state_monitor():
     # record from a Synapses object (all synapses connecting to neuron 1)
     synapse_mon = StateMonitor(S, "w", record=S[:, 1])
     synapse_mon2 = StateMonitor(S, "w", record=S["j==1"])
+    synapse_mon3 = StateMonitor(S, "w", record=S[S.j == 1])
 
-    net = Network(G, S, synapse_mon, synapse_mon2)
+    net = Network(G, S, synapse_mon, synapse_mon2, synapse_mon3)
     net.run(10 * ms)
     # Synaptic variables
     assert_allclose(synapse_mon[S[0, 1]].w, 1 * nS)
@@ -307,6 +308,8 @@ def test_synapses_state_monitor():
     assert_allclose(synapse_mon2[S[0, 1]].w, 1 * nS)
     assert_allclose(synapse_mon2[S["i==0 and j==1"]].w, 1 * nS)
     assert_allclose(synapse_mon2.w[1], 1 * nS)
+    assert_array_equal(synapse_mon3.record, [1, 3])
+    assert_allclose(synapse_mon3.w, 1 * nS)
 
 
 @pytest.mark.standalone_compatible

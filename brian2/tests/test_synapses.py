@@ -784,6 +784,7 @@ def test_state_variable_boolean_indexing():
     assert_equal(S.w[mask], [1, 3, 5])
     assert_equal(S.w[list(mask)], [1, 3, 5])
     assert_equal(S.indices[mask], [1, 3, 5])
+    assert_equal(S[mask]._indices(), [1, 3, 5])
     assert len(S.w[np.zeros(7, dtype=bool)]) == 0
 
     S.w[mask] = -1
