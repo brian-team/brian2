@@ -215,6 +215,34 @@ def _same_function(func1, func2):
     return func1 is func2
 
 
+def boolean_index_to_indices(mask, size):
+    """
+    Convert a boolean index into the integer indices of its ``True`` entries.
+
+    As in numpy, the boolean index needs one entry per indexed element.
+    Without this check, a shorter mask would silently select a subset of the
+    elements, and a longer one could refer to elements that do not exist.
+
+    Parameters
+    ----------
+    mask : `numpy.ndarray`
+        The boolean index.
+    size : int
+        The number of elements that are indexed.
+
+    Returns
+    -------
+    indices : `numpy.ndarray`
+        The indices of the ``True`` entries in ``mask``.
+    """
+    if mask.shape != (size,):
+        raise IndexError(
+            f"Boolean index of shape {mask.shape} does not match the number "
+            f"of indexed elements ({size})."
+        )
+    return np.flatnonzero(mask)
+
+
 class Indexing:
     """
     Object responsible for calculating flat index arrays from arbitrary group-
@@ -275,7 +303,11 @@ class Indexing:
             else:
                 index_array = np.asarray(item)
                 if index_array.dtype == bool:
-                    index_array = np.nonzero(index_array)[0]
+                    if index_var == "_idx":
+                        size = self.N.item()
+                    else:
+                        size = index_var.size
+                    index_array = boolean_index_to_indices(index_array, size)
                 elif not np.issubdtype(index_array.dtype, np.signedinteger):
                     raise TypeError(
                         "Indexing is only supported for integer "

@@ -27,7 +27,7 @@ from brian2.equations.equations import (
     Equations,
     check_subexpressions,
 )
-from brian2.groups.group import CodeRunner, Group, get_dtype
+from brian2.groups.group import CodeRunner, Group, boolean_index_to_indices, get_dtype
 from brian2.groups.neurongroup import (
     SubexpressionUpdater,
     check_identifier_pre_post,
@@ -687,6 +687,10 @@ class SynapticIndexing:
                 final_indices = np.arange(start, stop, step, dtype=np.int32)
             else:
                 final_indices = np.asarray(index)
+                if final_indices.dtype == bool:
+                    final_indices = boolean_index_to_indices(
+                        final_indices, len(self.synaptic_pre.get_value())
+                    )
         elif isinstance(index, tuple):
             if len(index) == 2:  # two indices (pre- and postsynaptic cell)
                 index = (index[0], index[1], slice(None))
