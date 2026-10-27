@@ -10,7 +10,7 @@ from brian2.core.variables import (
     Variable,
     get_dtype_str,
 )
-from brian2.devices.device import all_devices
+from brian2.devices.device import RANDOM_BUFFER_SIZE, all_devices
 from brian2.parsing.bast import brian_dtype_from_dtype
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.stringtools import deindent, indent, word_substitute
@@ -555,21 +555,20 @@ DEFAULT_FUNCTIONS["exprel"].implementations.add_implementation(
     name="_exprel",
     availability_check=C99Check("exprel"),
 )
-_BUFFER_SIZE = 20000
+_BUFFER_SIZE = RANDOM_BUFFER_SIZE
 
+# The buffer is the data of a numpy array owned by the runtime device
+# (RuntimeDevice.rand_buffer). It is refilled in place (instead of being
+# replaced by newly allocated memory), so that the device can store and restore
+# its content, see RuntimeDevice.get_random_state.
 rand_code = """
 cdef double _rand(int _idx):
-    cdef double **buffer_pointer = <double**>_namespace_rand_buffer
-    cdef double *buffer = buffer_pointer[0]
+    cdef double *buffer = _namespace_rand_buffer
     cdef _numpy.ndarray _new_rand
 
     if(_namespace_rand_buffer_index[0] == 0):
-        if buffer != NULL:
-            free(buffer)
         _new_rand = _numpy.random.rand(_BUFFER_SIZE)
-        buffer = <double *>_numpy.PyArray_DATA(_new_rand)
-        PyArray_CLEARFLAGS(<_numpy.PyArrayObject*>_new_rand, _numpy.NPY_ARRAY_OWNDATA)
-        buffer_pointer[0] = buffer
+        memcpy(buffer, _numpy.PyArray_DATA(_new_rand), _BUFFER_SIZE * sizeof(double))
 
     cdef double val = buffer[_namespace_rand_buffer_index[0]]
     _namespace_rand_buffer_index[0] += 1

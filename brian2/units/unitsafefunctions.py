@@ -11,6 +11,7 @@ from .fundamentalunits import (
     Quantity,
     check_units,
     fail_for_dimension_mismatch,
+    get_dimensions,
     is_dimensionless,
     wrap_function_dimensionless,
     wrap_function_keep_dimensions,
@@ -46,7 +47,54 @@ __all__ = [
     "arange",
     "linspace",
     "ptp",
+    "concat",
+    "concatenate",
 ]
+
+
+def concatenate(arrays, axis=0, out=None, **kwargs):
+    """
+    Join arrays along an existing axis, preserving their common dimensions.
+
+    Arguments are the same as for `numpy.concatenate`. All input arrays must
+    have matching dimensions (unitless zeros are allowed). If provided, `out`
+    must have the same dimensions as the result.
+    """
+    arrays = list(arrays)
+    if not arrays:
+        return np.concat(arrays, axis=axis, out=out, **kwargs)
+    dimensions = []
+    for array in arrays:
+        try:
+            dimensions.append(get_dimensions(array))
+        except TypeError:
+            dimensions.append(None)  # e.g. string arrays accepted by numpy
+    dim = next(
+        (d for d in dimensions if d is not None and d is not DIMENSIONLESS),
+        DIMENSIONLESS,
+    )
+    if dim is not DIMENSIONLESS:
+        for array in arrays:
+            fail_for_dimension_mismatch(
+                array, dim, "Concatenated arrays need matching dimensions"
+            )
+    if out is not None:
+        fail_for_dimension_mismatch(
+            get_dimensions(out), dim, "Output has incorrect dimensions"
+        )
+    if dim is DIMENSIONLESS:
+        return np.concatenate(arrays, axis=axis, out=out, **kwargs)
+    result = np.concatenate(
+        [np.asarray(array) for array in arrays],
+        axis=axis,
+        out=None if out is None else np.asarray(out),
+        **kwargs,
+    )
+    return out if out is not None else Quantity(result, dim=dim)
+
+
+# Alias as introduced by numpy 2.0
+concat = concatenate
 
 
 def where(condition, *args, **kwds):  # pylint: disable=C0111

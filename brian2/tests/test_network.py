@@ -1,6 +1,8 @@
 import copy
 import logging
 import os
+import signal
+import subprocess
 import tempfile
 import uuid
 import weakref
@@ -27,6 +29,7 @@ from brian2 import (
     StateMonitor,
     Synapses,
     TimedArray,
+    _InterruptHandler,
     collect,
     defaultclock,
     magic_network,
@@ -37,6 +40,7 @@ from brian2 import (
     restore,
     run,
     second,
+    seed,
     start_scope,
     stop,
     store,
@@ -44,6 +48,7 @@ from brian2 import (
 )
 from brian2.core.network import schedule_propagation_offset, scheduling_summary
 from brian2.devices.device import (
+    RANDOM_BUFFER_SIZE,
     Device,
     RuntimeDevice,
     all_devices,
@@ -1531,6 +1536,133 @@ def test_restore_with_random_state():
     assert_equal(old_v, group.v)
 
 
+# Number of values drawn by each rand() or randn() assignment in the tests below.
+# The Cython target draws these values from numpy in batches of
+# RANDOM_BUFFER_SIZE values, the first assignment therefore leaves 51 values in
+# the buffer and each following assignment refills it. The number is odd, so
+# that a generator that produces normally distributed values in pairs has a
+# value left over when the state is stored.
+_RANDOM_GROUP_SIZE = RANDOM_BUFFER_SIZE - 51
+
+
+@pytest.mark.skipif(
+    not isinstance(get_device(), RuntimeDevice),
+    reason="Getting/setting random number state only supported for runtime device.",
+)
+@pytest.mark.parametrize("func", ["rand", "randn"])
+def test_restore_random_state_after_buffer_refills(func):
+    # The restored state has to include the values that have been drawn from
+    # numpy but not used yet. seed() also empties the buffers, so that the test
+    # does not depend on the random numbers used by previous tests.
+    seed(20261014)
+    group = NeuronGroup(_RANDOM_GROUP_SIZE, "x : 1")
+    net = Network(group)
+    group.x = f"{func}()"
+    net.store()
+    expected = []
+    for _ in range(3):
+        group.x = f"{func}()"
+        expected.append(np.array(group.x[:]))
+
+    net.restore(restore_random_state=True)
+    for values in expected:
+        group.x = f"{func}()"
+        assert_equal(group.x[:], values)
+
+
+# Run in a new Python process by
+# test_restore_random_state_from_file_in_new_process: restores the stored state
+# and saves the values of the next assignment
+_RESTORE_RANDOM_STATE_SCRIPT = """
+import sys
+
+brian2_dir, prefs_file, size, state_file, func, values_file = sys.argv[1:]
+sys.path.insert(0, brian2_dir)
+import numpy as np
+from brian2 import Network, NeuronGroup, prefs
+
+with open(prefs_file, encoding="utf-8") as f:
+    prefs.read_preference_file(f)
+group = NeuronGroup(int(size), "x : 1", name="random_state_group")
+net = Network(group)
+net.restore(filename=state_file, restore_random_state=True)
+group.x = f"{func}()"
+np.save(values_file, group.x[:])
+"""
+
+
+@pytest.mark.skipif(
+    not isinstance(get_device(), RuntimeDevice),
+    reason="Getting/setting random number state only supported for runtime device.",
+)
+@pytest.mark.parametrize("func", ["rand", "randn"])
+def test_restore_random_state_from_file_in_new_process(func):
+    # The stored state has to contain the random values themselves, not a
+    # reference to the memory of the process that stored them
+    import brian2
+
+    seed(20261014)
+    group = NeuronGroup(_RANDOM_GROUP_SIZE, "x : 1", name="random_state_group")
+    net = Network(group)
+    group.x = f"{func}()"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        prefs_file = os.path.join(tmpdir, "preferences")
+        state_file = os.path.join(tmpdir, "state.pkl")
+        values_file = os.path.join(tmpdir, "values.npy")
+        # Same code generation targets and floating point type in the new process
+        with open(prefs_file, "w", encoding="utf-8") as f:
+            f.write(prefs.as_file)
+        net.store(filename=state_file)
+        group.x = f"{func}()"
+        expected = np.array(group.x[:])
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                _RESTORE_RANDOM_STATE_SCRIPT,
+                os.path.dirname(os.path.dirname(brian2.__file__)),
+                prefs_file,
+                str(_RANDOM_GROUP_SIZE),
+                state_file,
+                func,
+                values_file,
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert_equal(np.load(values_file), expected)
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.skipif(
+    not isinstance(get_device(), RuntimeDevice),
+    reason="Getting/setting random number state only supported for runtime device.",
+)
+def test_restore_random_state_without_buffer_content():
+    # States stored by earlier versions of Brian contain the memory address of
+    # the random number buffers instead of their content
+    dev = get_device()
+    original_state = dev.get_random_state()
+    old_state = dict(original_state)
+    old_state["rand_buffer"] = np.array([123456], dtype=np.intp)
+    old_state["rand_buffer_index"] = np.array([100], dtype=np.int32)
+    old_state["randn_buffer"] = np.array([123456], dtype=np.intp)
+    old_state["randn_buffer_index"] = np.array([0], dtype=np.int32)
+    try:
+        with catch_logs() as logs:
+            dev.set_random_state(old_state)
+        # The values in the rand() buffer cannot be restored, it will be
+        # refilled (with a warning); the randn() buffer was going to be
+        # refilled anyway
+        assert len(logs) == 1 and logs[0][0] == "WARNING"
+        assert dev.rand_buffer_index[0] == 0
+        assert dev.randn_buffer_index[0] == 0
+    finally:
+        dev.set_random_state(original_state)
+
+
 @pytest.mark.codegen_independent
 def test_store_restore_restore_synapses():
     group = NeuronGroup(10, "x : 1", threshold="False", reset="", name="group")
@@ -1945,6 +2077,59 @@ def test_negative_duration_in_net_run():
     net = Network(G)
     with pytest.raises(ValueError):
         net.run(-1 * second)
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize("profile", [False, True])
+@pytest.mark.parametrize("multiple_clocks", [False, True])
+def test_running_state_after_error(profile, multiple_clocks):
+    def fail():
+        raise RuntimeError("simulation failed")
+
+    objects = [NetworkOperation(fail, dt=0.1 * ms)]
+    if multiple_clocks:
+        objects.append(NetworkOperation(lambda: None, dt=0.2 * ms))
+    net = Network(objects)
+    handler = _InterruptHandler(signal.default_int_handler)
+    try:
+        with pytest.raises(RuntimeError, match="simulation failed"):
+            net.run(0.2 * ms, profile=profile)
+        with pytest.raises(KeyboardInterrupt):
+            handler(signal.SIGINT, None)
+        assert not Network._globally_running
+        assert not Network._globally_stopped
+    finally:
+        Network._globally_running = False
+        Network._globally_stopped = False
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize("profile", [False, True])
+def test_stop_with_multiple_clocks(profile):
+    fast = Clock(dt=0.2 * ms)
+    slow = Clock(dt=0.3 * ms)
+    times = []
+
+    def record():
+        times.append(float(fast.t / ms))
+
+    stopped = False
+
+    def finish():
+        nonlocal stopped
+        if not stopped and slow.t >= 0.3 * ms:
+            stopped = True
+            net.stop()
+
+    net = Network(
+        NetworkOperation(record, clock=fast), NetworkOperation(finish, clock=slow)
+    )
+    net.run(1 * ms, profile=profile)
+    assert_allclose(times, [0, 0.2])
+    assert_allclose(net.t / ms, 0.4)
+    net.run(0.6 * ms, profile=profile)
+    assert_allclose(times, [0, 0.2, 0.4, 0.6, 0.8])
+    assert_allclose(net.t / ms, 1.0)
 
 
 if __name__ == "__main__":

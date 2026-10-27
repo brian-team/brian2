@@ -1,10 +1,10 @@
-import re
-import os
-import pkg_resources
-import tomllib
 import json
+import os
+import re
 import sys
+import tomllib
 
+from packaging.requirements import Requirement
 
 if __name__ == "__main__":
     if not len(sys.argv) == 2:
@@ -13,17 +13,23 @@ if __name__ == "__main__":
 
     with open(os.path.join(basedir, "pyproject.toml"), "rb") as f:
         pyproject = tomllib.load(f)
-    with open(os.path.join(basedir, ".codemeta", "codemeta_base.json"), "r", encoding="utf-8") as f:
+    with open(
+        os.path.join(basedir, ".codemeta", "codemeta_base.json"), encoding="utf-8"
+    ) as f:
         codemeta = json.load(f)
-    with open(os.path.join(basedir, "CONTRIBUTORS"), "r", encoding="utf-8") as f:
+    with open(os.path.join(basedir, "CONTRIBUTORS"), encoding="utf-8") as f:
         contributors = f.read().splitlines()[4:]  # Skip comments at the beginning
 
     # Add software requirements from pyproject.toml
-    parsed_deps = pkg_resources.parse_requirements(pyproject['project']['dependencies'])
     codemeta["softwareRequirements"] = []
-    for dep in parsed_deps:
-        version = ",".join(f"{op}{v}" for op,v in dep.specs)
-        requirement = {"name": dep.project_name,"@type": "SoftwareApplication", "runtimePlatform": "Python 3"}
+    for dependency in pyproject["project"]["dependencies"]:
+        dep = Requirement(dependency)
+        version = str(dep.specifier)
+        requirement = {
+            "name": dep.name,
+            "@type": "SoftwareApplication",
+            "runtimePlatform": "Python 3",
+        }
         if version:
             requirement["version"] = version
         codemeta["softwareRequirements"].append(requirement)
@@ -47,10 +53,11 @@ if __name__ == "__main__":
         contributor_dict = {
             "@type": "Person",
             "givenName": given_name,
-            "identifier": f"https://github.com/{github}"
         }
         if family_name is not None:
             contributor_dict["familyName"] = family_name
+
+        contributor_dict["identifier"] = f"https://github.com/{github}"
 
         codemeta["contributor"].append(contributor_dict)
 
