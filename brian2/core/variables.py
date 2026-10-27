@@ -1412,6 +1412,9 @@ class VariableView:
             return NotImplemented
 
     def __len__(self):
+        if self.index_var == "_idx" and _values_must_be_copied(self.variable):
+            # self[:] would copy the values of a dynamic array only to count them
+            return len(self.variable.get_value())
         return len(self.get_item(slice(None), level=1))
 
     def __neg__(self):
