@@ -2970,6 +2970,24 @@ def test_synapse_generator_deterministic():
     S9 = Synapses(G, G)
     S9.connect(j="i")  # short form of the above
 
+    # Modulo and floor division on the iteration variable
+    pre_idx, post_idx = np.meshgrid(np.arange(len(G)), np.arange(len(G)), indexing="ij")
+    expected_even_post = (post_idx % 2 == 0).astype(float)
+    expected_same_block = (post_idx // 4 == pre_idx // 4).astype(float)
+    expected_mod_sum = ((pre_idx + post_idx) % 3 != 0).astype(float)
+
+    S10 = Synapses(G, G)
+    S10.connect(j="k for k in range(N_post) if k % 2 == 0")
+
+    S11 = Synapses(G, G)
+    S11.connect(j="k for k in range(N_post) if k // 4 == i // 4")
+
+    S12 = Synapses(G, G)
+    S12.connect(condition="(i + j) % 3 != 0")
+
+    S13 = Synapses(G, G)
+    S13.connect(condition="j // 4 == i // 4")
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0 * ms)  # for standalone
 
@@ -2982,6 +3000,10 @@ def test_synapse_generator_deterministic():
     _compare(S7, expected_one_to_one)
     _compare(S8, expected_one_to_one)
     _compare(S9, expected_one_to_one)
+    _compare(S10, expected_even_post)
+    _compare(S11, expected_same_block)
+    _compare(S12, expected_mod_sum)
+    _compare(S13, expected_same_block)
 
 
 @pytest.mark.standalone_compatible
@@ -3031,6 +3053,17 @@ def test_synapse_generator_deterministic_over_postsynaptic():
     S9 = Synapses(G, G)
     S9.connect(i="j")  # short form of the above
 
+    # Modulo and floor division on the iteration variable
+    pre_idx, post_idx = np.meshgrid(np.arange(len(G)), np.arange(len(G)), indexing="ij")
+    expected_even_pre = (pre_idx % 2 == 0).astype(float)
+    expected_same_block = (pre_idx // 4 == post_idx // 4).astype(float)
+
+    S10 = Synapses(G, G)
+    S10.connect(i="k for k in range(N_pre) if k % 2 == 0")
+
+    S11 = Synapses(G, G)
+    S11.connect(i="k for k in range(N_pre) if k // 4 == j // 4")
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0 * ms)  # for standalone
 
@@ -3043,6 +3076,8 @@ def test_synapse_generator_deterministic_over_postsynaptic():
     _compare(S7, expected_one_to_one)
     _compare(S8, expected_one_to_one)
     _compare(S9, expected_one_to_one)
+    _compare(S10, expected_even_pre)
+    _compare(S11, expected_same_block)
 
 
 @pytest.mark.standalone_compatible
