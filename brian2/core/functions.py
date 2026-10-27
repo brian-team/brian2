@@ -410,8 +410,6 @@ class FunctionImplementationContainer(Mapping):
 
         Parameters
         ----------
-        function : `Function`
-            The function description for which an implementation should be added.
         wrapped_func : callable
             The original function (that will be used for the numpy implementation)
         dependencies : list of `Function`, optional
