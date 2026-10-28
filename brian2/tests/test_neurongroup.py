@@ -1242,6 +1242,8 @@ def test_state_variable_access():
     assert_allclose(G.v_[:5], np.arange(5))
     assert_allclose(G.v[[0, 5]], [0, 5] * volt)
     assert_allclose(G.v_[[0, 5]], np.array([0, 5]))
+    assert_allclose(G.v[G.v >= 7 * volt], [7, 8, 9] * volt)
+    assert_allclose(G.v_[np.arange(10) % 3 == 0], np.array([0, 3, 6, 9]))
 
     # Illegal indexing
     with pytest.raises(IndexError):
@@ -1252,6 +1254,11 @@ def test_state_variable_access():
         G.v[object()]
     with pytest.raises(TypeError):
         G.v_[object()]
+    # Boolean indices need one entry per neuron
+    with pytest.raises(IndexError):
+        G.v[np.ones(5, dtype=bool)]
+    with pytest.raises(IndexError):
+        G.v[np.ones(11, dtype=bool)] = 0 * volt
 
     # A string representation should not raise any error
     assert len(str(G.v))

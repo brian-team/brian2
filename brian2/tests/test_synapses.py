@@ -770,6 +770,37 @@ def test_state_variable_indexing():
         S.w.__getitem__(1.5)
 
 
+@pytest.mark.codegen_independent
+def test_state_variable_boolean_indexing():
+    # See github issue #1844
+    G = NeuronGroup(10, "v : 1")
+    S = Synapses(G[:8], G, "w : 1")
+    S.connect(i=[0, 0, 1, 3, 5, 7, 7], j=[0, 9, 4, 8, 2, 9, 5])
+    S.w = np.arange(7)
+
+    mask = S.j >= 8
+    assert_equal(S.j[mask], [9, 8, 9])
+    assert_equal(S.i[mask], [0, 3, 7])
+    assert_equal(S.w[mask], [1, 3, 5])
+    assert_equal(S.w[list(mask)], [1, 3, 5])
+    assert_equal(S.indices[mask], [1, 3, 5])
+    assert_equal(S[mask]._indices(), [1, 3, 5])
+    assert len(S.w[np.zeros(7, dtype=bool)]) == 0
+
+    S.w[mask] = -1
+    assert_equal(S.w[:], [0, -1, 2, -1, 4, -1, 6])
+    S.w[S.w < 0] = [10, 11, 12]
+    assert_equal(S.w[:], [0, 10, 2, 11, 4, 12, 6])
+
+    # The mask needs one entry per synapse
+    with pytest.raises(IndexError):
+        S.w[mask[:-1]]
+    with pytest.raises(IndexError):
+        S.w[np.ones(8, dtype=bool)] = 0
+    with pytest.raises(IndexError):
+        S.w[np.ones((7, 1), dtype=bool)]
+
+
 def test_indices():
     G = NeuronGroup(10, "v : 1")
     S = Synapses(G, G, "")
@@ -1330,6 +1361,49 @@ def test_transmission_boolean_variable():
     assert_allclose(mon[1].v[mon.t >= 1 * ms + offset], 1.0)
     assert_allclose(mon[2].v, 0.0)
     assert_allclose(mon[3].v, 0.0)
+
+
+@pytest.mark.standalone_compatible
+def test_transmission_names_of_template_variables():
+    # See github issue #1906
+    source = NeuronGroup(3, "", threshold="True", reset="")
+    target = NeuronGroup(3, "v : 1")
+
+    syn_pre = Synapses(source, target, on_pre="v_post += i")
+    syn_pre.connect(j="i")
+    # With i >= 5, a clash with the loop counter fails instead of hanging
+    post_source = NeuronGroup(10, "u : 1")
+    post_target = NeuronGroup(1, "", threshold="True", reset="")
+    syn_post = Synapses(post_source, post_target, on_post="u_pre += i")
+    syn_post.connect(condition="i >= 5")
+
+    names = [
+        "num_spikes",
+        "synapse_id",
+        "spike_data",
+        "spike_vector",
+        "cpp_queue",
+        "capsule",
+    ]
+    receivers = NeuronGroup(1, "\n".join(f"x_{name} : 1" for name in names))
+    syns = []
+    for name in names:
+        syn = Synapses(
+            source, receivers, f"{name} : 1", on_pre=f"x_{name}_post += {name}"
+        )
+        syn.connect()
+        setattr(syn, name, "i + 1")
+        syns.append(syn)
+
+    net = Network(
+        source, target, post_source, post_target, syn_pre, syn_post, receivers, *syns
+    )
+    net.run(defaultclock.dt)
+
+    assert_allclose(target.v[:], [0, 1, 2])
+    assert_allclose(post_source.u[:], [0, 0, 0, 0, 0, 5, 6, 7, 8, 9])
+    for name in names:
+        assert_allclose(getattr(receivers, f"x_{name}")[:], [6])
 
 
 @pytest.mark.codegen_independent
@@ -2994,6 +3068,24 @@ def test_synapse_generator_deterministic():
     S9 = Synapses(G, G)
     S9.connect(j="i")  # short form of the above
 
+    # Modulo and floor division on the iteration variable
+    pre_idx, post_idx = np.meshgrid(np.arange(len(G)), np.arange(len(G)), indexing="ij")
+    expected_even_post = (post_idx % 2 == 0).astype(float)
+    expected_same_block = (post_idx // 4 == pre_idx // 4).astype(float)
+    expected_mod_sum = ((pre_idx + post_idx) % 3 != 0).astype(float)
+
+    S10 = Synapses(G, G)
+    S10.connect(j="k for k in range(N_post) if k % 2 == 0")
+
+    S11 = Synapses(G, G)
+    S11.connect(j="k for k in range(N_post) if k // 4 == i // 4")
+
+    S12 = Synapses(G, G)
+    S12.connect(condition="(i + j) % 3 != 0")
+
+    S13 = Synapses(G, G)
+    S13.connect(condition="j // 4 == i // 4")
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0 * ms)  # for standalone
 
@@ -3006,6 +3098,10 @@ def test_synapse_generator_deterministic():
     _compare(S7, expected_one_to_one)
     _compare(S8, expected_one_to_one)
     _compare(S9, expected_one_to_one)
+    _compare(S10, expected_even_post)
+    _compare(S11, expected_same_block)
+    _compare(S12, expected_mod_sum)
+    _compare(S13, expected_same_block)
 
 
 @pytest.mark.standalone_compatible
@@ -3055,6 +3151,17 @@ def test_synapse_generator_deterministic_over_postsynaptic():
     S9 = Synapses(G, G)
     S9.connect(i="j")  # short form of the above
 
+    # Modulo and floor division on the iteration variable
+    pre_idx, post_idx = np.meshgrid(np.arange(len(G)), np.arange(len(G)), indexing="ij")
+    expected_even_pre = (pre_idx % 2 == 0).astype(float)
+    expected_same_block = (pre_idx // 4 == post_idx // 4).astype(float)
+
+    S10 = Synapses(G, G)
+    S10.connect(i="k for k in range(N_pre) if k % 2 == 0")
+
+    S11 = Synapses(G, G)
+    S11.connect(i="k for k in range(N_pre) if k // 4 == j // 4")
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0 * ms)  # for standalone
 
@@ -3067,6 +3174,8 @@ def test_synapse_generator_deterministic_over_postsynaptic():
     _compare(S7, expected_one_to_one)
     _compare(S8, expected_one_to_one)
     _compare(S9, expected_one_to_one)
+    _compare(S10, expected_even_pre)
+    _compare(S11, expected_same_block)
 
 
 @pytest.mark.standalone_compatible
@@ -3829,6 +3938,7 @@ if __name__ == "__main__":
     reinit_and_delete()
     test_state_variable_assignment()
     test_state_variable_indexing()
+    test_state_variable_boolean_indexing()
     test_indices()
     test_subexpression_references()
     test_state_variable_get_all_copy()

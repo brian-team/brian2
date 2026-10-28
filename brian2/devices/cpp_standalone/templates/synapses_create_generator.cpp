@@ -59,11 +59,11 @@
         // _j to __j in the inner scope (using the inner scope version of _j), and then
         // __j to _j in the outer scope (to the outer scope version of _j). This outer scope
         // version of _j will then be used in subsequent blocks.
-        long _uiter_low;
-        long _uiter_high;
-        long _uiter_step;
+        int64_t _uiter_low;
+        int64_t _uiter_high;
+        int64_t _uiter_step;
         {% if iterator_func=='sample' %}
-        long _uiter_size;
+        int64_t _uiter_size;
         double _uiter_p;
         {% endif %}
         {
@@ -80,7 +80,7 @@
             {% endif %}
         }
         {% if iterator_func=='range' %}
-        for(long {{inner_variable}}=_uiter_low; {{inner_variable}}<_uiter_high; {{inner_variable}}+=_uiter_step)
+        for(int64_t {{inner_variable}}=_uiter_low; {{inner_variable}}<_uiter_high; {{inner_variable}}+=_uiter_step)
         {
         {% elif iterator_func=='sample' %}
         const int _iter_sign = _uiter_step > 0 ? 1 : -1;
@@ -115,7 +115,7 @@
             {% endif %}
         } else if (_uiter_size == 0)
             continue;
-        long {{inner_variable}};
+        int64_t {{inner_variable}};
 
         if (_selection_algo)
         {
@@ -161,7 +161,7 @@
         else
             _log1p = 1.0; // will be ignored
         const double _pconst = 1.0/log(1-_uiter_p);
-        for(long {{inner_variable}}=_uiter_low; _iter_sign*{{inner_variable}}<_iter_sign*_uiter_high; {{inner_variable}} += _uiter_step)
+        for(int64_t {{inner_variable}}=_uiter_low; _iter_sign*{{inner_variable}}<_iter_sign*_uiter_high; {{inner_variable}} += _uiter_step)
         {
             if(_jump_algo) {
                 const double _r = _rand(_vectorisation_idx);
@@ -174,7 +174,7 @@
             }
         {% endif %}
         {% endif %}
-            long __{{result_index}}, _{{result_index}}, {{outer_index_array}}, _{{outer_index_array}};
+            int64_t __{{result_index}}, _{{result_index}}, {{outer_index_array}}, _{{outer_index_array}};
             {
                 {{vector_code['generator_expr']|autoindent}}
                 __{{result_index}} = _{{result_index}}; // pick up the locally scoped var and store in outer var
