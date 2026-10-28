@@ -15,41 +15,41 @@ cdef extern from "spikequeue.h":
 
 {% block maincode %}
      # Extract the raw C++ object pointer from the Python capsule.
-    cdef object capsule = _queue_capsule
-    cdef CSpikeQueue* cpp_queue = <CSpikeQueue*>PyCapsule_GetPointer(capsule, "CSpikeQueue")
+    cdef object _capsule = _queue_capsule
+    cdef CSpikeQueue* _cpp_queue = <CSpikeQueue*>PyCapsule_GetPointer(_capsule, "CSpikeQueue")
 
     # Now we call the C++ peek method directly to get the current spike vector.
     # This returns a pointer to std::vector<int32_t> containing synapse IDs
     # that are ready for processing in the current time step.
-    cdef vector[int32_t]* spike_vector = cpp_queue.peek()
-    cdef size_t num_spikes = dereference(spike_vector).size()
+    cdef vector[int32_t]* _spike_vector = _cpp_queue.peek()
+    cdef size_t _num_spikes = dereference(_spike_vector).size()
 
     # Early exit for empty queue - avoid all processing overhead
-    if num_spikes == 0:
-        cpp_queue.advance()
+    if _num_spikes == 0:
+        _cpp_queue.advance()
         return
 
     # Access the underlying raw data pointer of the vector
-    cdef int32_t* spike_data = &dereference(spike_vector)[0]
+    cdef int32_t* _spike_data = &dereference(_spike_vector)[0]
 
     # scalar code
     _vectorisation_idx = 1
     {{ scalar_code | autoindent }}
 
 
-    cdef size_t i = 0
-    cdef int32_t synapse_id
-    while i < num_spikes:
-        synapse_id = spike_data[i]
+    cdef size_t _spike_idx = 0
+    cdef int32_t _synapse_id
+    while _spike_idx < _num_spikes:
+        _synapse_id = _spike_data[_spike_idx]
 
-        _idx = synapse_id
+        _idx = _synapse_id
         _vectorisation_idx = _idx
 
         {{ vector_code | autoindent }}
 
-        i += 1
+        _spike_idx += 1
 
     # Move the queue forward to the next time step
-    cpp_queue.advance()
+    _cpp_queue.advance()
 
 {% endblock %}

@@ -1339,6 +1339,49 @@ def test_transmission_boolean_variable():
     assert_allclose(mon[3].v, 0.0)
 
 
+@pytest.mark.standalone_compatible
+def test_transmission_names_of_template_variables():
+    # See github issue #1906
+    source = NeuronGroup(3, "", threshold="True", reset="")
+    target = NeuronGroup(3, "v : 1")
+
+    syn_pre = Synapses(source, target, on_pre="v_post += i")
+    syn_pre.connect(j="i")
+    # With i >= 5, a clash with the loop counter fails instead of hanging
+    post_source = NeuronGroup(10, "u : 1")
+    post_target = NeuronGroup(1, "", threshold="True", reset="")
+    syn_post = Synapses(post_source, post_target, on_post="u_pre += i")
+    syn_post.connect(condition="i >= 5")
+
+    names = [
+        "num_spikes",
+        "synapse_id",
+        "spike_data",
+        "spike_vector",
+        "cpp_queue",
+        "capsule",
+    ]
+    receivers = NeuronGroup(1, "\n".join(f"x_{name} : 1" for name in names))
+    syns = []
+    for name in names:
+        syn = Synapses(
+            source, receivers, f"{name} : 1", on_pre=f"x_{name}_post += {name}"
+        )
+        syn.connect()
+        setattr(syn, name, "i + 1")
+        syns.append(syn)
+
+    net = Network(
+        source, target, post_source, post_target, syn_pre, syn_post, receivers, *syns
+    )
+    net.run(defaultclock.dt)
+
+    assert_allclose(target.v[:], [0, 1, 2])
+    assert_allclose(post_source.u[:], [0, 0, 0, 0, 0, 5, 6, 7, 8, 9])
+    for name in names:
+        assert_allclose(getattr(receivers, f"x_{name}")[:], [6])
+
+
 @pytest.mark.codegen_independent
 def test_clocks():
     """
