@@ -244,24 +244,21 @@ def get_synapses(name, source, target, C, l, tau_I, A, U, D, F, delay):
 
     synapses.A[:] = np.sign(A / nA) * np.random.gamma(1, abs(A / nA), size=N_syn) * nA
 
-    U_values = np.random.normal(U, 0.5 * U, size=N_syn)
+    synapses.U[:] = np.random.normal(U, 0.5 * U, size=N_syn)
     # paper samples from uniform, we take the mean
-    U_values[U_values < 0] = U
-    synapses.U[:] = U_values
+    synapses.U[synapses.U < 0] = U
 
-    D_values = np.random.normal(D / ms, 0.5 * D / ms, size=N_syn) * ms
+    synapses.D[:] = np.random.normal(D / ms, 0.5 * D / ms, size=N_syn) * ms
     # paper samples from uniform, we take the mean
-    D_values[D_values / ms <= 0] = D
-    synapses.D[:] = D_values
+    synapses.D[synapses.D / ms <= 0] = D
 
     # start fully recovered
     synapses.x = 1
 
     if F:
-        F_values = np.random.normal(F / ms, 0.5 * F / ms, size=N_syn) * ms
+        synapses.F[:] = np.random.normal(F / ms, 0.5 * F / ms, size=N_syn) * ms
         # paper samples from uniform, we take the mean
-        F_values[F_values / ms <= 0] = F
-        synapses.F[:] = F_values
+        synapses.F[synapses.F / ms <= 0] = F
 
     return synapses
 
