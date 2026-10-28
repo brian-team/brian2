@@ -232,18 +232,18 @@
 	}
 
 	// now we need to resize all registered variables
-	const int32_t newsize = {{_dynamic__synaptic_pre}}.size();
+	const int32_t _newsize = {{_dynamic__synaptic_pre}}.size();
     {% for varname in owner._registered_variables | variables_to_array_names(access_data=False) | sort%}
-    {{varname}}.resize(newsize);
+    {{varname}}.resize(_newsize);
     {% endfor %}
 	// Also update the total number of synapses
-	{{N}} = newsize;
+	{{N}} = _newsize;
 
     {% if multisynaptic_index %}
     // Update the "synapse number" (number of synapses for the same
     // source-target pair)
     std::map<std::pair<int32_t, int32_t>, int32_t> source_target_count;
-    for (size_t _i=0; _i<newsize; _i++)
+    for (size_t _i=0; _i<_newsize; _i++)
     {
         // Note that source_target_count will create a new entry initialized
         // with 0 when the key does not exist yet

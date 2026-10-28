@@ -16,7 +16,7 @@
 
     for _idx in range({{N}}):
         # vector_code
-        vectorisation_idx = _idx
+        _vectorisation_idx = _idx
         {{ vector_code | autoindent }}
         {{_target_var_array}}[{{_index_array}}[_idx]] += _synaptic_var
 

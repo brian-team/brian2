@@ -1382,6 +1382,34 @@ def test_transmission_names_of_template_variables():
         assert_allclose(getattr(receivers, f"x_{name}")[:], [6])
 
 
+@pytest.mark.standalone_compatible
+def test_connect_and_summed_names_of_template_variables():
+    # See github issue #1906
+    namespace = {"newsize": 2, "oldsize": 3, "vectorisation_idx": 4}
+    group = NeuronGroup(5, "x : 1")
+    group.x = 1
+    target = NeuronGroup(1, "s : 1")
+
+    syn_cond = Synapses(group, group)
+    syn_cond.connect(condition="j < newsize", namespace=namespace)
+    syn_gen = Synapses(group, group)
+    syn_gen.connect(j="k for k in range(oldsize)", namespace=namespace)
+    syn_summed = Synapses(
+        group,
+        target,
+        "s_post = x_pre * vectorisation_idx : 1 (summed)",
+        namespace=namespace,
+    )
+    syn_summed.connect()
+
+    net = Network(group, target, syn_cond, syn_gen, syn_summed)
+    net.run(defaultclock.dt)
+
+    assert len(syn_cond) == 10
+    assert len(syn_gen) == 15
+    assert_allclose(target.s[:], [20])
+
+
 @pytest.mark.codegen_independent
 def test_clocks():
     """

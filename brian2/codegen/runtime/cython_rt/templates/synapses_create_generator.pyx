@@ -39,8 +39,8 @@ cdef void _flush_buffer(int[:] buf,DynamicArray1DCpp[int32_t]* dynarr, int buf_l
 
     global _curbuf
 
-    cdef size_t oldsize = {{_dynamic__synaptic_pre_ptr}}.size()
-    cdef size_t newsize
+    cdef size_t _oldsize = {{_dynamic__synaptic_pre_ptr}}.size()
+    cdef size_t _newsize
 
     # Calculate array sizes
     cdef int32_t _source_offset_val = {{source_offset_val}}
@@ -225,23 +225,23 @@ cdef void _flush_buffer(int[:] buf,DynamicArray1DCpp[int32_t]* dynarr, int buf_l
     _flush_buffer(_postbuf, {{_dynamic__synaptic_post_ptr}}, _curbuf)
     _curbuf = 0  # reset the buffer for the next run
 
-    newsize = {{_dynamic__synaptic_pre_ptr}}.size()
+    _newsize = {{_dynamic__synaptic_pre_ptr}}.size()
 
     # We need to iterate through the newly added synapses and update counts
     cdef int32_t* _synaptic_pre_data = {{_dynamic__synaptic_pre_ptr}}.get_data_ptr()
     cdef int32_t* _synaptic_post_data = {{_dynamic__synaptic_post_ptr}}.get_data_ptr()
 
-    for _idx in range(oldsize, newsize):
+    for _idx in range(_oldsize, _newsize):
         _N_outgoing_data[_synaptic_pre_data[_idx]] += 1
         _N_incoming_data[_synaptic_post_data[_idx]] += 1
 
     # now we need to resize all registered variables and set the total number
     # of synapses without python indirection
     {% for varname in _registered_variables | variables_to_array_names(access_data=False) | sort %}
-    {{varname}}_ptr.resize(newsize)
+    {{varname}}_ptr.resize(_newsize)
     {% endfor %}
     # Update the total number of synapses
-    {{N}} = newsize
+    {{N}} = _newsize
 
     # And update N_incoming, N_outgoing and synapse_number
     {% if multisynaptic_index %}
@@ -254,7 +254,7 @@ cdef void _flush_buffer(int[:] buf,DynamicArray1DCpp[int32_t]* dynarr, int buf_l
     cdef int32_t _count
     cdef int32_t* _synapse_number_data = {{get_array_name(variables[multisynaptic_index], access_data=False)}}_ptr.get_data_ptr()
 
-    for _idx in range(newsize):
+    for _idx in range(_newsize):
         _pre_idx_2 = _synaptic_pre_data[_idx]
         _post_idx_2 = _synaptic_post_data[_idx]
         _pair = (_pre_idx_2, _post_idx_2)
