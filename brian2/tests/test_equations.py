@@ -257,6 +257,12 @@ def test_correct_replacements():
     eqs = Equations("dv/dt = -v / tau : 1", tau=10 * ms)
     assert not "tau" in eqs["v"].identifiers
 
+    # replace a variable name with a numpy scalar
+    eqs = Equations("dv/dt = -k*v / ms : 1", k=np.float64(0.5))
+    assert eqs["v"].expr.code == "-(0.5)*v / ms"
+    eqs = Equations("dv/dt = -v / tau : 1", tau=np.float64(10) * ms)
+    assert not "tau" in eqs["v"].identifiers
+
 
 @pytest.mark.codegen_independent
 def test_wrong_replacements():

@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 import sympy
 
@@ -46,6 +47,12 @@ def test_expr_substitutions():
     # Name substitutions also apply to comments, but value substitutions do not.
     expr = Expression("g + k*w # g and k", g="g_ampa", k=0.3)
     assert expr.code == "g_ampa + (0.3)*w # g_ampa and k"
+
+    # NumPy scalars are inserted as plain numbers, not as e.g. "np.float64(0.3)"
+    expr = Expression("g + k*w", k=np.float64(0.3))
+    assert expr.code == "g + (0.3)*w"
+    expr = Expression("g + k*w", k=np.int64(3))
+    assert expr.code == "g + (3)*w"
 
 
 @pytest.mark.codegen_independent

@@ -7,6 +7,7 @@ information about its namespace. Only serves as a parent class, its subclasses
 import re
 from collections.abc import Hashable
 
+import numpy as np
 import sympy
 
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
@@ -16,6 +17,37 @@ from brian2.utils.stringtools import get_identifiers
 __all__ = ["Expression", "Statements"]
 
 logger = get_logger(__name__)
+
+
+def value_to_code(value):
+    """
+    Return the code that replaces a name when substituting it with a value.
+
+    NumPy scalars (e.g. the result of ``np.exp(-1)`` or of indexing an array) are
+    converted to Python scalars first, since their ``repr`` (``np.float64(0.37)``)
+    is not valid in Brian code.
+
+    Parameters
+    ----------
+    value : object
+        The value to insert into the code.
+
+    Returns
+    -------
+    code : str
+        The ``repr`` of the value, wrapped in parentheses.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> value_to_code(0.3)
+    '(0.3)'
+    >>> value_to_code(np.float64(0.3))
+    '(0.3)'
+    """
+    if isinstance(value, np.generic):
+        value = value.item()
+    return "(" + repr(value) + ")"
 
 
 class CodeString(Hashable):
@@ -139,7 +171,7 @@ class Statements(CodeString):
                         # Apply substitution only to code part
                         code_part = re.sub(
                             r"\b" + identifier + r"\b",
-                            "(" + repr(replacement) + ")",
+                            value_to_code(replacement),
                             code_part,
                         )
                         # Keep comment as is (don't substitute values in comments)
@@ -148,7 +180,7 @@ class Statements(CodeString):
                         # No comment, apply substitution to whole line
                         line = re.sub(
                             r"\b" + identifier + r"\b",
-                            "(" + repr(replacement) + ")",
+                            value_to_code(replacement),
                             line,
                         )
                         new_lines.append(line)
@@ -222,14 +254,14 @@ class Expression(CodeString):
                     code_part, comment_part = new_code.split("#", 1)
                     code_part = re.sub(
                         r"\b" + identifier + r"\b",
-                        "(" + repr(replacement) + ")",
+                        value_to_code(replacement),
                         code_part,
                     )
                     new_code = code_part + "#" + comment_part
                 else:
                     new_code = re.sub(
                         r"\b" + identifier + r"\b",
-                        "(" + repr(replacement) + ")",
+                        value_to_code(replacement),
                         new_code,
                     )
 
