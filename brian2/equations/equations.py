@@ -41,7 +41,7 @@ from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.topsort import topsort
 
-from .codestrings import Expression
+from .codestrings import Expression, value_to_code
 from .unitcheck import check_dimensions
 
 __all__ = ["Equations"]
@@ -872,7 +872,7 @@ class Equations(Hashable, Mapping):
                             # replace the name with a value
                             new_code = re.sub(
                                 "\\b" + to_replace + "\\b",
-                                "(" + repr(replacement) + ")",
+                                value_to_code(replacement),
                                 new_code,
                             )
                         try:

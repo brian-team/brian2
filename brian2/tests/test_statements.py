@@ -2,6 +2,7 @@
 Tests for the Statements class and its substitution functionality.
 """
 
+import numpy as np
 import pytest
 
 from brian2.equations.codestrings import Statements
@@ -73,6 +74,22 @@ def test_statements_repr():
     """Test the repr output"""
     stmt = Statements("g += w")
     assert repr(stmt) == "Statements('g += w')"
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (np.float64(0.3), "x += (0.3)"),
+        (np.float32(0.5), "x += (0.5)"),
+        (np.int64(5), "x += (5)"),
+        (np.bool_(True), "x += (True)"),
+    ],
+)
+def test_statements_numpy_scalar_substitution(value, expected):
+    """NumPy scalars should be inserted as plain numbers, not as their repr"""
+    stmt = Statements("x += k", k=value)
+    assert str(stmt) == expected
 
 
 # Parametrized tests for variations
