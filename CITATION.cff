@@ -21,7 +21,7 @@ authors:
     orcid: https://orcid.org/0000-0003-0110-1623
   - name: Brian contributors
 
-version: '2.11.0'
+version: 2.11.0
 
 date-released: '2026-10-23'
 
@@ -29,9 +29,9 @@ identifiers:
   - description: This is the collection of archived snapshots of all versions of Brian 2
     type: doi
     value: 10.5281/zenodo.654861
-  - description: This is the archived snapshot of version 2.10.1 of Brian 2
+  - description: This is the archived snapshot of version 2.11.0 of Brian 2
     type: doi
-    value: 10.5281/zenodo.17833036
+    value: 10.5281/zenodo.23811560
   - description: Software Heritage identifier for version 2.10.1 of Brian 2
     type: swh
     value: swh:1:rel:ba3061dfeb4e1a23791c063612f560990a0eea69
