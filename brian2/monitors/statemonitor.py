@@ -62,10 +62,12 @@ class StateMonitorView:
             raise AttributeError
 
         mon = self.monitor
+        # The recorded values are stored in dynamic arrays, whose memory can be
+        # reallocated or freed later: always return copies, never views
         if item == "t":
-            return Quantity(mon.variables["t"].get_value(), dim=second.dim)
+            return Quantity(mon.variables["t"].get_value(), dim=second.dim, copy=True)
         elif item == "t_":
-            return mon.variables["t"].get_value()
+            return mon.variables["t"].get_value().copy()
         elif item in mon.record_variables:
             dims = mon.variables[item].dim
             return Quantity(
@@ -415,7 +417,9 @@ class StateMonitor(Group, CodeRunner):
             var_dim = self.variables[item].dim
             return Quantity(self.variables[item].get_value().T, dim=var_dim, copy=True)
         elif item.endswith("_") and item[:-1] in self.record_variables:
-            return self.variables[item[:-1]].get_value().T
+            # Copy (as for the variant with units above): the dynamic array
+            # storing the values can be reallocated or freed later
+            return np.array(self.variables[item[:-1]].get_value().T, copy=True)
         else:
             return Group.__getattr__(self, item)
 

@@ -1,3 +1,4 @@
+import gc
 import logging
 import uuid
 
@@ -537,6 +538,46 @@ def test_state_monitor_resize():
     # Note that the internally stored variable has the transposed shape of the
     # variable that is visible to the user
     assert mon.variables["v"].size == (10, 2)
+
+
+def test_monitor_values_are_copies():
+    # Recorded values are stored in dynamic arrays, whose memory is reallocated
+    # when they grow and freed when the monitor is deleted. The values returned
+    # to the user therefore must not use this memory.
+    G = NeuronGroup(2, "dv/dt = 1/second : 1", threshold="True")
+    spike_mon = SpikeMonitor(G)
+    state_mon = StateMonitor(G, "v", record=True)
+    rate_mon = PopulationRateMonitor(G)
+    net = Network(G, spike_mon, state_mon, rate_mon)
+    net.run(3 * defaultclock.dt)
+    returned = {
+        "spike_mon.t[:]": spike_mon.t[:],
+        "spike_mon.t_[:]": spike_mon.t_[:],
+        "spike_mon.i[:]": spike_mon.i[:],
+        "state_mon.t[:]": state_mon.t[:],
+        "state_mon.v_": state_mon.v_,
+        "state_mon[0].t": state_mon[0].t,
+        "state_mon[0].t_": state_mon[0].t_,
+        "rate_mon.rate[:]": rate_mon.rate[:],
+    }
+    stored = [
+        spike_mon.variables["t"].get_value(),
+        spike_mon.variables["i"].get_value(),
+        state_mon.variables["t"].get_value(),
+        state_mon.variables["v"].get_value(),
+        rate_mon.variables["rate"].get_value(),
+    ]
+    for name, values in returned.items():
+        for stored_values in stored:
+            assert not np.shares_memory(np.asarray(values), stored_values), name
+    del stored, stored_values
+    expected = {name: np.array(values) for name, values in returned.items()}
+    # Let the arrays grow, then delete the monitors
+    net.run(100 * defaultclock.dt)
+    del spike_mon, state_mon, rate_mon, net
+    gc.collect()
+    for name, values in returned.items():
+        assert_array_equal(np.asarray(values), expected[name], err_msg=name)
 
 
 @pytest.mark.standalone_compatible
@@ -1090,6 +1131,7 @@ if __name__ == "__main__":
     test_state_monitor_get_states()
     test_state_monitor_indexing()
     test_state_monitor_resize()
+    test_monitor_values_are_copies()
     test_rate_monitor_1()
     test_rate_monitor_2()
     test_rate_monitor_smoothed_rate()

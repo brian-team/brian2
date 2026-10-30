@@ -1,3 +1,5 @@
+import gc
+
 import numpy as np
 import pytest
 from numpy.testing import assert_equal
@@ -144,6 +146,27 @@ def test_dynamic_array_2d_shrink():
         )
 
 
+@pytest.mark.codegen_independent
+def test_dynamic_array_data_keeps_array_alive():
+    # The numpy array returned by `data` uses memory owned by the dynamic array,
+    # it therefore has to keep the dynamic array alive
+    da = DynamicArray1D(10)
+    da[:] = np.arange(10)
+    data = da.data
+    assert data.base is da
+    da2d = DynamicArray((3, 4))
+    da2d[:, :] = np.arange(12).reshape((3, 4))
+    data2d = da2d.data
+    assert data2d.base is da2d
+    del da, da2d
+    gc.collect()
+    # New allocations that could otherwise reuse the memory of the arrays
+    others = [np.full(12, -1.0) for _ in range(100)]
+    assert_equal(data, np.arange(10))
+    assert_equal(data2d, np.arange(12).reshape((3, 4)))
+    del others
+
+
 if __name__ == "__main__":
     test_dynamic_array_1d_access()
     test_dynamic_array_1d_resize_up_down()
@@ -154,3 +177,4 @@ if __name__ == "__main__":
     test_dynamic_array_2d_resize_columns_fails()
     test_dynamic_array_2d_resize_down_up()
     test_dynamic_array_2d_shrink()
+    test_dynamic_array_data_keeps_array_alive()

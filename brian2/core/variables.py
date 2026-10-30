@@ -838,6 +838,22 @@ def linked_var(group_or_variable, name=None, index=None):
         )
 
 
+def _values_must_be_copied(variable):
+    """
+    Whether the values returned when getting all values of a variable (e.g.
+    ``group.var[:]``) have to be a copy instead of a view on the stored data.
+
+    Dynamic arrays (synaptic variables and recorded values of monitors) are
+    stored in a resizable C++ vector. Its memory is reallocated when the array
+    grows (e.g. during a run or a further ``connect`` call) and freed when its
+    owner is deleted, so a view could later refer to invalid memory.
+
+    Values of other array variables are returned as a view for performance
+    reasons, for all other indices a copy is returned in any case.
+    """
+    return isinstance(variable, DynamicArrayVariable)
+
+
 class VariableView:
     """
     A view on a variable that allows to treat it as an numpy array while
@@ -1255,13 +1271,19 @@ class VariableView:
             and item[1] is None
         ):
             if self.index_var == "_idx":
-                return variable.get_value()[item]
+                values = variable.get_value()[item]
+                return values.copy() if _values_must_be_copied(variable) else values
             else:
                 return variable.get_value()[self.index_var.get_value()][item]
         else:
             indices = self.indexing(item, self.index_var)
 
-        return variable.get_value()[indices]
+        values = variable.get_value()[indices]
+        # Indexing with a slice returns a view on the stored values, all other
+        # indices (arrays of indices) already return a copy
+        if isinstance(indices, slice) and _values_must_be_copied(variable):
+            values = values.copy()
+        return values
 
     @device_override("variableview_get_subexpression_with_index_array")
     def get_subexpression_with_index_array(self, item, run_namespace):
@@ -1367,6 +1389,11 @@ class VariableView:
             # This will fail for subexpressions that refer to external
             # parameters
             values = self[:]
+            if copy is not False and _values_must_be_copied(self.variable):
+                # self[:] already returned a copy of the stored values, do not
+                # copy them a second time (a copy is still made if the dtype
+                # has to be converted)
+                return np.asanyarray(values, dtype=dtype)
             # Never hand over copy = None
             return np.array(values, dtype=dtype, copy=copy is not False, subok=True)
         except ValueError:
@@ -1385,6 +1412,9 @@ class VariableView:
             return NotImplemented
 
     def __len__(self):
+        if self.index_var == "_idx" and _values_must_be_copied(self.variable):
+            # self[:] would copy the values of a dynamic array only to count them
+            return len(self.variable.get_value())
         return len(self.get_item(slice(None), level=1))
 
     def __neg__(self):

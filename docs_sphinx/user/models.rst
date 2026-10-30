@@ -158,6 +158,17 @@ You can also set the value only if a condition holds, for example:
     >>> G.v
     <neurons.v: array([-70., -70., -70., -70., -70., -60., -60., -60., -60., -60.]) * mvolt>
 
+.. note::
+
+    To change a subset of values, index the variable itself (e.g.
+    ``G.v['v > -65*mV'] = -65*mV``), not the array returned by ``G.v[:]``.
+    For synaptic variables (e.g. ``S.w[:]``) and recorded values of monitors
+    (e.g. ``mon.t[:]``), indexing with ``[:]`` returns a copy of the values.
+    For the state variables of a `NeuronGroup` (e.g. ``G.v[:]``), it currently
+    returns the stored array itself, which follows all later changes: use
+    ``G.v[:].copy()`` or ``np.array(G.v)`` to keep a snapshot of the current
+    values.
+
 .. _subgroups:
 
 Subgroups
