@@ -26,7 +26,7 @@ If you use Brian for your published research, we kindly ask you to cite our arti
 [![Docker Pulls](https://img.shields.io/docker/pulls/briansimulator/brian)](https://hub.docker.com/r/briansimulator/brian)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23811560.svg)](https://zenodo.org/doi/10.5281/zenodo.23811560)
 [![Software Heritage (repository)](https://archive.softwareheritage.org/badge/origin/https://github.com/brian-team/brian2/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/brian-team/brian2)
-[![Software Heritage (release)](https://archive.softwareheritage.org/badge/swh:1:rel:ba3061dfeb4e1a23791c063612f560990a0eea69/)](https://archive.softwareheritage.org/swh:1:rel:ba3061dfeb4e1a23791c063612f560990a0eea69;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:bb8a53ef18202531e042a06297936bb230d4f6af)
+[![Software Heritage (release)](https://archive.softwareheritage.org/badge/swh:1:rel:474af7bcb8f029fd245cd925c40db3b574e98b2c/)](https://archive.softwareheritage.org/swh:1:rel:474af7bcb8f029fd245cd925c40db3b574e98b2c;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:9b220225cdb6fd5befeaf6df391912bcafcad836)
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 [![Discourse topics](https://img.shields.io/discourse/topics?server=https%3A%2F%2Fbrian.discourse.group)](https://brian.discourse.group)
