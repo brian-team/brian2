@@ -64,17 +64,23 @@ if not resp.ok:
 data = resp.json()
 latest_visit = sorted(data, key=lambda x: x["date"], reverse=True)[0]
 snapshot_url = latest_visit["snapshot_url"]
-resp = requests.get(snapshot_url)
-if not resp.ok:
-    raise RuntimeError("Request failed: ", resp.reason)
-data = resp.json()
-swh_record = data["branches"].get(f"refs/tags/{tag}")
+def get_record(tag, snapshot_url):
+    resp = requests.get(snapshot_url)
+    if not resp.ok:
+        raise RuntimeError("Request failed: ", resp.reason)
+    data = resp.json()
+    swh_record = data["branches"].get(f"refs/tags/{tag}")
 
-if swh_record:
-    print("Found SWH record for version", tag)
-else:
-    swh_record = None
-    print("No SWH record found for version", tag)
+    if swh_record:
+        print("Found SWH record for version", tag)
+        return swh_record
+    elif next_url := resp.links.get("next", {}).get("url"):
+        print("No SWH record found for version", tag, "examining next page")
+        return get_record(tag, next_url)
+    else:
+        return None
+
+swh_record = get_record(tag, snapshot_url)
 
 print("Updating CITATION.cff and README.md...")
 with open(os.path.join(basedir, "CITATION.cff"), "r") as f:
