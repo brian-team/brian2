@@ -249,6 +249,15 @@ class PopulationRateMonitor(RateMonitor):
         self.variables["rate"].resize(new_size)
         self.variables["t"].resize(new_size)
 
+    def after_run(self):
+        super().after_run()
+        # Cython resizes the underlying arrays without updating Variable.size.
+        for name in ("rate", "t"):
+            try:
+                self.variables[name].size = len(self.variables[name].get_value())
+            except NotImplementedError:
+                pass  # Does not apply to standalone mode
+
     def reinit(self):
         """
         Clears all recorded rates
