@@ -372,8 +372,6 @@ class BrianObjectException(Exception):
         Additional error information to add to the original exception.
     brianobj : BrianObject
         The object that caused the error to happen.
-    original_exception : Exception
-        The original exception that was raised.
     """
 
     def __init__(self, message, brianobj):
