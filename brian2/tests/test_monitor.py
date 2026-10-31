@@ -633,7 +633,6 @@ def test_statemonitor_namespace():
     assert_array_equal(mon.x, [[3], [4]])
 
 
-@pytest.mark.standalone_compatible
 def test_rate_monitor_size_after_run():
     group = NeuronGroup(2, "v : 1", threshold="True", reset="")
     mon = PopulationRateMonitor(group)
@@ -645,6 +644,7 @@ def test_rate_monitor_size_after_run():
             assert var.size == len(var.get_value())
 
 
+@pytest.mark.standalone_compatible
 def test_rate_monitor_1():
     G = NeuronGroup(5, "v : 1", threshold="v>1")  # no reset
     G.v = 1.1  # All neurons spike every time step
