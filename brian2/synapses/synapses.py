@@ -655,6 +655,17 @@ class SynapticSubgroup:
         )
 
 
+def _validate_synapse_index_array(index_array):
+    if index_array.dtype == bool:
+        return
+    if not np.issubdtype(index_array.dtype, np.signedinteger):
+        raise TypeError(
+            "Indexing is only supported for integer "
+            "and boolean arrays, not for type "
+            f"{index_array.dtype}"
+        )
+
+
 class SynapticIndexing:
     def __init__(self, synapses):
         self.synapses = weakref.proxy(synapses)
@@ -681,7 +692,9 @@ class SynapticIndexing:
             or hasattr(index, "_indices")
         ):
             if hasattr(index, "_indices"):
-                final_indices = index._indices(index_var=index_var).astype(np.int32)
+                final_indices = index._indices(index_var=index_var)
+                _validate_synapse_index_array(final_indices)
+                final_indices = final_indices.astype(np.int32)
             elif isinstance(index, slice):
                 start, stop, step = index.indices(len(self.synaptic_pre.get_value()))
                 final_indices = np.arange(start, stop, step, dtype=np.int32)
@@ -691,6 +704,8 @@ class SynapticIndexing:
                     final_indices = boolean_index_to_indices(
                         final_indices, len(self.synaptic_pre.get_value())
                     )
+                else:
+                    _validate_synapse_index_array(final_indices)
         elif isinstance(index, tuple):
             if len(index) == 2:  # two indices (pre- and postsynaptic cell)
                 index = (index[0], index[1], slice(None))
