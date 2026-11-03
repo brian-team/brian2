@@ -41,6 +41,34 @@ __all__ = ["cython_extension_manager"]
 logger = get_logger(__name__)
 
 
+def _path_list_for_cache_key(paths):
+    if not paths:
+        return ()
+    return tuple(os.path.abspath(p) for p in paths)
+
+
+def _compilation_kwargs_cache_key(
+    define_macros=None,
+    include_dirs=None,
+    library_dirs=None,
+    runtime_library_dirs=None,
+    extra_compile_args=None,
+    extra_link_args=None,
+    libraries=None,
+    sources=None,
+):
+    return (
+        tuple(tuple(m) for m in (define_macros or [])),
+        _path_list_for_cache_key(include_dirs),
+        _path_list_for_cache_key(library_dirs),
+        _path_list_for_cache_key(runtime_library_dirs),
+        tuple(extra_compile_args or ()),
+        tuple(extra_link_args or ()),
+        tuple(libraries or ()),
+        _path_list_for_cache_key(sources),
+    )
+
+
 def get_cython_cache_dir():
     cache_dir = prefs.codegen.runtime.cython.cache_dir
     if cache_dir is None and Cython is not None:
@@ -121,6 +149,16 @@ class CythonExtensionManager:
             numpy_version,
             CC,
             CXX,
+            _compilation_kwargs_cache_key(
+                define_macros=define_macros,
+                include_dirs=include_dirs,
+                library_dirs=library_dirs,
+                runtime_library_dirs=runtime_library_dirs,
+                extra_compile_args=extra_compile_args,
+                extra_link_args=extra_link_args,
+                libraries=libraries,
+                sources=sources,
+            ),
         )
 
         if force:

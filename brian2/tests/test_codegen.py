@@ -651,6 +651,41 @@ def test_number_rendering(renderer):
         assert renderer.render_node(node) == "0.5"
 
 
+def test_cython_extension_cache_key_includes_include_dirs():
+    pytest.importorskip("Cython")
+    import tempfile
+
+    from brian2.codegen.runtime.cython_rt.extension_manager import (
+        cython_extension_manager,
+    )
+
+    code = """
+    #cython: language_level=3
+    cdef extern from "foo.h":
+        double foo(double x)
+    def main(_namespace):
+        return foo(1.0)
+    """
+    with tempfile.TemporaryDirectory() as dir_a, tempfile.TemporaryDirectory() as dir_b:
+        for directory, multiplier in ((dir_a, 2), (dir_b, 3)):
+            header_path = os.path.join(directory, "foo.h")
+            with open(header_path, "w", encoding="utf-8") as header_file:
+                header_file.write(
+                    f"inline double foo(double x) {{ return {multiplier} * x; }}\n"
+                )
+
+        cython_extension_manager._code_cache.clear()
+        mod_a = cython_extension_manager.create_extension(
+            code, include_dirs=[dir_a], owner_name="cache_key_test_a"
+        )
+        mod_b = cython_extension_manager.create_extension(
+            code, include_dirs=[dir_b], owner_name="cache_key_test_b"
+        )
+        assert mod_a is not mod_b
+        assert mod_a.main({}) == 2.0
+        assert mod_b.main({}) == 3.0
+
+
 if __name__ == "__main__":
     test_auto_target()
     test_analyse_identifiers()
