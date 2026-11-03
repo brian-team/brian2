@@ -12,7 +12,6 @@ from .fundamentalunits import (
     check_units,
     fail_for_dimension_mismatch,
     get_dimensions,
-    is_dimensionless,
     wrap_function_dimensionless,
     wrap_function_keep_dimensions,
     wrap_function_remove_dimensions,
@@ -50,6 +49,19 @@ __all__ = [
     "concat",
     "concatenate",
 ]
+
+
+def _dimensions_with_zero(first, second):
+    """
+    Dimensions shared by two arguments that already passed
+    `fail_for_dimension_mismatch`. A plain (dimensionless) ``0`` is allowed to
+    stand in for a value with any dimensions, in this case the dimensions of
+    the other argument are returned.
+    """
+    dim = get_dimensions(first)
+    if dim is DIMENSIONLESS:
+        dim = get_dimensions(second)
+    return dim
 
 
 def concatenate(arrays, axis=0, out=None, **kwargs):
@@ -107,13 +119,15 @@ def where(condition, *args, **kwds):  # pylint: disable=C0111
             args[0], args[1], "x and y need to have the same dimensions"
         )
 
-        if is_dimensionless(args[0]):
+        # as both arguments have the same unit, just use the first one's
+        # (unless it is a plain 0, which is compatible with any unit)
+        dim = _dimensions_with_zero(args[0], args[1])
+        if dim is DIMENSIONLESS:
             return np.where(condition, *args, **kwds)
         else:
-            # as both arguments have the same unit, just use the first one's
             dimensionless_args = [np.asarray(arg) for arg in args]
             return Quantity.with_dimensions(
-                np.where(condition, *dimensionless_args), args[0].dimensions
+                np.where(condition, *dimensionless_args), dim
             )
     else:
         # illegal number of arguments, let numpy take care of this
@@ -284,7 +298,7 @@ def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
         start=start,
         stop=stop,
     )
-    dim = getattr(start, "dim", DIMENSIONLESS)
+    dim = _dimensions_with_zero(start, stop)
     result = np.linspace(
         np.asarray(start),
         np.asarray(stop),
