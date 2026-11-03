@@ -123,7 +123,6 @@ class CythonCodeObject(NumpyCodeObject):
         self.include_dirs = list(prefs["codegen.cpp.include_dirs"]) + compiler_kwds.get(
             "include_dirs", []
         )
-        self.include_dirs = list(prefs["codegen.cpp.include_dirs"])
 
         self.library_dirs = list(prefs["codegen.cpp.library_dirs"]) + compiler_kwds.get(
             "library_dirs", []

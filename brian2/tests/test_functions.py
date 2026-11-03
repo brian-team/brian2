@@ -694,6 +694,38 @@ def test_external_function_cython():
     assert mon[0].func == [6] * volt
 
 
+def test_external_function_cython_include_dirs():
+    if prefs.codegen.target != "cython":
+        pytest.skip("Cython-only test")
+
+    with tempfile.TemporaryDirectory(prefix="brian_testsuite_") as tmpdir:
+        header_path = os.path.join(tmpdir, "foo.h")
+        with open(header_path, "w", encoding="utf-8") as header_file:
+            header_file.write("inline double foo(double x) { return 2 * x; }\n")
+
+        @implementation(
+            "cython",
+            'cdef extern from "foo.h":\n    double foo(double x)',
+            include_dirs=[tmpdir],
+        )
+        @check_units(x=1, result=1)
+        def foo(x):
+            return x
+
+        G = NeuronGroup(
+            1,
+            """
+            func = foo(x) : 1
+            x : 1
+            """,
+        )
+        G.x = 1
+        mon = StateMonitor(G, "func", record=True)
+        net = Network(G, mon)
+        net.run(defaultclock.dt)
+        assert_allclose(mon[0].func, [2.0])
+
+
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
 def test_external_function_cpp_standalone():
