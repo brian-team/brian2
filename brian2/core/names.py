@@ -36,8 +36,12 @@ def find_name(name, names=None):
     name = name[:-1]
 
     if names is None:
-        instances = set(Nameable.__instances__())
-        allnames = {obj().name for obj in instances if hasattr(obj(), "name")}
+        # Dereference each weak reference once: the object could be freed
+        # between two calls
+        objects = [ref() for ref in set(Nameable.__instances__())]
+        allnames = {
+            obj.name for obj in objects if obj is not None and hasattr(obj, "name")
+        }
     else:
         allnames = names
 
