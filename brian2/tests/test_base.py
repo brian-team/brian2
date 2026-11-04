@@ -69,6 +69,24 @@ def test_duplicate_names():
         net.run(0 * ms)
 
 
+@pytest.mark.codegen_independent
+def test_name_with_object_freed_while_collecting_names():
+    # An object can be freed while the names of all objects are collected,
+    # e.g. if the garbage collector runs. Here reading its name drops the last
+    # reference to it.
+    keep_alive = []
+
+    class VanishingBrianObject(BrianObject):
+        @property
+        def name(self):
+            keep_alive.clear()
+            return self._name
+
+    keep_alive.append(VanishingBrianObject(name="vanishing"))
+    obj = BrianObject(name="brianobject*")
+    assert obj.name.startswith("brianobject")
+
+
 @pytest.mark.standalone_compatible
 @pytest.mark.multiple_runs
 def test_active_flag():
@@ -115,4 +133,5 @@ if __name__ == "__main__":
     test_base()
     test_names()
     test_duplicate_names()
+    test_name_with_object_freed_while_collecting_names()
     test_active_flag()
