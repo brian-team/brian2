@@ -1165,6 +1165,65 @@ def test_store_restore():
     assert net.t == 10 * ms
 
 
+@pytest.mark.parametrize("to_file", [False, True])
+@pytest.mark.parametrize("legacy_size", [False, True])
+def test_store_restore_rate_monitor(tmp_path, to_file, legacy_size):
+    source = NeuronGroup(
+        4,
+        "dv/dt = rates : 1\nrates : Hz",
+        threshold="v > 1",
+        reset="v = 0",
+        method="euler",
+    )
+    source.rates = [400, 700, 1000, 1300] * Hz
+    rate_mon = PopulationRateMonitor(source[1:], name="rate_monitor")
+    spike_mon = SpikeMonitor(source)
+    state_mon = StateMonitor(source, "v", record=True)
+    net = Network(source, rate_mon, spike_mon, state_mon)
+    net.run(1 * ms)
+    filename = str(tmp_path / "checkpoint") if to_file else None
+    net.store(filename=filename)
+
+    if legacy_size:
+        # Cython rate monitors saved correct values but zero sizes before the fix.
+        if to_file:
+            import pickle
+
+            with open(filename, "rb") as f:
+                states = pickle.load(f)
+            stored_state = states["default"]
+        else:
+            stored_state = net._stored_state["default"]
+        for name in ("t", "rate"):
+            values, _ = stored_state[rate_mon.name][name]
+            stored_state[rate_mon.name][name] = (values, 0)
+        if to_file:
+            with open(filename, "wb") as f:
+                pickle.dump(states, f)
+
+    net.run(1.3 * ms)
+    expected = [
+        rate_mon.t_[:].copy(),
+        rate_mon.rate_[:].copy(),
+        spike_mon.i[:].copy(),
+        spike_mon.t_[:].copy(),
+        state_mon.v_[:].copy(),
+    ]
+    for _ in range(2):
+        net.restore(filename=filename)
+        assert len(rate_mon.t) == 10
+        net.run(1.3 * ms)
+        actual = [
+            rate_mon.t_[:],
+            rate_mon.rate_[:],
+            spike_mon.i[:],
+            spike_mon.t_[:],
+            state_mon.v_[:],
+        ]
+        for expected_values, actual_values in zip(expected, actual):
+            assert_equal(actual_values, expected_values)
+
+
 @pytest.mark.codegen_independent
 def test_restore_from_python_spikequeue():
     """

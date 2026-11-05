@@ -817,10 +817,12 @@ class VariableOwner(Nameable):
         return state
 
     def _restore_from_full_state(self, state):
-        for var_name, (values, size) in state.items():
+        for var_name, (values, _size) in state.items():
             var = self.variables[var_name]
             if isinstance(var, DynamicArrayVariable):
-                var.resize(size)
+                # Older Cython rate monitors stored stale sizes after recording.
+                # The saved values retain the actual dimensions in this case.
+                var.resize(values.shape if var.ndim > 1 else len(values))
             var.set_value(values)
 
     def _check_expression_scalar(self, expr, varname, level=0, run_namespace=None):
