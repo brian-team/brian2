@@ -246,11 +246,11 @@ def get_synapses(name, source, target, C, l, tau_I, A, U, D, F, delay):
 
     synapses.U[:] = np.random.normal(U, 0.5 * U, size=N_syn)
     # paper samples from uniform, we take the mean
-    synapses.U[:][synapses.U < 0] = U
+    synapses.U[synapses.U < 0] = U
 
     synapses.D[:] = np.random.normal(D / ms, 0.5 * D / ms, size=N_syn) * ms
     # paper samples from uniform, we take the mean
-    synapses.D[:][synapses.D / ms <= 0] = D
+    synapses.D[synapses.D / ms <= 0] = D
 
     # start fully recovered
     synapses.x = 1
@@ -258,7 +258,7 @@ def get_synapses(name, source, target, C, l, tau_I, A, U, D, F, delay):
     if F:
         synapses.F[:] = np.random.normal(F / ms, 0.5 * F / ms, size=N_syn) * ms
         # paper samples from uniform, we take the mean
-        synapses.F[:][synapses.F / ms <= 0] = F
+        synapses.F[synapses.F / ms <= 0] = F
 
     return synapses
 

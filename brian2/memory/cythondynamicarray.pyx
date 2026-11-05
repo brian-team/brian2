@@ -203,7 +203,12 @@ cdef class DynamicArray1DClass:
             return np.array([], dtype=self.dtype)
         # Note : This creates a zero-copy NumPy view over the memory allocated by the C++ backend —
         # changes to the NumPy array will reflect in the C++ array and vice versa.
-        return cnp.PyArray_SimpleNewFromData(1, shape, self.numpy_type, data_ptr)
+        cdef cnp.ndarray result = cnp.PyArray_SimpleNewFromData(1, shape, self.numpy_type, data_ptr)
+        # The memory belongs to the C++ vector owned by this object: make this object the
+        # base of the view so that it stays alive as long as the view exists. Note that this
+        # does not protect against the reallocation of the memory when the array grows.
+        cnp.set_array_base(result, self)
+        return result
 
     @property
     def shape(self):
@@ -459,6 +464,9 @@ cdef class DynamicArray2DClass:
         # By default, NumPy assumes it owns the data and will try to free it later.
         # But *our* C++ vector owns it! Clearing this flag prevents a double-free, which would crash the program.
         cnp.PyArray_CLEARFLAGS(result, cnp.NPY_ARRAY_OWNDATA)
+        # Keep this object (and therefore the C++ vector) alive as long as the view exists.
+        # This does not protect against the reallocation of the memory when the array grows.
+        cnp.set_array_base(result, self)
         return result
 
     @property
