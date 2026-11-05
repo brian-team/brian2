@@ -1039,6 +1039,17 @@ def test_special_case_numpy_functions():
         np.asarray(where(cond, ar1, ar2)),
     )
 
+    # The result should not only have the right values but also the right units
+    assert_quantity(
+        where(cond, ar1, ar2), np.where(cond, np.asarray(ar1), np.asarray(ar2)), mV
+    )
+    # A plain 0 can stand in for a value with any dimensions (in either position)
+    assert_quantity(where(cond, 0, ar2), np.where(cond, 0, np.asarray(ar2)), mV)
+    assert_quantity(where(cond, ar1, 0), np.where(cond, np.asarray(ar1), 0), mV)
+    assert_quantity(
+        where(cond, np.zeros(3), ar2), np.where(cond, 0, np.asarray(ar2)), mV
+    )
+
     # Check some error cases
     with pytest.raises(ValueError):
         where(cond, ar1)
@@ -1318,6 +1329,16 @@ def test_arange_linspace():
         brian2.arange(1 * mV, 5 * mV, 1 * mV), float(mV) * np.arange(1, 5, 1), mV
     )
     assert_quantity(brian2.linspace(1 * mV, 2 * mV), float(mV) * np.linspace(1, 2), mV)
+
+    # A plain 0 is allowed to stand in for a value with any dimensions; the
+    # result has to carry the dimensions of the other argument (not be unitless)
+    assert_quantity(brian2.linspace(0, 2 * mV, 5), float(mV) * np.linspace(0, 2, 5), mV)
+    assert_quantity(brian2.linspace(2 * mV, 0, 5), float(mV) * np.linspace(2, 0, 5), mV)
+    assert_quantity(
+        brian2.linspace(0 * mV, 2 * mV, 5), float(mV) * np.linspace(0, 2, 5), mV
+    )
+    with pytest.raises(DimensionMismatchError):
+        brian2.linspace(1, 2 * mV)
 
     # Check errors for arange with incorrect numbers of arguments/duplicate arguments
     with pytest.raises(TypeError):
