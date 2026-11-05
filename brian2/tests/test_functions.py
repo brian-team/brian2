@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+from math import comb
 
 import pytest
 from numpy.testing import assert_equal
@@ -999,6 +1000,82 @@ def test_binomial():
     assert np.var(mon[0].y) > 0
 
 
+def _assert_binomial_samples(samples, n, p):
+    """
+    Compare samples with the binomial distribution B(n, p). All samples have to
+    be integers in [0, n]. The count of each value with an expected count of at
+    least 5, and the sample mean, have to lie within 6 standard deviations of
+    their expectation. For the distributions in `test_binomial_distribution`,
+    the probability that correct samples fail any of these checks is below
+    4e-6 (union bound over exact binomial tail probabilities).
+    """
+    samples = np.asarray(samples)
+    assert np.all(samples == np.round(samples))
+    assert samples.min() >= 0 and samples.max() <= n
+    n_samples = len(samples)
+    pmf = np.array([comb(n, k) * p**k * (1 - p) ** (n - k) for k in range(n + 1)])
+    expected = n_samples * pmf
+    counts = np.bincount(samples.astype(int), minlength=n + 1)
+    checked = expected >= 5
+    tolerance = 6 * np.sqrt(expected * (1 - pmf))
+    assert np.all(np.abs(counts - expected)[checked] <= tolerance[checked]), (
+        f"B({n}, {p}): counts {counts[checked]}, "
+        f"expected {np.round(expected[checked], 1)}"
+    )
+    mean_tolerance = 6 * np.sqrt(n * p * (1 - p) / n_samples)
+    assert abs(np.mean(samples) - n * p) <= mean_tolerance
+
+
+@pytest.mark.standalone_compatible
+def test_binomial_distribution():
+    # Without the normal approximation (default if n*p <= 5 or n*(1-p) <= 5),
+    # samples are drawn with an inversion algorithm, using n - B(n, 1-p) for
+    # p > 0.5
+    binomial_10_08 = BinomialFunction(10, 0.8)
+    # P(X=0) = 0.01
+    binomial_2_09 = BinomialFunction(2, 0.9)
+    binomial_10_02 = BinomialFunction(10, 0.2)
+    # P(X=0) = 2**-50, below the resolution of 15 decimal places
+    binomial_50_05 = BinomialFunction(50, 0.5, approximate=False)
+    G = NeuronGroup(
+        10000,
+        """
+        x_10_08 : 1
+        x_2_09 : 1
+        x_10_02 : 1
+        x_50_05 : 1
+        """,
+    )
+    seed(4321)
+    G.x_10_08 = "binomial_10_08()"
+    G.x_2_09 = "binomial_2_09()"
+    G.x_10_02 = "binomial_10_02()"
+    G.x_50_05 = "binomial_50_05()"
+    run(0 * ms)
+    _assert_binomial_samples(G.x_10_08[:], 10, 0.8)
+    _assert_binomial_samples(G.x_2_09[:], 2, 0.9)
+    _assert_binomial_samples(G.x_10_02[:], 10, 0.2)
+    _assert_binomial_samples(G.x_50_05[:], 50, 0.5)
+
+
+@pytest.mark.codegen_independent
+def test_binomial_inversion_underflow():
+    # The inversion algorithm of the generated code starts from the probability
+    # max(p, 1-p)**n, which underflows to zero in double precision for n=2000
+    # and p=0.5: the generated code would never terminate and has to be refused.
+    # The numpy implementation is not affected.
+    binomial_f = BinomialFunction(2000, 0.5, approximate=False)
+    for target in ["cython", "cpp"]:
+        with pytest.raises(NotImplementedError):
+            binomial_f.implementations[target].get_code(None)
+    samples = binomial_f.implementations["numpy"].get_code(None)(100)
+    assert np.all((samples >= 0) & (samples <= 2000))
+    # 0.5**1000 is still a normal double precision number
+    binomial_f = BinomialFunction(1000, 0.5, approximate=False)
+    for target in ["cython", "cpp"]:
+        binomial_f.implementations[target].get_code(None)
+
+
 @pytest.mark.standalone_compatible
 def test_poisson():
     # Just check that it does not raise an error and that it produces some
@@ -1187,6 +1264,8 @@ if __name__ == "__main__":
         test_function_dependencies_cython_rename,
         test_repeated_function_dependencies,
         test_binomial,
+        test_binomial_distribution,
+        test_binomial_inversion_underflow,
         test_poisson,
         test_declare_types,
         test_multiple_stateless_function_calls,
