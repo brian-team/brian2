@@ -1385,11 +1385,18 @@ class VariableView:
 
     # Allow some basic calculations directly on the ArrayView object
     def __array__(self, dtype=None, copy=None):
+        if copy is False and _values_must_be_copied(self.variable):
+            # numpy expects a ValueError if a copy cannot be avoided, see
+            # https://numpy.org/doc/stable/user/basics.interoperability.html#the-array-method
+            raise ValueError(
+                f"Cannot return the values of variable '{self.variable.name}' "
+                "without a copy, since it is stored in a dynamic array."
+            )
         try:
             # This will fail for subexpressions that refer to external
             # parameters
             values = self[:]
-            if copy is not False and _values_must_be_copied(self.variable):
+            if _values_must_be_copied(self.variable):
                 # self[:] already returned a copy of the stored values, do not
                 # copy them a second time (a copy is still made if the dtype
                 # has to be converted)

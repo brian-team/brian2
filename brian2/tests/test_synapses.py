@@ -894,6 +894,10 @@ def test_state_variable_get_all_copy():
     # Changing a subset of values has to use indexing on the variable itself
     S.w["w < 2"] = 10
     assert_equal(S.w[:], [10, 10, 2, 3, 4, 10, 10, 10, 10, 10])
+    # The stored values cannot be accessed without a copy
+    assert not np.shares_memory(np.asarray(S.w), S.variables["w"].get_value())
+    with pytest.raises(ValueError, match="without a copy"):
+        np.asarray(S.w, copy=False)
 
 
 @pytest.mark.standalone_compatible
