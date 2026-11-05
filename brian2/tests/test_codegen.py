@@ -686,6 +686,32 @@ def test_cython_extension_cache_key_includes_include_dirs():
         assert mod_b.main({}) == 3.0
 
 
+def test_cython_extension_cache_reuses_same_include_dirs():
+    pytest.importorskip("Cython")
+    import tempfile
+
+    from brian2.codegen.runtime.cython_rt.extension_manager import (
+        cython_extension_manager,
+    )
+
+    code = """
+    #cython: language_level=3
+    def main(_namespace):
+        return 1.0
+    """
+    with tempfile.TemporaryDirectory() as directory:
+        cython_extension_manager._code_cache.clear()
+        dirs = [directory]
+        mod_a = cython_extension_manager.create_extension(
+            code, include_dirs=dirs, owner_name="cache_reuse_test"
+        )
+        mod_b = cython_extension_manager.create_extension(
+            code, include_dirs=dirs, owner_name="cache_reuse_test"
+        )
+        assert mod_a is mod_b
+        assert len(dirs) == 1
+
+
 if __name__ == "__main__":
     test_auto_target()
     test_analyse_identifiers()

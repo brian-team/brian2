@@ -289,7 +289,7 @@ class CythonExtensionManager:
             if libraries is None:
                 libraries = []
 
-            c_include_dirs = include_dirs
+            c_include_dirs = list(include_dirs)
             if "numpy" in code:
                 import numpy
 
