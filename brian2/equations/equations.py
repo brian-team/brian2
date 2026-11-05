@@ -1312,8 +1312,6 @@ class Equations(Hashable, Mapping):
         run_namespace : dict-like, optional
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
-        level : int, optional
-            How much further to go up in the stack to find the calling frame
 
         Raises
         ------

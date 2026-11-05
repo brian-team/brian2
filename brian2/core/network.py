@@ -743,26 +743,22 @@ class Network(Nameable):
     ):
         """
         Return a copy of the current state variable values of objects in the
-        network.. The returned arrays are copies of the actual arrays that
-        store the state variable values, therefore changing the values in the
-        returned dictionary will not affect the state variables.
+        network. For each object, all state variables are extracted (except for
+        internal variables, i.e. names that start with ``'_'``). The returned
+        arrays are copies of the actual arrays that store the state variable
+        values, therefore changing the values in the returned dictionary will
+        not affect the state variables.
 
         Parameters
         ----------
-        vars : list of str, optional
-            The names of the variables to extract. If not specified, extract
-            all state variables (except for internal variables, i.e. names that
-            start with ``'_'``). If the ``subexpressions`` argument is ``True``,
-            the current values of all subexpressions are returned as well.
         units : bool, optional
             Whether to include the physical units in the return value. Defaults
             to ``True``.
         format : str, optional
             The output format. Defaults to ``'dict'``.
         subexpressions: bool, optional
-            Whether to return subexpressions when no list of variable names
-            is given. Defaults to ``False``. This argument is ignored if an
-            explicit list of variable names is given in ``vars``.
+            Whether to return the current values of all subexpressions as well.
+            Defaults to ``False``.
         read_only_variables : bool, optional
             Whether to return read-only variables (e.g. the number of neurons,
             the time, etc.). Setting it to ``False`` will assure that the
