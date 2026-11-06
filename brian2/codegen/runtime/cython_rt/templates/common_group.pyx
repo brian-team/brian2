@@ -1,10 +1,7 @@
 {% macro cython_directives() %}
-#cython: language_level=3
-#cython: boundscheck=False
-#cython: wraparound=False
-#cython: cdivision=False
-#cython: cpow=True
-#cython: infer_types=True
+{% for name, value in get_cython_directives().items() %}
+#cython: {{ name }}={{ value if value is string else repr(value) }}
+{% endfor %}
 {% endmacro %}
 
 {% macro imports() %}
