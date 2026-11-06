@@ -26,7 +26,12 @@ from brian2.parsing.functions import (
     extract_abstract_code_functions,
     substitute_abstract_code_functions,
 )
-from brian2.parsing.rendering import NodeRenderer, NumpyNodeRenderer
+from brian2.parsing.rendering import (
+    CPPNodeRenderer,
+    NodeRenderer,
+    NumpyNodeRenderer,
+    SympyNodeRenderer,
+)
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.tests.utils import assert_allclose
 from brian2.units import (
@@ -599,6 +604,101 @@ def test_sympy_infinity():
     # See github issue #1061
     assert sympy_to_str(str_to_sympy("inf")) == "inf"
     assert sympy_to_str(str_to_sympy("-inf")) == "-inf"
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize(
+    "expr,expected_default,expected_float32",
+    [
+        ("0.001", "0.001", "0.001f"),
+        ("1e-5", "1e-05", "1e-05f"),
+        ("2.5e20", "2.5e+20", "2.5e+20f"),
+        ("0.5", "0.5", "0.5f"),
+        ("2.0", "2.0", "2.0f"),
+        ("0.1", "0.1", "0.1f"),
+        ("3", "3", "3"),
+        ("True", "true", "true"),
+        ("False", "false", "false"),
+        ("inf", "INFINITY", "INFINITY"),
+        ("v * 0.5", "v * 0.5", "v * 0.5f"),
+        ("-0.25 * v", "(- 0.25) * v", "(- 0.25f) * v"),
+        ("v >= 0.7", "v >= 0.7", "v >= 0.7f"),
+        ("i * 3 + 1", "(i * 3) + 1", "(i * 3) + 1"),
+        ("exp(-0.5)", "exp(- 0.5)", "exp(- 0.5f)"),
+        ("v / 2.0", "1.0f*v/2.0", "1.0f*v/2.0f"),
+        ("var12 * 81e3", "var12 * 81000.0", "var12 * 81000.0f"),
+    ],
+)
+def test_cpp_renderer_float_dtype(expr, expected_default, expected_float32):
+    assert CPPNodeRenderer().render_expr(expr) == expected_default
+    assert CPPNodeRenderer(float_dtype=np.float64).render_expr(expr) == expected_default
+    assert CPPNodeRenderer(float_dtype=np.float32).render_expr(expr) == expected_float32
+    assert CPPNodeRenderer(float_dtype="float32").render_expr(expr) == expected_float32
+
+
+@pytest.mark.codegen_independent
+def test_cpp_renderer_float_dtype_constants():
+    import ast
+
+    r32 = CPPNodeRenderer(float_dtype=np.float32)
+    r64 = CPPNodeRenderer(float_dtype=np.float64)
+    r_default = CPPNodeRenderer()
+    for value in [np.float32(0.1), float(np.float32(0.1))]:
+        assert r32.render_node(ast.Constant(value=value)) == "0.1f"
+    assert r_default.render_node(ast.Constant(value=np.float32(0.1))) == repr(
+        float(np.float32(0.1))
+    )
+    assert r32.render_node(ast.Constant(value=0.1234567891)) == "0.12345679f"
+    for value in [
+        0.1234567891,
+        np.float64(0.25),
+        float("inf"),
+        -float("inf"),
+        float("nan"),
+        np.bool_(True),
+        np.bool_(False),
+    ]:
+        node = ast.Constant(value=value)
+        assert r64.render_node(node) == r_default.render_node(node)
+    assert r_default.render_node(ast.Constant(value=float("inf"))) == "INFINITY"
+    assert r_default.render_node(ast.Constant(value=-float("inf"))) == "(-INFINITY)"
+    assert r_default.render_node(ast.Constant(value=float("nan"))) == "NAN"
+    assert r_default.render_node(ast.Constant(value=np.bool_(True))) == "true"
+    assert r_default.render_node(ast.Constant(value=np.bool_(False))) == "false"
+    assert r32.render_node(ast.Constant(value=np.bool_(False))) == "false"
+    assert r32.render_node(ast.Constant(value=float("inf"))) == "INFINITY"
+    assert r32.render_node(ast.Constant(value=-float("inf"))) == "(-INFINITY)"
+    assert r32.render_node(ast.Constant(value=float("nan"))) == "NAN"
+    assert r32.render_node(ast.Constant(value=1e100)) == "INFINITY"
+    assert r32.render_node(ast.Constant(value=-1e100)) == "(-INFINITY)"
+    assert r32.render_node(ast.Constant(value=1e-50)) == "0.0f"
+    assert r32.render_node(ast.Constant(value=-1e-50)) == "-0.0f"
+    assert r32.render_node(ast.Constant(value=np.int32(3))) == "3"
+    with np.printoptions(legacy="1.13"):
+        assert (
+            r32.render_node(ast.Constant(value=np.float32(0.12345679))) == "0.12345679f"
+        )
+    for value in [0.001, 1e-5, 0.1, 1 / 3.0, 2.5e20, 6.02214076e23, 1e-40]:
+        literal = r32.render_node(ast.Constant(value=value))
+        assert literal.endswith("f")
+        assert np.float32(literal[:-1]) == np.float32(value)
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize("bad_dtype", [np.int32, np.float16, np.longdouble])
+def test_cpp_renderer_float_dtype_invalid(bad_dtype):
+    if np.dtype(bad_dtype) == np.dtype(np.float64):
+        pytest.skip("longdouble aliases float64 on this platform")
+    with pytest.raises(TypeError):
+        CPPNodeRenderer(float_dtype=bad_dtype)
+
+
+@pytest.mark.codegen_independent
+def test_other_renderers_unaffected_by_float_dtype():
+    for expr, expected in [("v * 0.5", "v * 0.5"), ("1e-5", "1e-05")]:
+        assert NodeRenderer().render_expr(expr) == expected
+        assert NumpyNodeRenderer().render_expr(expr) == expected
+    assert str(SympyNodeRenderer().render_expr("v * 0.5")) == "0.5*v"
 
 
 if __name__ == "__main__":
