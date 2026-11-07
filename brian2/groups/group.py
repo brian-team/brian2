@@ -356,15 +356,26 @@ class IndexWrapper:
             from brian2.devices.device import get_device
 
             device = get_device()
+            codeobj_class = device.code_object_class(
+                fallback_pref="codegen.string_expression_target"
+            )
+            # Note that this needs to be a TypeError (and not e.g. a
+            # NotImplementedError), since Jinja relies on it to fall back to
+            # attribute access when evaluating syn['name'] in templates
+            if not hasattr(codeobj_class.templater, "group_get_indices"):
+                codeobj_class_name = codeobj_class.class_name or codeobj_class.__name__
+                raise TypeError(
+                    f"Cannot use the string expression '{item}' as an index, "
+                    f"this is not supported by '{codeobj_class_name}' (e.g. in "
+                    "standalone mode)."
+                )
             codeobj = create_runner_codeobj(
                 self.group,
                 abstract_code,
                 "group_get_indices",
                 run_namespace=namespace,
                 additional_variables=variables,
-                codeobj_class=device.code_object_class(
-                    fallback_pref="codegen.string_expression_target"
-                ),
+                codeobj_class=codeobj_class,
             )
             return codeobj()
         else:
