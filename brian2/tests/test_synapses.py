@@ -611,6 +611,16 @@ def test_connection_multiple_synapses():
     S6 = Synapses(G, G2)
     S6.connect(True, n="int(v_pre>v_post)*2")
 
+    # Target indices that are filtered or not in ascending order
+    S7 = Synapses(G, G2)
+    S7.connect(condition="i != j", n="j")
+
+    S8 = Synapses(G, G2)
+    S8.connect(j="N_post - 1 - k for k in range(N_post)", n="j")
+
+    S9 = Synapses(G, G2)
+    S9.connect(i="N_pre - 1 - k for k in range(N_pre)", n="i")
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0 * ms)  # for standalone
 
@@ -624,6 +634,12 @@ def test_connection_multiple_synapses():
         expected[source, :source] = 2
     _compare(S5, expected)
     _compare(S6, expected)
+
+    expected = np.arange(len(G2)).reshape(1, len(G2)).repeat(len(G), axis=0)
+    np.fill_diagonal(expected, 0)
+    _compare(S7, expected)
+    _compare(S8, np.arange(len(G2)).reshape(1, len(G2)).repeat(len(G), axis=0))
+    _compare(S9, np.arange(len(G)).reshape(len(G), 1).repeat(len(G2), axis=1))
 
 
 @pytest.mark.standalone_compatible

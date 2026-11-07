@@ -189,7 +189,7 @@ for _{{outer_index}} in range({{outer_index_size}}):
 
     if not _numpy.isscalar(_n):
         # The "n" expression involved the target variable
-        {{result_index_array}} = {{result_index_array}}.repeat(_n[_j])
+        {{result_index_array}} = {{result_index_array}}.repeat(_n)
     elif _n != 1:
         # We have a target-independent number
         {{result_index_array}} = {{result_index_array}}.repeat(_n)
