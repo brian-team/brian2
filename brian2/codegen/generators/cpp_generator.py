@@ -87,6 +87,16 @@ prefs.register_preferences(
         Found at `<http://stackoverflow.com/questions/2487653/avoiding-denormal-values-in-c>`_.
         """,
     ),
+    single_precision_literals=BrianPreference(
+        default=False,
+        docs="""
+        Render floating point literals as single-precision (e.g. ``0.001f``)
+        when `core.default_float_dtype` is ``float32``. Can be faster, but may
+        change results (e.g. ``v >= 0.7``). Constants declared as ``double``
+        are not affected; has no effect when `core.default_float_dtype` is
+        ``float64``.
+        """,
+    ),
 )
 
 
@@ -235,6 +245,15 @@ class CPPCodeGenerator(CodeGenerator):
     def flush_denormals(self):
         return prefs["codegen.generators.cpp.flush_denormals"]
 
+    @property
+    def literal_float_dtype(self):
+        if (
+            prefs["codegen.generators.cpp.single_precision_literals"]
+            and prefs["core.default_float_dtype"] == numpy.float32
+        ):
+            return numpy.float32
+        return numpy.float64
+
     @staticmethod
     def get_array_name(var, access_data=True):
         # We have to do the import here to avoid circular import dependencies.
@@ -249,7 +268,10 @@ class CPPCodeGenerator(CodeGenerator):
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)
         return (
-            CPPNodeRenderer(auto_vectorise=self.auto_vectorise)
+            CPPNodeRenderer(
+                auto_vectorise=self.auto_vectorise,
+                float_dtype=self.literal_float_dtype,
+            )
             .render_expr(expr)
             .strip()
         )

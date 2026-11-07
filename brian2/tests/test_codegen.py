@@ -651,6 +651,42 @@ def test_number_rendering(renderer):
         assert renderer.render_node(node) == "0.5"
 
 
+@pytest.mark.codegen_independent
+def test_cpp_generator_single_precision_literals():
+    from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
+
+    def translate(expr):
+        generator = CPPCodeGenerator(
+            variables={},
+            variable_indices={},
+            owner=None,
+            iterate_all=True,
+            codeobj_class=CodeObject,
+            name="test",
+            template_name="test",
+        )
+        return generator.literal_float_dtype, generator.translate_expression(expr)
+
+    expr = "v * 0.5 + exp(-t / 0.01)"
+    double_literals = "(v * 0.5) + exp(1.0f*(- t)/0.01)"
+    single_literals = "(v * 0.5f) + exp(1.0f*(- t)/0.01f)"
+    orig_dtype = prefs.core.default_float_dtype
+    orig_literals = prefs.codegen.generators.cpp.single_precision_literals
+    try:
+        for dtype in [np.float64, np.float32]:
+            prefs.core.default_float_dtype = dtype
+            prefs.codegen.generators.cpp.single_precision_literals = False
+            assert translate(expr) == (np.float64, double_literals)
+        prefs.codegen.generators.cpp.single_precision_literals = True
+        prefs.core.default_float_dtype = np.float64
+        assert translate(expr) == (np.float64, double_literals)
+        prefs.core.default_float_dtype = np.float32
+        assert translate(expr) == (np.float32, single_literals)
+    finally:
+        prefs.core.default_float_dtype = orig_dtype
+        prefs.codegen.generators.cpp.single_precision_literals = orig_literals
+
+
 if __name__ == "__main__":
     test_auto_target()
     test_analyse_identifiers()
