@@ -1009,26 +1009,35 @@ def test_repeated_function_dependencies():
 def test_binomial():
     binomial_f_approximated = BinomialFunction(100, 0.1, approximate=True)
     binomial_f = BinomialFunction(100, 0.1, approximate=False)
+    # Regression checks:
+    # - exact inversion with n=500, p=0.5 (0.5**500 ~ 3e-151, previously formatted as 0 with .15f)
+    # - exact inversion with p > 0.5 (previously used p instead of P=1-p in Cython)
+    binomial_large_n = BinomialFunction(500, 0.5, approximate=False)
+    binomial_p_high = BinomialFunction(20, 0.8, approximate=False)
 
-    # Just check that it does not raise an error and that it produces some
-    # values
     G = NeuronGroup(
-        1,
+        200,
         """
         x : 1
         y : 1
+        z : 1
+        w : 1
         """,
     )
     G.run_regularly(
         """
         x = binomial_f_approximated()
         y = binomial_f()
+        z = binomial_large_n()
+        w = binomial_p_high()
         """
     )
     mon = StateMonitor(G, ["x", "y"], record=0)
     run(1 * ms)
     assert np.var(mon[0].x) > 0
     assert np.var(mon[0].y) > 0
+    assert 220 < np.mean(G.z[:]) < 280
+    assert 13.5 < np.mean(G.w[:]) < 18.5
 
 
 @pytest.mark.standalone_compatible
