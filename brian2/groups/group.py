@@ -1361,7 +1361,16 @@ class Group(VariableOwner, BrianObject):
         warning if so.
         """
         v = np.asarray(v)
-        if np.isnan(v).any() or (np.abs(v) > 1e50).any():
+        # float32/float16 cannot represent 1e50; comparing abs(v) > 1e50 would
+        # overflow. Also avoid comparing finfo.max (float32) to 1e50 directly,
+        # which casts 1e50→float32 and warns under NumPy 2.x.
+        has_huge = (
+            np.isinf(v).any()
+            if np.issubdtype(v.dtype, np.floating)
+            and float(np.finfo(v.dtype).max) < 1e50
+            else (np.abs(v) > 1e50).any()
+        )
+        if np.isnan(v).any() or has_huge:
             logger.warn(
                 f"{self.name}'s variable '{k}' has NaN, very large values, "
                 "or encountered an error in numerical integration. "
