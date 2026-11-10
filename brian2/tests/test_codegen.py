@@ -651,6 +651,102 @@ def test_number_rendering(renderer):
         assert renderer.render_node(node) == "0.5"
 
 
+@pytest.mark.codegen_independent
+def test_cpp_support_code_typed_operators_and_functions(tmp_path):
+    import shutil
+    import subprocess
+    import textwrap
+
+    from brian2.codegen.generators.cpp_generator import (
+        clip_code,
+        exprel_code,
+        floordiv_support_code,
+        hightype_support_code,
+        mod_support_code,
+        pow_support_code,
+    )
+
+    for code in (mod_support_code, floordiv_support_code):
+        assert "static_cast<result_type>" in code
+        assert "1.0*" not in code
+        assert "{{" not in code
+        assert "}}" not in code
+
+    cxx = shutil.which("g++") or shutil.which("c++")
+    if cxx is None:
+        pytest.skip("No C++ compiler found on PATH")
+
+    src = textwrap.dedent(
+        f"""
+        #include <cmath>
+        #include <cstdint>
+        #include <limits>
+        #include <type_traits>
+        #ifndef INFINITY
+        #define INFINITY (std::numeric_limits<float>::infinity())
+        #endif
+        {hightype_support_code}
+        {mod_support_code}
+        {floordiv_support_code}
+        {pow_support_code}
+        {exprel_code}
+        {clip_code}
+
+        static_assert(std::is_same_v<decltype(_brian_mod(1.0f, 0.3f)), float>);
+        static_assert(std::is_same_v<decltype(_brian_mod(1.0f, 3)), float>);
+        static_assert(std::is_same_v<decltype(_brian_mod(1.0f, 0.3)), double>);
+        static_assert(std::is_same_v<decltype(_brian_floordiv(1.0f, 0.3f)), float>);
+        static_assert(std::is_same_v<decltype(_brian_pow(2.0f, 3)), float>);
+        static_assert(std::is_same_v<decltype(_brian_pow(2.0f, 2.5f)), float>);
+        static_assert(std::is_same_v<decltype(_brian_pow(2, 2.5f)), float>);
+        static_assert(std::is_same_v<decltype(_brian_pow(2.0f, 2.5)), double>);
+        static_assert(std::is_same_v<decltype(_brian_pow(uint32_t(2), 2.5)), double>);
+        static_assert(std::is_same_v<decltype(_brian_pow(2, 3)), double>);
+        static_assert(std::is_same_v<decltype(_exprel(0.5f)), float>);
+        static_assert(std::is_same_v<decltype(_exprel(0.5)), double>);
+        static_assert(std::is_same_v<decltype(_exprel(1)), double>);
+        static_assert(std::is_same_v<decltype(_clip(0.5f, 0, 1)), float>);
+        static_assert(std::is_same_v<decltype(_clip(0.5f, 0.0f, 1.0f)), float>);
+        static_assert(std::is_same_v<decltype(_clip(0.5f, 0.0, 1.0)), double>);
+        static_assert(std::is_same_v<decltype(_clip(int32_t(-1), -0.5, 1.5)), double>);
+
+        int main() {{
+            int32_t cases[][2] = {{
+                {{7, 3}}, {{-7, 3}}, {{7, -3}}, {{-7, -3}},
+                {{8, 3}}, {{-8, 3}}, {{8, -3}}, {{-8, -3}},
+                {{0, 5}}, {{5, 1}}, {{-5, 1}}
+            }};
+            for (auto& c : cases) {{
+                int32_t a = c[0], b = c[1];
+                int32_t q = _brian_floordiv(a, b);
+                int32_t r = _brian_mod(a, b);
+                if (q * b + r != a) return 1;
+                if (r != 0 && ((r < 0) != (b < 0))) return 2;
+            }}
+            if (_brian_pow(-0.5f, 2) != 0.25f) return 3;
+            if (_brian_pow(-0.5f, 3) != -0.125f) return 4;
+            if (_brian_pow(2.0f, -2) != 0.25f) return 5;
+            if (_brian_pow(0.0f, 0) != 1.0f) return 6;
+            if (!std::isinf(_exprel(90.0f))) return 7;
+            if (_exprel(0.0f) != 1.0f) return 8;
+            if (_clip(int32_t(-1), -0.5, 1.5) != -0.5) return 9;
+            return 0;
+        }}
+        """
+    )
+    cpp = tmp_path / "support_test.cpp"
+    exe = tmp_path / "support_test"
+    cpp.write_text(src)
+    comp = subprocess.run(
+        [cxx, "-std=c++17", "-O2", "-o", str(exe), str(cpp)],
+        capture_output=True,
+        text=True,
+    )
+    assert comp.returncode == 0, comp.stderr
+    res = subprocess.run([str(exe)], capture_output=True, text=True)
+    assert res.returncode == 0, f"Exited with {res.returncode}: {res.stderr}"
+
+
 if __name__ == "__main__":
     test_auto_target()
     test_analyse_identifiers()

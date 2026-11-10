@@ -148,6 +148,7 @@ def test_clip():
         clipexpr2 = clip(integer_var2, -0.5, 1.5) : integer
         clipexpr3 = clip(float_var1, 0, 1) : 1
         clipexpr4 = clip(float_var2, -0.5, 1.5) : 1
+        clipexpr5 = clip(integer_var2, -0.5, 1.5) : 1
         integer_var1 : integer
         integer_var2 : integer
         float_var1 : 1
@@ -159,13 +160,16 @@ def test_clip():
     G.float_var1 = [0.0, 1.0, -1.0, 2.0]
     G.float_var2 = [0.0, 1.0, -1.0, 2.0]
     s_mon = StateMonitor(
-        G, ["clipexpr1", "clipexpr2", "clipexpr3", "clipexpr4"], record=True
+        G,
+        ["clipexpr1", "clipexpr2", "clipexpr3", "clipexpr4", "clipexpr5"],
+        record=True,
     )
     run(defaultclock.dt)
     assert_equal(s_mon.clipexpr1.flatten(), [0, 1, 0, 1])
     assert_equal(s_mon.clipexpr2.flatten(), [0, 1, 0, 1])
     assert_allclose(s_mon.clipexpr3.flatten(), [0, 1, 0, 1])
     assert_allclose(s_mon.clipexpr4.flatten(), [0, 1, -0.5, 1.5])
+    assert_allclose(s_mon.clipexpr5.flatten(), [0.0, 1.0, -0.5, 1.5])
 
 
 @pytest.mark.standalone_compatible
