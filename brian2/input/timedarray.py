@@ -39,6 +39,10 @@ def _find_K(group_dt, dt):
     return K
 
 
+def _double_literal(value):
+    return repr(float(value))
+
+
 def _generate_cpp_code_1d(values, dt, name):
     def cpp_impl(owner):
         K = _find_K(owner.clock.dt_, dt)
@@ -55,7 +59,7 @@ def _generate_cpp_code_1d(values, dt, name):
             return _namespace%NAME%_values[i];
         }
         """.replace("%NAME%", name)
-            .replace("%DT%", f"{dt:.18f}")
+            .replace("%DT%", _double_literal(dt))
             .replace("%K%", str(K))
             .replace("%NUM_VALUES%", str(len(values)))
         )
@@ -86,7 +90,7 @@ def _generate_cpp_code_2d(values, dt, name):
             support_code,
             {
                 "%NAME%": name,
-                "%DT%": f"{dt:.18f}",
+                "%DT%": _double_literal(dt),
                 "%K%": str(K),
                 "%COLS%": str(values.shape[1]),
                 "%ROWS%": str(values.shape[0]),
@@ -112,7 +116,7 @@ def _generate_cython_code_1d(values, dt, name):
                 i = %NUM_VALUES% - 1
             return _namespace%NAME%_values[i]
         """.replace("%NAME%", name)
-            .replace("%DT%", f"{dt:.18f}")
+            .replace("%DT%", _double_literal(dt))
             .replace("%K%", str(K))
             .replace("%NUM_VALUES%", str(len(values)))
         )
@@ -142,7 +146,7 @@ def _generate_cython_code_2d(values, dt, name):
             code,
             {
                 "%NAME%": name,
-                "%DT%": f"{dt:.18f}",
+                "%DT%": _double_literal(dt),
                 "%K%": str(K),
                 "%COLS%": str(values.shape[1]),
                 "%ROWS%": str(values.shape[0]),
