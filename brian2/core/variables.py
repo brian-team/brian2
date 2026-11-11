@@ -1403,6 +1403,18 @@ class VariableView:
                 return np.asanyarray(values, dtype=dtype)
             # Never hand over copy = None
             return np.array(values, dtype=dtype, copy=copy is not False, subok=True)
+        except KeyError as exc:
+            if (
+                type(exc) is KeyError
+                and isinstance(self.variable, Subexpression)
+                and "_brian_unresolved_identifier" in exc.__dict__
+            ):
+                var = self.variable.name
+                exc.add_note(
+                    f"To evaluate the subexpression '{var}' in the current namespace, "
+                    f"use 'group.{var}[:]' instead of 'group.{var}'."
+                )
+            raise
         except ValueError:
             var = self.variable.name
             raise ValueError(
