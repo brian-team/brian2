@@ -73,45 +73,34 @@ Jp = 1.7  # relative synaptic strength inside a selective population (1.0: no po
 Jm = 1.0 - fE * (Jp - 1.0) / (1.0 - fE)
 
 # Neuron equations
+# g_NMDA is a placeholder; Equations substitutes each population's conductance below.
+synaptic_eqs = """
+   I_AMPA = s_AMPA * (V - V_E) : amp
+   ds_AMPA / dt = - s_AMPA / tau_AMPA : siemens
+
+   I_NMDA = g_NMDA * s_NMDA_tot * (V - V_E) / (1 + exp(-0.062 * V/mvolt) * (C/mmole / 3.57)) : amp
+   s_NMDA_tot : 1
+
+   I_GABA = s_GABA * (V - V_I) : amp
+   ds_GABA / dt = - s_GABA / tau_GABA : siemens
+
+   I_AMPA_ext = s_AMPA_ext * (V - V_E) : amp
+   ds_AMPA_ext / dt = - s_AMPA_ext / tau_AMPA : siemens
+"""
+
 # Note the "(unless refractory)" statement serves to clamp the membrane voltage during the refractory period;
 # otherwise the membrane potential continues to be integrated but no spikes are emitted.
-eqsE = """
+eqsE = Equations("""
    label : integer (constant)  # label for decision encoding populations
    dV/dt = (- gLeakE * (V - El) - I_AMPA - I_NMDA - I_GABA - I_AMPA_ext + I_input) / CmE : volt (unless refractory)
-
-   I_AMPA = s_AMPA * (V - V_E) : amp
-   ds_AMPA / dt = - s_AMPA / tau_AMPA : siemens
-
-   I_NMDA = gEEN * s_NMDA_tot * (V - V_E) / ( 1 + exp(-0.062 * V/mvolt) * (C/mmole / 3.57) ) : amp
-   s_NMDA_tot : 1
-
-   I_GABA = s_GABA * (V - V_I) : amp
-   ds_GABA / dt = - s_GABA / tau_GABA : siemens
-
-   I_AMPA_ext = s_AMPA_ext * (V - V_E) : amp
-   ds_AMPA_ext / dt = - s_AMPA_ext / tau_AMPA : siemens
-
    I_input : amp
-
    ds_NMDA / dt = - s_NMDA / tau_NMDA_decay + alpha * x * (1 - s_NMDA) : 1
    dx / dt = - x / tau_NMDA_rise : 1
-"""
+""") + Equations(synaptic_eqs, g_NMDA="gEEN")
 
-eqsI = """
+eqsI = Equations("""
    dV/dt = (- gLeakI * (V - El) - I_AMPA - I_NMDA - I_GABA - I_AMPA_ext) / CmI : volt (unless refractory)
-
-   I_AMPA = s_AMPA * (V - V_E) : amp
-   ds_AMPA / dt = - s_AMPA / tau_AMPA : siemens
-
-   I_NMDA = gEIN * s_NMDA_tot * (V - V_E) / ( 1 + exp(-0.062 * V/mvolt) * (C/mmole / 3.57) ): amp
-   s_NMDA_tot : 1
-
-   I_GABA = s_GABA * (V - V_I) : amp
-   ds_GABA / dt = - s_GABA / tau_GABA : siemens
-
-   I_AMPA_ext = s_AMPA_ext * (V - V_E) : amp
-   ds_AMPA_ext / dt = - s_AMPA_ext / tau_AMPA : siemens
-"""
+""") + Equations(synaptic_eqs, g_NMDA="gEIN")
 
 # Neuron populations
 popE = NeuronGroup(NE, model=eqsE, threshold='V > Vt', reset='V = Vr', refractory=refE, method='euler', name='popE')
