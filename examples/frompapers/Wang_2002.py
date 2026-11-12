@@ -73,6 +73,7 @@ Jp = 1.7  # relative synaptic strength inside a selective population (1.0: no po
 Jm = 1.0 - fE * (Jp - 1.0) / (1.0 - fE)
 
 # Neuron equations
+# g_NMDA is a placeholder; Equations substitutes each population's conductance below.
 synaptic_eqs = """
    I_AMPA = s_AMPA * (V - V_E) : amp
    ds_AMPA / dt = - s_AMPA / tau_AMPA : siemens
