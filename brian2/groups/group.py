@@ -1060,7 +1060,10 @@ class Group(VariableOwner, BrianObject):
                     )
                 else:
                     error_msg = f'The identifier "{identifier}" could not be resolved.'
-                raise KeyError(error_msg)
+                error = KeyError(error_msg)
+                # Let callers distinguish resolution failures from user code errors.
+                error._brian_unresolved_identifier = identifier
+                raise error
 
         elif len(matches) > 1:
             # Possibly, all matches refer to the same object
