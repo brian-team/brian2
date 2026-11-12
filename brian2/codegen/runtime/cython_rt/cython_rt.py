@@ -31,6 +31,22 @@ __all__ = ["CythonCodeObject"]
 
 logger = get_logger(__name__)
 
+#: Cython directives used for all generated code. These can be overwritten
+#: via the ``codegen.runtime.cython.overwrite_directives`` preference.
+DEFAULT_DIRECTIVES = {
+    "language_level": 3,
+    "boundscheck": False,
+    "wraparound": False,
+    "cdivision": False,
+    "cpow": True,
+    "infer_types": True,
+}
+
+
+def _get_cython_directives():
+    return DEFAULT_DIRECTIVES | prefs.codegen.runtime.cython.overwrite_directives
+
+
 # Preferences
 prefs.register_preferences(
     "codegen.runtime.cython",
@@ -62,6 +78,18 @@ prefs.register_preferences(
         can be useful for debugging.
         """,
     ),
+    overwrite_directives=BrianPreference(
+        default={},
+        validator=lambda x: isinstance(x, dict),
+        docs="""
+        Dictionary of Cython directives that overwrite the default directives
+        used for generated code. For example, setting
+        ``prefs.codegen.runtime.cython.overwrite_directives = {'cdivision': True}``
+        will use C division semantics in generated Cython code. Directives that
+        are not specified keep their default value. Changing this preference
+        only affects code objects that are generated after the change.
+        """,
+    ),
 )
 
 
@@ -78,6 +106,8 @@ class CythonCodeObject(NumpyCodeObject):
             "numpy_dtype": get_numpy_dtype,
             "dtype": numpy.dtype,
             "constant_or_scalar": constant_or_scalar,
+            "get_cython_directives": _get_cython_directives,
+            "repr": repr,
         },
     )
     generator_class = CythonCodeGenerator
