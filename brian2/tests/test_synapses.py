@@ -801,6 +801,28 @@ def test_state_variable_boolean_indexing():
         S.w[np.ones((7, 1), dtype=bool)]
 
 
+@pytest.mark.codegen_independent
+def test_synaptic_indexing_invalid_index_dtypes():
+    G = NeuronGroup(10, "v : 1", threshold="v>10", reset="v=0")
+    S = Synapses(G, G, "w : 1")
+    S.connect(i=[0, 1, 2], j=[1, 2, 3])
+
+    float_indices = np.array([0.9, 1.1])
+    unsigned_indices = np.array([0, 1], dtype=np.uint32)
+
+    with pytest.raises(TypeError):
+        S.w[float_indices]
+    with pytest.raises(TypeError):
+        S._indices(float_indices)
+
+    assert_equal(S.w[unsigned_indices], S.w[[0, 1]])
+    assert_equal(S._indices(unsigned_indices), np.array([0, 1], dtype=np.int32))
+
+    with pytest.raises(TypeError):
+        G.v[float_indices]
+    assert_equal(G.v[unsigned_indices], G.v[[0, 1]])
+
+
 def test_indices():
     G = NeuronGroup(10, "v : 1")
     S = Synapses(G, G, "")
