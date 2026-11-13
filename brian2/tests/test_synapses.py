@@ -814,10 +814,13 @@ def test_synaptic_indexing_invalid_index_dtypes():
         S.w[float_indices]
     with pytest.raises(TypeError):
         S._indices(float_indices)
+
+    assert_equal(S.w[unsigned_indices], S.w[[0, 1]])
+    assert_equal(S._indices(unsigned_indices), np.array([0, 1], dtype=np.int32))
+
     with pytest.raises(TypeError):
-        S.w[unsigned_indices]
-    with pytest.raises(TypeError):
-        S._indices(unsigned_indices)
+        G.v[float_indices]
+    assert_equal(G.v[unsigned_indices], G.v[[0, 1]])
 
 
 def test_indices():

@@ -658,7 +658,7 @@ class SynapticSubgroup:
 def _validate_synapse_index_array(index_array):
     if index_array.dtype == bool:
         return
-    if not np.issubdtype(index_array.dtype, np.signedinteger):
+    if not np.issubdtype(index_array.dtype, np.integer):
         raise TypeError(
             "Indexing is only supported for integer "
             "and boolean arrays, not for type "
@@ -1778,7 +1778,7 @@ class Synapses(Group):
         if hasattr(i, "_indices"):
             i = i._indices()
         i = np.asarray(i)
-        if not np.issubdtype(i.dtype, np.signedinteger):
+        if not np.issubdtype(i.dtype, np.integer):
             raise TypeError(
                 "Presynaptic indices have to be given as "
                 f"integers, are type {i.dtype} "
@@ -1787,7 +1787,7 @@ class Synapses(Group):
         if hasattr(j, "_indices"):
             j = j._indices()
         j = np.asarray(j)
-        if not np.issubdtype(j.dtype, np.signedinteger):
+        if not np.issubdtype(j.dtype, np.integer):
             raise TypeError(
                 "Presynaptic indices can only be combined "
                 "with postsynaptic integer indices))"
