@@ -2,6 +2,7 @@
 Module implementing the C++ "standalone" device.
 """
 
+import ast
 import inspect
 import itertools
 import numbers
@@ -281,13 +282,13 @@ class CPPStandaloneDevice(Device):
                 code = word_substitute(code, {k: v})
             elif isinstance(v, numbers.Number):
                 # Use a renderer to correctly transform constants such as True or inf
-                renderer = CPPNodeRenderer()
-                string_value = renderer.render_expr(repr(v))
-                if prefs.core.default_float_dtype == np.float32 and isinstance(
-                    v, (float, np.float32, np.float64)
+                renderer = CPPNodeRenderer(float_dtype=prefs.core.default_float_dtype)
+                string_value = renderer.render_node(ast.Constant(v))
+                if (
+                    not isinstance(v, (bool, np.bool_))
+                    and v < 0
+                    and not string_value.startswith("(")
                 ):
-                    string_value += "f"
-                if v < 0:
                     string_value = f"({string_value})"
                 code = word_substitute(code, {k: string_value})
             else:
@@ -454,7 +455,7 @@ class CPPStandaloneDevice(Device):
 
         if arr.size == 1:
             if var.size == 1:
-                value = CPPNodeRenderer().render_expr(repr(arr.item(0)))
+                value = CPPNodeRenderer().render_node(ast.Constant(arr.item(0)))
                 # For a single assignment, generate a code line instead of storing the array
                 self.main_queue.append(("set_by_single_value", (array_name, 0, value)))
             else:
@@ -493,7 +494,9 @@ class CPPStandaloneDevice(Device):
             isinstance(item, int) or (isinstance(item, np.ndarray) and item.shape == ())
         ) and value.size == 1:
             array_name = self.get_array_name(variableview.variable, access_data=False)
-            value_str = CPPNodeRenderer().render_expr(repr(np.asarray(value).item(0)))
+            value_str = CPPNodeRenderer().render_node(
+                ast.Constant(np.asarray(value).item(0))
+            )
             if self.array_cache.get(variableview.variable, None) is not None:
                 self.array_cache[variableview.variable][item] = value
             # For a single assignment, generate a code line instead of storing the array
@@ -805,6 +808,7 @@ class CPPStandaloneDevice(Device):
         main_lines = []
         procedures = [("", main_lines)]
         runfuncs = {}
+        renderer = CPPNodeRenderer()
         for func, args in self.main_queue:
             if func == "before_run_code_object":
                 (codeobj,) = args
@@ -825,7 +829,7 @@ class CPPStandaloneDevice(Device):
                 {openmp_pragma("static")}
                 for(int i=0; i<{size_str}; i++)
                 {{
-                    {arrayname}[i] = {CPPNodeRenderer().render_expr(repr(value))};
+                    {arrayname}[i] = {renderer.render_node(ast.Constant(value))};
                 }}
                 """
                 main_lines.extend(code.split("\n"))
@@ -908,6 +912,11 @@ class CPPStandaloneDevice(Device):
     def generate_codeobj_source(self, writer):
         # Generate data for non-constant values
         renderer = CPPNodeRenderer()
+        float32_renderer = CPPNodeRenderer(float_dtype=np.float32)
+        single_precision = (
+            prefs["codegen.generators.cpp.single_precision_literals"]
+            and prefs["core.default_float_dtype"] == np.float32
+        )
         code_object_defs = defaultdict(list)
         for codeobj in self.code_objects.values():
             lines = []
@@ -934,7 +943,12 @@ class CPPStandaloneDevice(Device):
                     except TypeError:
                         pass
                 elif isinstance(v, Constant):
-                    value = renderer.render_expr(repr(v.value))
+                    const_renderer = (
+                        float32_renderer
+                        if single_precision and v.dtype == np.float32
+                        else renderer
+                    )
+                    value = const_renderer.render_node(ast.Constant(v.value))
                     c_type = c_data_type(v.dtype)
                     line = f"const {c_type} {k} = {value};"
                     lines.append(line)

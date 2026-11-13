@@ -1,4 +1,5 @@
 import ast
+import math
 import numbers
 
 import numpy as np
@@ -325,6 +326,18 @@ class CPPNodeRenderer(NodeRenderer):
         }
     )
 
+    def __init__(self, auto_vectorise=None, float_dtype=None):
+        super().__init__(auto_vectorise=auto_vectorise)
+        if float_dtype is None:
+            float_dtype = np.float64
+        float_dtype = np.dtype(float_dtype)
+        if float_dtype not in (np.dtype(np.float32), np.dtype(np.float64)):
+            raise TypeError(
+                f"float_dtype has to be float32 or float64, got '{float_dtype}'."
+            )
+        self.float_dtype = float_dtype
+        self.single_precision_literals = float_dtype == np.dtype(np.float32)
+
     def render_BinOp(self, node):
         if node.op.__class__.__name__ == "Pow":
             return (
@@ -349,12 +362,24 @@ class CPPNodeRenderer(NodeRenderer):
             return NodeRenderer.render_BinOp(self, node)
 
     def render_Constant(self, node):
-        if node.value is True:
-            return "true"
-        elif node.value is False:
-            return "false"
-        else:
-            return super().render_Constant(node)
+        value = node.value
+        if isinstance(value, (bool, np.bool_)):
+            return "true" if value else "false"
+        if isinstance(value, (float, np.floating)):
+            value = float(value)
+            if math.isnan(value):
+                return "NAN"
+            if math.isinf(value):
+                return "INFINITY" if value > 0 else "(-INFINITY)"
+            if self.single_precision_literals:
+                with np.errstate(over="ignore"):
+                    f32 = np.float32(value)
+                if np.isinf(f32):
+                    return "INFINITY" if f32 > 0 else "(-INFINITY)"
+                with np.printoptions(legacy=False):
+                    return f"{str(f32)}f"
+            return repr(value)
+        return super().render_Constant(node)
 
     def render_Name(self, node):
         if node.id == "inf":

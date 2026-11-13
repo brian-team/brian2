@@ -1074,6 +1074,94 @@ def test_negative_duration_in_standalone_device():
         run(-1 * second)
 
 
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+@pytest.mark.parametrize("single_precision_literals", [False, True])
+def test_single_precision_literals_generated_code(tmp_path, single_precision_literals):
+    orig_dtype = prefs.core.default_float_dtype
+    orig_literals = prefs.codegen.generators.cpp.single_precision_literals
+    prefs.core.default_float_dtype = np.float32
+    prefs.codegen.generators.cpp.single_precision_literals = single_precision_literals
+    try:
+        set_device("cpp_standalone", build_on_run=False, directory=str(tmp_path))
+        tau = 10 * ms
+        G = NeuronGroup(
+            10,
+            "dv/dt = -v/tau : 1",
+            threshold="v >= 0.7",
+            reset="v = 0.25",
+            method="exact",
+            namespace={"tau": tau, "c32": np.float32(0.1)},
+        )
+        G.run_regularly("v += c32 * 0.5", dt=1 * ms)
+        net = Network(G)
+        net.run(0 * ms)
+        device.build(directory=str(tmp_path), compile=False, run=False)
+        code = "\n".join(
+            p.read_text() for p in sorted((tmp_path / "code_objects").iterdir())
+        )
+    finally:
+        prefs.core.default_float_dtype = orig_dtype
+        prefs.codegen.generators.cpp.single_precision_literals = orig_literals
+        reset_device()
+    if single_precision_literals:
+        assert "_cond = v >= 0.7f;" in code
+        assert "v = 0.25f;" in code
+        assert "0.5f * c32" in code
+        assert "const double tau = 0.01;" in code
+        assert "const float c32 = 0.1f;" in code
+        assert "const double tau = 0.01f;" not in code
+    else:
+        assert "_cond = v >= 0.7;" in code
+        assert "v = 0.25;" in code
+        assert "0.5 * c32" in code
+        assert "const double tau = 0.01;" in code
+        assert "const float c32 = 0.10000000149011612;" in code
+
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_nonfinite_assignments_and_float32_invalid_check(tmp_path):
+    import warnings
+
+    orig_dtype = prefs.core.default_float_dtype
+    prefs.core.default_float_dtype = np.float32
+    try:
+        # Check freeze() on non-finite and negative values in float32 mode
+        set_device("cpp_standalone", build_on_run=False, directory=str(tmp_path))
+        frozen = device.freeze(
+            "a + b + c + d",
+            {"a": float("inf"), "b": -float("inf"), "c": float("nan"), "d": -0.5},
+        )
+        assert frozen == "INFINITY + (-INFINITY) + NAN + (-0.5f)"
+
+        G = NeuronGroup(4, "dv/dt = 0*Hz : 1", method="euler")
+        H = NeuronGroup(1, "x : 1")
+        G.v = np.nan
+        G.v[0] = np.inf
+        G.v[1] = 1.5
+        H.x = np.nan
+        net = Network(G, H)
+        net.run(0 * ms)
+        device.build(directory=str(tmp_path), compile=False, run=False)
+        main_cpp = (tmp_path / "main.cpp").read_text()
+        assert "= NAN;" in main_cpp
+        assert "= INFINITY;" in main_cpp
+        assert "= nan;" not in main_cpp
+
+        # Ensure _check_for_invalid_values on float32 does not raise overflow RuntimeWarning
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", RuntimeWarning)
+            G._check_for_invalid_values("v", np.array([0.1, 0.2], dtype=np.float32))
+        overflow_warnings = [
+            w for w in caught if "overflow encountered" in str(w.message)
+        ]
+        assert not overflow_warnings
+    finally:
+        prefs.core.default_float_dtype = orig_dtype
+        reset_device()
+
+
 if __name__ == "__main__":
     for t in [
         test_cpp_standalone,
