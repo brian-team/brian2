@@ -148,6 +148,7 @@ def test_clip():
         clipexpr2 = clip(integer_var2, -0.5, 1.5) : integer
         clipexpr3 = clip(float_var1, 0, 1) : 1
         clipexpr4 = clip(float_var2, -0.5, 1.5) : 1
+        clipexpr5 = clip(integer_var2, -0.5, 1.5) : 1
         integer_var1 : integer
         integer_var2 : integer
         float_var1 : 1
@@ -159,13 +160,16 @@ def test_clip():
     G.float_var1 = [0.0, 1.0, -1.0, 2.0]
     G.float_var2 = [0.0, 1.0, -1.0, 2.0]
     s_mon = StateMonitor(
-        G, ["clipexpr1", "clipexpr2", "clipexpr3", "clipexpr4"], record=True
+        G,
+        ["clipexpr1", "clipexpr2", "clipexpr3", "clipexpr4", "clipexpr5"],
+        record=True,
     )
     run(defaultclock.dt)
     assert_equal(s_mon.clipexpr1.flatten(), [0, 1, 0, 1])
     assert_equal(s_mon.clipexpr2.flatten(), [0, 1, 0, 1])
     assert_allclose(s_mon.clipexpr3.flatten(), [0, 1, 0, 1])
     assert_allclose(s_mon.clipexpr4.flatten(), [0, 1, -0.5, 1.5])
+    assert_allclose(s_mon.clipexpr5.flatten(), [0.0, 1.0, -0.5, 1.5])
 
 
 @pytest.mark.standalone_compatible
@@ -1009,26 +1013,35 @@ def test_repeated_function_dependencies():
 def test_binomial():
     binomial_f_approximated = BinomialFunction(100, 0.1, approximate=True)
     binomial_f = BinomialFunction(100, 0.1, approximate=False)
+    # Regression checks:
+    # - exact inversion with n=500, p=0.5 (0.5**500 ~ 3e-151, previously formatted as 0 with .15f)
+    # - exact inversion with p > 0.5 (previously used p instead of P=1-p in Cython)
+    binomial_large_n = BinomialFunction(500, 0.5, approximate=False)
+    binomial_p_high = BinomialFunction(20, 0.8, approximate=False)
 
-    # Just check that it does not raise an error and that it produces some
-    # values
     G = NeuronGroup(
-        1,
+        200,
         """
         x : 1
         y : 1
+        z : 1
+        w : 1
         """,
     )
     G.run_regularly(
         """
         x = binomial_f_approximated()
         y = binomial_f()
+        z = binomial_large_n()
+        w = binomial_p_high()
         """
     )
     mon = StateMonitor(G, ["x", "y"], record=0)
     run(1 * ms)
     assert np.var(mon[0].x) > 0
     assert np.var(mon[0].y) > 0
+    assert 220 < np.mean(G.z[:]) < 280
+    assert 13.5 < np.mean(G.w[:]) < 18.5
 
 
 @pytest.mark.standalone_compatible

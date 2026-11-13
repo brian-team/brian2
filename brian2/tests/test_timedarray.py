@@ -126,6 +126,25 @@ def test_timedarray_repeated_use():
         assert G.x[0] == 6 * (run_idx + 1)
 
 
+@pytest.mark.codegen_independent
+def test_timedarray_dt_literal_formatting():
+    class _DummyClock:
+        dt_ = 1e-20
+
+    class _DummyOwner:
+        clock = _DummyClock()
+
+    owner = _DummyOwner()
+    ta1d = TimedArray(np.arange(4), dt=1e-20 * second, name="ta1d")
+    ta2d = TimedArray(np.arange(6).reshape(3, 2), dt=1 * ms, name="ta2d")
+    for target in ("cpp", "cython"):
+        code_1d = ta1d.implementations[target].get_code(owner)
+        code_2d = ta2d.implementations[target].get_code(owner)
+        assert "1e-20 /" in code_1d
+        assert "0.000000000000000000" not in code_1d
+        assert "0.001 /" in code_2d
+
+
 if __name__ == "__main__":
     test_timedarray_direct_use()
     test_timedarray_semantics()

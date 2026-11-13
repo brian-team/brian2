@@ -36,12 +36,16 @@ def _generate_cython_code(n, p, use_normal, name):
     if use_normal:
         loc, scale = _pre_calc_constants_approximated(n, p)
         cython_code = """
-        cdef float %NAME%(const int vectorisation_idx):
+        cdef double %NAME%(const int vectorisation_idx):
             return _randn(vectorisation_idx) * %SCALE% + %LOC%
         """
         cython_code = replace(
             cython_code,
-            {"%SCALE%": f"{scale:.15f}", "%LOC%": f"{loc:.15f}", "%NAME%": name},
+            {
+                "%SCALE%": repr(float(scale)),
+                "%LOC%": repr(float(loc)),
+                "%NAME%": name,
+            },
         )
         dependencies = {"_randn": DEFAULT_FUNCTIONS["randn"]}
     else:
@@ -69,10 +73,10 @@ def _generate_cython_code(n, p, use_normal, name):
             cython_code,
             {
                 "%N%": f"{int(n)}",
-                "%P%": f"{p:.15f}",
-                "%Q%": f"{q:.15f}",
-                "%QN%": f"{qn:.15f}",
-                "%BOUND%": f"{bound:.15f}",
+                "%P%": repr(float(P)),
+                "%Q%": repr(float(q)),
+                "%QN%": repr(float(qn)),
+                "%BOUND%": repr(float(bound)),
                 "%RETURN_VALUE%": f"{int(n)}-X" if reverse else "X",
                 "%NAME%": name,
             },
@@ -88,14 +92,18 @@ def _generate_cpp_code(n, p, use_normal, name):
     if use_normal:
         loc, scale = _pre_calc_constants_approximated(n, p)
         cpp_code = """
-        float %NAME%(const int vectorisation_idx)
+        double %NAME%(const int vectorisation_idx)
         {
             return _randn(vectorisation_idx) * %SCALE% + %LOC%;
         }
         """
         cpp_code = replace(
             cpp_code,
-            {"%SCALE%": f"{scale:.15f}", "%LOC%": f"{loc:.15f}", "%NAME%": name},
+            {
+                "%SCALE%": repr(float(scale)),
+                "%LOC%": repr(float(loc)),
+                "%NAME%": name,
+            },
         )
         dependencies = {"_randn": DEFAULT_FUNCTIONS["randn"]}
     else:
@@ -130,10 +138,10 @@ def _generate_cpp_code(n, p, use_normal, name):
             cpp_code,
             {
                 "%N%": f"{int(n)}",
-                "%P%": f"{P:.15f}",
-                "%Q%": f"{q:.15f}",
-                "%QN%": f"{qn:.15f}",
-                "%BOUND%": f"{bound:.15f}",
+                "%P%": repr(float(P)),
+                "%Q%": repr(float(q)),
+                "%QN%": repr(float(qn)),
+                "%BOUND%": repr(float(bound)),
                 "%RETURN_VALUE%": f"{int(n)}-X" if reverse else "X",
                 "%NAME%": name,
             },

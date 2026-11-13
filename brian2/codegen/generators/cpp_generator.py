@@ -105,7 +105,8 @@ template < typename T1, typename T2 >
 static inline typename _higher_type<T1,T2>::type
 _brian_mod(T1 x, T2 y)
 {
-    return x-y*floor(1.0*x/y);
+    typedef typename _higher_type<T1,T2>::type result_type;
+    return x-y*std::floor(static_cast<result_type>(x)/static_cast<result_type>(y));
 }
 
 // Specific implementations for integer types
@@ -148,9 +149,10 @@ floordiv_support_code = """
 template < typename T1, typename T2 >
 static inline typename _higher_type<T1,T2>::type
 _brian_floordiv(T1 x, T2 y)
-{{
-    return floor(1.0*x/y);
-}}
+{
+    typedef typename _higher_type<T1,T2>::type result_type;
+    return std::floor(static_cast<result_type>(x)/static_cast<result_type>(y));
+}
 
 // Specific implementations for integer types
 // (from Cython, see LICENSE file)
@@ -169,7 +171,7 @@ inline int64_t _brian_floordiv<int32_t, int64_t>(int32_t a, int64_t b) {
     return q;
 }
 template <>
-inline int64_t _brian_floordiv<int64_t, int>(int64_t a, int32_t b) {
+inline int64_t _brian_floordiv<int64_t, int32_t>(int64_t a, int32_t b) {
     int64_t q = a / b;
     int64_t r = a - q*b;
     q -= ((r != 0) & ((r ^ b) < 0));
@@ -185,11 +187,111 @@ inline int64_t _brian_floordiv<int64_t, int64_t>(int64_t a, int64_t b) {
 """
 
 pow_support_code = """
-#ifdef _MSC_VER
-#define _brian_pow(x, y) (pow((double)(x), (y)))
-#else
-#define _brian_pow(x, y) (pow((x), (y)))
-#endif
+namespace _brian_pow_detail {
+    template <typename T> struct is_float { static const bool value = false; };
+    template <> struct is_float<float> { static const bool value = true; };
+
+    template <typename T> struct is_wide_float { static const bool value = false; };
+    template <> struct is_wide_float<double> { static const bool value = true; };
+    template <> struct is_wide_float<long double> { static const bool value = true; };
+
+    template <typename T1, typename T2> struct wide_float_result { typedef double type; };
+    template <typename T2> struct wide_float_result<long double, T2> { typedef long double type; };
+    template <typename T1> struct wide_float_result<T1, long double> { typedef long double type; };
+    template <> struct wide_float_result<long double, long double> { typedef long double type; };
+
+    template <typename T> struct int_traits {
+        static const bool is_int = false;
+        static const bool is_signed = false;
+    };
+    template <> struct int_traits<bool> { static const bool is_int = true; static const bool is_signed = false; };
+    template <> struct int_traits<char> { static const bool is_int = true; static const bool is_signed = (char(-1) < char(0)); };
+    template <> struct int_traits<signed char> { static const bool is_int = true; static const bool is_signed = true; };
+    template <> struct int_traits<unsigned char> { static const bool is_int = true; static const bool is_signed = false; };
+    template <> struct int_traits<short> { static const bool is_int = true; static const bool is_signed = true; };
+    template <> struct int_traits<unsigned short> { static const bool is_int = true; static const bool is_signed = false; };
+    template <> struct int_traits<int> { static const bool is_int = true; static const bool is_signed = true; };
+    template <> struct int_traits<unsigned int> { static const bool is_int = true; static const bool is_signed = false; };
+    template <> struct int_traits<long> { static const bool is_int = true; static const bool is_signed = true; };
+    template <> struct int_traits<unsigned long> { static const bool is_int = true; static const bool is_signed = false; };
+    template <> struct int_traits<long long> { static const bool is_int = true; static const bool is_signed = true; };
+    template <> struct int_traits<unsigned long long> { static const bool is_int = true; static const bool is_signed = false; };
+
+    template <bool B, typename T = void> struct enable_if {};
+    template <typename T> struct enable_if<true, T> { typedef T type; };
+
+    template <typename T, bool Signed = int_traits<T>::is_signed>
+    struct neg_helper {
+        static inline bool is_neg(T y) { return y < static_cast<T>(0); }
+    };
+    template <typename T>
+    struct neg_helper<T, false> {
+        static inline bool is_neg(T) { return false; }
+    };
+}
+
+template <typename T1, typename T2>
+static inline typename _brian_pow_detail::enable_if<
+    _brian_pow_detail::is_float<T1>::value && _brian_pow_detail::is_float<T2>::value,
+    float>::type
+_brian_pow(T1 x, T2 y)
+{
+    return std::pow(x, y);
+}
+
+template <typename T1, typename T2>
+static inline typename _brian_pow_detail::enable_if<
+    _brian_pow_detail::is_float<T1>::value && _brian_pow_detail::int_traits<T2>::is_int,
+    float>::type
+_brian_pow(T1 x, T2 y)
+{
+    if (y == 0)
+        return 1.0f;
+    const bool neg = _brian_pow_detail::neg_helper<T2>::is_neg(y);
+    unsigned long long exp = neg
+        ? (0ULL - static_cast<unsigned long long>(y))
+        : static_cast<unsigned long long>(y);
+    float result = 1.0f;
+    float base = x;
+    while (exp > 0)
+    {
+        if (exp & 1ULL)
+            result *= base;
+        exp >>= 1;
+        if (exp > 0)
+            base *= base;
+    }
+    return neg ? (1.0f / result) : result;
+}
+
+template <typename T1, typename T2>
+static inline typename _brian_pow_detail::enable_if<
+    _brian_pow_detail::int_traits<T1>::is_int && _brian_pow_detail::is_float<T2>::value,
+    float>::type
+_brian_pow(T1 x, T2 y)
+{
+    return std::pow(static_cast<float>(x), y);
+}
+
+template <typename T1, typename T2>
+static inline typename _brian_pow_detail::enable_if<
+    _brian_pow_detail::is_wide_float<T1>::value
+    || _brian_pow_detail::is_wide_float<T2>::value,
+    typename _brian_pow_detail::wide_float_result<T1, T2>::type>::type
+_brian_pow(T1 x, T2 y)
+{
+    typedef typename _brian_pow_detail::wide_float_result<T1, T2>::type result_type;
+    return std::pow(static_cast<result_type>(x), static_cast<result_type>(y));
+}
+
+template <typename T1, typename T2>
+static inline typename _brian_pow_detail::enable_if<
+    _brian_pow_detail::int_traits<T1>::is_int && _brian_pow_detail::int_traits<T2>::is_int,
+    double>::type
+_brian_pow(T1 x, T2 y)
+{
+    return std::pow(static_cast<double>(x), static_cast<double>(y));
+}
 """
 
 _universal_support_code = (
@@ -601,13 +703,26 @@ for func, func_cpp in [
     )
 
 exprel_code = """
+static inline float _exprel(float x)
+{
+    if (std::fabs(x) < 1e-16f)
+        return 1.0f;
+    if (x > 89.f)
+        return static_cast<float>(INFINITY);
+    return std::expm1(x) / x;
+}
 static inline double _exprel(double x)
 {
-    if (fabs(x) < 1e-16)
+    if (std::fabs(x) < 1e-16)
         return 1.0;
     if (x > 717)
         return INFINITY;
-    return expm1(x)/x;
+    return std::expm1(x) / x;
+}
+template <typename T>
+static inline double _exprel(T x)
+{
+    return _exprel(static_cast<double>(x));
 }
 """
 DEFAULT_FUNCTIONS["exprel"].implementations.add_implementation(
@@ -625,14 +740,19 @@ DEFAULT_FUNCTIONS["abs"].implementations.add_implementation(
 )
 
 clip_code = """
-        template <typename T>
-        static inline T _clip(const T value, const double a_min, const double a_max)
+        template <typename T1, typename T2, typename T3>
+        static inline auto _clip(const T1 value, const T2 a_min, const T3 a_max)
+            -> decltype(value + a_min + a_max)
         {
-            if (value < a_min)
-                return a_min;
-            if (value > a_max)
-                return a_max;
-            return value;
+            typedef decltype(value + a_min + a_max) result_type;
+            const result_type v = static_cast<result_type>(value);
+            const result_type lo = static_cast<result_type>(a_min);
+            const result_type hi = static_cast<result_type>(a_max);
+            if (v < lo)
+                return lo;
+            if (v > hi)
+                return hi;
+            return v;
         }
         """
 DEFAULT_FUNCTIONS["clip"].implementations.add_implementation(
