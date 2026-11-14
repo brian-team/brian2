@@ -39,6 +39,7 @@ output/
 # VisualStudio Code
 .vscode/*
 !.vscode/tasks.json
+!.vscode/launch.json
 
 # VS Code devcontainer metadata
 .devcontainer/frozen-requirements.txt
