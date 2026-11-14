@@ -652,7 +652,8 @@ def test_number_rendering(renderer):
 
 
 def test_cython_extension_cache_key_includes_include_dirs():
-    pytest.importorskip("Cython")
+    if prefs.codegen.target != "cython":
+        pytest.skip("Cython-only test")
     import tempfile
 
     from brian2.codegen.runtime.cython_rt.extension_manager import (
@@ -687,7 +688,8 @@ def test_cython_extension_cache_key_includes_include_dirs():
 
 
 def test_cython_extension_cache_reuses_same_include_dirs():
-    pytest.importorskip("Cython")
+    if prefs.codegen.target != "cython":
+        pytest.skip("Cython-only test")
     import tempfile
 
     from brian2.codegen.runtime.cython_rt.extension_manager import (
