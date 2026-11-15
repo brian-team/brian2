@@ -203,6 +203,12 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self._previous_dt = state.pop("_previous_dt")
         self._spikes_changed = state.pop("_spikes_changed")
         super()._restore_from_full_state(state)
+        # `before_run` uses these Python-side copies to rebuild `_timebins`,
+        # so they have to reflect the restored variables as well.
+        self._neuron_index = np.array(
+            self.variables["neuron_index"].get_value(), copy=True
+        )
+        self._spike_time = np.array(self.variables["spike_time"].get_value(), copy=True)
 
     def before_run(self, run_namespace):
         # Do some checks on the period vs. dt

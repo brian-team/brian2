@@ -429,6 +429,38 @@ def test_spikegenerator_restore():
     assert_allclose(mon.t, [0, 1, 2] * ms)
 
 
+def test_spikegenerator_restore_after_set_spikes():
+    # Regression test for github issue #1932: the Python-side copies of the
+    # indices and times used by before_run() have to be restored together with
+    # the corresponding variables.
+    gen = SpikeGeneratorGroup(3, [0, 1, 2], [1, 2, 3] * ms)
+    mon = SpikeMonitor(gen)
+    net = Network(gen, mon)
+    net.store("pattern A")
+
+    gen.set_spikes([2, 1, 0], [5, 6, 7] * ms)
+    net.run(10 * ms)
+    assert_allclose(mon.t, [5, 6, 7] * ms)
+    assert_array_equal(mon.i, [2, 1, 0])
+
+    net.restore("pattern A")
+    net.run(10 * ms)
+    assert_allclose(mon.t, [1, 2, 3] * ms)
+    assert_array_equal(mon.i, [0, 1, 2])
+
+    # Restoring a state with fewer spikes than were set afterwards used to
+    # raise a broadcasting error in before_run().
+    gen2 = SpikeGeneratorGroup(3, [0, 1, 2], [1, 2, 3] * ms)
+    mon2 = SpikeMonitor(gen2)
+    net2 = Network(gen2, mon2)
+    net2.store()
+    gen2.set_spikes([0, 0, 1, 2], [5, 6, 7, 8] * ms)
+    net2.restore()
+    net2.run(10 * ms)
+    assert_allclose(mon2.t, [1, 2, 3] * ms)
+    assert_array_equal(mon2.i, [0, 1, 2])
+
+
 if __name__ == "__main__":
     import time
 
