@@ -304,7 +304,10 @@ class PopulationRateMonitor(RateMonitor):
         This method will give incorrect results if the monitor has recorded values with
         varying ``dt`` values.
         """
-        if (bin_size / self.clock.dt) % 1 > 1e-6:
+        # Compare with the nearest integer: the ratio can lie just below it because
+        # of floating point errors (0.3*ms/(0.1*ms) is 2.9999999999999996)
+        steps_per_bin = float(bin_size / self.clock.dt)
+        if abs(steps_per_bin - round(steps_per_bin)) > 1e-6:
             raise ValueError("bin_size has to be a multiple of dt.")
 
         bin_timesteps = timestep(
