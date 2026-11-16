@@ -198,6 +198,7 @@ class CythonExtensionManager:
                     compiler=compiler,
                     key=key,
                     sources=sources,
+                    owner_name=owner_name,
                 )
             return module
         else:
@@ -216,6 +217,7 @@ class CythonExtensionManager:
                 compiler=compiler,
                 key=key,
                 sources=sources,
+                owner_name=owner_name,
             )
 
     @property
@@ -270,6 +272,7 @@ class CythonExtensionManager:
         compiler,
         key,
         sources,
+        owner_name,
     ):
         have_module = os.path.isfile(module_path)
 
@@ -381,8 +384,14 @@ class CythonExtensionManager:
                                 f" {str(ex)}"
                             )
 
-            except Cython_Compiler.Errors.CompileError:
-                return
+            except Cython_Compiler.Errors.CompileError as ex:
+                # Do not silently skip the code object: the simulation would
+                # continue with the variables it was supposed to update left
+                # unchanged (see github issue #1898).
+                raise RuntimeError(
+                    f"Compiling the Cython code for '{owner_name or module_name}' "
+                    "failed. See the Cython error message above."
+                ) from ex
         # Temporarily insert the Cython directory to the Python path so that
         # code importing from an external module that was declared via
         # sources works
