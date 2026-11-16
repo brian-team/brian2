@@ -1,11 +1,10 @@
-import numbers
 from collections.abc import Mapping, Sequence
 
 import numpy as np
 
 from brian2.core.variables import Variables
 from brian2.core.variables import get_dtype as get_index_dtype
-from brian2.groups.group import CodeRunner, Group
+from brian2.groups.group import CodeRunner, Group, boolean_index_to_indices
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import Quantity
 from brian2.utils.logger import get_logger
@@ -132,10 +131,12 @@ class StateMonitor(Group, CodeRunner):
     variables : str, sequence of str, True
         Which variables to record, or ``True`` to record all variables
         (note that this may use a great deal of memory).
-    record : bool, sequence of ints
+    record : bool, sequence of ints, or boolean array
         Which indices to record, nothing is recorded for ``False``,
         everything is recorded for ``True`` (warning: may use a great deal of
-        memory), or a specified subset of indices.
+        memory), or a specified subset of indices. A boolean array has to have
+        one entry per element of the source and records the elements for which
+        it is ``True``.
     dt : `Quantity`, optional
         The time step to be used for the monitor. Cannot be combined with
         the `clock` argument.
@@ -235,6 +236,15 @@ class StateMonitor(Group, CodeRunner):
             # If the source is already a subgroup of another group, we therefore
             # have to shift the indices to become relative to the subgroup
             record = record._indices() - getattr(source, "_offset", 0)
+        # Scalar booleans (including np.bool_ and 0-d boolean arrays) should
+        # behave like the builtin True/False values
+        if isinstance(record, np.bool_) or (
+            isinstance(record, np.ndarray)
+            and record.ndim == 0
+            and np.issubdtype(record.dtype, np.bool_)
+        ):
+            record = bool(record)
+
         if record is True:
             self.record_all = True
             try:
@@ -243,21 +253,43 @@ class StateMonitor(Group, CodeRunner):
                 # In standalone mode, this is not possible for synaptic
                 # variables because the number of synapses is not defined yet
                 raise NotImplementedError(
-                    "Cannot determine the actual "
-                    "indices to record for record=True. "
-                    "This can occur for example in "
-                    "standalone mode when trying to "
-                    "record a synaptic variable. "
-                    "Consider providing an explicit "
-                    "array of indices for the record "
+                    "Cannot determine the actual indices to record for "
+                    "record=True. This can occur for example in standalone "
+                    "mode when trying to record a synaptic variable. Consider "
+                    "providing an explicit array of indices for the record "
                     "argument."
                 ) from ex
         elif record is False:
             record = np.array([], dtype=np.int32)
-        elif isinstance(record, numbers.Number):
-            record = np.array([record], dtype=np.int32)
         else:
-            record = np.asarray(record, dtype=np.int32)
+            record = np.asarray(record)
+            if record.ndim == 0:
+                record = record.reshape(1)
+            if np.issubdtype(record.dtype, np.bool_):
+                try:
+                    record = boolean_index_to_indices(record, len(source))
+                except NotImplementedError as ex:
+                    raise NotImplementedError(
+                        "Cannot determine the number of elements to record "
+                        "from. This can occur for example in standalone mode "
+                        "when trying to record a synaptic variable with a "
+                        "boolean mask. Consider providing an explicit array "
+                        "of indices for the record argument."
+                    ) from ex
+            elif np.issubdtype(record.dtype, np.integer):
+                record = record.astype(np.int32)
+            elif np.issubdtype(record.dtype, np.floating):
+                if not np.all(record == np.round(record)):
+                    raise TypeError(
+                        "The indices to record have to be integers or a "
+                        "boolean mask, non-integral values are not allowed."
+                    )
+                record = record.astype(np.int32)
+            else:
+                raise TypeError(
+                    "The record argument has to be True, False, a number, a "
+                    "sequence of integer indices, or a boolean mask."
+                )
 
         #: The array of recorded indices
         self.record = record
