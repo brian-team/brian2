@@ -906,6 +906,35 @@ def test_population_rate_monitor_binning():
 
 
 @pytest.mark.codegen_independent
+def test_binned_rate_floating_point_bin_size():
+    """Bin sizes that are multiples of dt despite floating point errors.
+
+    See github issue #1933.
+    """
+    defaultclock.dt = 0.1 * ms
+    G = SpikeGeneratorGroup(2, [0, 1], [5, 50] * ms)
+    population_mon = PopulationRateMonitor(G)
+    spike_mon = SpikeMonitor(G)
+    run(100 * ms)
+
+    # For example 0.3*ms is 2.9999999999999996 time steps, not 3
+    for bin_size in [0.3 * ms, 0.6 * ms, 2.4 * ms, 4.8 * ms]:
+        population_mon.binned_rate(bin_size)
+        spike_mon.binned_rate(bin_size)
+
+    # All decimal bin sizes from 0.1 ms to 100 ms that are multiples of dt
+    for k in range(1, 1001):
+        population_mon.binned_rate(k / 10 * ms)
+
+    # Bin sizes that are not a multiple of dt are still rejected
+    for bin_size in [0.25 * ms, 1.5 * defaultclock.dt]:
+        with pytest.raises(ValueError, match="multiple of dt"):
+            population_mon.binned_rate(bin_size)
+        with pytest.raises(ValueError, match="multiple of dt"):
+            spike_mon.binned_rate(bin_size)
+
+
+@pytest.mark.codegen_independent
 def test_population_rate_monitor_binning_incomplete_bins():
     """Test that incomplete bins at the end are handled correctly."""
     # Create spikes such that the last bin is incomplete
@@ -994,6 +1023,28 @@ def test_spike_monitor_binning():
     # Neuron 2: spike at 50ms (bin 2)
     assert binned_rates[2, 2] == 50 * Hz
     assert np.sum(binned_rates[2, [0, 1, 3, 4]]) == 0
+
+
+@pytest.mark.codegen_independent
+def test_spike_monitor_binned_rate_incomplete_bin():
+    """Spikes in the incomplete final bin have to be excluded.
+
+    See github issue #1933.
+    """
+    # Spike at 95 ms falls into the incomplete bin starting at 90 ms
+    G = SpikeGeneratorGroup(2, [0, 1, 0], [5, 50, 95] * ms)
+    mon = SpikeMonitor(G)
+
+    run(100 * ms)
+
+    bins, rates = mon.binned_rate(30 * ms)
+
+    # Three complete bins: 0-30 ms, 30-60 ms, 60-90 ms
+    assert_allclose(bins, [0, 30, 60] * ms)
+    expected = np.zeros((2, 3))
+    expected[0, 0] = 1 / (30 * ms / second)
+    expected[1, 1] = 1 / (30 * ms / second)
+    assert_allclose(rates, expected * Hz)
 
 
 @pytest.mark.codegen_independent

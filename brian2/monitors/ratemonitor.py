@@ -304,7 +304,7 @@ class PopulationRateMonitor(RateMonitor):
         This method will give incorrect results if the monitor has recorded values with
         varying ``dt`` values.
         """
-        if (bin_size / self.clock.dt) % 1 > 1e-6:
+        if abs(bin_size / self.clock.dt - round(bin_size / self.clock.dt)) > 1e-6:
             raise ValueError("bin_size has to be a multiple of dt.")
 
         bin_timesteps = timestep(

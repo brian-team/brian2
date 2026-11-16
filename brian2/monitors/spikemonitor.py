@@ -421,7 +421,7 @@ class EventMonitor(RateMonitor):
         time scale of interest, as it better represents where the rate measurement applies
         within each time window.
         """
-        if (bin_size / self.clock.dt) % 1 > 1e-6:
+        if abs(bin_size / self.clock.dt - round(bin_size / self.clock.dt)) > 1e-6:
             raise ValueError("bin_size has to be a multiple of dt.")
 
         # Get the total duration and number of bins
@@ -441,7 +441,14 @@ class EventMonitor(RateMonitor):
             event_timesteps = np.asarray(timestep(event_times, self.clock.dt))
             bin_indices = event_timesteps // bin_timesteps
 
-            np.add.at(binned_values, (self.i[:], bin_indices), 1)
+            # Spikes in the incomplete final bin are not included, consistent
+            # with PopulationRateMonitor
+            in_complete_bin = bin_indices < num_bins
+            np.add.at(
+                binned_values,
+                (self.i[:][in_complete_bin], bin_indices[in_complete_bin]),
+                1,
+            )
 
             # Convert counts to rates (Hz)
             binned_values = binned_values / float(bin_size)
