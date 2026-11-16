@@ -60,8 +60,11 @@ class EventClock : public BaseClock
 public:
 	double *times;
     size_t n_times;
+    //: Tolerance (in seconds) for comparisons with the start and end of a run,
+    //: compensates for floating point errors in the accumulated run time.
+    double epsilon_t;
 
-	EventClock() { i_end = 0;};
+	EventClock() : epsilon_t(1e-9) { i_end = 0;};
     inline void tick()
     {
        timestep[0] += 1;
@@ -69,9 +72,9 @@ public:
     }
 	void set_interval(double start, double end)
 	{
-        timestep[0] = std::lower_bound(times, times + n_times, start) - times;
+        timestep[0] = std::lower_bound(times, times + n_times, start - epsilon_t) - times;
         t[0] = times[timestep[0]];
-        i_end = std::lower_bound(times, times + n_times, end) - times;
+        i_end = std::lower_bound(times, times + n_times, end - epsilon_t) - times;
 	}
 };
 
