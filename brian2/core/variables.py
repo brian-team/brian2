@@ -1006,6 +1006,17 @@ class VariableView:
         item = getattr(item, "code", item)
         value = getattr(value, "code", value)
 
+        if (
+            not isinstance(value, str)
+            and np.issubdtype(variable.dtype, np.integer)
+            and np.issubdtype(np.asanyarray(value).dtype, np.floating)
+        ):
+            raise TypeError(
+                "Cannot set the integer variable "
+                f"'{self.name}' to floating point values, convert "
+                "them to integers first."
+            )
+
         check_units = self.dim is not None
 
         if namespace is None:
