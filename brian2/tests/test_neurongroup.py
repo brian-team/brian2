@@ -1502,6 +1502,55 @@ def test_subexpression_with_constant():
 
 
 @pytest.mark.codegen_independent
+@pytest.mark.parametrize("convert", [np.asarray, np.array])
+def test_subexpression_array_error(convert):
+    coefficient = 3
+    group = NeuronGroup(1, "v : 1\ns = coefficient*v : 1")
+    group.v = 2
+
+    with pytest.raises(KeyError) as exc:
+        convert(group.s)
+    assert type(exc.value) is KeyError
+    assert exc.value.args == ('The identifier "coefficient" could not be resolved.',)
+    assert any("group.s[:]" in note for note in getattr(exc.value, "__notes__", []))
+
+    # Explicit evaluation still uses the current local namespace.
+    assert_allclose(group.s[:], [6])
+    coefficient = 4
+    assert_allclose(group.s[:], [8])
+    assert_allclose(convert(group.s[:]), [8])
+
+    # Normal state variables and an explicit namespace need no workaround.
+    assert_allclose(convert(group.v), [2])
+    group.namespace["coefficient"] = coefficient
+    assert_allclose(convert(group.s), [8])
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize("convert", [np.asarray, np.array])
+@pytest.mark.parametrize("custom_exception", [False, True])
+def test_subexpression_array_unrelated_keyerror(convert, custom_exception):
+    class CallbackKeyError(KeyError):
+        def __getattr__(self, name):
+            raise RuntimeError("Exception attribute callback should not run")
+
+    error_class = CallbackKeyError if custom_exception else KeyError
+    callback_error = error_class("namespace callback failed")
+
+    class FailingNamespace(dict):
+        def __getitem__(self, key):
+            raise callback_error
+
+    group = NeuronGroup(
+        1, "s = coefficient + 1 : 1", namespace=FailingNamespace(coefficient=3)
+    )
+    with pytest.raises(KeyError) as exc:
+        convert(group.s)
+    assert exc.value is callback_error
+    assert not exc.value.__dict__.get("__notes__", [])
+
+
+@pytest.mark.codegen_independent
 def test_scalar_parameter_access():
     G = NeuronGroup(
         10,
