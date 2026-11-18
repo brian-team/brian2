@@ -997,6 +997,58 @@ def test_spike_monitor_binning():
 
 
 @pytest.mark.codegen_independent
+def test_binned_rate_floating_point_bin_size():
+    """Bin sizes that are multiples of dt up to floating point errors are valid.
+
+    See github issue #1933.
+    """
+    defaultclock.dt = 0.1 * ms
+    G = SpikeGeneratorGroup(2, [0, 1, 0], [0.1, 0.4, 2.5] * ms)
+    pop_mon = PopulationRateMonitor(G)
+    spike_mon = SpikeMonitor(G)
+    run(4.8 * ms)
+
+    # 0.3*ms/(0.1*ms) is 2.9999999999999996, the other values are similar cases
+    for bin_size in [0.3, 0.6, 2.4, 4.8] * ms:
+        n_bins = int(round(float(4.8 * ms / bin_size)))
+        bins, pop_rates = pop_mon.binned_rate(bin_size)
+        assert len(bins) == len(pop_rates) == n_bins
+        bins, spike_rates = spike_mon.binned_rate(bin_size)
+        assert len(bins) == n_bins
+        assert spike_rates.shape == (2, n_bins)
+        # No spike is lost, since the run is a multiple of the bin size
+        assert_allclose(np.sum(spike_rates) * bin_size, 3)
+
+    # The spikes at 0.1 and 0.4 ms fall into the first and second 0.3 ms bins
+    _, spike_rates = spike_mon.binned_rate(0.3 * ms)
+    assert spike_rates[0, 0] == spike_rates[1, 1] == 1 / (0.3 * ms)
+
+    # Bin sizes that are not a multiple of dt are still rejected
+    for mon in [pop_mon, spike_mon]:
+        with pytest.raises(ValueError, match="multiple of dt"):
+            mon.binned_rate(0.25 * ms)
+
+
+@pytest.mark.codegen_independent
+def test_spike_monitor_binning_incomplete_bins():
+    """Spikes in an incomplete last bin are left out, as for PopulationRateMonitor.
+
+    See github issue #1933.
+    """
+    G = SpikeGeneratorGroup(2, [0, 1, 0], [5, 50, 95] * ms)
+    mon = SpikeMonitor(G)
+    run(100 * ms)
+
+    # Three complete bins: [0, 30), [30, 60), [60, 90) ms; the spike at 95 ms
+    # lies in the incomplete bin [90, 100) ms
+    bins, binned_rates = mon.binned_rate(30 * ms)
+    assert_allclose(bins, [0, 30, 60] * ms)
+    expected = np.zeros((2, 3))
+    expected[0, 0] = expected[1, 1] = 1 / 0.03
+    assert_allclose(binned_rates, expected * Hz)
+
+
+@pytest.mark.codegen_independent
 def test_smooth_rates_spike_monitor():
     """Test smoothing functionality for SpikeMonitor."""
     # Create a neuron with a burst of spikes
