@@ -308,7 +308,7 @@ class Indexing:
                     else:
                         size = index_var.size
                     index_array = boolean_index_to_indices(index_array, size)
-                elif not np.issubdtype(index_array.dtype, np.signedinteger):
+                elif not np.issubdtype(index_array.dtype, np.integer):
                     raise TypeError(
                         "Indexing is only supported for integer "
                         "and boolean arrays, not for type "
