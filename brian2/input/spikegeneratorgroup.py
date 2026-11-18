@@ -219,8 +219,20 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             current_t = self.variables["t"].get_value().item()
             timesteps = timestep(self._spike_time, dt)
             current_step = timestep(current_t, dt)
+            # Periods that do not fit into an int32 are treated as infinite below
+            periodic = (
+                0 < period < np.inf
+                and 0 < timestep(period, dt) <= np.iinfo(np.int32).max
+            )
+            if periodic:
+                # The spikes repeat, so what counts is the position within the
+                # period, not the absolute time step (see github issue #1936)
+                current_step %= timestep(period, dt)
             in_the_past = np.nonzero(timesteps < current_step)[0]
-            if len(in_the_past):
+            if len(in_the_past) and periodic:
+                # Not ignored: these spikes will be emitted in the next period
+                self.variables["_lastindex"].set_value(in_the_past[-1] + 1)
+            elif len(in_the_past):
                 logger.warn(
                     "The SpikeGeneratorGroup contains spike times "
                     "earlier than the start time of the current run "

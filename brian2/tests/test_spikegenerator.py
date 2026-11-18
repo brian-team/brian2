@@ -414,6 +414,49 @@ def test_spikegenerator_multiple_runs():
     assert spike_mon.num_spikes == 5
 
 
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
+def test_spikegenerator_set_spikes_periodic_after_first_period():
+    # Setting the spikes of a periodic group after the first period has
+    # elapsed should continue from the current position within the period,
+    # without a burst of the spikes before that position.
+    # See github issue #1936
+    defaultclock.dt = 1 * ms
+    indices = [0, 0, 0, 2]
+    times = [1, 2, 3, 8] * ms
+    SG = SpikeGeneratorGroup(3, indices, times, period=10 * ms)
+    mon = SpikeMonitor(SG)
+    run(15 * ms)
+    SG.set_spikes(indices, times, period=10 * ms)
+    with catch_logs() as l:
+        run(10 * ms)
+        device.build(direct_call=False, **device.build_options)
+    assert_array_equal(mon.i[:], [0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0])
+    assert_allclose(mon.t[:], [1, 2, 3, 8, 11, 12, 13, 18, 21, 22, 23] * ms)
+    # These spikes are not ignored, so there should not be a warning about it
+    assert len(l) == 0
+
+
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
+def test_spikegenerator_set_spikes_periodic_no_burst():
+    # More spikes before the current position within the period than neurons
+    # used to overflow the spike space (github issue #1936)
+    defaultclock.dt = 1 * ms
+    steps = np.arange(10)
+    indices = np.tile([0, 1], len(steps))
+    times = np.repeat(steps, 2) * ms
+    SG = SpikeGeneratorGroup(2, indices, times, period=10 * ms)
+    mon = SpikeMonitor(SG)
+    run(15 * ms)
+    SG.set_spikes(indices, times, period=10 * ms)
+    run(3 * ms)
+    device.build(direct_call=False, **device.build_options)
+    # Both neurons spike once in every time step
+    assert_array_equal(mon.count[:], [18, 18])
+    assert_allclose(mon.t[:], np.repeat(np.arange(18), 2) * ms)
+
+
 def test_spikegenerator_restore():
     # Check whether SpikeGeneratorGroup works with store/restore
     # See github issue #1084
