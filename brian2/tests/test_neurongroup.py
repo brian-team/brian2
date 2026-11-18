@@ -1292,6 +1292,25 @@ def test_state_variable_access_strings():
 
 
 @pytest.mark.standalone_compatible
+def test_negative_integer_power_assignment():
+    # See github issue #1951: `int ** negative int` was constant-folded to 0
+    G = NeuronGroup(
+        5,
+        """
+        v1 : 1
+        v2 : 1
+        v3 : 1
+        """,
+    )
+    G.v1 = "i * 10**-3"
+    G.v2 = "i * 10**(-3)"
+    G.v3 = "2.0**-1"
+    assert_allclose(G.v1[:], np.arange(5) * 1e-3)
+    assert_allclose(G.v2[:], np.arange(5) * 1e-3)
+    assert_allclose(G.v3[:], np.full(5, 0.5))
+
+
+@pytest.mark.standalone_compatible
 def test_state_variable_set_strings():
     # Instead of overwriting the same variable over and over, we have one
     # variable for each assignment so that we can test everything in the end
@@ -2398,6 +2417,7 @@ if __name__ == "__main__":
     test_integer_variables_and_mod()
     test_variables()
     test_variableview_calculations()
+    test_negative_integer_power_assignment()
     test_scalar_variable()
     test_referred_scalar_variable()
     test_linked_variable_correct()

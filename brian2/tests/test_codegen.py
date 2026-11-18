@@ -430,6 +430,27 @@ def test_apply_loop_invariant_optimisation_constant_evaluation():
 
 
 @pytest.mark.codegen_independent
+def test_negative_integer_power_constant_evaluation():
+    # See github issue #1951: `int ** negative int` was constant-folded to 0
+    variables = {
+        "v": Variable("v", scalar=False),
+        "i": Variable("i", scalar=False, dtype=int),
+    }
+    statements = [
+        Statement("v", "=", "i * 10**-3", "", float),
+        Statement("v", "=", "i * 10**(-3)", "", float),
+        Statement("v", "=", "2**-1", "", float),
+        Statement("v", "=", "2**3", "", float),
+    ]
+    _, vector = optimise_statements([], statements, variables)
+    exprs = [stmt.expr.replace(" ", "") for stmt in vector]
+    assert "0.001" in exprs[0], exprs[0]
+    assert "0.001" in exprs[1], exprs[1]
+    assert "0.5" in exprs[2], exprs[2]
+    assert exprs[3] in ("8", "8.0")
+
+
+@pytest.mark.codegen_independent
 def test_automatic_augmented_assignments():
     # We test that statements that could be rewritten as augmented assignments
     # are correctly rewritten (using sympy to test for symbolic equality)
@@ -727,6 +748,7 @@ if __name__ == "__main__":
     test_apply_loop_invariant_optimisation_no_optimisation()
     test_apply_loop_invariant_optimisation_simplification()
     test_apply_loop_invariant_optimisation_constant_evaluation()
+    test_negative_integer_power_constant_evaluation()
     test_automatic_augmented_assignments()
     test_clear_cache()
     test_msvc_flags()

@@ -236,6 +236,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
         expr = NodeRenderer().render_node(node)
         val, evaluated = evaluate_expr(expr, self.assumptions_ns)
         if evaluated:
+            result_dtype = node.dtype
             if node.dtype == "boolean":
                 val = bool(val)
                 if hasattr(ast, "Constant"):
@@ -245,13 +246,23 @@ class ArithmeticSimplifier(BrianASTRenderer):
                 else:
                     # None is the expression context, we don't use it so we just set to None
                     newnode = ast.Name(repr(val), None)
-            elif node.dtype == "integer":
-                val = int(val)
             else:
-                val = prefs.core.default_float_dtype(val)
-            if node.dtype != "boolean":
+                if node.dtype == "integer":
+                    # Python evaluates 10**-3 to 0.001. Truncating that to int
+                    # would silently fold the expression to 0 (see #1951).
+                    try:
+                        is_integral = val == int(val)
+                    except (ValueError, OverflowError, TypeError):
+                        is_integral = False
+                    if is_integral:
+                        val = int(val)
+                    else:
+                        val = prefs.core.default_float_dtype(val)
+                        result_dtype = "float"
+                else:
+                    val = prefs.core.default_float_dtype(val)
                 newnode = ast.Constant(val)
-            newnode.dtype = node.dtype
+            newnode.dtype = result_dtype
             newnode.scalar = True
             newnode.stateless = node.stateless
             newnode.complexity = 0
