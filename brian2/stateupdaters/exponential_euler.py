@@ -57,7 +57,11 @@ def get_conditionally_linear_system(eqs, variables=None):
             # Factor out the variable
             s_expr = sp.collect(s_expr, var, evaluate=False)
 
-            if len(s_expr) > 2 or var not in s_expr:
+            # collect() returns a dict of {term: coefficient}. Conditionally
+            # linear equations may only have `var` (linear in itself) and `1`
+            # (independent of var). Other keys are nonlinear terms in var
+            # (e.g. v**2) and must be rejected rather than silently dropped.
+            if var not in s_expr or any(term != var and term != 1 for term in s_expr):
                 raise ValueError(
                     f"The expression '{expr}', defining the variable "
                     f"'{name}', could not be separated into linear "
