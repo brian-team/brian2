@@ -152,6 +152,27 @@ def test_variableview_calculations():
         2**G.y  # raising to a power with units
 
 
+@pytest.mark.codegen_independent
+def test_variableview_array_ufunc():
+    # See github issue #1953: VariableView defined a misspelled
+    # __array__ufunc__, so NumPy ufuncs on variables with units silently
+    # dropped the units instead of raising DimensionMismatchError.
+    G = NeuronGroup(
+        1,
+        """
+        w : volt
+        x : 1
+        """,
+    )
+    G.w = 1 * volt
+    G.x = 1.0
+    with pytest.raises(DimensionMismatchError):
+        np.sin(G.w)
+    with pytest.raises(DimensionMismatchError):
+        np.exp(G.w)
+    assert_allclose(np.sin(G.x), np.sin(np.array([1.0])))
+
+
 @pytest.mark.standalone_compatible
 def test_variableview_properties():
     G = NeuronGroup(
@@ -2398,6 +2419,7 @@ if __name__ == "__main__":
     test_integer_variables_and_mod()
     test_variables()
     test_variableview_calculations()
+    test_variableview_array_ufunc()
     test_scalar_variable()
     test_referred_scalar_variable()
     test_linked_variable_correct()

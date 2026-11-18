@@ -1423,11 +1423,12 @@ class VariableView:
                 f"'group.{var}'"
             ) from None
 
-    def __array__ufunc__(self, ufunc, method, *inputs, **kwargs):
-        if method == "__call__":
-            return ufunc(self[:], *inputs, **kwargs)
-        else:
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if method != "__call__":
             return NotImplemented
+        # Convert VariableView inputs to Quantity/ndarray so unit checks run
+        converted = tuple(x[:] if isinstance(x, VariableView) else x for x in inputs)
+        return ufunc(*converted, **kwargs)
 
     def __len__(self):
         if self.index_var == "_idx" and _values_must_be_copied(self.variable):
