@@ -91,6 +91,33 @@ def brian_dtype_from_dtype(dtype):
     raise TypeError(f"Unknown dtype: {str(dtype)}")
 
 
+def _constant_integer_value(node):
+    """
+    Return the integer value of a constant integer AST node, or ``None``.
+
+    Handles literals such as ``3`` and unary minus/plus such as ``-3`` in
+    ``10**-3``. Booleans are excluded because they are a subclass of ``int``.
+    """
+    classname = node.__class__.__name__
+    if classname in ("Num", "Constant"):
+        value = node.n if classname == "Num" else node.value
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, numpy.integer)):
+            return int(value)
+        return None
+    if classname == "UnaryOp":
+        operand = _constant_integer_value(node.operand)
+        if operand is None:
+            return None
+        opname = node.op.__class__.__name__
+        if opname == "USub":
+            return -operand
+        if opname == "UAdd":
+            return operand
+    return None
+
+
 def brian_ast(expr, variables):
     """
     Returns an AST tree representation with additional information
@@ -238,6 +265,13 @@ class BrianASTRenderer:
         if node.op.__class__.__name__ == "Div":
             # Division turns integers into floating point values
             newdtype = "float"
+        elif node.op.__class__.__name__ == "Pow":
+            # A negative integer exponent (e.g. 10**-3) is a reciprocal and
+            # therefore a floating point value. Leaving the result typed as
+            # integer makes later constant folding truncate 0.001 to 0.
+            exponent = _constant_integer_value(node.right)
+            if exponent is not None and exponent < 0:
+                newdtype = "float"
         node.dtype = newdtype
         node.scalar = node.left.scalar and node.right.scalar
         node.complexity = 1 + node.left.complexity + node.right.complexity

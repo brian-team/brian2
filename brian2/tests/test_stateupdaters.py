@@ -565,6 +565,35 @@ def test_priority():
 
     check_integration(eqs, variables, can_integrate)
 
+    # Nonlinear in the state variable itself. exponential_euler must refuse
+    # this instead of dropping the v**2 term (see github issue #1952).
+    eqs = Equations("dv/dt = (v - v**2) / (10*ms) : 1")
+    with pytest.raises(UnsupportedEquationsException):
+        exponential_euler(eqs, variables)
+
+    can_integrate = {
+        linear: None,
+        euler: True,
+        exponential_euler: False,
+        rk2: True,
+        rk4: True,
+        heun: True,
+        milstein: True,
+    }
+
+    check_integration(eqs, variables, can_integrate)
+
+
+@pytest.mark.codegen_independent
+def test_exponential_euler_rejects_nonlinear():
+    # See github issue #1952: exponential_euler dropped the v**2 term and
+    # integrated the linear system dv/dt = v/tau instead of raising.
+    G = NeuronGroup(1, "dv/dt = (v - v**2)/(10*ms) : 1", method="exponential_euler")
+    net = Network(G)
+    with pytest.raises(BrianObjectException) as exc:
+        net.run(0 * ms)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
+
 
 @pytest.mark.codegen_independent
 def test_registration():
@@ -716,6 +745,14 @@ def test_determination():
     # assert apply_stateupdater(eqs, variables) is independent
 
     eqs = Equations("dv/dt = -sqrt(v) / (10*ms) : 1")
+    with catch_logs(log_level=logging.INFO) as logs:
+        apply_stateupdater(eqs, variables, all_methods)
+        assert len(logs) == 1
+        assert "'euler'" in logs[0][2]
+
+    # Nonlinear in v itself: exponential_euler must not silently accept this
+    # (see github issue #1952), so automatic selection falls through to euler.
+    eqs = Equations("dv/dt = (v - v**2) / (10*ms) : 1")
     with catch_logs(log_level=logging.INFO) as logs:
         apply_stateupdater(eqs, variables, all_methods)
         assert len(logs) == 1
@@ -976,6 +1013,7 @@ if __name__ == "__main__":
     test_integrator_code2()
     test_illegal_calls()
     test_priority()
+    test_exponential_euler_rejects_nonlinear()
     test_registration()
     test_subexpressions()
     test_locally_constant_check()
