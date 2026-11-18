@@ -5,6 +5,7 @@ Utility functions for handling the units in `Equations`.
 import re
 
 from brian2.core.variables import Variable
+from brian2.parsing.bast import brian_ast, is_integer_dtype
 from brian2.parsing.expressions import parse_expression_dimensions
 from brian2.parsing.statements import parse_statement
 from brian2.units.fundamentalunits import (
@@ -51,7 +52,8 @@ def check_units_statements(code, variables):
     Check the units for a series of statements. Setting a model variable has to
     use the correct unit. For newly introduced temporary variables, the unit
     is determined and used to check the following statements to ensure
-    consistency.
+    consistency. Also checks that no floating point value is assigned to an
+    integer variable.
 
     Parameters
     ----------
@@ -67,6 +69,8 @@ def check_units_statements(code, variables):
         In case on of the identifiers cannot be resolved.
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
+    TypeError
+        If a floating point value is assigned to an integer variable.
     """
     variables = dict(variables)
     # Avoid a circular import
@@ -96,6 +100,7 @@ def check_units_statements(code, variables):
             raise AssertionError(f'Unknown operator "{op}"')
 
         expr_unit = parse_expression_dimensions(expr, variables)
+        expr_dtype = brian_ast(expr, variables).dtype
 
         if varname in variables:
             expected_unit = variables[varname].dim
@@ -107,10 +112,20 @@ def check_units_statements(code, variables):
                 "expected unit {expected}" % line,
                 expected=expected_unit,
             )
+            if expr_dtype == "float" and is_integer_dtype(variables[varname].dtype):
+                raise TypeError(
+                    "Cannot assign a floating point value to the integer "
+                    f"variable '{varname}' in code statement \"{line}\", use "
+                    "'int(...)' to convert the value."
+                )
         elif varname in newly_defined:
-            # note the unit for later
+            # note the unit and type for later
+            dtype = {"boolean": bool, "integer": int}.get(expr_dtype)
             variables[varname] = Variable(
-                name=varname, dimensions=get_dimensions(expr_unit), scalar=False
+                name=varname,
+                dimensions=get_dimensions(expr_unit),
+                dtype=dtype,
+                scalar=False,
             )
         else:
             raise AssertionError(

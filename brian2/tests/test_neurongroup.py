@@ -2250,6 +2250,40 @@ def test_run_regularly_shared():
     assert_equal(G.individual_var_b[:], np.ones(10, dtype=bool))
 
 
+@pytest.mark.codegen_independent
+def test_float_to_integer_assignment():
+    # See github issue #1914
+    eqs = """
+    x : integer
+    f : 1
+    """
+    for code in ["x = f * 2", "x += f", "x /= 2", "x = 1.5", "a = f\nx = a"]:
+        G = NeuronGroup(3, eqs)
+        G.run_regularly(code)
+        with pytest.raises(BrianObjectException) as exc:
+            Network(G).run(0 * ms)
+        assert exc_isinstance(exc, TypeError)
+
+    G = NeuronGroup(3, eqs)
+    for item, value in [
+        (slice(None), 1.5),
+        (slice(None), [0.5, 1, 2]),
+        (slice(0, 2), np.array([1.0, 2.0])),
+        ("True", 1.5),
+        ("i > 0", 1.5),
+        (slice(None), "f * 2"),
+    ]:
+        with pytest.raises(TypeError):
+            G.x[item] = value
+
+    G.f = [0.0, 0.7, 1.4]
+    G.x = "int(f * 2)"
+    assert_equal(G.x[:], [0, 1, 2])
+    G.run_regularly("a = 2\nx += a * (f > 1)")
+    Network(G).run(defaultclock.dt)
+    assert_equal(G.x[:], [0, 1, 4])
+
+
 @pytest.mark.standalone_compatible
 def test_semantics_floor_division():
     # See github issues #815, #661, and #1495
