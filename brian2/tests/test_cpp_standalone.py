@@ -103,6 +103,21 @@ def test_device_cache_synapses():
 
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
+def test_string_indexing_error():
+    # Indexing with string expressions is not supported in standalone mode,
+    # check that we raise an informative error (see github issue #1287)
+    set_device("cpp_standalone", build_on_run=False)
+    G = NeuronGroup(10, "v:1")
+    S = Synapses(G, G, "w:1")
+    S.connect(j="i")
+    with pytest.raises(TypeError, match="string expression"):
+        S["i > 0"]
+    with pytest.raises(TypeError, match="string expression"):
+        G.indices["v > 0"]
+
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_storing_loading():
     set_device("cpp_standalone", build_on_run=False)
     G = NeuronGroup(
