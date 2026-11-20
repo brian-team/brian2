@@ -4,6 +4,7 @@ from numpy.testing import assert_array_equal, assert_equal
 from brian2 import *
 from brian2.core.clocks import EventClock
 from brian2.tests.test_network import NameLister
+from brian2.tests.utils import assert_allclose
 from brian2.units.fundamentalunits import DimensionMismatchError
 from brian2.utils.logger import catch_logs
 
@@ -161,6 +162,73 @@ def test_combined_clocks_with_run_at():
     assert updates == expected_output, f"Expected {expected_output}, got {updates}"
 
 
+@pytest.mark.codegen_independent
+def test_event_clock_set_interval_floating_point():
+    # The end of a run is accumulated in floating point, which can put it
+    # slightly after an event time. See github issue #1931.
+    exact_clock = EventClock(times=[100 * ms, 300 * ms])
+    accumulated_clock = EventClock(times=[100 * ms, 300 * ms])
+
+    exact_clock.set_interval(0 * ms, 0.3 * second)
+    # Three runs of 100 ms accumulate to 0.30000000000000004
+    accumulated_clock.set_interval(0 * ms, (0.1 + 0.1 + 0.1) * second)
+
+    for clock in (exact_clock, accumulated_clock):
+        assert_equal(clock.t, 100 * ms)
+        clock.advance()
+        assert_equal(clock.t, 300 * ms)
+        with pytest.raises(StopIteration):
+            clock.advance()
+
+
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
+def test_event_clock_run_at_chunked_runs():
+    # An event at the end of a run has to be executed exactly once, even if
+    # the accumulated end time is slightly larger than the event time.
+    # See github issue #1931.
+    defaultclock.dt = 1 * ms
+    G = NeuronGroup(
+        1,
+        """dsteps/dt = 1/ms : 1
+           n_event : 1""",
+        method="euler",
+    )
+    G.run_at("n_event += 1", times=[300] * ms)
+    mon = StateMonitor(G, "steps", record=0)
+    net = Network(G, mon)
+
+    for _ in range(5):  # 500 ms, in chunks of 100 ms
+        net.run(100 * ms)
+
+    device.build(direct_call=False, **device.build_options)
+
+    assert_equal(G.steps[0], 500)
+    assert_equal(G.n_event[0], 1)
+    assert_equal(len(mon.t), 500)
+    # No time step should be recorded twice
+    assert_equal(len(np.unique(mon.t)), 500)
+
+
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
+def test_state_monitor_event_clock_chunked_runs():
+    # An event at the end of a run has to be recorded exactly once.
+    # See github issue #1931.
+    G = NeuronGroup(1, "v : 1")
+    mon = StateMonitor(
+        G, "v", record=True, clock=EventClock(times=[1, 10, 100, 300] * ms)
+    )
+    net = Network(G, mon)
+
+    for _ in range(4):
+        net.run(100 * ms)
+
+    device.build(direct_call=False, **device.build_options)
+
+    assert_allclose(mon.t[:], [1, 10, 100, 300] * ms)
+
+
 if __name__ == "__main__":
     test_clock_attributes()
     restore_initial_state()
@@ -170,3 +238,9 @@ if __name__ == "__main__":
     test_set_interval_warning()
     test_event_clock()
     test_combined_clocks_with_run_at()
+    restore_initial_state()
+    test_event_clock_set_interval_floating_point()
+    restore_initial_state()
+    test_event_clock_run_at_chunked_runs()
+    restore_initial_state()
+    test_state_monitor_event_clock_chunked_runs()

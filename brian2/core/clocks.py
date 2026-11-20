@@ -152,6 +152,14 @@ class EventClock(BaseClock):
         An explicit name, if not specified gives an automatically generated name
     """
 
+    #: The tolerance (in seconds) used when comparing the start and end of a
+    #: run with the event times. Since an `EventClock` has no ``dt``, the
+    #: tolerance is an absolute value. It compensates for floating point
+    #: errors in the end time of a run, which is accumulated with
+    #: ``t + duration``, while staying far below the resolution of typical
+    #: simulations.
+    epsilon_t = 1e-9
+
     def __init__(self, times, name="eventclock*"):
         super().__init__(name=name)
         times = Quantity(times)
@@ -213,8 +221,8 @@ class EventClock(BaseClock):
         start = float(start)
         end = float(end)
 
-        start_idx = np.searchsorted(self._times, start)
-        end_idx = np.searchsorted(self._times, end)
+        start_idx = np.searchsorted(self._times, start - self.epsilon_t)
+        end_idx = np.searchsorted(self._times, end - self.epsilon_t)
 
         self.variables["timestep"].set_value(start_idx)
         self.variables["t"].set_value(self._times[start_idx])
