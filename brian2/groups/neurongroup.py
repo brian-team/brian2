@@ -203,6 +203,8 @@ class StateUpdater(CodeRunner):
 
     def _get_refractory_code(self, run_namespace):
         ref = self.group._refractory
+        if isinstance(ref, dict):
+            ref = ref.get("spike", False)
         if ref is False:
             # No refractoriness
             abstract_code = ""
@@ -607,7 +609,15 @@ class NeuronGroup(Group, SpikeSource):
         # All of the following will be created in before_run
 
         #: The refractory condition or timespan
-        self._refractory = refractory
+        if refractory is not False and refractory is not None:
+            if isinstance(refractory, (str, Quantity, numbers.Number)):
+                self._refractory = {"spike": refractory}
+            elif isinstance(refractory, dict):
+                self._refractory = refractory.copy()
+            else:
+                raise TypeError("refractory must be a string, Quantity, or dict")
+        else:
+            self._refractory = False
         if uses_refractoriness and refractory is False:
             logger.warn(
                 'Model equations use the "unless refractory" flag but '
@@ -845,12 +855,23 @@ class NeuronGroup(Group, SpikeSource):
 
         # Add the conditional-write attribute for variables with the
         # "unless refractory" flag
-        if self._refractory is not False:
-            for eq in self.equations.values():
-                if eq.type == DIFFERENTIAL_EQUATION and "unless refractory" in eq.flags:
-                    not_refractory_var = self.variables["not_refractory"]
-                    var = self.variables[eq.varname]
-                    var.set_conditional_write(not_refractory_var)
+        if self._refractory is not False and self._refractory is not None:
+            for event_name in self._refractory:
+                # This is special case where we are preserving legacy variabl names for standard 'spike'
+                if event_name == "spike":
+                    refractory_var_name = "not_refractory"
+                else:
+                    refractory_var_name = f"not_refractory_{event_name}"
+                # Conditional write if variable exists
+                if refractory_var_name in self.variables:
+                    not_refractory_var = self.variables[refractory_var_name]
+                    for eq in self.equations.values():
+                        if (
+                            eq.type == DIFFERENTIAL_EQUATION
+                            and "unless refractory" in eq.flags
+                        ):
+                            var = self.variables[eq.varname]
+                            var.set_conditional_write(not_refractory_var)
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
