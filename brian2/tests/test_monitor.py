@@ -420,6 +420,40 @@ def test_state_monitor():
 
 
 @pytest.mark.standalone_compatible
+def test_state_monitor_record_boolean_mask():
+    # See github issue #1913
+    G = NeuronGroup(3, "v : 1")
+    G.v = [10, 20, 30]
+
+    mon = StateMonitor(G, "v", record=np.array([True, False, True]))
+    assert_array_equal(mon.record, [0, 2])
+
+    mon_list = StateMonitor(G, "v", record=[True, False, True])
+    assert_array_equal(mon_list.record, [0, 2])
+
+    # A scalar numpy boolean should behave like True
+    mon_all = StateMonitor(G, "v", record=np.True_)
+    assert mon_all.record_all
+    assert_array_equal(mon_all.record, [0, 1, 2])
+
+    # Exact integer values are fine, non-integral ones are not
+    mon_float = StateMonitor(G, "v", record=[0.0, 2.0])
+    assert_array_equal(mon_float.record, [0, 2])
+    with pytest.raises(TypeError, match="integer"):
+        StateMonitor(G, "v", record=[1.7, 2.9])
+
+    # Boolean masks need one entry per source element
+    with pytest.raises(IndexError, match="Boolean index"):
+        StateMonitor(G, "v", record=np.array([True, False]))
+
+    run(defaultclock.dt)
+    assert_allclose(mon.v[:, 0], [10, 30])
+    assert_allclose(mon_list.v[:, 0], [10, 30])
+    assert_allclose(mon_all.v[:, 0], [10, 20, 30])
+    assert_allclose(mon_float.v[:, 0], [10, 30])
+
+
+@pytest.mark.standalone_compatible
 def test_state_monitor_event_clock():
     # Test recording at certain time points
     G = NeuronGroup(10, "dv/dt = -v / (10*ms) : 1")
