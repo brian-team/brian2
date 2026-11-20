@@ -570,6 +570,34 @@ def test_compiler_error():
             del os.environ["CXX"]
 
 
+def test_cython_compile_error_is_raised(monkeypatch, tmp_path):
+    # A code object that fails to compile must not be skipped silently, see
+    # github issue #1898.
+    from brian2.codegen.runtime.cython_rt import extension_manager
+
+    if extension_manager.Cython is None:
+        pytest.skip("Cython is not available")
+
+    def raise_compile_error(*args, **kwargs):
+        raise extension_manager.Cython_Compiler.Errors.CompileError(None, "test error")
+
+    monkeypatch.setattr(
+        extension_manager.Cython_Build, "cythonize", raise_compile_error
+    )
+    monkeypatch.setattr(
+        extension_manager, "get_cython_cache_dir", lambda: str(tmp_path)
+    )
+
+    with pytest.raises(
+        RuntimeError, match="Compiling the Cython code for 'compile_error_test'"
+    ):
+        extension_manager.cython_extension_manager.create_extension(
+            "def main(_namespace):\n    pass\n",
+            force=True,
+            owner_name="compile_error_test",
+        )
+
+
 def test_compiler_c99():
     # On a user's computer, we do not know whether the compiler actually
     # has C99 support, so we just check whether the test does not raise an
