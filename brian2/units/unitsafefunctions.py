@@ -259,7 +259,20 @@ def arange(*args, **kwargs):
         stop=stop,
         step=step,
     )
-    dim = getattr(stop, "dim", DIMENSIONLESS)
+    # If stop is a plain 0 (compatible with any dimensions), the two checks
+    # above do not compare start and step with each other
+    fail_for_dimension_mismatch(
+        start,
+        step,
+        error_message=(
+            "Start value {start} and step value {step} have to have the same units."
+        ),
+        start=start,
+        step=step,
+    )
+    # A plain 0 can stand in for any of the values, take the dimensions from
+    # the first argument that has them
+    dim = _dimensions_with_zero(_dimensions_with_zero(stop, start), step)
     # start is a position-only argument in numpy 2.0
     # https://numpy.org/devdocs/release/2.0.0-notes.html#arange-s-start-argument-is-positional-only
     # TODO: check whether this is still the case in the final release
