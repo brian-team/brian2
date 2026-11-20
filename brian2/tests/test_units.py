@@ -1339,6 +1339,21 @@ def test_arange_linspace():
     )
     with pytest.raises(DimensionMismatchError):
         brian2.linspace(1, 2 * mV)
+    # The same for arange, where the plain 0 can also be the stop value
+    assert_quantity(
+        brian2.arange(0, 3 * mV, 1 * mV), float(mV) * np.arange(0, 3, 1), mV
+    )
+    assert_quantity(
+        brian2.arange(-3 * mV, 0, 1 * mV), float(mV) * np.arange(-3, 0, 1), mV
+    )
+    assert_quantity(
+        brian2.arange(3 * mV, 0, -1 * mV), float(mV) * np.arange(3, 0, -1), mV
+    )
+    # start and step still need to have the same dimensions if stop is 0
+    with pytest.raises(DimensionMismatchError):
+        brian2.arange(-3 * mV, 0)
+    with pytest.raises(DimensionMismatchError):
+        brian2.arange(-3 * mV, 0, 1 * ms)
 
     # Check errors for arange with incorrect numbers of arguments/duplicate arguments
     with pytest.raises(TypeError):
