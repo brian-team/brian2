@@ -1298,6 +1298,23 @@ def test_numpy_functions_logical():
 
 
 @pytest.mark.codegen_independent
+def test_linspace_retstep():
+    values, step = brian2.linspace(0, 1, 5, retstep=True)
+    np_values, np_step = np.linspace(0, 1, 5, retstep=True)
+    assert_equal(values, np_values)
+    assert_equal(step, np_step)
+
+    values, step = brian2.linspace(1 * mV, 2 * mV, 5, retstep=True)
+    assert_quantity(values, float(mV) * np.linspace(1, 2, 5), mV)
+    assert_quantity(step, float(mV) * 0.25, mV)
+
+    # plain 0 as start, stop endpoint excluded
+    values, step = brian2.linspace(0, 2 * mV, 4, endpoint=False, retstep=True)
+    assert_quantity(values, float(mV) * np.linspace(0, 2, 4, endpoint=False), mV)
+    assert_quantity(step, float(mV) * 0.5, mV)
+
+
+@pytest.mark.codegen_independent
 def test_arange_linspace():
     # For dimensionless values, the unit-safe functions should give the same results
     assert_equal(brian2.arange(5), np.arange(5))
