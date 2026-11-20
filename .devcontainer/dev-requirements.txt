@@ -5,3 +5,4 @@ jupyterlab
 ipympl
 pre-commit == 3.3.*
 ruff == 0.14.2
+snakeviz

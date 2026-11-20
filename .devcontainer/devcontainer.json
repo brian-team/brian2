@@ -27,20 +27,30 @@
 					"editor.defaultFormatter": "charliermarsh.ruff",
 					"editor.formatOnSave": true,
 					"editor.tabSize": 4
-				}
+				},
+				"ruff.nativeServer": "on",
+				"ruff.organizeImports": true
 			},
 
 			// Add the IDs of extensions you want installed when the container is created.
 			"extensions": [
 				"ms-python.python",
 				"ms-python.vscode-pylance",
+				"ms-python.debugpy",
+				"ms-toolsai.jupyter",
 				"charliermarsh.ruff",
 				"ms-azuretools.vscode-docker"
 			]
 		}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	"forwardPorts": [8080],
+	"portsAttributes": {
+		"8080": {
+			"label": "snakeviz",
+			"onAutoForward": "notify"
+		}
+	},
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "pip3 install --user -r requirements.txt",
