@@ -307,6 +307,9 @@ def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
         retstep=retstep,
         dtype=dtype,
     )
+    if retstep:
+        result, step = result
+        return Quantity(result, dim=dim), Quantity(step, dim=dim)
     return Quantity(result, dim=dim)
 
 
