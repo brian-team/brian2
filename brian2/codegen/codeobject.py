@@ -108,14 +108,6 @@ class CodeObject(Nameable, ABC):
         """
         return True
 
-    def update_namespace(self):
-        """
-        Update the namespace for this timestep. Should only deal with variables
-        where *the reference* changes every timestep, i.e. where the current
-        reference in `namespace` is not correct.
-        """
-        pass
-
     @abstractmethod
     def compile_block(self, block): ...
 
@@ -124,7 +116,6 @@ class CodeObject(Nameable, ABC):
             self.compiled_code[block] = self.compile_block(block)
 
     def __call__(self, **kwds):
-        self.update_namespace()
         self.namespace.update(**kwds)
 
         return self.run()

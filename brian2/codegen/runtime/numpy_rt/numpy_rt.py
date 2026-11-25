@@ -201,14 +201,6 @@ class NumpyCodeObject(CodeObject):
         self.variables_to_namespace()
 
     def variables_to_namespace(self):
-        # Variables can refer to values that are either constant (e.g. dt)
-        # or change every timestep (e.g. t). We add the values of the
-        # constant variables here and add the names of non-constant variables
-        # to a list
-
-        # A list containing tuples of name and a function giving the value
-        self.nonconstant_values = []
-
         for name, var in self.variables.items():
             if isinstance(var, (AuxiliaryVariable, Subexpression)):
                 continue
@@ -244,23 +236,6 @@ class NumpyCodeObject(CodeObject):
             # Also provide the Variable object itself in the namespace (can be
             # necessary for resize operations, for example)
             self.namespace[f"_var_{name}"] = var
-
-            # There is one type of objects that we have to inject into the
-            # namespace with their current value at each time step: dynamic
-            # arrays that change in size during runs (i.e. not synapses but
-            # e.g. the structures used in monitors)
-            if isinstance(var, DynamicArrayVariable) and var.needs_reference_update:
-                self.nonconstant_values.append(
-                    (
-                        self.generator_class.get_array_name(var, self.variables),
-                        var.get_value,
-                    )
-                )
-
-    def update_namespace(self):
-        # update the values of the non-constant values in the namespace
-        for name, func in self.nonconstant_values:
-            self.namespace[name] = func()
 
     def compile_block(self, block):
         code = getattr(self.code, block, "").strip()

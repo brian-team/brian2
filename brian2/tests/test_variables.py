@@ -19,17 +19,6 @@ def test_construction_errors():
     with pytest.raises(ValueError):
         Variable(name="name", dimensions=second.dim, dtype=bool)
 
-    # Dynamic array variable that is constant but not constant in size
-    with pytest.raises(ValueError):
-        DynamicArrayVariable(
-            name="name",
-            owner=None,
-            size=0,
-            device=None,
-            constant=True,
-            needs_reference_update=True,
-        )
-
 
 @pytest.mark.codegen_independent
 def test_str_repr():

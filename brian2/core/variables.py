@@ -563,10 +563,6 @@ class DynamicArrayVariable(ArrayVariable):
     constant : bool, optional
         Whether the variable's value is constant during a run.
         Defaults to ``False``.
-    needs_reference_update : bool, optional
-        Whether the code objects need a new reference to the underlying data at
-        every time step. This should be set if the size of the array can be
-        changed by other code objects. Defaults to ``False``.
     scalar : bool, optional
         Whether this array is a 1-element array that should be treated like a
         scalar (e.g. for a single delay value across synapses). Defaults to
@@ -597,7 +593,6 @@ class DynamicArrayVariable(ArrayVariable):
         dimensions=DIMENSIONLESS,
         dtype=None,
         constant=False,
-        needs_reference_update=False,
         resize_along_first=False,
         scalar=False,
         read_only=False,
@@ -610,12 +605,6 @@ class DynamicArrayVariable(ArrayVariable):
 
         #: The number of dimensions
         self.ndim = ndim
-
-        if constant and needs_reference_update:
-            raise ValueError("A variable cannot be constant and need reference updates")
-        #: Whether this variable needs an update of the reference to the
-        #: underlying data whenever it is passed to a code object
-        self.needs_reference_update = needs_reference_update
 
         #: Whether this array will be only resized along the first dimension
         self.resize_along_first = resize_along_first
@@ -1890,7 +1879,6 @@ class Variables(Mapping):
         values=None,
         dtype=None,
         constant=False,
-        needs_reference_update=False,
         resize_along_first=False,
         read_only=False,
         unique=False,
@@ -1917,10 +1905,6 @@ class Variables(Mapping):
         constant : bool, optional
             Whether the variable's value is constant during a run.
             Defaults to ``False``.
-        needs_reference_update : bool, optional
-            Whether the code objects need a new reference to the underlying data at
-            every time step. This should be set if the size of the array can be
-            changed by other code objects. Defaults to ``False``.
         scalar : bool, optional
             Whether this is a scalar variable. Defaults to ``False``, if set to
             ``True``, also implies that `size` equals 1.
@@ -1942,7 +1926,6 @@ class Variables(Mapping):
             size=size,
             dtype=dtype,
             constant=constant,
-            needs_reference_update=needs_reference_update,
             resize_along_first=resize_along_first,
             scalar=scalar,
             read_only=read_only,
