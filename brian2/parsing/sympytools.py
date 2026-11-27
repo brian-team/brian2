@@ -143,6 +143,7 @@ def sympy_to_str(sympy_expr):
         The expression that should be converted to a string.
 
     Returns
+    -------
     str_expr : str
         A string representing the sympy expression.
     """
